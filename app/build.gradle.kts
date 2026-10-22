@@ -27,10 +27,13 @@ android {
     kotlinOptions { jvmTarget = "17" }
     buildFeatures { compose = true }
     lint { abortOnError = false }
+    packaging { jniLibs { useLegacyPackaging = true } }
 }
 
 dependencies {
     implementation(project(":terminal-view"))
+    implementation("org.apache.commons:commons-compress:1.27.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
     implementation(platform("androidx.compose:compose-bom:2024.12.01"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.material3:material3")

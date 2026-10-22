@@ -8,18 +8,27 @@ import android.util.TypedValue
 import android.view.KeyEvent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -37,36 +46,109 @@ import com.termux.view.TerminalView
 fun TerminalScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val perm = Manifest.permission.WRITE_EXTERNAL_STORAGE
-    var ready by remember {
+    var granted by remember {
         mutableStateOf(context.checkSelfPermission(perm) == PackageManager.PERMISSION_GRANTED)
     }
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
-        ready = true // izin ditolak pun lanjut (cwd fallback ke filesDir)
+        granted = true // ditolak pun lanjut (cwd fallback)
     }
-    LaunchedEffect(Unit) { if (!ready) launcher.launch(perm) }
+    LaunchedEffect(Unit) { if (!granted) launcher.launch(perm) }
 
-    if (!ready) {
+    if (!granted) {
         Box(modifier, contentAlignment = Alignment.Center) {
             Text("Meminta izin penyimpanan...", color = MaterialTheme.colorScheme.onSurface)
         }
     } else {
-        val mods = remember { TerminalModifiers() }
-        Column(modifier) {
-            AndroidView(
-                modifier = Modifier.weight(1f).fillMaxWidth(),
-                factory = { ctx -> createTerminalView(ctx, mods) },
-                onRelease = { v ->
-                    if (TerminalSessions.client.view === v) TerminalSessions.client.view = null
+        TerminalContent(modifier)
+    }
+}
+
+@Composable
+private fun TerminalContent(modifier: Modifier) {
+    val context = LocalContext.current
+    val mods = remember { TerminalModifiers() }
+    remember(context) { RootfsManager.refresh(context) }
+    val rootfsState by RootfsManager.state.collectAsState()
+    val kind = TerminalSessions.selected
+
+    Column(modifier) {
+        KindTabs(kind)
+        Box(Modifier.weight(1f).fillMaxWidth()) {
+            if (kind == SessionKind.Debian && rootfsState !is RootfsState.Ready) {
+                InstallPanel(rootfsState) { RootfsManager.install(context) }
+            } else {
+                key(kind) {
+                    AndroidView(
+                        modifier = Modifier.fillMaxSize(),
+                        factory = { ctx -> createTerminalView(ctx, mods, kind) },
+                        onRelease = { v ->
+                            if (TerminalSessions.client.view === v) TerminalSessions.client.view = null
+                        }
+                    )
                 }
-            )
-            ExtraKeys(mods)
+            }
+        }
+        ExtraKeys(mods)
+    }
+}
+
+@Composable
+private fun KindTabs(selected: SessionKind) {
+    Row(Modifier.fillMaxWidth()) {
+        SessionKind.entries.forEach { k ->
+            TextButton(onClick = { TerminalSessions.selected = k }) {
+                Text(
+                    k.label,
+                    fontWeight = if (k == selected) FontWeight.Bold else FontWeight.Normal,
+                    color = if (k == selected) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurface
+                )
+            }
         }
     }
 }
 
-private fun createTerminalView(ctx: Context, mods: TerminalModifiers): TerminalView {
+@Composable
+private fun InstallPanel(state: RootfsState, onInstall: () -> Unit) {
+    Column(
+        Modifier.fillMaxSize().padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("Debian trixie (arm64)", style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface)
+        Spacer(Modifier.height(12.dp))
+        when (state) {
+            is RootfsState.Downloading -> {
+                Text("Mengunduh... ${state.percent}%", color = MaterialTheme.colorScheme.onSurface)
+                Spacer(Modifier.height(8.dp))
+                LinearProgressIndicator(progress = { state.percent / 100f })
+            }
+            is RootfsState.Verifying ->
+                Text("Memverifikasi SHA-256...", color = MaterialTheme.colorScheme.onSurface)
+            is RootfsState.Extracting -> {
+                Text("Mengekstrak... ${state.percent}%", color = MaterialTheme.colorScheme.onSurface)
+                Spacer(Modifier.height(8.dp))
+                LinearProgressIndicator(progress = { state.percent / 100f })
+            }
+            is RootfsState.Failed -> {
+                Text("Gagal: ${state.message}", color = MaterialTheme.colorScheme.error)
+                Spacer(Modifier.height(8.dp))
+                Button(onClick = onInstall) { Text("Coba lagi") }
+            }
+            else -> {
+                Text("Belum terpasang. Unduhan sekitar 30 MB, ruang akhir sekitar 105 MB.",
+                    color = MaterialTheme.colorScheme.onSurface)
+                Spacer(Modifier.height(8.dp))
+                Button(onClick = onInstall) { Text("Pasang Debian") }
+            }
+        }
+    }
+}
+
+private fun createTerminalView(ctx: Context, mods: TerminalModifiers, kind: SessionKind): TerminalView {
     val view = TerminalView(ctx, null)
-    val session = TerminalSessions.main(ctx)
+    val session = TerminalSessions.session(ctx, kind)
     TerminalSessions.client.view = view
     view.setTerminalViewClient(MolinaViewClient(view, mods))
     view.setTextSize(
