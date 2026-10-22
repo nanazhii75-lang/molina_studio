@@ -1,15 +1,31 @@
 package com.molina.studio.terminal
 
 import android.content.Context
-import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.util.Log
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.SharedPreferencesMigration
+import androidx.datastore.preferences.core.MutablePreferences
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
 import java.io.File
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 /** Tema warna prompt. SGR dipakai bashrc; Color dipakai pratinjau di Settings. */
 enum class PromptTheme(
@@ -41,7 +57,83 @@ enum class PromptTheme(
     }
 }
 
-/** Preferensi terminal Molina (SharedPreferences; state-nya observable oleh Compose). */
+/** Snapshot immutable seluruh preferensi terminal (aman dibaca dari thread mana pun). */
+data class TerminalSettings(
+    val fontSp: Int = TerminalPrefs.DEFAULT_FONT_SP,
+    val promptTheme: PromptTheme = PromptTheme.CinemaGold,
+    val logLevel: Int = TerminalPrefs.LOG_NORMAL,
+    val keyLogging: Boolean = false,
+    val pluginErrorNotifications: Boolean = true,
+    val crashNotifications: Boolean = true,
+    val softKeyboard: Boolean = true,
+    val softKeyboardOnlyIfNoHardware: Boolean = false,
+    val marginAdjustment: Boolean = true,
+    val logcatReporter: Boolean = false
+)
+
+/**
+ * Penyimpanan DataStore. Nama "molina_terminal" sama dengan file SharedPreferences lama,
+ * sehingga [SharedPreferencesMigration] memindahkan nilai pengguna secara otomatis (sekali).
+ */
+private val Context.terminalStore: DataStore<Preferences> by preferencesDataStore(
+    name = "molina_terminal",
+    produceMigrations = { ctx -> listOf(SharedPreferencesMigration(ctx, "molina_terminal")) }
+)
+
+private object PrefKeys {
+    val FONT_SP = intPreferencesKey("font_sp")
+    val PROMPT_THEME = stringPreferencesKey("prompt_theme")
+    val LOG_LEVEL = intPreferencesKey("log_level")
+    val KEY_LOGGING = booleanPreferencesKey("key_logging")
+    val PLUGIN_ERRORS = booleanPreferencesKey("plugin_error_notifications")
+    val CRASH_NOTIF = booleanPreferencesKey("crash_notifications")
+    val SOFT_KEYBOARD = booleanPreferencesKey("soft_keyboard")
+    val SOFT_KEYBOARD_NO_HW = booleanPreferencesKey("soft_keyboard_only_if_no_hw")
+    val MARGIN_ADJ = booleanPreferencesKey("margin_adjustment")
+    val LOGCAT = booleanPreferencesKey("logcat_reporter")
+}
+
+private fun Preferences.toSettings(): TerminalSettings {
+    val d = TerminalSettings()
+    return TerminalSettings(
+        fontSp = (this[PrefKeys.FONT_SP] ?: d.fontSp)
+            .coerceIn(TerminalPrefs.MIN_FONT_SP, TerminalPrefs.MAX_FONT_SP),
+        promptTheme = PromptTheme.fromId(this[PrefKeys.PROMPT_THEME]),
+        logLevel = (this[PrefKeys.LOG_LEVEL] ?: d.logLevel)
+            .coerceIn(TerminalPrefs.LOG_OFF, TerminalPrefs.LOG_VERBOSE),
+        keyLogging = this[PrefKeys.KEY_LOGGING] ?: d.keyLogging,
+        pluginErrorNotifications = this[PrefKeys.PLUGIN_ERRORS] ?: d.pluginErrorNotifications,
+        crashNotifications = this[PrefKeys.CRASH_NOTIF] ?: d.crashNotifications,
+        softKeyboard = this[PrefKeys.SOFT_KEYBOARD] ?: d.softKeyboard,
+        softKeyboardOnlyIfNoHardware = this[PrefKeys.SOFT_KEYBOARD_NO_HW] ?: d.softKeyboardOnlyIfNoHardware,
+        marginAdjustment = this[PrefKeys.MARGIN_ADJ] ?: d.marginAdjustment,
+        logcatReporter = this[PrefKeys.LOGCAT] ?: d.logcatReporter
+    )
+}
+
+private fun MutablePreferences.write(s: TerminalSettings) {
+    this[PrefKeys.FONT_SP] = s.fontSp
+    this[PrefKeys.PROMPT_THEME] = s.promptTheme.id
+    this[PrefKeys.LOG_LEVEL] = s.logLevel
+    this[PrefKeys.KEY_LOGGING] = s.keyLogging
+    this[PrefKeys.PLUGIN_ERRORS] = s.pluginErrorNotifications
+    this[PrefKeys.CRASH_NOTIF] = s.crashNotifications
+    this[PrefKeys.SOFT_KEYBOARD] = s.softKeyboard
+    this[PrefKeys.SOFT_KEYBOARD_NO_HW] = s.softKeyboardOnlyIfNoHardware
+    this[PrefKeys.MARGIN_ADJ] = s.marginAdjustment
+    this[PrefKeys.LOGCAT] = s.logcatReporter
+}
+
+/**
+ * Preferensi terminal Molina.
+ *
+ * - Sumber kebenaran: [settings] (StateFlow) untuk collector non-UI; properti di bawah
+ *   (`fontSp`, `logLevel`, ...) membaca mirror state Compose sehingga UI tetap recompose
+ *   tanpa perubahan di call site.
+ * - Setter hanya memperbarui memori (tanpa I/O di thread pemanggil). Persistensi ke
+ *   DataStore berjalan di Dispatchers.IO dan otomatis digabung (conflated), sehingga
+ *   drag slider font tidak menghasilkan tulis berurutan yang saling menimpa.
+ */
 object TerminalPrefs {
     const val MIN_FONT_SP = 8
     const val MAX_FONT_SP = 14
@@ -52,53 +144,63 @@ object TerminalPrefs {
     const val LOG_DEBUG = 2
     const val LOG_VERBOSE = 3
 
-    private const val FILE = "molina_terminal"
-    private var sp: SharedPreferences? = null
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val flow = MutableStateFlow(TerminalSettings())
+    private var ui by mutableStateOf(TerminalSettings())
+    private var store: DataStore<Preferences>? = null
 
-    var fontSp by mutableIntStateOf(DEFAULT_FONT_SP); private set
-    var promptTheme by mutableStateOf(PromptTheme.CinemaGold); private set
-    var logLevel by mutableIntStateOf(LOG_NORMAL); private set
-    var keyLogging by mutableStateOf(false); private set
-    var pluginErrorNotifications by mutableStateOf(true); private set
-    var crashNotifications by mutableStateOf(true); private set
-    var softKeyboard by mutableStateOf(true); private set
-    var softKeyboardOnlyIfNoHardware by mutableStateOf(false); private set
-    var marginAdjustment by mutableStateOf(true); private set
-    var logcatReporter by mutableStateOf(false); private set
+    /** Aliran reaktif seluruh preferensi (untuk service, Molina Player/mpv, dsb.). */
+    val settings: StateFlow<TerminalSettings> = flow.asStateFlow()
 
-    /** Aman dipanggil berulang; hanya memuat sekali. */
+    val fontSp: Int get() = ui.fontSp
+    val promptTheme: PromptTheme get() = ui.promptTheme
+    val logLevel: Int get() = ui.logLevel
+    val keyLogging: Boolean get() = ui.keyLogging
+    val pluginErrorNotifications: Boolean get() = ui.pluginErrorNotifications
+    val crashNotifications: Boolean get() = ui.crashNotifications
+    val softKeyboard: Boolean get() = ui.softKeyboard
+    val softKeyboardOnlyIfNoHardware: Boolean get() = ui.softKeyboardOnlyIfNoHardware
+    val marginAdjustment: Boolean get() = ui.marginAdjustment
+    val logcatReporter: Boolean get() = ui.logcatReporter
+
+    /**
+     * Aman dipanggil berulang; hanya memuat sekali. Pemuatan awal sengaja sinkron
+     * (satu kali, berkas kecil) karena pemanggil langsung membaca nilai setelahnya.
+     */
     @Synchronized
     fun init(ctx: Context) {
-        if (sp != null) return
-        val p = ctx.applicationContext.getSharedPreferences(FILE, Context.MODE_PRIVATE)
-        sp = p
-        fontSp = p.getInt("font_sp", DEFAULT_FONT_SP).coerceIn(MIN_FONT_SP, MAX_FONT_SP)
-        promptTheme = PromptTheme.fromId(p.getString("prompt_theme", null))
-        logLevel = p.getInt("log_level", LOG_NORMAL).coerceIn(LOG_OFF, LOG_VERBOSE)
-        keyLogging = p.getBoolean("key_logging", false)
-        pluginErrorNotifications = p.getBoolean("plugin_error_notifications", true)
-        crashNotifications = p.getBoolean("crash_notifications", true)
-        softKeyboard = p.getBoolean("soft_keyboard", true)
-        softKeyboardOnlyIfNoHardware = p.getBoolean("soft_keyboard_only_if_no_hw", false)
-        marginAdjustment = p.getBoolean("margin_adjustment", true)
-        logcatReporter = p.getBoolean("logcat_reporter", false)
+        if (store != null) return
+        val ds = ctx.applicationContext.terminalStore
+        val loaded = runCatching { runBlocking(Dispatchers.IO) { ds.data.first().toSettings() } }
+            .getOrDefault(TerminalSettings())
+        store = ds
+        publish(loaded)
+        scope.launch {
+            var saved = loaded
+            flow.collect { s ->
+                if (s != saved) {
+                    runCatching { ds.edit { it.write(s) } }
+                    saved = s
+                }
+            }
+        }
     }
 
-    private fun putInt(k: String, v: Int) { sp?.edit()?.putInt(k, v)?.apply() }
-    private fun putBool(k: String, v: Boolean) { sp?.edit()?.putBoolean(k, v)?.apply() }
-
-    @JvmName("applyFontSp")
-    fun setFontSp(v: Int) {
-        val c = v.coerceIn(MIN_FONT_SP, MAX_FONT_SP)
-        if (c == fontSp) return
-        fontSp = c
-        putInt("font_sp", c)
+    private fun publish(s: TerminalSettings) {
+        flow.value = s
+        ui = s
     }
+
+    @Synchronized
+    private fun update(transform: TerminalSettings.() -> TerminalSettings) {
+        publish(flow.value.transform())
+    }
+
+    fun setFontSp(v: Int) = update { copy(fontSp = v.coerceIn(MIN_FONT_SP, MAX_FONT_SP)) }
 
     /** Simpan tema, lalu tulis ulang prompt.env agar prompt berikutnya langsung berwarna baru. */
     fun setPromptTheme(ctx: Context, t: PromptTheme) {
-        promptTheme = t
-        sp?.edit()?.putString("prompt_theme", t.id)?.apply()
+        update { copy(promptTheme = t) }
         val app = ctx.applicationContext
         Thread {
             runCatching {
@@ -108,24 +210,14 @@ object TerminalPrefs {
         }.apply { isDaemon = true; name = "molina-prompt-theme" }.start()
     }
 
-    @JvmName("applyLogLevel")
-    fun setLogLevel(v: Int) { logLevel = v.coerceIn(LOG_OFF, LOG_VERBOSE); putInt("log_level", logLevel) }
-    @JvmName("applyKeyLogging")
-    fun setKeyLogging(v: Boolean) { keyLogging = v; putBool("key_logging", v) }
-    @JvmName("applyPluginErrorNotifications")
-    fun setPluginErrorNotifications(v: Boolean) { pluginErrorNotifications = v; putBool("plugin_error_notifications", v) }
-    @JvmName("applyCrashNotifications")
-    fun setCrashNotifications(v: Boolean) { crashNotifications = v; putBool("crash_notifications", v) }
-    @JvmName("applySoftKeyboard")
-    fun setSoftKeyboard(v: Boolean) { softKeyboard = v; putBool("soft_keyboard", v) }
-    @JvmName("applySoftKeyboardOnlyIfNoHardware")
-    fun setSoftKeyboardOnlyIfNoHardware(v: Boolean) {
-        softKeyboardOnlyIfNoHardware = v; putBool("soft_keyboard_only_if_no_hw", v)
-    }
-    @JvmName("applyMarginAdjustment")
-    fun setMarginAdjustment(v: Boolean) { marginAdjustment = v; putBool("margin_adjustment", v) }
-    @JvmName("applyLogcatReporter")
-    fun setLogcatReporter(v: Boolean) { logcatReporter = v; putBool("logcat_reporter", v) }
+    fun setLogLevel(v: Int) = update { copy(logLevel = v.coerceIn(LOG_OFF, LOG_VERBOSE)) }
+    fun setKeyLogging(v: Boolean) = update { copy(keyLogging = v) }
+    fun setPluginErrorNotifications(v: Boolean) = update { copy(pluginErrorNotifications = v) }
+    fun setCrashNotifications(v: Boolean) = update { copy(crashNotifications = v) }
+    fun setSoftKeyboard(v: Boolean) = update { copy(softKeyboard = v) }
+    fun setSoftKeyboardOnlyIfNoHardware(v: Boolean) = update { copy(softKeyboardOnlyIfNoHardware = v) }
+    fun setMarginAdjustment(v: Boolean) = update { copy(marginAdjustment = v) }
+    fun setLogcatReporter(v: Boolean) = update { copy(logcatReporter = v) }
 
     /** Keyboard layar boleh tampil? (Soft Keyboard Enabled + Only If No Hardware). */
     fun softKeyboardAllowed(ctx: Context): Boolean {

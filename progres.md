@@ -23,6 +23,7 @@
 - 2026-10-23: Terminal v3: multi-session maksimal 5 (TerminalSessions berbasis daftar, sesi berakhir/di-kill menutup tab, sesi terakhir = keluar app), drawer sesi ala Termux (daftar [n], KEYBOARD, NEW SESSION, gear ke Settings > Terminal) dengan tombol ✕ konfirmasi untuk kill tab, tombol ≡ tap/swipe membuka drawer (tekan lama = menu simbol). Menunggu CI + uji perangkat.
 - 2026-10-23: Fix build CI: import `pointerInput` di SessionDrawer.kt & TerminalScreen.kt dikoreksi ke `androidx.compose.ui.input.pointer.pointerInput` (error `detectHorizontalDragGestures` adalah efek turunan). Menunggu CI + uji perangkat.
 - 2026-10-23: Fix build CI: Platform declaration clash di TerminalPrefs.kt (property `private set` vs `fun setX()` eksplisit) diselesaikan dengan `@JvmName("applyX")` pada 9 setter; API Kotlin & call site tidak berubah. Menunggu CI + uji perangkat.
+- 2026-10-23: Refactor TerminalPrefs: SharedPreferences -> DataStore (migrasi otomatis dari file lama `molina_terminal`) + `StateFlow<TerminalSettings>` (`TerminalPrefs.settings`); setter tanpa I/O di thread pemanggil, tulis disk async & conflated di Dispatchers.IO. Sekaligus menyelesaikan Platform declaration clash (properti kini `val` tanpa setter). API/call site tidak berubah. Menunggu CI + uji perangkat.
 
 ## Backlog Lintas Fase
 - Fase 5 (Cinema/mpv): daftarkan `AppExit.register("mpv") { MPVLib.destroy() }`.
