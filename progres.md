@@ -26,6 +26,7 @@
 - 2026-10-23: Refactor TerminalPrefs: SharedPreferences -> DataStore (migrasi otomatis dari file lama `molina_terminal`) + `StateFlow<TerminalSettings>` (`TerminalPrefs.settings`); setter tanpa I/O di thread pemanggil, tulis disk async & conflated di Dispatchers.IO. Sekaligus menyelesaikan Platform declaration clash (properti kini `val` tanpa setter). API/call site tidak berubah. Menunggu CI + uji perangkat.
 - 2026-10-23: Refactor gestur: `Modifier.onHorizontalSwipe(threshold: Dp, direction, onTrigger)` di `com.molina.studio.ui` menggantikan blok `pointerInput`+`detectHorizontalDragGestures` duplikat di SessionDrawer & TerminalScreen (ambang px mentah -> dp: 60px->22dp tutup drawer, 48px->18dp buka drawer; lambda tidak basi). Menunggu CI + uji perangkat.
 - 2026-10-23: Fix UI: tema prompt default Cinema Gold -> Molina Classic (home hijau, selain home merah; banner tetap emas); kunci tersimpan diganti `prompt_theme_v2` agar nilai lama (cinema_gold yang ikut tertulis oleh refactor DataStore) tidak menimpa default; tombol KEYBOARD/NEW SESSION di drawer: teks 12sp -> 10sp, lebar 108dp (rata tengah). Menunggu CI + uji perangkat.
+- 2026-10-23: Cleanup: konstanta `MolinaShell.PS_HOME_SGR` & `PS_OTHER_SGR` (tidak terpakai) dihapus; `PromptTheme` kini satu-satunya sumber warna prompt. Diverifikasi: CI hijau sebelum perubahan, tidak ada pemakaian di kode/assets/gradle. Menunggu CI.
 
 ## Backlog Lintas Fase
 - Fase 5 (Cinema/mpv): daftarkan `AppExit.register("mpv") { MPVLib.destroy() }`.
@@ -34,4 +35,3 @@
 - Catatan: bila kelak memakai sharedUserId, sapuan /proc di AppExit harus dipersempit.
 - Fase 5 (Cinema/mpv): buat `MpvSettings` + `MpvPrefs` dengan pola `TerminalPrefs` (data class snapshot, `PrefKeys`, satu fungsi `update {}`, DataStore + `StateFlow`, tulis disk async & conflated). Ekstrak base class generik HANYA bila sudah ada 3 store atau lebih; jangan lebih awal.
 - Semua modul (Cinema/Code/Settings): gestur geser horizontal wajib lewat `Modifier.onHorizontalSwipe` (`com.molina.studio.ui`); jangan menulis `pointerInput` + `detectHorizontalDragGestures` manual lagi.
-- Cleanup (setelah build hijau): hapus `MolinaShell.PS_HOME_SGR` dan `MolinaShell.PS_OTHER_SGR` (tidak terpakai; warna prompt sebenarnya dari `PromptTheme`), agar `PromptTheme` jadi satu-satunya sumber kebenaran warna prompt.
