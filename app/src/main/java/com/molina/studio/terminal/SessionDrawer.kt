@@ -46,8 +46,9 @@ import com.molina.studio.ui.onHorizontalSwipe
 
 private val Gold = Color(0xFFE6B450)
 private val CloseRed = Color(0xFFFF8A80)
-private val DrawerButtonWidth = 108.dp
-private val DrawerButtonTextSp = 10.sp
+private val DrawerWidth = 240.dp
+private val DrawerButtonWidth = 100.dp
+private val DrawerButtonTextSp = 8.sp
 
 /**
  * Drawer sesi ala Termux: daftar sesi [1] [2] ... (maks. TerminalSessions.MAX_SESSIONS),
@@ -72,7 +73,7 @@ fun SessionDrawer(open: Boolean, onClose: () -> Unit, onOpenSettings: () -> Unit
                     indication = null, onClick = onClose)
         )
         Column(
-            Modifier.fillMaxHeight().width(300.dp)
+            Modifier.fillMaxHeight().width(DrawerWidth)
                 .background(MaterialTheme.colorScheme.surface)
                 .clickable(interactionSource = swallow, indication = null, onClick = {})
                 .onHorizontalSwipe(22.dp, SwipeDirection.Left) { onClose() }
