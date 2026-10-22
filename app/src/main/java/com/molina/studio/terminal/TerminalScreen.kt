@@ -9,6 +9,10 @@ import android.widget.Toast
 import android.view.KeyEvent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -49,7 +53,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.termux.view.TerminalView
 
 /** Ukuran font terminal (sp). Nanti dijadikan opsi di Settings Hub. */
-private const val TERMINAL_TEXT_SP = 11f
+private const val TERMINAL_TEXT_SP = 9f
 
 @Composable
 fun TerminalScreen(modifier: Modifier = Modifier) {
@@ -98,6 +102,10 @@ private fun TerminalContent(modifier: Modifier) {
     }
 }
 
+private val KeyRed = Color(0xFFFF8A80)    // ESC, CLEAR
+private val KeyBlue = Color(0xFF82B1FF)   // HOME, panah
+private val KeyGreen = Color(0xFF69F0AE)  // COPY, PASTE
+private val KeyAmber = Color(0xFFFFD54F)  // CTRL, ALT, TAB, menu
 private val DownloadColor = Color(0xFF81D4FA) // biru muda
 private val UploadColor = Color(0xFFEF5350)   // merah
 private val NormalColor = Color.White
@@ -207,13 +215,13 @@ private fun ExtraKeys(mods: TerminalModifiers) {
     }
     Column(Modifier.fillMaxWidth()) {
         Row(Modifier.fillMaxWidth()) {
-            Key("ESC") { TerminalActions.send("\u001b") }
-            MenuKey("\u2261", menu)
-            Key("\u2014") { TerminalActions.send("-") }
-            Key("HOME") { TerminalActions.sendKey(KeyEvent.KEYCODE_MOVE_HOME) }
-            Key("\u2191") { TerminalActions.sendKey(KeyEvent.KEYCODE_DPAD_UP) }
-            Key("CLEAR") { TerminalActions.clear() }
-            Key("COPY") {
+            Key("ESC", color = KeyRed) { TerminalActions.send("\u001b") }
+            MenuKey("\u2261", menu, KeyAmber)
+            Key("\u2014", color = KeyAmber) { TerminalActions.send("-") }
+            Key("HOME", color = KeyBlue) { TerminalActions.sendKey(KeyEvent.KEYCODE_MOVE_HOME) }
+            Key("\u2191", color = KeyBlue) { TerminalActions.sendKey(KeyEvent.KEYCODE_DPAD_UP) }
+            Key("CLEAR", color = KeyRed) { TerminalActions.clear() }
+            Key("COPY", color = KeyGreen) {
                 val ok = TerminalActions.copyAll(ctx)
                 Toast.makeText(
                     ctx, if (ok) "Seluruh teks terminal disalin" else "Tidak ada teks untuk disalin",
@@ -222,27 +230,36 @@ private fun ExtraKeys(mods: TerminalModifiers) {
             }
         }
         Row(Modifier.fillMaxWidth()) {
-            Key("\u21C6") { TerminalActions.send("\t") }
-            Key("CTRL", active = mods.ctrl) { mods.ctrl = !mods.ctrl }
-            Key("ALT", active = mods.alt) { mods.alt = !mods.alt }
-            Key("\u2190") { TerminalActions.sendKey(KeyEvent.KEYCODE_DPAD_LEFT) }
-            Key("\u2193") { TerminalActions.sendKey(KeyEvent.KEYCODE_DPAD_DOWN) }
-            Key("\u2192") { TerminalActions.sendKey(KeyEvent.KEYCODE_DPAD_RIGHT) }
-            Key("PASTE") { TerminalActions.paste(ctx) }
+            Key("\u21C6", color = KeyAmber) { TerminalActions.send("\t") }
+            Key("CTRL", active = mods.ctrl, color = KeyAmber) { mods.ctrl = !mods.ctrl }
+            Key("ALT", active = mods.alt, color = KeyAmber) { mods.alt = !mods.alt }
+            Key("\u2190", color = KeyBlue) { TerminalActions.sendKey(KeyEvent.KEYCODE_DPAD_LEFT) }
+            Key("\u2193", color = KeyBlue) { TerminalActions.sendKey(KeyEvent.KEYCODE_DPAD_DOWN) }
+            Key("\u2192", color = KeyBlue) { TerminalActions.sendKey(KeyEvent.KEYCODE_DPAD_RIGHT) }
+            Key("PASTE", color = KeyGreen) { TerminalActions.paste(ctx) }
         }
     }
 }
 
 @Composable
-private fun RowScope.Key(label: String, active: Boolean = false, onClick: () -> Unit) {
-    Box(Modifier.weight(1f)) { KeyButton(label, active, onClick) }
+private fun RowScope.Key(
+    label: String,
+    active: Boolean = false,
+    color: Color = Color.Unspecified,
+    onClick: () -> Unit
+) {
+    Box(Modifier.weight(1f)) { KeyButton(label, active, color, onClick) }
 }
 
 @Composable
-private fun RowScope.MenuKey(label: String, items: List<Pair<String, () -> Unit>>) {
+private fun RowScope.MenuKey(
+    label: String,
+    items: List<Pair<String, () -> Unit>>,
+    color: Color = Color.Unspecified
+) {
     var open by remember { mutableStateOf(false) }
     Box(Modifier.weight(1f)) {
-        KeyButton(label, false) { open = true }
+        KeyButton(label, false, color) { open = true }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             items.forEach { (text, action) ->
                 DropdownMenuItem(text = { Text(text) }, onClick = { open = false; action() })
@@ -252,19 +269,28 @@ private fun RowScope.MenuKey(label: String, items: List<Pair<String, () -> Unit>
 }
 
 @Composable
-private fun KeyButton(label: String, active: Boolean, onClick: () -> Unit) {
+private fun KeyButton(label: String, active: Boolean, tint: Color, onClick: () -> Unit) {
+    val haptic = LocalHapticFeedback.current
+    val base = if (tint == Color.Unspecified) MaterialTheme.colorScheme.onSurface else tint
     TextButton(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
+        onClick = {
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            onClick()
+        },
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                if (active) base.copy(alpha = 0.22f) else Color.Transparent,
+                RoundedCornerShape(8.dp)
+            ),
         contentPadding = PaddingValues(0.dp)
     ) {
         Text(
             label,
             fontSize = 13.sp,
             maxLines = 1,
-            fontWeight = if (active) FontWeight.Bold else FontWeight.Normal,
-            color = if (active) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurface
+            fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
+            color = if (active) base else base.copy(alpha = 0.85f)
         )
     }
 }

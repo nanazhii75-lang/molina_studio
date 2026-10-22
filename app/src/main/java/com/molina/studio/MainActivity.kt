@@ -1,10 +1,25 @@
 package com.molina.studio
 
+import android.graphics.Rect
 import android.os.Bundle
+import android.view.ViewTreeObserver
 import com.molina.studio.log.LogServer
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.NavigationBar
@@ -21,11 +36,29 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 
-private enum class Tab(val label: String, val glyph: String) {
-    Mpv("mpv", "\u25B6"),
-    Terminal("Terminal", ">_"),
-    Code("Code", "< >"),
-    Settings("Settings", "\u2699")
+private enum class Tab(val label: String, val glyph: String, val color: Color) {
+    Mpv("mpv", "\u25B6", Color(0xFFB388FF)),          // ungu: bioskop
+    Terminal("Terminal", ">_", Color(0xFF69F0AE)),      // hijau: terminal
+    Code("Code", "< >", Color(0xFF40C4FF)),             // biru: editor
+    Settings("Settings", "\u2699", Color(0xFFFFAB40))  // oranye: pengaturan
+}
+
+/** True saat keyboard layar tampil. Dipakai agar nav bawah tidak makan ruang saat mengetik. */
+@Composable
+private fun rememberKeyboardVisible(): Boolean {
+    val view = LocalView.current
+    var visible by remember { mutableStateOf(false) }
+    DisposableEffect(view) {
+        val rect = Rect()
+        val listener = ViewTreeObserver.OnGlobalLayoutListener {
+            view.getWindowVisibleDisplayFrame(rect)
+            val screenH = view.rootView.height
+            visible = screenH > 0 && (screenH - rect.bottom) > screenH * 0.15f
+        }
+        view.viewTreeObserver.addOnGlobalLayoutListener(listener)
+        onDispose { view.viewTreeObserver.removeOnGlobalLayoutListener(listener) }
+    }
+    return visible
 }
 
 private val MolinaColors = darkColorScheme(
@@ -54,17 +87,36 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme(colorScheme = MolinaColors) {
                 var selected by rememberSaveable { mutableIntStateOf(0) }
+                val keyboardVisible = rememberKeyboardVisible()
                 Scaffold(
                     containerColor = MaterialTheme.colorScheme.background,
                     bottomBar = {
-                        NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
-                            Tab.entries.forEachIndexed { i, tab ->
-                                NavigationBarItem(
-                                    selected = selected == i,
-                                    onClick = { selected = i },
-                                    icon = { Text(tab.glyph) },
-                                    label = { Text(tab.label) }
+                        if (!keyboardVisible) {
+                            Column {
+                                Box(
+                                    Modifier.fillMaxWidth().height(2.dp).background(
+                                        Brush.horizontalGradient(Tab.entries.map { it.color })
+                                    )
                                 )
+                                NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
+                                    Tab.entries.forEachIndexed { i, tab ->
+                                        NavigationBarItem(
+                                            selected = selected == i,
+                                            onClick = { selected = i },
+                                            icon = {
+                                                Text(tab.glyph, fontWeight = FontWeight.Bold)
+                                            },
+                                            label = { Text(tab.label) },
+                                            colors = NavigationBarItemDefaults.colors(
+                                                selectedIconColor = tab.color,
+                                                selectedTextColor = tab.color,
+                                                indicatorColor = tab.color.copy(alpha = 0.18f),
+                                                unselectedIconColor = tab.color.copy(alpha = 0.55f),
+                                                unselectedTextColor = tab.color.copy(alpha = 0.55f)
+                                            )
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
