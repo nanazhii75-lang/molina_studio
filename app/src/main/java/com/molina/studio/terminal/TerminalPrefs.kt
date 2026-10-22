@@ -53,14 +53,14 @@ enum class PromptTheme(
     );
 
     companion object {
-        fun fromId(id: String?): PromptTheme = entries.firstOrNull { it.id == id } ?: CinemaGold
+        fun fromId(id: String?): PromptTheme = entries.firstOrNull { it.id == id } ?: Classic
     }
 }
 
 /** Snapshot immutable seluruh preferensi terminal (aman dibaca dari thread mana pun). */
 data class TerminalSettings(
     val fontSp: Int = TerminalPrefs.DEFAULT_FONT_SP,
-    val promptTheme: PromptTheme = PromptTheme.CinemaGold,
+    val promptTheme: PromptTheme = PromptTheme.Classic,
     val logLevel: Int = TerminalPrefs.LOG_NORMAL,
     val keyLogging: Boolean = false,
     val pluginErrorNotifications: Boolean = true,
@@ -82,7 +82,7 @@ private val Context.terminalStore: DataStore<Preferences> by preferencesDataStor
 
 private object PrefKeys {
     val FONT_SP = intPreferencesKey("font_sp")
-    val PROMPT_THEME = stringPreferencesKey("prompt_theme")
+    val PROMPT_THEME = stringPreferencesKey("prompt_theme_v2")
     val LOG_LEVEL = intPreferencesKey("log_level")
     val KEY_LOGGING = booleanPreferencesKey("key_logging")
     val PLUGIN_ERRORS = booleanPreferencesKey("plugin_error_notifications")

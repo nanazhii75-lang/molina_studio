@@ -46,6 +46,8 @@ import com.molina.studio.ui.onHorizontalSwipe
 
 private val Gold = Color(0xFFE6B450)
 private val CloseRed = Color(0xFFFF8A80)
+private val DrawerButtonWidth = 108.dp
+private val DrawerButtonTextSp = 10.sp
 
 /**
  * Drawer sesi ala Termux: daftar sesi [1] [2] ... (maks. TerminalSessions.MAX_SESSIONS),
@@ -130,13 +132,13 @@ fun SessionDrawer(open: Boolean, onClose: () -> Unit, onOpenSettings: () -> Unit
             // Tombol bawah: KEYBOARD dan NEW SESSION.
             Row(
                 Modifier.fillMaxWidth().padding(8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
             ) {
-                DrawerButton("KEYBOARD", true, Modifier.weight(1f)) {
+                DrawerButton("KEYBOARD", true, Modifier.width(DrawerButtonWidth)) {
                     onClose()
                     toggleKeyboard(ctx)
                 }
-                DrawerButton("NEW SESSION", TerminalSessions.canAdd(), Modifier.weight(1f)) {
+                DrawerButton("NEW SESSION", TerminalSessions.canAdd(), Modifier.width(DrawerButtonWidth)) {
                     when {
                         RootfsManager.state.value !is RootfsState.Ready ->
                             toast(ctx, "Debian belum terpasang")
@@ -184,7 +186,7 @@ private fun DrawerButton(label: String, enabledLook: Boolean, modifier: Modifier
             .padding(vertical = 12.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(label, color = Gold.copy(alpha = a), fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+        Text(label, color = Gold.copy(alpha = a), fontSize = DrawerButtonTextSp, fontWeight = FontWeight.Bold, maxLines = 1)
     }
 }
 
