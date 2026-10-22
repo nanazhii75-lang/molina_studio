@@ -10,6 +10,7 @@ import android.content.Intent
 import android.graphics.drawable.Icon
 import android.os.IBinder
 import android.os.PowerManager
+import com.molina.studio.AppExit
 import com.molina.studio.MainActivity
 import com.molina.studio.R
 
@@ -47,7 +48,7 @@ class TerminalService : Service() {
         startForeground(NOTIF_ID, buildNotification())
         when (intent?.action) {
             ACTION_EXIT -> {
-                TerminalSessions.killAll()
+                AppExit.exit()
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
             }
