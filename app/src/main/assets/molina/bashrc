@@ -1,0 +1,16 @@
+# Molina Terminal - dibuat otomatis oleh aplikasi. Jangan diedit manual (ditimpa tiap sesi baru).
+[ -f /etc/profile ] && . /etc/profile
+[ -f "$HOME/.bashrc" ] && . "$HOME/.bashrc"
+
+# Prompt: hijau di home (~ atau folder kerja Molina), merah di folder lain.
+__molina_ps1() {
+  local sgr="$MOLINA_PS_OTHER"
+  if [ "$PWD" = "$HOME" ] || [ "$PWD" = "$MOLINA_HOME" ]; then sgr="$MOLINA_PS_HOME"; fi
+  PS1='\[\e['"$sgr"'m\]user@localhost:\w $\[\e[0m\] '
+}
+PROMPT_COMMAND="${PROMPT_COMMAND:+$PROMPT_COMMAND;}__molina_ps1"
+
+# Tombol CLEAR aplikasi mengirim ESC [ 9 9 ~ agar prompt digambar ulang setelah layar dibersihkan.
+bind '"\e[99~": redraw-current-line' 2>/dev/null
+
+printf '\033[%sm%s\033[0m\n' "$MOLINA_BRAND_SGR" "$MOLINA_BRAND"

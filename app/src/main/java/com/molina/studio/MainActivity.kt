@@ -22,10 +22,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 
 private enum class Tab(val label: String, val glyph: String) {
-    Cinema("Cinema", "\u25B6"),
-    Terminal("Terminal", "\u203A_"),
-    Editor("Editor", "\u270E"),
-    Settings("Setelan", "\u2699")
+    Mpv("mpv", "\u25B6"),
+    Terminal("Terminal", ">_"),
+    Code("Code", "< >"),
+    Settings("Settings", "\u2699")
 }
 
 private val MolinaColors = darkColorScheme(
@@ -59,9 +59,16 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 ) { pad ->
-                    if (Tab.entries[selected] == Tab.Terminal) {
-                        com.molina.studio.terminal.TerminalScreen(Modifier.fillMaxSize().padding(pad))
-                        return@Scaffold
+                    when (Tab.entries[selected]) {
+                        Tab.Terminal -> {
+                            com.molina.studio.terminal.TerminalScreen(Modifier.fillMaxSize().padding(pad))
+                            return@Scaffold
+                        }
+                        Tab.Settings -> {
+                            com.molina.studio.settings.SettingsScreen(Modifier.fillMaxSize().padding(pad))
+                            return@Scaffold
+                        }
+                        else -> {}
                     }
                     Box(
                         Modifier.fillMaxSize().padding(pad),

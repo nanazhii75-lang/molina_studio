@@ -20,6 +20,7 @@ private const val TAG = "MolinaTerminal"
 /** State tombol modifier virtual (dibaca oleh TerminalView). */
 class TerminalModifiers {
     var ctrl by mutableStateOf(false)
+    var alt by mutableStateOf(false)
 }
 
 class MolinaSessionClient : TerminalSessionClient {
@@ -74,11 +75,12 @@ class MolinaViewClient(
     override fun onKeyUp(keyCode: Int, e: KeyEvent): Boolean = false
     override fun onLongPress(event: MotionEvent): Boolean = false
     override fun readControlKey(): Boolean = mods.ctrl
-    override fun readAltKey(): Boolean = false
+    override fun readAltKey(): Boolean = mods.alt
     override fun readShiftKey(): Boolean = false
     override fun readFnKey(): Boolean = false
     override fun onCodePoint(codePoint: Int, ctrlDown: Boolean, session: TerminalSession): Boolean {
         if (mods.ctrl) mods.ctrl = false // CTRL virtual sekali pakai
+        if (mods.alt) mods.alt = false   // ALT virtual sekali pakai
         return false
     }
     override fun onEmulatorSet() {}

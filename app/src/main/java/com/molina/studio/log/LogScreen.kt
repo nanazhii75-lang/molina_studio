@@ -33,11 +33,6 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-/** State tampilan tab Log di layar Terminal. */
-object LogUi {
-    var show by mutableStateOf(false)
-}
-
 private val FILTERS = listOf(
     "" to "Semua",
     "cinema" to "Cinema",
@@ -47,19 +42,6 @@ private val FILTERS = listOf(
 
 private val TIME_FMT: DateTimeFormatter =
     DateTimeFormatter.ofPattern("HH:mm:ss.SSS").withZone(ZoneId.systemDefault())
-
-@Composable
-fun LogTabButton() {
-    val active = LogUi.show
-    TextButton(onClick = { LogUi.show = true }) {
-        Text(
-            "Log",
-            fontWeight = if (active) FontWeight.Bold else FontWeight.Normal,
-            color = if (active) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurface
-        )
-    }
-}
 
 @Composable
 fun LogScreen(modifier: Modifier = Modifier) {
