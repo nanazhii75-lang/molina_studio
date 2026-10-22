@@ -30,3 +30,4 @@
 - Fase 6 (Code Editor): daftarkan hook simpan `AppExit.register("editor") { simpanSemuaBerkas() }` (hook jalan sebelum proses dibunuh).
 - Fase 7 (Settings Hub): tombol "Keluar" yang memanggil `AppExit.exit()`.
 - Catatan: bila kelak memakai sharedUserId, sapuan /proc di AppExit harus dipersempit.
+- Fase 5 (Cinema/mpv): buat `MpvSettings` + `MpvPrefs` dengan pola `TerminalPrefs` (data class snapshot, `PrefKeys`, satu fungsi `update {}`, DataStore + `StateFlow`, tulis disk async & conflated). Ekstrak base class generik HANYA bila sudah ada 3 store atau lebih; jangan lebih awal.
