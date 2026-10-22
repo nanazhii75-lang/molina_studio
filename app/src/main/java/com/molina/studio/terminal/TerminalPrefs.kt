@@ -87,6 +87,7 @@ object TerminalPrefs {
     private fun putInt(k: String, v: Int) { sp?.edit()?.putInt(k, v)?.apply() }
     private fun putBool(k: String, v: Boolean) { sp?.edit()?.putBoolean(k, v)?.apply() }
 
+    @JvmName("applyFontSp")
     fun setFontSp(v: Int) {
         val c = v.coerceIn(MIN_FONT_SP, MAX_FONT_SP)
         if (c == fontSp) return
@@ -107,15 +108,23 @@ object TerminalPrefs {
         }.apply { isDaemon = true; name = "molina-prompt-theme" }.start()
     }
 
+    @JvmName("applyLogLevel")
     fun setLogLevel(v: Int) { logLevel = v.coerceIn(LOG_OFF, LOG_VERBOSE); putInt("log_level", logLevel) }
+    @JvmName("applyKeyLogging")
     fun setKeyLogging(v: Boolean) { keyLogging = v; putBool("key_logging", v) }
+    @JvmName("applyPluginErrorNotifications")
     fun setPluginErrorNotifications(v: Boolean) { pluginErrorNotifications = v; putBool("plugin_error_notifications", v) }
+    @JvmName("applyCrashNotifications")
     fun setCrashNotifications(v: Boolean) { crashNotifications = v; putBool("crash_notifications", v) }
+    @JvmName("applySoftKeyboard")
     fun setSoftKeyboard(v: Boolean) { softKeyboard = v; putBool("soft_keyboard", v) }
+    @JvmName("applySoftKeyboardOnlyIfNoHardware")
     fun setSoftKeyboardOnlyIfNoHardware(v: Boolean) {
         softKeyboardOnlyIfNoHardware = v; putBool("soft_keyboard_only_if_no_hw", v)
     }
+    @JvmName("applyMarginAdjustment")
     fun setMarginAdjustment(v: Boolean) { marginAdjustment = v; putBool("margin_adjustment", v) }
+    @JvmName("applyLogcatReporter")
     fun setLogcatReporter(v: Boolean) { logcatReporter = v; putBool("logcat_reporter", v) }
 
     /** Keyboard layar boleh tampil? (Soft Keyboard Enabled + Only If No Hardware). */
