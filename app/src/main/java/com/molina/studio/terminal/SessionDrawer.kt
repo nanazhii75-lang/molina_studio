@@ -7,7 +7,6 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -36,13 +35,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.molina.studio.ui.SwipeDirection
+import com.molina.studio.ui.onHorizontalSwipe
 
 private val Gold = Color(0xFFE6B450)
 private val CloseRed = Color(0xFFFF8A80)
@@ -73,20 +73,7 @@ fun SessionDrawer(open: Boolean, onClose: () -> Unit, onOpenSettings: () -> Unit
             Modifier.fillMaxHeight().width(300.dp)
                 .background(MaterialTheme.colorScheme.surface)
                 .clickable(interactionSource = swallow, indication = null, onClick = {})
-                .pointerInput(Unit) {
-                    var total = 0f
-                    detectHorizontalDragGestures(
-                        onDragStart = { total = 0f },
-                        onHorizontalDrag = { change, dx ->
-                            total += dx
-                            if (total < -60f) {
-                                change.consume()
-                                total = 0f
-                                onClose()
-                            }
-                        }
-                    )
-                }
+                .onHorizontalSwipe(22.dp, SwipeDirection.Left) { onClose() }
         ) {
             // Header: pengaturan + penghitung sesi.
             Row(

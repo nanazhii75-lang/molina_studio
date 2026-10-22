@@ -13,7 +13,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -47,7 +46,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -58,9 +56,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.molina.studio.ui.onHorizontalSwipe
 import androidx.compose.ui.viewinterop.AndroidView
 import com.termux.view.TerminalView
-import kotlin.math.abs
 import kotlin.math.floor
 
 private fun spToPx(ctx: Context, sp: Int): Int =
@@ -310,20 +308,7 @@ private fun RowScope.DrawerKey(
 ) {
     var open by remember { mutableStateOf(false) }
     Box(
-        Modifier.weight(1f).pointerInput(Unit) {
-            var total = 0f
-            detectHorizontalDragGestures(
-                onDragStart = { total = 0f },
-                onHorizontalDrag = { change, dx ->
-                    total += dx
-                    if (abs(total) > 48f) {
-                        change.consume()
-                        total = 0f
-                        onOpenDrawer()
-                    }
-                }
-            )
-        }
+        Modifier.weight(1f).onHorizontalSwipe(18.dp) { onOpenDrawer() }
     ) {
         KeyButton(label, false, false, color, { open = true }) { onOpenDrawer() }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
