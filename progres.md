@@ -34,3 +34,4 @@
 - Catatan: bila kelak memakai sharedUserId, sapuan /proc di AppExit harus dipersempit.
 - Fase 5 (Cinema/mpv): buat `MpvSettings` + `MpvPrefs` dengan pola `TerminalPrefs` (data class snapshot, `PrefKeys`, satu fungsi `update {}`, DataStore + `StateFlow`, tulis disk async & conflated). Ekstrak base class generik HANYA bila sudah ada 3 store atau lebih; jangan lebih awal.
 - Semua modul (Cinema/Code/Settings): gestur geser horizontal wajib lewat `Modifier.onHorizontalSwipe` (`com.molina.studio.ui`); jangan menulis `pointerInput` + `detectHorizontalDragGestures` manual lagi.
+- Cleanup (setelah build hijau): hapus `MolinaShell.PS_HOME_SGR` dan `MolinaShell.PS_OTHER_SGR` (tidak terpakai; warna prompt sebenarnya dari `PromptTheme`), agar `PromptTheme` jadi satu-satunya sumber kebenaran warna prompt.
