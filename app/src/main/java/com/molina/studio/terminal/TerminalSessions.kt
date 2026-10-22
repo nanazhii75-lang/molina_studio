@@ -2,6 +2,8 @@ package com.molina.studio.terminal
 
 import android.content.Context
 import android.os.Environment
+import android.system.Os
+import android.system.OsConstants
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -26,10 +28,39 @@ object TerminalSessions {
     @Synchronized
     fun session(context: Context, kind: SessionKind): TerminalSession {
         val app = context.applicationContext
+        appContext = app
         val s = sessions[kind]?.takeIf { it.isRunning }
             ?: create(app, kind).also { sessions[kind] = it }
         currentSession = s
+        TerminalService.ensureRunning(app)
         return s
+    }
+
+    @Volatile private var appContext: Context? = null
+
+    @Synchronized
+    private fun anyRunning(): Boolean = sessions.values.any { it.isRunning }
+
+    /** Dipanggil saat satu sesi berakhir: hentikan service bila tak ada sesi tersisa. */
+    fun onSessionFinished() {
+        val ctx = appContext ?: return
+        val shouldStop = synchronized(this) { sessions.isNotEmpty() && !anyRunning() }
+        if (shouldStop) TerminalService.requestStop(ctx)
+    }
+
+    /** Aksi "Keluar": matikan semua sesi (grup proses + proses utama) dan kosongkan daftar. */
+    @Synchronized
+    fun killAll() {
+        for (s in sessions.values) {
+            if (!s.isRunning) continue
+            val pid = s.pid
+            if (pid > 1) {
+                try { Os.kill(-pid, OsConstants.SIGKILL) } catch (e: Exception) {}
+            }
+            s.finishIfRunning()
+        }
+        sessions.clear()
+        currentSession = null
     }
 
     private fun create(ctx: Context, kind: SessionKind): TerminalSession = when (kind) {

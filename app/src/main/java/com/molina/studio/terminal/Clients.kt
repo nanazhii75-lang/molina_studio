@@ -30,7 +30,9 @@ class MolinaSessionClient : TerminalSessionClient {
 
     override fun onTextChanged(changedSession: TerminalSession) { view?.onScreenUpdated() }
     override fun onTitleChanged(changedSession: TerminalSession) {}
-    override fun onSessionFinished(finishedSession: TerminalSession) {}
+    override fun onSessionFinished(finishedSession: TerminalSession) {
+        TerminalSessions.onSessionFinished()
+    }
     override fun onCopyTextToClipboard(session: TerminalSession, text: String) {
         clipboard()?.setPrimaryClip(ClipData.newPlainText("molina", text))
     }
