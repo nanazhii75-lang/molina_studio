@@ -37,6 +37,16 @@ private val MolinaColors = darkColorScheme(
 )
 
 class MainActivity : ComponentActivity() {
+    override fun onStart() {
+        super.onStart()
+        AppVisibility.foreground.value = true
+    }
+
+    override fun onStop() {
+        AppVisibility.foreground.value = false
+        super.onStop()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         LogServer.start()

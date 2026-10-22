@@ -7,24 +7,30 @@ import android.os.Process
 import android.os.SystemClock
 import android.system.Os
 import android.system.OsConstants
+import com.molina.studio.AppVisibility
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import java.io.File
 import java.util.Locale
+
+enum class Level { Normal, Warn, High }
 
 data class StatsSnapshot(
     val rxBps: Long = 0,
     val txBps: Long = 0,
     val cpuPercent: Int = 0,
     val ramMb: Int = 0,
-    val totalRamMb: Int = 0
+    val totalRamMb: Int = 0,
+    val cpuLevel: Level = Level.Normal,
+    val ramLevel: Level = Level.Normal
 ) {
-    fun format(): String =
-        "\u2193 ${speed(rxBps)}    \u2191 ${speed(txBps)}    CPU $cpuPercent%    " +
-            "RAM app $ramMb MB/${String.format(ID, "%.1f", totalRamMb / 1024.0)}GB"
+    val rxText: String get() = speed(rxBps)
+    val txText: String get() = speed(txBps)
+    val totalGbText: String get() = String.format(ID, "%.1f", totalRamMb / 1024.0)
 
     private fun speed(bps: Long): String {
         val kb = bps / 1024.0
@@ -37,8 +43,23 @@ data class StatsSnapshot(
     }
 }
 
-/** Statistik seluruh proses ber-UID aplikasi (termasuk proot dan guest Debian). */
+/**
+ * Statistik seluruh proses ber-UID aplikasi (termasuk proot dan guest Debian).
+ * Hemat: berhenti total saat aplikasi di latar belakang, daftar PID di-cache (dipindai tiap
+ * 3 dtk), dan PSS (panggilan binder yang mahal) hanya dihitung tiap 5 dtk.
+ */
 object SystemStats {
+    // Ambang warna CPU (% kapasitas total semua core) dan RAM (% RAM perangkat).
+    private const val CPU_SPIKE_POINTS = 10
+    private const val CPU_WARN = 20
+    private const val CPU_HIGH = 40
+    private const val RAM_SPIKE_MB = 50
+    private const val RAM_WARN_PCT = 10
+    private const val RAM_HIGH_PCT = 20
+    private const val HOLD_TICKS = 5 // lama warna kuning dipertahankan setelah lonjakan (detik)
+
+    private const val MB = 1024L * 1024L
+
     fun flow(context: Context): Flow<StatsSnapshot> = flow {
         val am = context.applicationContext.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         val uid = Process.myUid()
@@ -46,37 +67,65 @@ object SystemStats {
         val cores = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
         val totalMb = (ActivityManager.MemoryInfo().also { am.getMemoryInfo(it) }.totalMem / MB).toInt()
 
-        var lastRx = TrafficStats.getUidRxBytes(uid)
-        var lastTx = TrafficStats.getUidTxBytes(uid)
-        var lastTicks = ownPids(uid).sumOf { cpuTicks(it) }
-        var lastAt = SystemClock.elapsedRealtime()
-        var ramMb = 0
-        var n = 0
         while (true) {
-            delay(1000)
-            val now = SystemClock.elapsedRealtime()
-            val dt = (now - lastAt).coerceAtLeast(1L) / 1000.0
-            lastAt = now
+            AppVisibility.foreground.first { it } // tidur sampai aplikasi terlihat lagi
 
-            val pids = ownPids(uid)
-            val ticks = pids.sumOf { cpuTicks(it) }
-            val cpu = ((ticks - lastTicks).coerceAtLeast(0L) / clk.toDouble() / dt * 100.0 / cores)
-                .toInt().coerceIn(0, 100)
-            lastTicks = ticks
+            var pids = ownPids(uid)
+            var lastRx = TrafficStats.getUidRxBytes(uid)
+            var lastTx = TrafficStats.getUidTxBytes(uid)
+            var lastTicks = pids.sumOf { cpuTicks(it) }
+            var lastAt = SystemClock.elapsedRealtime()
+            var lastCpu = 0
+            var cpuHold = 0
+            var ramMb = pssMb(am, pids)
+            var ramHold = 0
+            var tick = 0
 
-            val rx = TrafficStats.getUidRxBytes(uid)
-            val tx = TrafficStats.getUidTxBytes(uid)
-            val rxBps = if (rx >= 0 && lastRx >= 0) ((rx - lastRx) / dt).toLong().coerceAtLeast(0) else 0L
-            val txBps = if (tx >= 0 && lastTx >= 0) ((tx - lastTx) / dt).toLong().coerceAtLeast(0) else 0L
-            lastRx = rx
-            lastTx = tx
+            while (AppVisibility.foreground.value) {
+                delay(1000)
+                tick++
+                val now = SystemClock.elapsedRealtime()
+                val dt = (now - lastAt).coerceAtLeast(1L) / 1000.0
+                lastAt = now
+                if (tick % 3 == 0) pids = ownPids(uid)
 
-            if (n++ % 3 == 0) ramMb = pssMb(am, pids)
-            emit(StatsSnapshot(rxBps, txBps, cpu, ramMb, totalMb))
+                val ticks = pids.sumOf { cpuTicks(it) }
+                val cpu = ((ticks - lastTicks).coerceAtLeast(0L) / clk.toDouble() / dt * 100.0 / cores)
+                    .toInt().coerceIn(0, 100)
+                lastTicks = ticks
+                if (cpuHold > 0) cpuHold--
+                if (cpu - lastCpu >= CPU_SPIKE_POINTS) cpuHold = HOLD_TICKS
+                lastCpu = cpu
+
+                val rx = TrafficStats.getUidRxBytes(uid)
+                val tx = TrafficStats.getUidTxBytes(uid)
+                val rxBps = if (rx >= 0 && lastRx >= 0) ((rx - lastRx) / dt).toLong().coerceAtLeast(0) else 0L
+                val txBps = if (tx >= 0 && lastTx >= 0) ((tx - lastTx) / dt).toLong().coerceAtLeast(0) else 0L
+                lastRx = rx
+                lastTx = tx
+
+                if (ramHold > 0) ramHold--
+                if (tick % 5 == 0) {
+                    val m = pssMb(am, pids)
+                    if (m - ramMb >= RAM_SPIKE_MB) ramHold = HOLD_TICKS
+                    ramMb = m
+                }
+
+                val cpuLevel = when {
+                    cpu >= CPU_HIGH -> Level.High
+                    cpu >= CPU_WARN || cpuHold > 0 -> Level.Warn
+                    else -> Level.Normal
+                }
+                val ramPct = if (totalMb > 0) ramMb * 100 / totalMb else 0
+                val ramLevel = when {
+                    ramPct >= RAM_HIGH_PCT -> Level.High
+                    ramPct >= RAM_WARN_PCT || ramHold > 0 -> Level.Warn
+                    else -> Level.Normal
+                }
+                emit(StatsSnapshot(rxBps, txBps, cpu, ramMb, totalMb, cpuLevel, ramLevel))
+            }
         }
     }.flowOn(Dispatchers.IO)
-
-    private const val MB = 1024L * 1024L
 
     private fun ownPids(uid: Int): List<Int> {
         val dirs = File("/proc").listFiles() ?: return emptyList()

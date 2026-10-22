@@ -36,13 +36,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.termux.view.TerminalView
+
+/** Ukuran font terminal (sp). Nanti dijadikan opsi di Settings Hub. */
+private const val TERMINAL_TEXT_SP = 11f
 
 @Composable
 fun TerminalScreen(modifier: Modifier = Modifier) {
@@ -91,14 +98,39 @@ private fun TerminalContent(modifier: Modifier) {
     }
 }
 
+private val DownloadColor = Color(0xFF81D4FA) // biru muda
+private val UploadColor = Color(0xFFEF5350)   // merah
+private val NormalColor = Color.White
+private val WarnColor = Color(0xFFFFD54F)     // kuning: lonjakan
+private val HighColor = Color(0xFFFF5252)     // merah: posisi tinggi
+
+private fun levelStyle(level: Level): SpanStyle = when (level) {
+    Level.Normal -> SpanStyle(color = NormalColor)
+    Level.Warn -> SpanStyle(color = WarnColor, fontWeight = FontWeight.Bold)
+    Level.High -> SpanStyle(color = HighColor, fontWeight = FontWeight.Bold)
+}
+
 @Composable
 private fun StatusBar() {
     val ctx = LocalContext.current
     val stats by remember(ctx) { SystemStats.flow(ctx) }.collectAsState(StatsSnapshot())
+    val text = remember(stats) {
+        buildAnnotatedString {
+            withStyle(SpanStyle(color = DownloadColor)) { append("\u2193 ${stats.rxText}") }
+            append("    ")
+            withStyle(SpanStyle(color = UploadColor)) { append("\u2191 ${stats.txText}") }
+            append("    ")
+            withStyle(levelStyle(stats.cpuLevel)) { append("CPU ${stats.cpuPercent}%") }
+            append("    ")
+            withStyle(levelStyle(stats.ramLevel)) {
+                append("RAM app ${stats.ramMb} MB/${stats.totalGbText}GB")
+            }
+        }
+    }
     Text(
-        stats.format(),
+        text,
         modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
-        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+        color = NormalColor,
         fontFamily = FontFamily.Monospace,
         fontSize = 11.sp,
         maxLines = 1,
@@ -151,7 +183,7 @@ private fun createTerminalView(ctx: Context, mods: TerminalModifiers): TerminalV
     view.setTerminalViewClient(MolinaViewClient(view, mods))
     view.setTextSize(
         TypedValue.applyDimension(
-            TypedValue.COMPLEX_UNIT_SP, 14f, ctx.resources.displayMetrics
+            TypedValue.COMPLEX_UNIT_SP, TERMINAL_TEXT_SP, ctx.resources.displayMetrics
         ).toInt()
     )
     view.setTypeface(Typeface.MONOSPACE)
