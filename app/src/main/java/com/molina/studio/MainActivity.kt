@@ -56,6 +56,10 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 ) { pad ->
+                    if (Tab.entries[selected] == Tab.Terminal) {
+                        com.molina.studio.terminal.TerminalScreen(Modifier.fillMaxSize().padding(pad))
+                        return@Scaffold
+                    }
                     Box(
                         Modifier.fillMaxSize().padding(pad),
                         contentAlignment = Alignment.Center
