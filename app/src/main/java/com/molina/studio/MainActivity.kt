@@ -129,7 +129,13 @@ class MainActivity : ComponentActivity() {
                 ) { pad ->
                     when (Tab.entries[selected]) {
                         Tab.Terminal -> {
-                            com.molina.studio.terminal.TerminalScreen(Modifier.fillMaxSize().padding(pad))
+                            com.molina.studio.terminal.TerminalScreen(
+                                Modifier.fillMaxSize().padding(pad),
+                                onOpenSettings = {
+                                    com.molina.studio.settings.SettingsNav.openTerminal = true
+                                    selected = Tab.Settings.ordinal
+                                }
+                            )
                             return@Scaffold
                         }
                         Tab.Settings -> {

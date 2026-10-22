@@ -39,10 +39,12 @@ class MolinaSessionClient : TerminalSessionClient {
     private fun clipboard(): ClipboardManager? =
         view?.context?.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
 
-    override fun onTextChanged(changedSession: TerminalSession) { view?.onScreenUpdated() }
-    override fun onTitleChanged(changedSession: TerminalSession) {}
+    override fun onTextChanged(changedSession: TerminalSession) {
+        if (changedSession === TerminalSessions.currentSession) view?.onScreenUpdated()
+    }
+    override fun onTitleChanged(changedSession: TerminalSession) { TerminalSessions.titleChanged() }
     override fun onSessionFinished(finishedSession: TerminalSession) {
-        TerminalSessions.onSessionFinished()
+        TerminalSessions.onSessionFinished(finishedSession)
     }
     override fun onCopyTextToClipboard(session: TerminalSession, text: String) {
         clipboard()?.setPrimaryClip(ClipData.newPlainText("molina", text))

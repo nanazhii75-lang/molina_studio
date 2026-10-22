@@ -1,6 +1,10 @@
 package com.molina.studio.terminal
 
 import android.content.Context
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.setValue
 import com.molina.studio.AppExit
 import android.os.Environment
 import android.system.Os
@@ -9,63 +13,136 @@ import com.molina.studio.log.LogBus
 import com.molina.studio.log.LogLevel
 import com.termux.terminal.TerminalSession
 import java.io.File
+import kotlin.math.min
 
-/** Satu sesi Debian (PRoot); tetap hidup walau tab berpindah (dijaga TerminalService). */
+/**
+ * Daftar sesi Debian (PRoot), maksimal [MAX_SESSIONS]. Sesi tetap hidup walau tab aplikasi
+ * berpindah (dijaga TerminalService). Seluruh mutasi daftar terjadi di main thread,
+ * kecuali killAll() saat aplikasi keluar.
+ */
 object TerminalSessions {
-    /** true: perintah exit di shell mematikan semua proses lalu menutup aplikasi. */
+    const val MAX_SESSIONS = 5
+
+    /** true: bila sesi terakhir berakhir, matikan semua proses lalu tutup aplikasi. */
     private const val EXIT_APP_ON_SESSION_END = true
 
     val client = MolinaSessionClient()
-    private var session: TerminalSession? = null
+
+    /** Daftar sesi (observable oleh Compose). */
+    val sessions = mutableStateListOf<TerminalSession>()
+
+    var currentIndex by mutableIntStateOf(0); private set
+
+    /** Naik tiap judul sesi berubah, agar daftar di drawer dihitung ulang. */
+    var titleTick by mutableIntStateOf(0); private set
+
+    /** Sesi aktif sebagai state (dipakai TerminalScreen untuk berpindah tab). */
+    val active: TerminalSession? get() = sessions.getOrNull(currentIndex)
 
     @Volatile var currentSession: TerminalSession? = null
         private set
 
     @Volatile private var appContext: Context? = null
 
+    fun canAdd(): Boolean = sessions.size < MAX_SESSIONS
+
+    /** Pastikan minimal ada satu sesi; kembalikan sesi aktif. */
     @Synchronized
-    fun session(context: Context): TerminalSession {
+    fun ensureSession(context: Context): TerminalSession {
         val app = context.applicationContext
         appContext = app
-        val s = session?.takeIf { it.isRunning }
-            ?: debianShell(app).also {
-                session = it
-                LogBus.log("terminal", LogLevel.Info, "session", "Sesi Debian dimulai")
-            }
+        sessions.removeAll { !it.isRunning }
+        if (sessions.isEmpty()) {
+            sessions.add(debianShell(app))
+            currentIndex = 0
+            LogBus.log("terminal", LogLevel.Info, "session", "Sesi Debian [1] dimulai")
+        }
+        currentIndex = currentIndex.coerceIn(0, sessions.lastIndex)
+        val s = sessions[currentIndex]
         currentSession = s
         TerminalService.ensureRunning(app)
         return s
     }
 
-    /** Dipanggil saat sesi berakhir: keluar dari aplikasi, atau hentikan service. */
-    fun onSessionFinished() {
+    /** Sesi baru (NEW SESSION). null bila sudah mencapai batas [MAX_SESSIONS]. */
+    @Synchronized
+    fun newSession(context: Context): TerminalSession? {
+        if (!canAdd()) return null
+        val app = context.applicationContext
+        appContext = app
+        val s = debianShell(app)
+        sessions.add(s)
+        select(sessions.lastIndex)
+        LogBus.log("terminal", LogLevel.Info, "session", "Sesi Debian [${sessions.size}] dimulai")
+        TerminalService.ensureRunning(app)
+        return s
+    }
+
+    fun select(index: Int) {
+        if (index !in sessions.indices) return
+        currentIndex = index
+        currentSession = sessions[index]
+    }
+
+    fun titleChanged() { titleTick++ }
+
+    /** Tombol ✕ di drawer: bunuh proses sesi (grup proses) lalu tutup tabnya. */
+    fun closeSession(index: Int) {
+        val s = sessions.getOrNull(index) ?: return
+        LogBus.log("terminal", LogLevel.Info, "session", "Sesi [${index + 1}] ditutup pengguna")
+        kill(s)
+        remove(s, exitDelayMs = 0L)
+    }
+
+    /** Dipanggil client saat sebuah sesi berakhir (mis. perintah exit). */
+    fun onSessionFinished(finished: TerminalSession) {
         LogBus.log("terminal", LogLevel.Info, "session", "Sesi terminal berakhir")
-        if (EXIT_APP_ON_SESSION_END) {
-            AppExit.exit(delayMs = 800)
+        remove(finished, exitDelayMs = 800L)
+    }
+
+    private fun remove(s: TerminalSession, exitDelayMs: Long) {
+        val idx = sessions.indexOf(s)
+        if (idx < 0) return // sudah dihapus (mis. lewat tombol ✕)
+        sessions.removeAt(idx)
+        if (sessions.isEmpty()) {
+            currentSession = null
+            currentIndex = 0
+            onAllSessionsEnded(exitDelayMs)
             return
         }
-        val ctx = appContext ?: return
-        val shouldStop = synchronized(this) { session?.isRunning != true }
-        if (shouldStop) TerminalService.requestStop(ctx)
+        currentIndex = when {
+            idx < currentIndex -> currentIndex - 1
+            idx == currentIndex -> min(idx, sessions.lastIndex)
+            else -> currentIndex
+        }
+        currentSession = sessions[currentIndex]
     }
 
-    /** Aksi "Keluar": matikan sesi (grup proses + proses utama) dan kosongkan state. */
+    private fun onAllSessionsEnded(exitDelayMs: Long) {
+        if (EXIT_APP_ON_SESSION_END) {
+            AppExit.exit(delayMs = exitDelayMs)
+            return
+        }
+        appContext?.let { TerminalService.requestStop(it) }
+    }
+
+    private fun kill(s: TerminalSession) {
+        if (!s.isRunning) return
+        val pid = s.pid
+        if (pid > 1) {
+            try { Os.kill(-pid, OsConstants.SIGKILL) } catch (e: Exception) {}
+        }
+        s.finishIfRunning()
+    }
+
+    /** Aksi "Keluar": matikan semua sesi (grup proses + proses utama) dan kosongkan state. */
     @Synchronized
     fun killAll() {
-        session?.let { s ->
-            if (s.isRunning) {
-                val pid = s.pid
-                if (pid > 1) {
-                    try { Os.kill(-pid, OsConstants.SIGKILL) } catch (e: Exception) {}
-                }
-                s.finishIfRunning()
-            }
-        }
-        session = null
+        sessions.toList().forEach { kill(it) }
+        sessions.clear()
         currentSession = null
+        currentIndex = 0
     }
-
-    private fun workDir(): File = File(Environment.getExternalStorageDirectory(), "molina-studio")
 
     private fun debianShell(ctx: Context): TerminalSession {
         TerminalPrefs.init(ctx)

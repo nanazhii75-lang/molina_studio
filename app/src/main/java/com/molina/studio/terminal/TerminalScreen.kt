@@ -13,6 +13,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -46,6 +47,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointerInput
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -58,6 +60,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.termux.view.TerminalView
+import kotlin.math.abs
 import kotlin.math.floor
 
 private fun spToPx(ctx: Context, sp: Int): Int =
@@ -68,7 +71,7 @@ private fun cellWidthPx(ctx: Context, sp: Int): Float =
     Paint().apply { typeface = Typeface.MONOSPACE; textSize = spToPx(ctx, sp).toFloat() }.measureText("X")
 
 @Composable
-fun TerminalScreen(modifier: Modifier = Modifier) {
+fun TerminalScreen(modifier: Modifier = Modifier, onOpenSettings: () -> Unit = {}) {
     val context = LocalContext.current
     val perm = Manifest.permission.WRITE_EXTERNAL_STORAGE
     var granted by remember {
@@ -84,18 +87,20 @@ fun TerminalScreen(modifier: Modifier = Modifier) {
             Text("Meminta izin penyimpanan...", color = MaterialTheme.colorScheme.onSurface)
         }
     } else {
-        TerminalContent(modifier)
+        TerminalContent(modifier, onOpenSettings)
     }
 }
 
 @Composable
-private fun TerminalContent(modifier: Modifier) {
+private fun TerminalContent(modifier: Modifier, onOpenSettings: () -> Unit) {
     val context = LocalContext.current
     val mods = remember { TerminalModifiers() }
     remember(context) { RootfsManager.refresh(context) }
     val rootfsState by RootfsManager.state.collectAsState()
+    var drawerOpen by remember { mutableStateOf(false) }
 
-    Column(modifier) {
+    Box(modifier) {
+    Column(Modifier.fillMaxSize()) {
         StatusBar()
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
             if (rootfsState !is RootfsState.Ready) {
@@ -119,6 +124,13 @@ private fun TerminalContent(modifier: Modifier) {
                             v.tag = sp
                             v.setTextSize(spToPx(v.context, sp))
                         }
+                        // Pindah sesi (tab) dari drawer.
+                        val target = TerminalSessions.active
+                        if (target != null && v.currentSession !== target) {
+                            v.attachSession(target)
+                            v.requestFocus()
+                            v.onScreenUpdated()
+                        }
                     },
                     onRelease = { v ->
                         if (TerminalSessions.client.view === v) TerminalSessions.client.view = null
@@ -126,7 +138,13 @@ private fun TerminalContent(modifier: Modifier) {
                 )
             }
         }
-        ExtraKeys(mods)
+        ExtraKeys(mods) { drawerOpen = true }
+    }
+    SessionDrawer(
+        open = drawerOpen,
+        onClose = { drawerOpen = false },
+        onOpenSettings = onOpenSettings
+    )
     }
 }
 
@@ -214,7 +232,7 @@ private fun InstallPanel(state: RootfsState, onInstall: () -> Unit) {
 
 private fun createTerminalView(ctx: Context, mods: TerminalModifiers): TerminalView {
     val view = TerminalView(ctx, null)
-    val session = TerminalSessions.session(ctx)
+    val session = TerminalSessions.ensureSession(ctx)
     TerminalSessions.client.view = view
     view.setTerminalViewClient(MolinaViewClient(view, mods))
     view.tag = TerminalPrefs.fontSp
@@ -228,7 +246,7 @@ private fun createTerminalView(ctx: Context, mods: TerminalModifiers): TerminalV
 }
 
 @Composable
-private fun ExtraKeys(mods: TerminalModifiers) {
+private fun ExtraKeys(mods: TerminalModifiers, onOpenDrawer: () -> Unit) {
     val ctx = LocalContext.current
     val menu = remember {
         listOf("/", "|", "~", "\\", "_", "&").map { sym -> sym to { TerminalActions.send(sym) } } +
@@ -241,7 +259,7 @@ private fun ExtraKeys(mods: TerminalModifiers) {
     Column(Modifier.fillMaxWidth()) {
         Row(Modifier.fillMaxWidth()) {
             Key("ESC", color = KeyRed) { TerminalActions.send("\u001b") }
-            MenuKey("\u2261", menu, KeyAmber)
+            DrawerKey("\u2261", menu, KeyAmber, onOpenDrawer)
             Key("\u2014", color = KeyAmber) { TerminalActions.send("-") }
             Key("HOME", color = KeyBlue) { TerminalActions.sendKey(KeyEvent.KEYCODE_MOVE_HOME) }
             Key("\u2191", color = KeyBlue) { TerminalActions.sendKey(KeyEvent.KEYCODE_DPAD_UP) }
@@ -280,15 +298,34 @@ private fun RowScope.Key(
     Box(Modifier.weight(1f)) { KeyButton(label, active, locked, color, onLongClick, onClick) }
 }
 
+/**
+ * Tombol ≡: tap atau geser (swipe) membuka drawer sesi; tekan lama membuka menu simbol.
+ */
 @Composable
-private fun RowScope.MenuKey(
+private fun RowScope.DrawerKey(
     label: String,
     items: List<Pair<String, () -> Unit>>,
-    color: Color = Color.Unspecified
+    color: Color,
+    onOpenDrawer: () -> Unit
 ) {
     var open by remember { mutableStateOf(false) }
-    Box(Modifier.weight(1f)) {
-        KeyButton(label, false, false, color, null) { open = true }
+    Box(
+        Modifier.weight(1f).pointerInput(Unit) {
+            var total = 0f
+            detectHorizontalDragGestures(
+                onDragStart = { total = 0f },
+                onHorizontalDrag = { change, dx ->
+                    total += dx
+                    if (abs(total) > 48f) {
+                        change.consume()
+                        total = 0f
+                        onOpenDrawer()
+                    }
+                }
+            )
+        }
+    ) {
+        KeyButton(label, false, false, color, { open = true }) { onOpenDrawer() }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             items.forEach { (text, action) ->
                 DropdownMenuItem(text = { Text(text) }, onClick = { open = false; action() })

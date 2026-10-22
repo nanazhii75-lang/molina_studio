@@ -20,6 +20,7 @@
 - 2026-10-23: Font terminal 14sp -> 11sp (konstanta TERMINAL_TEXT_SP), bar status berwarna (download biru muda, upload merah, CPU/RAM putih, kuning saat lonjakan, merah saat tinggi), optimasi SystemStats (pause saat background via AppVisibility, cache PID 3 dtk, PSS tiap 5 dtk). Menunggu CI + uji perangkat.
 - 2026-10-23: Nav bawah disembunyikan saat keyboard aktif (hanya extra key yang tersisa di atas keyboard), font terminal 11sp -> 9sp, nav 4 tab berwarna per tab + garis gradien Molina, extra key berwarna per kategori + haptic tick + latar menyala untuk CTRL/ALT aktif. Menunggu CI + uji perangkat.
 - 2026-10-23: Terminal v2: home default prompt `user@localhost:~` (cwd /root), font 8-14sp (pinch-to-zoom + slider Settings, disimpan), long-press CTRL/ALT mengunci modifier (latar menyala + bingkai), tema prompt Cinema Gold / Neon Green / Classic (prompt.env, berlaku di prompt berikutnya), Settings > Terminal 1-1 Termux v0.118.0 (Debugging, Terminal I/O, Terminal View, About; tanpa Donate) plus Crash Reporter dan Logcat Reporter. Menunggu CI + uji perangkat.
+- 2026-10-23: Terminal v3: multi-session maksimal 5 (TerminalSessions berbasis daftar, sesi berakhir/di-kill menutup tab, sesi terakhir = keluar app), drawer sesi ala Termux (daftar [n], KEYBOARD, NEW SESSION, gear ke Settings > Terminal) dengan tombol ✕ konfirmasi untuk kill tab, tombol ≡ tap/swipe membuka drawer (tekan lama = menu simbol). Menunggu CI + uji perangkat.
 
 ## Backlog Lintas Fase
 - Fase 5 (Cinema/mpv): daftarkan `AppExit.register("mpv") { MPVLib.destroy() }`.

@@ -26,6 +26,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,6 +46,11 @@ import com.molina.studio.terminal.PromptTheme
 import com.molina.studio.terminal.TerminalPrefs
 import java.io.File
 import kotlin.math.roundToInt
+
+/** Permintaan navigasi dari luar Settings (mis. tombol ⚙ di drawer sesi terminal). */
+object SettingsNav {
+    var openTerminal by mutableStateOf(false)
+}
 
 private enum class Page {
     Home, Terminal, Debugging, TerminalIO, TerminalView, Tampilan, CrashReports, About, Log
@@ -78,6 +84,12 @@ private fun titleOf(p: Page): String = when (p) {
 fun SettingsScreen(modifier: Modifier = Modifier) {
     var page by rememberSaveable { mutableStateOf(Page.Home) }
     BackHandler(enabled = page != Page.Home) { page = parentOf(page) ?: Page.Home }
+    LaunchedEffect(SettingsNav.openTerminal) {
+        if (SettingsNav.openTerminal) {
+            page = Page.Terminal
+            SettingsNav.openTerminal = false
+        }
+    }
 
     if (page == Page.Log) {
         Column(modifier) {
