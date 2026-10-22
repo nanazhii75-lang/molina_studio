@@ -41,9 +41,18 @@ object AppExit {
     @Synchronized
     private fun snapshotHooks(): List<() -> Unit> = hooks.values.toList()
 
-    /** Aman dipanggil dari thread mana pun; pekerjaan berat berjalan di thread terpisah. */
-    fun exit() {
+    private val exiting = java.util.concurrent.atomic.AtomicBoolean(false)
+
+    /**
+     * Aman dipanggil dari thread mana pun; hanya panggilan pertama yang dijalankan.
+     * delayMs: jeda sebelum mematikan semuanya (mis. agar pesan "Process completed" terbaca).
+     */
+    fun exit(delayMs: Long = 0L) {
+        if (!exiting.compareAndSet(false, true)) return
         Thread({
+            if (delayMs > 0) {
+                try { Thread.sleep(delayMs) } catch (e: InterruptedException) {}
+            }
             for (h in snapshotHooks()) {
                 try { h() } catch (e: Throwable) {}
             }

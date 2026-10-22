@@ -1,6 +1,7 @@
 package com.molina.studio.terminal
 
 import android.content.Context
+import com.molina.studio.AppExit
 import android.os.Environment
 import android.system.Os
 import android.system.OsConstants
@@ -19,6 +20,9 @@ enum class SessionKind(val label: String) {
 
 /** Sesi tetap hidup walau tab berpindah (nanti dipindah ke foreground service). */
 object TerminalSessions {
+    /** true: perintah exit di shell mematikan semua proses lalu menutup aplikasi. */
+    private const val EXIT_APP_ON_SESSION_END = true
+
     val client = MolinaSessionClient()
     private val sessions = HashMap<SessionKind, TerminalSession>()
 
@@ -49,6 +53,10 @@ object TerminalSessions {
     /** Dipanggil saat satu sesi berakhir: hentikan service bila tak ada sesi tersisa. */
     fun onSessionFinished() {
         LogBus.log("terminal", LogLevel.Info, "session", "Sesi terminal berakhir")
+        if (EXIT_APP_ON_SESSION_END) {
+            AppExit.exit(delayMs = 800)
+            return
+        }
         val ctx = appContext ?: return
         val shouldStop = synchronized(this) { sessions.isNotEmpty() && !anyRunning() }
         if (shouldStop) TerminalService.requestStop(ctx)
