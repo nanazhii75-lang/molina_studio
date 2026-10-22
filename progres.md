@@ -14,3 +14,10 @@
 - 2026-10-22: Langkah 3a terverifikasi di perangkat (Debian trixie via PRoot berjalan, apt/git dapat dipakai). Fase 3 (Terminal) hampir selesai, sisa 3b.
 - 2026-10-22: Langkah 3b: TerminalService (foreground service + notifikasi persisten Buka/Keluar, WAKE_LOCK), izin FOREGROUND_SERVICE/WAKE_LOCK, aksi Keluar mematikan semua sesi. Menunggu CI + uji perangkat.
 - 2026-10-22: Langkah 3c: AppExit (aksi Keluar membunuh semua proses ber-UID aplikasi, hook pembersihan per modul untuk mpv/editor, Activity dihapus dari recents). Menunggu CI + uji perangkat.
+- 2026-10-22: Backlog lintas fase (hook AppExit mpv/editor, tombol Keluar di Settings) dicatat.
+
+## Backlog Lintas Fase
+- Fase 5 (Cinema/mpv): daftarkan `AppExit.register("mpv") { MPVLib.destroy() }`.
+- Fase 6 (Code Editor): daftarkan hook simpan `AppExit.register("editor") { simpanSemuaBerkas() }` (hook jalan sebelum proses dibunuh).
+- Fase 7 (Settings Hub): tombol "Keluar" yang memanggil `AppExit.exit()`.
+- Catatan: bila kelak memakai sharedUserId, sapuan /proc di AppExit harus dipersempit.
