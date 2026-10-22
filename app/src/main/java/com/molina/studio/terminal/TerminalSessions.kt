@@ -68,16 +68,17 @@ object TerminalSessions {
     private fun workDir(): File = File(Environment.getExternalStorageDirectory(), "molina-studio")
 
     private fun debianShell(ctx: Context): TerminalSession {
+        TerminalPrefs.init(ctx)
         val nativeDir = ctx.applicationInfo.nativeLibraryDir
         val rootfsDir = RootfsManager.rootfsDir(ctx)
         val rootfs = rootfsDir.absolutePath
         val tmp = File(ctx.cacheDir, "proot-tmp").apply { mkdirs() }
-        val work = workDir()
-        val guestCwd = if (work.isDirectory && work.canRead()) MolinaShell.HOME_DIR else "/root"
+        val guestCwd = "/root" // home default: prompt tampil sebagai user@localhost:~
         val storage = Environment.getExternalStorageDirectory().absolutePath
 
         // bashrc Molina (prompt berwarna + banner) dan titik mount /storage/emulated/0 di guest.
         MolinaShell.installRc(ctx, File(rootfsDir, "etc/molina/bashrc"))
+        MolinaShell.writePromptEnv(rootfsDir, TerminalPrefs.promptTheme)
         File(rootfsDir, "storage/emulated/0").mkdirs()
 
         val args = arrayOf(
@@ -92,8 +93,8 @@ object TerminalSessions {
             "MOLINA_HOME=${MolinaShell.HOME_DIR}",
             "MOLINA_BRAND=${MolinaShell.BRAND}",
             "MOLINA_BRAND_SGR=${MolinaShell.BRAND_SGR}",
-            "MOLINA_PS_HOME=${MolinaShell.PS_HOME_SGR}",
-            "MOLINA_PS_OTHER=${MolinaShell.PS_OTHER_SGR}",
+            "MOLINA_PS_HOME=${TerminalPrefs.promptTheme.homeSgr}",
+            "MOLINA_PS_OTHER=${TerminalPrefs.promptTheme.otherSgr}",
             "/bin/bash", "--rcfile", "/etc/molina/bashrc", "-i"
         )
         val env = buildList {

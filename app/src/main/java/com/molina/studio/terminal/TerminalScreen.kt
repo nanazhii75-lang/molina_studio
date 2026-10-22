@@ -3,18 +3,23 @@ package com.molina.studio.terminal
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.graphics.Paint
 import android.graphics.Typeface
 import android.util.TypedValue
 import android.widget.Toast
 import android.view.KeyEvent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -23,6 +28,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
@@ -30,7 +36,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -40,8 +45,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
@@ -51,9 +58,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.termux.view.TerminalView
+import kotlin.math.floor
 
-/** Ukuran font terminal (sp). Nanti dijadikan opsi di Settings Hub. */
-private const val TERMINAL_TEXT_SP = 9f
+private fun spToPx(ctx: Context, sp: Int): Int =
+    TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, sp.toFloat(), ctx.resources.displayMetrics).toInt()
+
+/** Lebar satu sel monospace pada ukuran font tertentu (sama seperti TerminalRenderer). */
+private fun cellWidthPx(ctx: Context, sp: Int): Float =
+    Paint().apply { typeface = Typeface.MONOSPACE; textSize = spToPx(ctx, sp).toFloat() }.measureText("X")
 
 @Composable
 fun TerminalScreen(modifier: Modifier = Modifier) {
@@ -85,13 +97,29 @@ private fun TerminalContent(modifier: Modifier) {
 
     Column(modifier) {
         StatusBar()
-        Box(Modifier.weight(1f).fillMaxWidth()) {
+        BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
             if (rootfsState !is RootfsState.Ready) {
                 InstallPanel(rootfsState) { RootfsManager.install(context) }
             } else {
+                val fontSp = TerminalPrefs.fontSp
+                val density = LocalDensity.current
+                // Terminal Margin Adjustment: pusatkan kolom penuh, sisa lebar dibagi dua sisi.
+                val cell = remember(fontSp) { cellWidthPx(context, fontSp) }
+                val marginDp = if (TerminalPrefs.marginAdjustment && cell > 0f) {
+                    val w = constraints.maxWidth.toFloat()
+                    val rest = w - floor(w / cell) * cell
+                    with(density) { (rest / 2f).toDp() }
+                } else 0.dp
                 AndroidView(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize().padding(horizontal = marginDp),
                     factory = { ctx -> createTerminalView(ctx, mods) },
+                    update = { v ->
+                        val sp = TerminalPrefs.fontSp
+                        if (v.tag != sp) {
+                            v.tag = sp
+                            v.setTextSize(spToPx(v.context, sp))
+                        }
+                    },
                     onRelease = { v ->
                         if (TerminalSessions.client.view === v) TerminalSessions.client.view = null
                     }
@@ -189,11 +217,8 @@ private fun createTerminalView(ctx: Context, mods: TerminalModifiers): TerminalV
     val session = TerminalSessions.session(ctx)
     TerminalSessions.client.view = view
     view.setTerminalViewClient(MolinaViewClient(view, mods))
-    view.setTextSize(
-        TypedValue.applyDimension(
-            TypedValue.COMPLEX_UNIT_SP, TERMINAL_TEXT_SP, ctx.resources.displayMetrics
-        ).toInt()
-    )
+    view.tag = TerminalPrefs.fontSp
+    view.setTextSize(spToPx(ctx, TerminalPrefs.fontSp))
     view.setTypeface(Typeface.MONOSPACE)
     view.isFocusable = true
     view.isFocusableInTouchMode = true
@@ -231,8 +256,10 @@ private fun ExtraKeys(mods: TerminalModifiers) {
         }
         Row(Modifier.fillMaxWidth()) {
             Key("\u21C6", color = KeyAmber) { TerminalActions.send("\t") }
-            Key("CTRL", active = mods.ctrl, color = KeyAmber) { mods.ctrl = !mods.ctrl }
-            Key("ALT", active = mods.alt, color = KeyAmber) { mods.alt = !mods.alt }
+            Key("CTRL", active = mods.ctrl, locked = mods.ctrlLocked, color = KeyAmber,
+                onLongClick = { mods.toggleCtrlLock() }) { mods.tapCtrl() }
+            Key("ALT", active = mods.alt, locked = mods.altLocked, color = KeyAmber,
+                onLongClick = { mods.toggleAltLock() }) { mods.tapAlt() }
             Key("\u2190", color = KeyBlue) { TerminalActions.sendKey(KeyEvent.KEYCODE_DPAD_LEFT) }
             Key("\u2193", color = KeyBlue) { TerminalActions.sendKey(KeyEvent.KEYCODE_DPAD_DOWN) }
             Key("\u2192", color = KeyBlue) { TerminalActions.sendKey(KeyEvent.KEYCODE_DPAD_RIGHT) }
@@ -245,10 +272,12 @@ private fun ExtraKeys(mods: TerminalModifiers) {
 private fun RowScope.Key(
     label: String,
     active: Boolean = false,
+    locked: Boolean = false,
     color: Color = Color.Unspecified,
+    onLongClick: (() -> Unit)? = null,
     onClick: () -> Unit
 ) {
-    Box(Modifier.weight(1f)) { KeyButton(label, active, color, onClick) }
+    Box(Modifier.weight(1f)) { KeyButton(label, active, locked, color, onLongClick, onClick) }
 }
 
 @Composable
@@ -259,7 +288,7 @@ private fun RowScope.MenuKey(
 ) {
     var open by remember { mutableStateOf(false) }
     Box(Modifier.weight(1f)) {
-        KeyButton(label, false, color) { open = true }
+        KeyButton(label, false, false, color, null) { open = true }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             items.forEach { (text, action) ->
                 DropdownMenuItem(text = { Text(text) }, onClick = { open = false; action() })
@@ -268,29 +297,55 @@ private fun RowScope.MenuKey(
     }
 }
 
+/**
+ * Tombol ekstra. active = modifier aktif sekali pakai (latar redup);
+ * locked = modifier dikunci lewat long-press (latar menyala + bingkai).
+ */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun KeyButton(label: String, active: Boolean, tint: Color, onClick: () -> Unit) {
+private fun KeyButton(
+    label: String,
+    active: Boolean,
+    locked: Boolean,
+    tint: Color,
+    onLongClick: (() -> Unit)?,
+    onClick: () -> Unit
+) {
     val haptic = LocalHapticFeedback.current
     val base = if (tint == Color.Unspecified) MaterialTheme.colorScheme.onSurface else tint
-    TextButton(
-        onClick = {
-            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-            onClick()
-        },
+    val shape = RoundedCornerShape(8.dp)
+    val bg = when {
+        locked -> base.copy(alpha = 0.40f)
+        active -> base.copy(alpha = 0.22f)
+        else -> Color.Transparent
+    }
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(
-                if (active) base.copy(alpha = 0.22f) else Color.Transparent,
-                RoundedCornerShape(8.dp)
+            .heightIn(min = 40.dp)
+            .clip(shape)
+            .background(bg, shape)
+            .then(if (locked) Modifier.border(1.5.dp, base, shape) else Modifier)
+            .combinedClickable(
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onClick()
+                },
+                onLongClick = onLongClick?.let { lc ->
+                    {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        lc()
+                    }
+                }
             ),
-        contentPadding = PaddingValues(0.dp)
+        contentAlignment = Alignment.Center
     ) {
         Text(
             label,
             fontSize = 13.sp,
             maxLines = 1,
-            fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
-            color = if (active) base else base.copy(alpha = 0.85f)
+            fontWeight = if (active || locked) FontWeight.Bold else FontWeight.Medium,
+            color = if (active || locked) base else base.copy(alpha = 0.85f)
         )
     }
 }

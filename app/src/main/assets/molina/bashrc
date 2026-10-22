@@ -4,6 +4,7 @@
 
 # Prompt: hijau di home (~ atau folder kerja Molina), merah di folder lain.
 __molina_ps1() {
+  [ -r /etc/molina/prompt.env ] && . /etc/molina/prompt.env
   local sgr="$MOLINA_PS_OTHER"
   if [ "$PWD" = "$HOME" ] || [ "$PWD" = "$MOLINA_HOME" ]; then sgr="$MOLINA_PS_HOME"; fi
   PS1='\[\e['"$sgr"'m\]user@localhost:\w $\[\e[0m\] '

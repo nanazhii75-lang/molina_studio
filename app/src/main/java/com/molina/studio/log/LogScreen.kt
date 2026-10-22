@@ -37,7 +37,9 @@ private val FILTERS = listOf(
     "" to "Semua",
     "cinema" to "Cinema",
     "terminal" to "Terminal",
-    "sistem" to "Sistem"
+    "sistem" to "Sistem",
+    "logcat" to "Logcat",
+    "crash" to "Crash"
 )
 
 private val TIME_FMT: DateTimeFormatter =

@@ -14,6 +14,14 @@ object MolinaShell {
 
     val banner: String get() = "\u001b[${BRAND_SGR}m$BRAND\u001b[0m"
 
+    /** Tulis warna prompt aktif; dibaca bashrc di setiap prompt (perubahan tema langsung berlaku). */
+    fun writePromptEnv(rootfsDir: File, theme: PromptTheme) {
+        val f = File(rootfsDir, "etc/molina/prompt.env")
+        val text = "MOLINA_PS_HOME='${theme.homeSgr}'\nMOLINA_PS_OTHER='${theme.otherSgr}'\n"
+        f.parentFile?.mkdirs()
+        if (!f.isFile || f.readText() != text) f.writeText(text)
+    }
+
     /** Salin bashrc Molina dari assets ke rootfs; hanya menulis bila isinya berbeda. */
     fun installRc(ctx: Context, target: File) {
         val text = ctx.assets.open("molina/bashrc").bufferedReader().use { it.readText() }

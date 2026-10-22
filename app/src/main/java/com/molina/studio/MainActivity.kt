@@ -83,6 +83,12 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         LogServer.start()
+        com.molina.studio.terminal.TerminalPrefs.init(applicationContext)
+        com.molina.studio.terminal.CrashReporter.install(applicationContext)
+        com.molina.studio.terminal.CrashReporter.notifyPending(applicationContext)
+        com.molina.studio.terminal.LogcatReporter.setEnabled(
+            com.molina.studio.terminal.TerminalPrefs.logcatReporter
+        )
         AppExit.attach(this)
         setContent {
             MaterialTheme(colorScheme = MolinaColors) {
