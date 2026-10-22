@@ -7,6 +7,8 @@ import android.system.OsConstants
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.molina.studio.log.LogBus
+import com.molina.studio.log.LogLevel
 import com.termux.terminal.TerminalSession
 import java.io.File
 
@@ -30,7 +32,10 @@ object TerminalSessions {
         val app = context.applicationContext
         appContext = app
         val s = sessions[kind]?.takeIf { it.isRunning }
-            ?: create(app, kind).also { sessions[kind] = it }
+            ?: create(app, kind).also {
+                sessions[kind] = it
+                LogBus.log("terminal", LogLevel.Info, "session", "Sesi ${kind.label} dimulai")
+            }
         currentSession = s
         TerminalService.ensureRunning(app)
         return s
@@ -43,6 +48,7 @@ object TerminalSessions {
 
     /** Dipanggil saat satu sesi berakhir: hentikan service bila tak ada sesi tersisa. */
     fun onSessionFinished() {
+        LogBus.log("terminal", LogLevel.Info, "session", "Sesi terminal berakhir")
         val ctx = appContext ?: return
         val shouldStop = synchronized(this) { sessions.isNotEmpty() && !anyRunning() }
         if (shouldStop) TerminalService.requestStop(ctx)

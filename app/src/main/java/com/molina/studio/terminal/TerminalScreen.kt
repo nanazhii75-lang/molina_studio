@@ -40,6 +40,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.termux.terminal.KeyHandler
+import com.molina.studio.log.LogScreen
+import com.molina.studio.log.LogTabButton
+import com.molina.studio.log.LogUi
 import com.termux.view.TerminalView
 
 @Composable
@@ -74,7 +77,9 @@ private fun TerminalContent(modifier: Modifier) {
     Column(modifier) {
         KindTabs(kind)
         Box(Modifier.weight(1f).fillMaxWidth()) {
-            if (kind == SessionKind.Debian && rootfsState !is RootfsState.Ready) {
+            if (LogUi.show) {
+                LogScreen(Modifier.fillMaxSize())
+            } else if (kind == SessionKind.Debian && rootfsState !is RootfsState.Ready) {
                 InstallPanel(rootfsState) { RootfsManager.install(context) }
             } else {
                 key(kind) {
@@ -88,7 +93,7 @@ private fun TerminalContent(modifier: Modifier) {
                 }
             }
         }
-        ExtraKeys(mods)
+        if (!LogUi.show) ExtraKeys(mods)
     }
 }
 
@@ -96,15 +101,16 @@ private fun TerminalContent(modifier: Modifier) {
 private fun KindTabs(selected: SessionKind) {
     Row(Modifier.fillMaxWidth()) {
         SessionKind.entries.forEach { k ->
-            TextButton(onClick = { TerminalSessions.selected = k }) {
+            TextButton(onClick = { TerminalSessions.selected = k; LogUi.show = false }) {
                 Text(
                     k.label,
-                    fontWeight = if (k == selected) FontWeight.Bold else FontWeight.Normal,
-                    color = if (k == selected) MaterialTheme.colorScheme.primary
+                    fontWeight = if (k == selected && !LogUi.show) FontWeight.Bold else FontWeight.Normal,
+                    color = if (k == selected && !LogUi.show) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.onSurface
                 )
             }
         }
+        LogTabButton()
     }
 }
 

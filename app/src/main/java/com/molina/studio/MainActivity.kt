@@ -1,6 +1,7 @@
 package com.molina.studio
 
 import android.os.Bundle
+import com.molina.studio.log.LogServer
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
@@ -38,6 +39,7 @@ private val MolinaColors = darkColorScheme(
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        LogServer.start()
         AppExit.attach(this)
         setContent {
             MaterialTheme(colorScheme = MolinaColors) {
