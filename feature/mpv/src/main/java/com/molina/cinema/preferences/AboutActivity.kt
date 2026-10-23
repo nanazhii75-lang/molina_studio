@@ -50,6 +50,7 @@ class AboutActivity : AppCompatActivity(), MPVLib.LogObserver {
 
     override fun onDestroy() {
         super.onDestroy()
+        MPVLib.removeLogObserver(this)
         if (!mpvDestroyed) {
             MPVLib.destroy()
             mpvDestroyed = true

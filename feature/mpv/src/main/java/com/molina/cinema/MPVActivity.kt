@@ -346,6 +346,13 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
 
         // Suppress any further callbacks
         activityIsForeground = false
+        // Stop events from the mpv thread first (MPVLib.event holds the observer lock, so no
+        // callback is in flight once this returns). Otherwise handleAudioFocus() could
+        // register the noisy receiver again right after it is unregistered below.
+        player.removeObserver(this)
+        eventUiHandler.removeCallbacksAndMessages(null)
+        fadeHandler.removeCallbacksAndMessages(null)
+        stopServiceHandler.removeCallbacksAndMessages(null)
 
         if (becomingNoisyReceiverRegistered) {
             unregisterReceiver(becomingNoisyReceiver)
@@ -370,7 +377,6 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         // take the background service with us
         stopServiceRunnable.run()
 
-        player.removeObserver(this)
         player.destroy()
         super.onDestroy()
     }
