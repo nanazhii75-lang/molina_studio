@@ -6,6 +6,7 @@ import android.os.Looper
 import android.os.Process
 import android.system.Os
 import android.system.OsConstants
+import com.molina.core.common.ExitHooks
 import com.molina.studio.terminal.TerminalSessions
 import java.io.File
 import java.lang.ref.WeakReference
@@ -18,28 +19,14 @@ import java.lang.ref.WeakReference
  * dan hapus dari recents -> bunuh proses aplikasi sendiri.
  *
  * Modul baru wajib mendaftarkan pembersihan, misalnya:
- *   AppExit.register("mpv") { MPVLib.destroy() }
+ *   ExitHooks.register("mpv") { MPVLib.destroy() }   // com.molina.core.common
  */
 object AppExit {
-    private val hooks = LinkedHashMap<String, () -> Unit>()
     @Volatile private var activityRef: WeakReference<Activity>? = null
 
     fun attach(activity: Activity) {
         activityRef = WeakReference(activity)
     }
-
-    @Synchronized
-    fun register(name: String, hook: () -> Unit) {
-        hooks[name] = hook
-    }
-
-    @Synchronized
-    fun unregister(name: String) {
-        hooks.remove(name)
-    }
-
-    @Synchronized
-    private fun snapshotHooks(): List<() -> Unit> = hooks.values.toList()
 
     private val exiting = java.util.concurrent.atomic.AtomicBoolean(false)
 
@@ -53,9 +40,7 @@ object AppExit {
             if (delayMs > 0) {
                 try { Thread.sleep(delayMs) } catch (e: InterruptedException) {}
             }
-            for (h in snapshotHooks()) {
-                try { h() } catch (e: Throwable) {}
-            }
+            ExitHooks.runAll()
             try { TerminalSessions.killAll() } catch (e: Throwable) {}
             repeat(3) {
                 sweepOwnProcesses()

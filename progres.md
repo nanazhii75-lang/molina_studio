@@ -32,6 +32,7 @@
 - 2026-10-23: Docs: roadmap prioritas ditambahkan, status fase di docs/BLUEPRINT.md disinkronkan (Phase 2 COMPLETED, Phase 3-7 dirinci), checklist uji perangkat di docs/UJI_PERANGKAT.md.
 - 2026-10-23: Gate lulus (kunci tetap aktif, sidik jari APK dicek, uji perangkat dilakukan). Fase 6 langkah 1: modul kosong `:core:common` (Kotlin JVM murni) dan `:core:storage` (Android library, api ke core:common) ditambahkan + dipasang di :app; folder kerja tetap `/sdcard/molina-studio` (`/sdcard/Molina` di handoff = salah tulis). Menunggu CI.
 - 2026-10-23: Run 22 hijau (scaffold core). Blueprint 5.1 diperbarui: modul `:feature:{terminal,mpv,code,settings}` + `:engine:newpipe`; kontrak `SettingsSection` dan `StreamResolver` di core:common; urutan migrasi code > settings > mpv+engine > terminal terakhir.
+- 2026-10-23: Fase 6 langkah 2: kontrak `ExitHook` + registri `ExitHooks` (register/unregister/runAll) dipindah ke `:core:common` (`com.molina.core.common`); `AppExit` kini memanggil `ExitHooks.runAll()` dan tidak lagi menyimpan hook. Perilaku keluar tidak berubah. Menunggu CI.
 
 ## Roadmap Prioritas (disusun 2026-10-23)
 0. Gate: uji perangkat penuh (docs/UJI_PERANGKAT.md) sebelum fase baru. (Selesai 2026-10-23.)
@@ -42,8 +43,8 @@
 Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); prompt dengan branch git + exit code; paket setup Dev/Media (SHA-256); token desain `MolinaTheme` (emas #D4AF37), ikon adaptif + splash; janji tanpa telemetri/donasi/offline-first di About.
 
 ## Backlog Lintas Fase
-- Fase 5 (Cinema/mpv): daftarkan `AppExit.register("mpv") { MPVLib.destroy() }`.
-- Fase 6 (Code Editor): daftarkan hook simpan `AppExit.register("editor") { simpanSemuaBerkas() }` (hook jalan sebelum proses dibunuh).
+- Fase 5 (Cinema/mpv): daftarkan `ExitHooks.register("mpv") { MPVLib.destroy() }`.
+- Fase 6 (Code Editor): daftarkan hook simpan `ExitHooks.register("editor") { simpanSemuaBerkas() }` (hook jalan sebelum proses dibunuh).
 - Fase 7 (Settings Hub): tombol "Keluar" yang memanggil `AppExit.exit()`.
 - Catatan: bila kelak memakai sharedUserId, sapuan /proc di AppExit harus dipersempit.
 - Fase 5 (Cinema/mpv): buat `MpvSettings` + `MpvPrefs` dengan pola `TerminalPrefs` (data class snapshot, `PrefKeys`, satu fungsi `update {}`, DataStore + `StateFlow`, tulis disk async & conflated). Ekstrak base class generik HANYA bila sudah ada 3 store atau lebih; jangan lebih awal.
