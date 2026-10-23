@@ -43,3 +43,17 @@ internal fun CinemaAction(glyph: String, label: String, onClick: () -> Unit) {
         Text(label, color = MolinaTheme.Muted, fontSize = 10.sp)
     }
 }
+/** Penanda "video sedang main di latar belakang"; sama ungu (CinemaPurple) dengan ikon mpv di tab Log. */
+@Composable
+internal fun LiveBadge() {
+    Row(
+        Modifier.clip(CircleShape).background(CinemaPurple.copy(alpha = 0.16f))
+            .border(1.dp, CinemaPurple, CircleShape)
+            .padding(horizontal = 10.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(Modifier.size(6.dp).clip(CircleShape).background(CinemaPurple))
+        Spacer(Modifier.width(6.dp))
+        Text("LIVE", color = CinemaPurple, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+    }
+}

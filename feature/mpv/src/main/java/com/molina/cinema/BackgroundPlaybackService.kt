@@ -137,6 +137,7 @@ class BackgroundPlaybackService : Service(), MPVLib.EventObserver {
             0
         }
         ServiceCompat.startForeground(this, NOTIFICATION_ID, notification, type)
+        BackgroundPlaybackState.setActive(true)
 
         return START_NOT_STICKY // Android can't restart this service on its own
     }
@@ -150,6 +151,7 @@ class BackgroundPlaybackService : Service(), MPVLib.EventObserver {
         notificationManager.cancel(NOTIFICATION_ID)
 
         MpvLog.i(TAG, "Layanan pemutaran latar dihentikan")
+        BackgroundPlaybackState.setActive(false)
     }
 
     override fun onBind(intent: Intent): IBinder? { return null }

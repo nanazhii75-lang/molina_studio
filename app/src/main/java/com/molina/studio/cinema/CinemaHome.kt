@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.molina.cinema.BackgroundPlaybackState
 import com.molina.studio.ui.MolinaTheme
 
 private const val HINT = "Ketuk ikon tautan di bawah untuk mencari video di YouTube."
@@ -30,6 +31,11 @@ fun CinemaHome(modifier: Modifier = Modifier) {
         modifier.background(MolinaTheme.Background).padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        val live by BackgroundPlaybackState.active.collectAsState()
+        if (live) {
+            LiveBadge()
+            Spacer(Modifier.height(8.dp))
+        }
         Text("Pencarian YouTube", color = MolinaTheme.Muted, fontSize = 14.sp)
         Column(
             Modifier.weight(1f).fillMaxWidth(),
