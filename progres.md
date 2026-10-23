@@ -39,6 +39,7 @@
 - 2026-10-23: Fase 6 langkah 3a: kontrak `MolinaPaths` + enum `MolinaDir` (downloads/export/media/backup) ditambahkan di `:core:common`. Keputusan: data bersama di folder tersembunyi `/sdcard/.molina-data` (di luar working tree git, opsi b); rahasia tetap di `filesDir`/Keystore. Belum ada implementasi. Menunggu CI.
 - 2026-10-23: Fase 6 langkah 3b: `AndroidMolinaPaths` (implementasi `MolinaPaths`) di `:core:storage`: workspace=ExternalStorage/molina-studio, dataRoot=ExternalStorage/.molina-data, privateRoot=filesDir; `ensureDirs()` membuat subfolder (off-main-thread, butuh izin storage). Belum dirakit di :app. Menunggu CI.
 - 2026-10-23: Fase 6 langkah 3c: `AppPaths` (singleton di `:app`) dirakit; `MainActivity.onResume` memanggil `ensureIfPermitted` (jalan di IO, hanya bila izin storage ada, dicoba ulang tiap resume sampai berhasil; hasil dicatat ke AppLog). Perilaku UI tidak berubah. Menunggu CI.
+- 2026-10-23: docs: catat ide snapshot otomatis berkas yang sedang diedit ke `MolinaDir.Backup` (lihat Backlog, Fase 6).
 
 ## Roadmap Prioritas (disusun 2026-10-23)
 0. Gate: uji perangkat penuh (docs/UJI_PERANGKAT.md) sebelum fase baru. (Selesai 2026-10-23.)
@@ -58,3 +59,4 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - Modul fitur: pindahkan Terminal ke `:feature:terminal` paling akhir (cek TerminalService di manifest, assets molina/bashrc, jniLibs + useLegacyPackaging tetap di :app).
 - Log: pasang `AppLog.install(LogBus)` di kelas Application (butuh `android:name` di manifest) agar log sebelum Activity tidak hilang; producer terminal pindah ke `AppLog.log` saat `:feature:terminal` dibuat.
 - Fase 6 langkah 4: kelas Application untuk `AppLog.install(LogBus)` (menyentuh `android:name` di manifest; commit terpisah)
+- Fase 6 ide (`:feature:code`): snapshot otomatis berkas yang sedang diedit ke `MolinaDir.Backup` (`/sdcard/.molina-data/backup`) SEBELUM `ExitHooks.register("editor") { simpanSemuaBerkas() }` menulis ke berkas asli, agar ada salinan terakhir bila proses diterminasi paksa. Detail (rotasi N salinan, penamaan) diputuskan saat implementasi.
