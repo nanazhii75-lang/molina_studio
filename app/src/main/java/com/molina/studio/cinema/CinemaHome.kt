@@ -48,7 +48,7 @@ fun CinemaHome(modifier: Modifier = Modifier) {
         title = { Text("Tautan atau judul") },
         text = {
             OutlinedTextField(input, { input = it }, singleLine = true,
-                placeholder = { Text("https://... atau judul video") })
+                placeholder = { Text("Tempel URL atau ketik judul video") })
         },
         confirmButton = {
             TextButton({
