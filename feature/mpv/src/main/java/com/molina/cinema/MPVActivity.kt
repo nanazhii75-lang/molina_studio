@@ -482,10 +482,11 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
 
         didResumeBackgroundPlayback = shouldBackground
         if (shouldBackground) {
-            MpvLog.v(TAG, "Resuming playback in background")
+            MpvLog.i(TAG, "Pemutaran dilanjutkan di latar belakang (mode=$backgroundPlayMode)")
             stopServiceHandler.removeCallbacks(stopServiceRunnable)
             val serviceIntent = Intent(this, BackgroundPlaybackService::class.java)
             if (!tryStartForegroundService(serviceIntent)) {
+                MpvLog.w(TAG, "Layanan pemutaran latar tidak dapat dimulai; pemutaran dijeda")
                 didResumeBackgroundPlayback = false
                 player.paused = true
             }
@@ -628,7 +629,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
     // really used anymore after Android 12 (except for AUDIOFOCUS_LOSS),
     // as well as actions equivalent to a focus change that we make up ourselves.
     private fun onAudioFocusChange(type: Int, source: String) {
-        MpvLog.v(TAG, "Audio focus changed: $type ($source)")
+        AudioLog.focus(type, source, ignoreAudioFocus || isFinishing)
         if (ignoreAudioFocus || isFinishing)
             return
         when (type) {

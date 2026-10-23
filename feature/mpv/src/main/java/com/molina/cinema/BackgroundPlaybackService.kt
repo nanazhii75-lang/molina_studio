@@ -121,7 +121,7 @@ class BackgroundPlaybackService : Service(), MPVLib.EventObserver {
     }
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
-        MpvLog.v(TAG, "BackgroundPlaybackService: starting")
+        MpvLog.i(TAG, "Layanan pemutaran latar dimulai")
 
         cachedMetadata.readAll()
         paused = MPVLib.getPropertyBoolean("pause") == true
@@ -149,7 +149,7 @@ class BackgroundPlaybackService : Service(), MPVLib.EventObserver {
         val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.cancel(NOTIFICATION_ID)
 
-        MpvLog.v(TAG, "BackgroundPlaybackService: destroyed")
+        MpvLog.i(TAG, "Layanan pemutaran latar dihentikan")
     }
 
     override fun onBind(intent: Intent): IBinder? { return null }
@@ -165,6 +165,8 @@ class BackgroundPlaybackService : Service(), MPVLib.EventObserver {
     override fun eventProperty(property: String, value: Boolean) {
         if (property != "pause")
             return
+        if (value != paused)
+            MpvLog.i(TAG, if (value) "Pemutaran latar dijeda" else "Pemutaran latar dilanjutkan")
         paused = value
         refreshNotification()
     }
@@ -181,6 +183,7 @@ class BackgroundPlaybackService : Service(), MPVLib.EventObserver {
 
     override fun event(eventId: Int) {
         if (eventId == MpvEvent.MPV_EVENT_SHUTDOWN) {
+            MpvLog.i(TAG, "mpv berhenti; layanan pemutaran latar ikut berhenti")
             stopSelf()
         } else if (eventId == MpvEvent.MPV_EVENT_VIDEO_RECONFIG) {
             thumbnailHandler.removeCallbacks(thumbnailRunnable)
