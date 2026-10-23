@@ -1,6 +1,7 @@
 package com.molina.studio
 
 import android.app.Application
+import com.molina.cinema.MpvLifecycle
 import com.molina.core.common.AppLog
 import com.molina.studio.log.LogBus
 
@@ -9,5 +10,6 @@ class MolinaApp : Application() {
     override fun onCreate() {
         super.onCreate()
         AppLog.install(LogBus)
+        MpvLifecycle.installExitHook()
     }
 }

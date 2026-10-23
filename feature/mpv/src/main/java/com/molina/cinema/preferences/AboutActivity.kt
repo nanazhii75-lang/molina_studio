@@ -9,6 +9,7 @@ import androidx.preference.PreferenceManager
 import com.google.android.material.color.DynamicColors
 import com.molina.cinema.MPVLib
 import com.molina.cinema.MPVLib.MpvLogLevel
+import com.molina.cinema.MpvLifecycle
 import com.molina.cinema.R
 import com.molina.cinema.databinding.ActivityAboutBinding
 
@@ -37,6 +38,7 @@ class AboutActivity : AppCompatActivity(), MPVLib.LogObserver {
 
         // create mpv context to capture version info from log
         MPVLib.create(this)
+        MpvLifecycle.markCreated()
         mpvDestroyed = false
         MPVLib.addLogObserver(this)
         MPVLib.init()
@@ -52,7 +54,7 @@ class AboutActivity : AppCompatActivity(), MPVLib.LogObserver {
         super.onDestroy()
         MPVLib.removeLogObserver(this)
         if (!mpvDestroyed) {
-            MPVLib.destroy()
+            MpvLifecycle.destroyIfAlive()
             mpvDestroyed = true
         }
     }

@@ -15,6 +15,7 @@ abstract class BaseMPVView(context: Context, attrs: AttributeSet) : SurfaceView(
      */
     fun initialize(configDir: String, cacheDir: String) {
         MPVLib.create(context.applicationContext)
+        MpvLifecycle.markCreated()
 
         /* set normal options (user-supplied config can override) */
         MPVLib.setOptionString("config", "yes")
@@ -45,7 +46,7 @@ abstract class BaseMPVView(context: Context, attrs: AttributeSet) : SurfaceView(
         // Disable surface callbacks to avoid using uninitialized mpv state
         holder.removeCallback(this)
 
-        MPVLib.destroy()
+        MpvLifecycle.destroyIfAlive()
     }
 
     protected abstract fun initOptions()
