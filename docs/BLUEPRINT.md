@@ -156,12 +156,13 @@ progress_template = """# MOLINA STUDIO - FINAL ARCHITECTURE PROGRESS
 ### [Phase 4: Log & IPC] - COMPLETED (uji perangkat dilaporkan lulus pengguna, 2026-10-23)
 - [x] LogGrouping + IPC LocalSocket abstract `@molina.log`, tampilan di Settings.
 
-### [Phase 5: MPV Player / Molina Cinema] - PLANNED
+### [Phase 5: MPV Player / Molina Cinema] - NEXT (diprioritaskan sebelum Phase 6)
+- [x] Prasyarat inti lunas: `MolinaPaths` + `AppPaths`, `MolinaApp` (`AppLog.install`), `ExitHooks`, `AppVisibility`; izin storage diminta sekali di `MainActivity`.
 - [ ] 5a spike libmpv arm64 di CI; 5b putar lokal + hook ExitHooks + MpvPrefs; 5c event ke AppLog; 5d NewPipe (`:engine:newpipe`).
 
-### [Phase 6: Code Editor (Rosemoe)] - PLANNED (diprioritaskan sebelum Phase 5)
+### [Phase 6: Code Editor (Rosemoe)] - PLANNED (dikerjakan setelah Phase 5 mpv)
 - [x] Prasyarat modul: `:core:common` + `:core:storage`; `ExitHooks`; `LogLevel`/`LogEvent`/`LogSink`/`AppLog`; `AppVisibility`.
-- [ ] Prasyarat tersisa: `MolinaPaths` + folder, kelas Application untuk `AppLog.install`.
+- [x] Prasyarat `MolinaPaths` + folder dan kelas Application (`AppLog.install`) lunas.
 - [ ] `:feature:code` (Rosemoe) + hook `ExitHooks.register("editor")` + perintah `molina open`.
 
 ### [Phase 7: Settings Hub] - PLANNED
@@ -188,7 +189,7 @@ Tujuan: kontrak antar modul eksplisit (tanpa dependensi melingkar) dan satu pint
 - `feature:settings` tidak mengimpor fitur lain: tiap fitur mengekspos `SettingsSection`; `:app` mengumpulkan dan memberikannya.
 - `core:common` = Kotlin murni (tanpa Context/Uri/Compose); `core:storage` mengimplementasi `MolinaPaths`.
 - Hanya `:app` yang merakit implementasi (service locator manual) dan boleh melihat semua modul.
-- Urutan migrasi: code (langsung `:feature:code`) > settings > mpv + engine:newpipe (baru, Fase 5) > terminal paling akhir.
+- Urutan migrasi: mpv + engine:newpipe (baru, Fase 5) > code (`:feature:code`, Fase 6) > settings > terminal paling akhir.
 - Terminal paling akhir karena berisiko: TerminalService di manifest, assets `molina/bashrc`, jniLibs + `useLegacyPackaging` tetap di `:app`.
 
 ### 5.2 Isi `core:common`
@@ -240,12 +241,13 @@ Tujuan: kontrak antar modul eksplisit (tanpa dependensi melingkar) dan satu pint
 ### [Phase 4: Log & IPC] - COMPLETED (uji perangkat dilaporkan lulus pengguna, 2026-10-23)
 - [x] LogGrouping + IPC LocalSocket abstract `@molina.log`, tampilan di Settings.
 
-### [Phase 5: MPV Player / Molina Cinema] - PLANNED
+### [Phase 5: MPV Player / Molina Cinema] - NEXT (diprioritaskan sebelum Phase 6)
+- [x] Prasyarat inti lunas: `MolinaPaths` + `AppPaths`, `MolinaApp` (`AppLog.install`), `ExitHooks`, `AppVisibility`; izin storage diminta sekali di `MainActivity`.
 - [ ] 5a spike libmpv arm64 di CI; 5b putar lokal + hook ExitHooks + MpvPrefs; 5c event ke AppLog; 5d NewPipe (`:engine:newpipe`).
 
-### [Phase 6: Code Editor (Rosemoe)] - PLANNED (diprioritaskan sebelum Phase 5)
+### [Phase 6: Code Editor (Rosemoe)] - PLANNED (dikerjakan setelah Phase 5 mpv)
 - [x] Prasyarat modul: `:core:common` + `:core:storage`; `ExitHooks`; `LogLevel`/`LogEvent`/`LogSink`/`AppLog`; `AppVisibility`.
-- [ ] Prasyarat tersisa: `MolinaPaths` + folder, kelas Application untuk `AppLog.install`.
+- [x] Prasyarat `MolinaPaths` + folder dan kelas Application (`AppLog.install`) lunas.
 - [ ] `:feature:code` (Rosemoe) + hook `ExitHooks.register("editor")` + perintah `molina open`.
 
 ### [Phase 7: Settings Hub] - PLANNED

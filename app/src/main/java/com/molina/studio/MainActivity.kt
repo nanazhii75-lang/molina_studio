@@ -1,7 +1,10 @@
 package com.molina.studio
 
 import com.molina.studio.ui.MolinaTheme
+import android.Manifest
+import android.content.pm.PackageManager
 import android.graphics.Rect
+import androidx.activity.result.contract.ActivityResultContracts
 import android.os.Bundle
 import android.view.ViewTreeObserver
 import com.molina.core.common.AppVisibility
@@ -72,6 +75,12 @@ private val MolinaColors = darkColorScheme(
 )
 
 class MainActivity : ComponentActivity() {
+    /** Izin storage diminta sekali di awal agar AppPaths siap untuk semua fitur (mpv, editor), bukan hanya Terminal. */
+    private val storagePermission =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+            AppPaths.ensureIfPermitted(applicationContext)
+        }
+
     override fun onStart() {
         super.onStart()
         AppVisibility.setForeground(true)
@@ -89,6 +98,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (savedInstanceState == null &&
+            checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
+        ) storagePermission.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
         LogServer.start()
         com.molina.studio.terminal.TerminalPrefs.init(applicationContext)
         com.molina.studio.terminal.CrashReporter.install(applicationContext)
