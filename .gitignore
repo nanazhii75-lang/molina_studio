@@ -8,3 +8,6 @@ local.properties
 captures/
 *.jks
 *.keystore
+# kunci tanda tangan: JANGAN di-commit
+*.p12
+molina-keys/

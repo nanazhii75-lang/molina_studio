@@ -20,8 +20,25 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.10.2
+      - name: Siapkan kunci tanda tangan tetap
+        env:
+          MOLINA_KEYSTORE_B64: ${{ secrets.MOLINA_KEYSTORE_B64 }}
+          MOLINA_KEYSTORE_PASSWORD: ${{ secrets.MOLINA_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -n "$MOLINA_KEYSTORE_B64" ] && [ -n "$MOLINA_KEYSTORE_PASSWORD" ]; then
+            echo "$MOLINA_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/molina.p12"
+            echo "MOLINA_KEYSTORE_FILE=$RUNNER_TEMP/molina.p12" >> "$GITHUB_ENV"
+            echo "MOLINA_KEYSTORE_PASSWORD=$MOLINA_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+            echo "Kunci tetap dipakai."
+          else
+            echo "::warning::Secret kunci belum diisi; memakai keystore debug acak."
+          fi
       - name: Build debug APK
         run: gradle :app:assembleDebug --stacktrace
+      - name: Cetak sidik jari tanda tangan APK
+        run: |
+          A=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          "$A" verify --print-certs app/build/outputs/apk/debug/*.apk | grep -i "SHA-256" || true
       - uses: actions/upload-artifact@v4
         with:
           name: molina-studio-debug

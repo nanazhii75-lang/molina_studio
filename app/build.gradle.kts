@@ -17,8 +17,26 @@ android {
         ndk { abiFilters += listOf("arm64-v8a") }
     }
 
+    signingConfigs {
+        // Kunci tetap dari secrets CI; tanpa env ini dipakai keystore debug bawaan.
+        val ksPath = System.getenv("MOLINA_KEYSTORE_FILE")
+        if (ksPath != null && File(ksPath).isFile) {
+            create("molina") {
+                storeFile = File(ksPath)
+                storeType = "pkcs12"
+                storePassword = System.getenv("MOLINA_KEYSTORE_PASSWORD")
+                keyAlias = "molina"
+                keyPassword = System.getenv("MOLINA_KEYSTORE_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
-        release { isMinifyEnabled = false }
+        debug { signingConfigs.findByName("molina")?.let { signingConfig = it } }
+        release {
+            isMinifyEnabled = false
+            signingConfigs.findByName("molina")?.let { signingConfig = it }
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
