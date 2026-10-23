@@ -1098,8 +1098,25 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
 
             else -> {
                 // Custom intent from MainScreenFragment
-                intent.getStringExtra("filepath")
+                intent.getStringExtra("filepath")?.takeIf { isAllowedCustomPath(it) }
             }
+        }
+    }
+
+    // MPVActivity bersifat exported, jadi aplikasi lain bisa mengirim extra "filepath".
+    // Tolak skema tak dikenal dan path di dalam data privat aplikasi.
+    private fun isAllowedCustomPath(path: String): Boolean {
+        if (path.isBlank()) return false
+        if (path.contains("://")) {
+            val scheme = path.substringBefore("://").lowercase()
+            return scheme in ALLOWED_CUSTOM_SCHEMES
+        }
+        return try {
+            val real = File(path).canonicalPath
+            val privateRoot = File(applicationInfo.dataDir).canonicalPath
+            !(real == privateRoot || real.startsWith("$privateRoot/"))
+        } catch (e: Exception) {
+            false
         }
     }
 
@@ -1110,7 +1127,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
             // mpv supports data URIs but needs data:// to pass it through correctly
             "data" -> "data://${data.schemeSpecificPart}"
             "http", "https", "rtmp", "rtmps", "rtp", "rtsp", "mms", "mmst", "mmsh",
-            "tcp", "udp", "lavf", "ftp"
+            "tcp", "udp", "ftp"
             -> data.toString()
             else -> null
         }
@@ -2136,6 +2153,10 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
 
     companion object {
         private const val TAG = "mpv"
+        private val ALLOWED_CUSTOM_SCHEMES = setOf(
+            "http", "https", "rtmp", "rtmps", "rtp", "rtsp", "mms", "mmst", "mmsh",
+            "tcp", "udp", "ftp", "content", "file", "data"
+        )
         // how long should controls be displayed on screen (ms)
         private const val CONTROLS_DISPLAY_TIMEOUT = 1500L
         // how long controls fade to disappear (ms)
