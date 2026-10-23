@@ -3,7 +3,7 @@
      them to be changed based on the locale and options. -->
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <!-- Simple strings. -->
-    <string name="mpv_activity">mpv</string>
+    <string name="mpv_activity">Molina Cinema</string>
     <string name="label_share_intent">Reprodueix a mpv</string>
     <string name="title_activity_settings">Paràmetres</string>
     <string name="dialog_ok">Accepta</string>
@@ -163,7 +163,7 @@
     <string name="pref_edit_mpv_conf_message">Pots editar directament la configuració de mpv aquí.</string>
 
     <string name="pref_edit_input_conf">Edita input.conf</string>
-    <string name="pref_edit_input_conf_message">Pots editar input.conf aquí. Això sobretot és útil per a comandaments a distància de TV i teclats.\n\nImportant: mpv-android té algunes tecles predeterminades que no podràs tornar a definir aquí, com per exemple \'j\' per commutar els subtítols.</string>
+    <string name="pref_edit_input_conf_message">Pots editar input.conf aquí. Això sobretot és útil per a comandaments a distància de TV i teclats.\n\nImportant: Molina Cinema té algunes tecles predeterminades que no podràs tornar a definir aquí, com per exemple \'j\' per commutar els subtítols.</string>
 
     <!-- Strings used in Settings dialog preferences -->
     <string name="scaler_filter">Funció de filtratge</string>

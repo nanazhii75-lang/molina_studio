@@ -3,7 +3,7 @@
      them to be changed based on the locale and options. -->
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <!-- Simple strings. -->
-    <string name="mpv_activity">mpv</string>
+    <string name="mpv_activity">Molina Cinema</string>
     <string name="label_share_intent">Esita mpv-is</string>
     <string name="title_activity_settings">Sätted</string>
     <string name="dialog_ok">OK</string>
@@ -159,7 +159,7 @@
     <string name="pref_edit_mpv_conf_message">Võite muuda mpv\'i konfigratsioon siin.</string>
 
     <string name="pref_edit_input_conf">Muuda input.conf</string>
-    <string name="pref_edit_input_conf_message">Võid muuda input.conf siin, see on üli kasutusel telekapulte and klaviatuurid.\n\nTähtis: mpv-android on mõned raskekooditud nuppud mis võib\ei saa töötleda, näide \'j\', et subtiitri vahetada.</string>
+    <string name="pref_edit_input_conf_message">Võid muuda input.conf siin, see on üli kasutusel telekapulte and klaviatuurid.\n\nTähtis: Molina Cinema on mõned raskekooditud nuppud mis võib\ei saa töötleda, näide \'j\', et subtiitri vahetada.</string>
 
     <!-- Strings used in Settings dialog preferences -->
     <string name="scaler_param1">Pararammi 1:</string>
