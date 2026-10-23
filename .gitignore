@@ -14,3 +14,5 @@ molina-keys/
 # artefak build native 5a
 _native/
 _native_out/
+# pustaka native mpv (diunduh CI, tidak di-commit)
+feature/mpv/src/main/jniLibs/

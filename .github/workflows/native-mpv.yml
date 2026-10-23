@@ -49,3 +49,30 @@ jobs:
             _native_out/download-sha256.txt
           if-no-files-found: ignore
           retention-days: 7
+
+  publish:
+    needs: native
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: molina-native-arm64
+      - name: Terbitkan ke GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="native-mpv-${GITHUB_SHA:0:7}-run${GITHUB_RUN_NUMBER}"
+          SUM="$(sha256sum molina-native-arm64.tgz | cut -d' ' -f1)"
+          grep -q "$SUM  molina-native-arm64.tgz" SHA256SUMS
+          gh release create "$TAG" molina-native-arm64.tgz SHA256SUMS BUILD-INFO.txt \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease \
+            --title "Pustaka native mpv (arm64) $TAG" \
+            --notes "libmpv/libplayer arm64 dari mpv-android commit dipin (lihat BUILD-INFO.txt). SHA-256 tgz: $SUM"
+          {
+            echo '### Release native'
+            echo "- tag: \`$TAG\`"
+            echo "- sha256 tgz: \`$SUM\`"
+          } >> "$GITHUB_STEP_SUMMARY"
