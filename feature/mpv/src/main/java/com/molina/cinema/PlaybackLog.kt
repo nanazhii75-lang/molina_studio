@@ -19,6 +19,45 @@ internal object PlaybackLog {
     @Volatile private var target = ""
     @Volatile private var startedAt = 0L
     @Volatile private var loaded = false
+    @Volatile private var lastError = ""
+    @Volatile private var errorCount = 0
+    private var attached = false
+
+    private const val MAX_ERRORS_PER_FILE = 20
+
+    /**
+     * Menangkap log mpv level ERROR/FATAL (misalnya gagal membuka sumber) untuk
+     * melengkapi batasan JNI yang tidak meneruskan alasan end-file. Semua teks
+     * disamarkan lewat LogRedact sebelum dicatat.
+     */
+    private val errorObserver = object : MPVLib.LogObserver {
+        override fun logMessage(prefix: String, level: Int, text: String) {
+            if (level <= 0 || level > MPVLib.MpvLogLevel.MPV_LOG_LEVEL_ERROR) return
+            val msg = text.trim()
+            if (msg.isEmpty()) return
+            val line = "[$prefix] ${LogRedact.text(msg)}"
+            if (line == lastError) return
+            lastError = line
+            if (++errorCount > MAX_ERRORS_PER_FILE) return
+            MpvLog.e(TAG, "Galat mpv $line")
+        }
+    }
+
+    /** Pasang sebelum player.initialize(). Aman dipanggil berulang. */
+    @Synchronized
+    fun attach() {
+        if (attached) return
+        MPVLib.addLogObserver(errorObserver)
+        attached = true
+    }
+
+    /** Panggil di onDestroy. Aman dipanggil berulang. */
+    @Synchronized
+    fun detach() {
+        if (!attached) return
+        MPVLib.removeLogObserver(errorObserver)
+        attached = false
+    }
 
     /** Permintaan putar baru dari intent (onNewIntent). */
     fun onRequest(raw: String) {
@@ -30,6 +69,8 @@ internal object PlaybackLog {
         target = prop("path")?.let { LogRedact.target(it) } ?: "(tidak diketahui)"
         startedAt = SystemClock.elapsedRealtime()
         loaded = false
+        lastError = ""
+        errorCount = 0
         MpvLog.i(TAG, "Mulai: $target")
     }
 
@@ -53,6 +94,7 @@ internal object PlaybackLog {
         val elapsed = (SystemClock.elapsedRealtime() - startedAt) / 1000
         val wasLoaded = loaded
         val shownTarget = target
+        val shownError = lastError
         // Reset dulu agar END_FILE berikutnya tidak tercatat dua kali.
         startedAt = 0L
         loaded = false
@@ -60,7 +102,8 @@ internal object PlaybackLog {
             MpvLog.w(
                 TAG,
                 "Berakhir sebelum dimuat (kemungkinan gagal dibuka): " +
-                    "$shownTarget setelah ${elapsed}s"
+                    "$shownTarget setelah ${elapsed}s" +
+                    (if (shownError.isNotEmpty()) " | penyebab $shownError" else "")
             )
             return
         }

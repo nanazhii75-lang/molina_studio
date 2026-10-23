@@ -301,6 +301,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
             return
         }
 
+        PlaybackLog.attach()
         player.addObserver(this)
         player.initialize(filesDir.path, cacheDir.path)
         player.playFile(filepath)
@@ -350,6 +351,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         // callback is in flight once this returns). Otherwise handleAudioFocus() could
         // register the noisy receiver again right after it is unregistered below.
         player.removeObserver(this)
+        PlaybackLog.detach()
         eventUiHandler.removeCallbacksAndMessages(null)
         fadeHandler.removeCallbacksAndMessages(null)
         stopServiceHandler.removeCallbacksAndMessages(null)
