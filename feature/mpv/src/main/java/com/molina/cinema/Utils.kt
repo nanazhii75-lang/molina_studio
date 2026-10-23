@@ -454,6 +454,19 @@ internal object Utils {
         }
     }
 
+    /**
+     * Rapikan input URL dari pengguna: buang spasi/baris baru di tepi, huruf kecilkan skema,
+     * dan tambahkan https:// bila diawali "www." tanpa skema.
+     */
+    fun normalizeUrl(raw: String): String {
+        val t = raw.trim()
+        if (t.isEmpty()) return t
+        val idx = t.indexOf("://")
+        if (idx > 0)
+            return t.substring(0, idx).lowercase() + t.substring(idx)
+        return if (t.startsWith("www.", ignoreCase = true)) "https://$t" else t
+    }
+
     class OpenUrlDialog(context: Context) {
         val builder = AlertDialog.Builder(context)
         private val editText = EditText(builder.context)
@@ -482,7 +495,7 @@ internal object Utils {
         }
 
         private fun validate(text: String): Boolean {
-            val uri = Uri.parse(text)
+            val uri = Uri.parse(normalizeUrl(text))
             return uri.isHierarchical && !uri.isRelative &&
                     !(uri.host.isNullOrEmpty() && uri.path.isNullOrEmpty()) &&
                     PROTOCOLS.contains(uri.scheme)
@@ -497,7 +510,7 @@ internal object Utils {
         }
 
         val text: String
-            get() = editText.text.toString()
+            get() = normalizeUrl(editText.text.toString())
     }
 
     inline fun <reified T: Parcelable> getParcelableArray(bundle: Bundle, key: String): Array<T> {
@@ -575,6 +588,6 @@ internal object Utils {
     // cf. AndroidManifest.xml and MPVActivity.resolveUri()
     val PROTOCOLS = setOf(
         "file", "content", "http", "https", "data", "ftp",
-        "rtmp", "rtmps", "rtp", "rtsp", "mms", "mmst", "mmsh", "tcp", "udp", "lavf"
+        "rtmp", "rtmps", "rtp", "rtsp", "mms", "mmst", "mmsh", "tcp", "udp"
     )
 }
