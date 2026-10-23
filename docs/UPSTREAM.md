@@ -16,3 +16,11 @@
 ## Memperbarui
 Bandingkan commit baru dengan commit di atas (`git diff 62013d4..<baru> -- app/src/main`),
 terapkan manual, lalu perbarui `native/pins.env` dan berkas ini.
+
+## Penyimpangan dari upstream
+- Dependensi diturunkan agar cocok dengan AGP 8.7.3 / compileSdk 35: appcompat 1.7.0 (upstream 1.7.1),
+  recyclerview 1.3.2 (1.4.0), media 1.7.0 (1.8.0), preference-ktx 1.2.1, material 1.12.0 (1.14.0).
+  Naikkan bersama AGP, bukan sendiri-sendiri.
+- Manifest library: atribut `<application>` dibuang (diatur `:app`), skema `mms/mmst/mmsh/tcp/udp/rtp/ftp`
+  dibuang, `MainActivity` bukan launcher (exported=false), meta-data multiwindow Samsung/LG dibuang.
+- BuildConfig: tanpa flavor `allstorage` dan tanpa VERSION_*; teks versi About berupa konstanta.

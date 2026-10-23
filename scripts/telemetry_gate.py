@@ -8,6 +8,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ALLOWED_HOSTS = {
     "raw.githubusercontent.com",  # rootfs Debian (dipin ke commit + SHA-256)
     "schemas.android.com", "www.w3.org",  # namespace XML, bukan koneksi
+    "mozilla.org", "www.gnu.org",  # teks lisensi di header berkas (MPL/LGPL), bukan koneksi
 }
 ALLOWED_PERMISSIONS = {
     "android.permission.INTERNET",
@@ -16,6 +17,7 @@ ALLOWED_PERMISSIONS = {
     "android.permission.WRITE_EXTERNAL_STORAGE",
     "android.permission.FOREGROUND_SERVICE",
     "android.permission.WAKE_LOCK",
+    "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",  # pemutaran latar belakang mpv (seperti upstream)
 }
 FORBIDDEN_DEPS = [
     "firebase", "crashlytics", "google-services", "play-services-ads",

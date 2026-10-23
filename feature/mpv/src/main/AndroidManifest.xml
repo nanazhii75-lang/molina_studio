@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    android:installLocation="auto">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-feature
         android:name="android.software.leanback"
@@ -14,24 +13,9 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
 
-    <application
-        android:allowBackup="true"
-        android:resizeableActivity="true"
-        android:requestLegacyExternalStorage="true"
-        android:preserveLegacyExternalStorage="true"
-        android:supportsRtl="true"
-        android:icon="@mipmap/mpv_launcher_icon"
-        android:roundIcon="@mipmap/mpv_launcher_icon"
-        android:banner="@mipmap/ic_banner"
-        android:label="@string/mpv_activity"
-        android:appCategory="video"
-        android:localeConfig="@xml/locales_config">
+    <application>
 
-        <!-- Multi-window support on some devices -->
-        <meta-data android:name="com.samsung.android.sdk.multiwindow.enable"
-            android:value="true" />
-        <meta-data android:name="com.lge.support.SPLIT_WINDOW"
-            android:value="true" />
+        
 
         <activity
             android:name=".MPVActivity"
@@ -50,13 +34,7 @@
 
                 <data android:scheme="rtmp" />
                 <data android:scheme="rtmps" />
-                <data android:scheme="rtp" />
                 <data android:scheme="rtsp" />
-                <data android:scheme="mms" />
-                <data android:scheme="mmst" />
-                <data android:scheme="mmsh" />
-                <data android:scheme="tcp" />
-                <data android:scheme="udp" />
             </intent-filter>
             <intent-filter> <!-- Local files with MIME type (e.g. Google Drive) -->
                 <action android:name="android.intent.action.VIEW" />
@@ -77,7 +55,6 @@
 
                 <data android:scheme="http" />
                 <data android:scheme="https" />
-                <data android:scheme="ftp" />
                 <!-- no android:host since Android 12 doesn't like it, see #497 #514 -->
                 <data android:mimeType="video/*" />
                 <data android:mimeType="audio/*" />
@@ -91,7 +68,6 @@
 
                 <data android:scheme="http" />
                 <data android:scheme="https" />
-                <data android:scheme="ftp" />
                 <data android:host="*" />
                 <!-- the duplicate patterns below work around an Android bug: -->
                 <!-- http://stackoverflow.com/questions/3400072/#answer-8599921 -->
@@ -211,14 +187,7 @@
             android:name=".MainActivity"
             android:configChanges="orientation|screenSize"
             android:theme="@style/FilePickerTheme"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
-            </intent-filter>
-        </activity>
+            android:exported="false" />
 
         <activity
             android:name=".FilePickerActivity"

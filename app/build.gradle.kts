@@ -50,6 +50,7 @@ android {
 
 dependencies {
     implementation(project(":terminal-view"))
+    implementation(project(":feature:mpv"))
     implementation(project(":core:common"))
     implementation(project(":core:storage"))
     implementation("org.apache.commons:commons-compress:1.27.1")
