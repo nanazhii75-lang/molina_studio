@@ -36,6 +36,7 @@
 - 2026-10-23: Run 23 hijau. Fase 6 langkah 2b: `LogLevel`, `LogEvent`, `LogSink` dan pintu `AppLog` (install/log) dipindah ke `:core:common`; `LogBus` kini mengimplementasi `LogSink` dan dipasang lewat `AppLog.install(LogBus)` di MainActivity. Producer lama di :app tetap memanggil `LogBus.log` (perilaku tidak berubah). `MolinaLog` di terminal itu logger android.util.Log terikat TerminalPrefs: tidak masuk core, ikut :feature:terminal. Menunggu CI.
 - 2026-10-23: Docs: Blueprint disinkron ulang: Fase 3 dan 4 COMPLETED (uji perangkat dilaporkan lulus pengguna; checklist docs/UJI_PERANGKAT.md belum dicentang item per item), blok Fase 5/6 mengikuti `ExitHooks`/`AppLog`, daftar kandidat core diperbarui (sisa: `AppVisibility`; `MolinaLog` ikut :feature:terminal).
 - 2026-10-23: Run 24 hijau. Fase 6 langkah 2c: `AppVisibility` dipindah ke `:core:common` (`StateFlow` read-only + `setForeground`, hanya MainActivity yang menulis); `:core:common` kini memakai `kotlinx-coroutines-core:1.9.0` (api). Prasyarat tersisa: `MolinaPaths` + folder, kelas Application. Menunggu CI.
+- 2026-10-23: Fase 6 langkah 3a: kontrak `MolinaPaths` + enum `MolinaDir` (downloads/export/media/backup) ditambahkan di `:core:common`. Keputusan: data bersama di folder tersembunyi `/sdcard/.molina-data` (di luar working tree git, opsi b); rahasia tetap di `filesDir`/Keystore. Belum ada implementasi. Menunggu CI.
 
 ## Roadmap Prioritas (disusun 2026-10-23)
 0. Gate: uji perangkat penuh (docs/UJI_PERANGKAT.md) sebelum fase baru. (Selesai 2026-10-23.)
@@ -54,3 +55,4 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - Semua modul (Cinema/Code/Settings): gestur geser horizontal wajib lewat `Modifier.onHorizontalSwipe` (`com.molina.studio.ui`); jangan menulis `pointerInput` + `detectHorizontalDragGestures` manual lagi.
 - Modul fitur: pindahkan Terminal ke `:feature:terminal` paling akhir (cek TerminalService di manifest, assets molina/bashrc, jniLibs + useLegacyPackaging tetap di :app).
 - Log: pasang `AppLog.install(LogBus)` di kelas Application (butuh `android:name` di manifest) agar log sebelum Activity tidak hilang; producer terminal pindah ke `AppLog.log` saat `:feature:terminal` dibuat.
+- Fase 6 langkah 3b: implementasi `MolinaPaths` di `:core:storage` (workspace=ExternalStorage/molina-studio, dataRoot=ExternalStorage/.molina-data, privateRoot=filesDir; buat subfolder saat pertama jalan), lalu dirakit di MainActivity.
