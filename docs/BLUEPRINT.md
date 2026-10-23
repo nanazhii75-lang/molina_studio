@@ -169,7 +169,32 @@ progress_template = """# MOLINA STUDIO - FINAL ARCHITECTURE PROGRESS
 
 ---
 
-## 5. PEMBARUAN FILE PROGRES (`progres.md`)
+## 5. ARSITEKTUR MODUL & PENYIMPANAN BERSAMA (rencana, mulai Fase 6)
+
+Tujuan: kontrak antar modul eksplisit (tanpa dependensi melingkar) dan satu pintu penyimpanan bersama.
+
+### 5.1 Modul & aturan dependensi
+```
+:app ------> :feature:editor, :feature:cinema   (terminal tetap di :app sampai perlu dipisah)
+  |                 |
+  +---> :core:storage ---> :core:common <--- (semua modul)
+```
+- `feature:*` tidak boleh saling bergantung; hanya ke `core:common` dan `core:storage`.
+- `core:common` = Kotlin murni (tanpa Context/Uri/Compose); hanya kontrak (antarmuka + data class).
+- `core:storage` bergantung ke `core:common`; mengimplementasi `MolinaPaths`.
+- Hanya `:app` yang merakit implementasi (service locator manual) dan boleh melihat semua modul.
+- `:terminal-emulator` dan `:terminal-view` (vendored Termux) tetap di root dan tidak diubah.
+
+### 5.2 Isi `core:common`
+- `ExitHook` + registri hook keluar (pengganti pemanggilan langsung `AppExit`).
+- `LogEvent` + `LogSink` (pengganti ketergantungan langsung ke `LogBus`).
+- `MolinaCommand` (`OpenFile(path)`, `Play(uri)`) + `CommandBus` untuk jembatan CLI `molina`.
+- `MolinaPaths` (antarmuka lokasi private/shared/subfolder) dan `ModuleId`.
+- Kandidat pertama dipindah (kini singleton `object` di `:app`): `AppExit`, `LogBus`, `AppVisibility`, `MolinaLog`.
+
+---
+
+## 6. PEMBARUAN FILE PROGRES (`progres.md`)
 
 ```markdown
 # MOLINA STUDIO - FINAL ARCHITECTURE PROGRESS
