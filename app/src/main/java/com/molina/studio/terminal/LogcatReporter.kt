@@ -1,7 +1,7 @@
 package com.molina.studio.terminal
 
 import com.molina.studio.log.LogBus
-import com.molina.studio.log.LogLevel
+import com.molina.core.common.LogLevel
 
 /**
  * Logcat reporter: membaca logcat milik proses aplikasi sendiri (tanpa izin tambahan)

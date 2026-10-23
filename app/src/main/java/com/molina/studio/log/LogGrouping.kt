@@ -1,20 +1,14 @@
 package com.molina.studio.log
 
+import com.molina.core.common.LogEvent
+import com.molina.core.common.LogLevel
+import com.molina.core.common.LogSink
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
-
-enum class LogLevel(val code: Char) {
-    Debug('D'), Info('I'), Warn('W'), Error('E');
-
-    companion object {
-        fun fromCode(c: Char): LogLevel =
-            entries.firstOrNull { it.code == c.uppercaseChar() } ?: Info
-    }
-}
 
 data class LogEntry(
     val id: Long,
@@ -33,7 +27,7 @@ data class LogEntry(
  * - Publikasi ke UI dibatasi (sekali per PUBLISH_DELAY_MS) agar ledakan log tidak membebani main thread.
  * Aman dipanggil dari thread mana pun.
  */
-object LogBus {
+object LogBus : LogSink {
     private const val MAX_ENTRIES = 1000
     private const val PUBLISH_DELAY_MS = 100L
 
@@ -66,6 +60,9 @@ object LogBus {
         }
         schedulePublish()
     }
+
+    override fun emit(event: LogEvent) =
+        log(event.source, event.level, event.tag, event.message)
 
     fun clear() {
         synchronized(lock) { buffer.clear() }

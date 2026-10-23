@@ -33,6 +33,7 @@
 - 2026-10-23: Gate lulus (kunci tetap aktif, sidik jari APK dicek, uji perangkat dilakukan). Fase 6 langkah 1: modul kosong `:core:common` (Kotlin JVM murni) dan `:core:storage` (Android library, api ke core:common) ditambahkan + dipasang di :app; folder kerja tetap `/sdcard/molina-studio` (`/sdcard/Molina` di handoff = salah tulis). Menunggu CI.
 - 2026-10-23: Run 22 hijau (scaffold core). Blueprint 5.1 diperbarui: modul `:feature:{terminal,mpv,code,settings}` + `:engine:newpipe`; kontrak `SettingsSection` dan `StreamResolver` di core:common; urutan migrasi code > settings > mpv+engine > terminal terakhir.
 - 2026-10-23: Fase 6 langkah 2: kontrak `ExitHook` + registri `ExitHooks` (register/unregister/runAll) dipindah ke `:core:common` (`com.molina.core.common`); `AppExit` kini memanggil `ExitHooks.runAll()` dan tidak lagi menyimpan hook. Perilaku keluar tidak berubah. Menunggu CI.
+- 2026-10-23: Run 23 hijau. Fase 6 langkah 2b: `LogLevel`, `LogEvent`, `LogSink` dan pintu `AppLog` (install/log) dipindah ke `:core:common`; `LogBus` kini mengimplementasi `LogSink` dan dipasang lewat `AppLog.install(LogBus)` di MainActivity. Producer lama di :app tetap memanggil `LogBus.log` (perilaku tidak berubah). `MolinaLog` di terminal itu logger android.util.Log terikat TerminalPrefs: tidak masuk core, ikut :feature:terminal. Menunggu CI.
 
 ## Roadmap Prioritas (disusun 2026-10-23)
 0. Gate: uji perangkat penuh (docs/UJI_PERANGKAT.md) sebelum fase baru. (Selesai 2026-10-23.)
@@ -50,3 +51,4 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - Fase 5 (Cinema/mpv): buat `MpvSettings` + `MpvPrefs` dengan pola `TerminalPrefs` (data class snapshot, `PrefKeys`, satu fungsi `update {}`, DataStore + `StateFlow`, tulis disk async & conflated). Ekstrak base class generik HANYA bila sudah ada 3 store atau lebih; jangan lebih awal.
 - Semua modul (Cinema/Code/Settings): gestur geser horizontal wajib lewat `Modifier.onHorizontalSwipe` (`com.molina.studio.ui`); jangan menulis `pointerInput` + `detectHorizontalDragGestures` manual lagi.
 - Modul fitur: pindahkan Terminal ke `:feature:terminal` paling akhir (cek TerminalService di manifest, assets molina/bashrc, jniLibs + useLegacyPackaging tetap di :app).
+- Log: pasang `AppLog.install(LogBus)` di kelas Application (butuh `android:name` di manifest) agar log sebelum Activity tidak hilang; producer terminal pindah ke `AppLog.log` saat `:feature:terminal` dibuat.

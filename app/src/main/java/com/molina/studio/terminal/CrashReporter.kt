@@ -11,7 +11,7 @@ import android.util.Log
 import com.molina.studio.MainActivity
 import com.molina.studio.R
 import com.molina.studio.log.LogBus
-import com.molina.studio.log.LogLevel
+import com.molina.core.common.LogLevel
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
