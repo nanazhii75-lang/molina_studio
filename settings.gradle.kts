@@ -6,4 +6,4 @@ dependencyResolutionManagement {
     repositories { google(); mavenCentral() }
 }
 rootProject.name = "molina-studio"
-include(":app", ":terminal-emulator", ":terminal-view")
+include(":app", ":core:common", ":core:storage", ":terminal-emulator", ":terminal-view")

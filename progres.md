@@ -30,9 +30,10 @@
 - 2026-10-23: Fix UI: drawer sesi dipersempit 300dp -> 240dp (konstanta `DrawerWidth`), tombol KEYBOARD/NEW SESSION 108dp -> 100dp dan teks 10sp -> 8sp. Menunggu CI + uji perangkat.
 - 2026-10-23: Signing: kunci tetap (PKCS12) via GitHub Secrets MOLINA_KEYSTORE_B64 + MOLINA_KEYSTORE_PASSWORD; Gradle pakai signingConfig `molina` bila env ada (fallback debug bawaan); CI cetak SHA-256 sertifikat APK; langkah di docs/SIGNING.md. Setelah secrets diisi: uninstall sekali terakhir. Backup molina.p12 di luar repo.
 - 2026-10-23: Docs: roadmap prioritas ditambahkan, status fase di docs/BLUEPRINT.md disinkronkan (Phase 2 COMPLETED, Phase 3-7 dirinci), checklist uji perangkat di docs/UJI_PERANGKAT.md.
+- 2026-10-23: Gate lulus (kunci tetap aktif, sidik jari APK dicek, uji perangkat dilakukan). Fase 6 langkah 1: modul kosong `:core:common` (Kotlin JVM murni) dan `:core:storage` (Android library, api ke core:common) ditambahkan + dipasang di :app; folder kerja tetap `/sdcard/molina-studio` (`/sdcard/Molina` di handoff = salah tulis). Menunggu CI.
 
 ## Roadmap Prioritas (disusun 2026-10-23)
-0. Gate: uji perangkat penuh (docs/UJI_PERANGKAT.md) sebelum fase baru.
+0. Gate: uji perangkat penuh (docs/UJI_PERANGKAT.md) sebelum fase baru. (Selesai 2026-10-23.)
 1. Fase 6 Code Editor (Rosemoe) lebih dulu dari Cinema: risiko rendah, nilai harian, membuka `molina open`. (Menyimpang dari urutan blueprint.)
 2. Jembatan CLI `molina` (open/play/log) lewat IPC + paste aman (bracketed paste, kirim per potongan, konfirmasi multi-baris).
 3. Fase 5 Cinema bertahap: 5a spike libmpv arm64 di CI (+ lisensi di THIRD_PARTY_NOTICES.md), 5b putar lokal + AppExit + MpvPrefs, 5c event ke LogBus, 5d NewPipe terakhir (sering rusak, perlu update).
