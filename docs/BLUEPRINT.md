@@ -175,21 +175,26 @@ Tujuan: kontrak antar modul eksplisit (tanpa dependensi melingkar) dan satu pint
 
 ### 5.1 Modul & aturan dependensi
 ```
-:app ------> :feature:editor, :feature:cinema   (terminal tetap di :app sampai perlu dipisah)
-  |                 |
-  +---> :core:storage ---> :core:common <--- (semua modul)
+:app (perakit) --> :feature:{terminal, mpv, code, settings}
+       |       --> :engine:newpipe
+       v
+:feature:* ---> :core:storage ---> :core:common <--- :engine:*
+:feature:terminal ---> :terminal-view (vendored, tidak diubah)
 ```
-- `feature:*` tidak boleh saling bergantung; hanya ke `core:common` dan `core:storage`.
-- `core:common` = Kotlin murni (tanpa Context/Uri/Compose); hanya kontrak (antarmuka + data class).
-- `core:storage` bergantung ke `core:common`; mengimplementasi `MolinaPaths`.
+- `feature:*` tidak saling bergantung; hanya ke `core:common`, `core:storage` (terminal juga ke `:terminal-view`).
+- `engine:*` = Kotlin/JVM, mengimplementasi kontrak dari `core:common` (mis. `StreamResolver`); tidak melihat `feature:*`.
+- `feature:settings` tidak mengimpor fitur lain: tiap fitur mengekspos `SettingsSection`; `:app` mengumpulkan dan memberikannya.
+- `core:common` = Kotlin murni (tanpa Context/Uri/Compose); `core:storage` mengimplementasi `MolinaPaths`.
 - Hanya `:app` yang merakit implementasi (service locator manual) dan boleh melihat semua modul.
-- `:terminal-emulator` dan `:terminal-view` (vendored Termux) tetap di root dan tidak diubah.
+- Urutan migrasi: code (langsung `:feature:code`) > settings > mpv + engine:newpipe (baru, Fase 5) > terminal paling akhir.
+- Terminal paling akhir karena berisiko: TerminalService di manifest, assets `molina/bashrc`, jniLibs + `useLegacyPackaging` tetap di `:app`.
 
 ### 5.2 Isi `core:common`
 - `ExitHook` + registri hook keluar (pengganti pemanggilan langsung `AppExit`).
 - `LogEvent` + `LogSink` (pengganti ketergantungan langsung ke `LogBus`).
 - `MolinaCommand` (`OpenFile(path)`, `Play(uri)`) + `CommandBus` untuk jembatan CLI `molina`.
 - `MolinaPaths` (antarmuka lokasi private/shared/subfolder) dan `ModuleId`.
+- `SettingsSection` (halaman pengaturan per fitur) dan `StreamResolver` (kontrak resolusi URL stream; implementasi di `:engine:newpipe`).
 - Kandidat pertama dipindah (kini singleton `object` di `:app`): `AppExit`, `LogBus`, `AppVisibility`, `MolinaLog`.
 
 ---
