@@ -1,5 +1,7 @@
 package com.molina.studio.terminal
 
+import com.molina.core.common.LogLevel
+import com.molina.studio.log.LogBus
 import com.molina.studio.ui.MolinaTheme
 import android.content.Context
 import java.io.File
@@ -26,5 +28,32 @@ object MolinaShell {
         val text = ctx.assets.open("molina/bashrc").bufferedReader().use { it.readText() }
         target.parentFile?.mkdirs()
         if (!target.isFile || target.readText() != text) target.writeText(text)
+    }
+
+    private const val APT_CONF = """// Molina: default apt/dpkg yang aman dan hemat (dibuat otomatis, ditimpa tiap sesi).
+Acquire::AllowInsecureRepositories "false";
+Acquire::AllowDowngradeToInsecureRepositories "false";
+Acquire::Languages "none";
+APT::Install-Recommends "false";
+APT::Install-Suggests "false";
+Dpkg::Options {
+  "--force-confdef";
+  "--force-confold";
+};
+"""
+
+    /**
+     * Default apt/dpkg guest. Aman: repo tak bertanda tangan ditolak, konfigurasi lokal tidak
+     * ditimpa paket. Hemat: tanpa Recommends/Suggests dan tanpa indeks Translation.
+     * Hanya menulis bila isinya berbeda; gagal tulis dicatat, tidak menghentikan sesi.
+     */
+    fun installAptConf(rootfsDir: File) {
+        val f = File(rootfsDir, "etc/apt/apt.conf.d/02-molina-defaults")
+        runCatching {
+            f.parentFile?.mkdirs()
+            if (!f.isFile || f.readText() != APT_CONF) f.writeText(APT_CONF)
+        }.onFailure {
+            LogBus.log("sistem", LogLevel.Warn, "Shell", "Gagal menulis apt.conf Molina: ${it.message}")
+        }
     }
 }

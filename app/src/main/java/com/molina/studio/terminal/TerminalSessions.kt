@@ -158,6 +158,7 @@ object TerminalSessions {
 
         // bashrc Molina (prompt berwarna + banner) dan titik mount /storage/emulated/0 di guest.
         MolinaShell.installRc(ctx, File(rootfsDir, "etc/molina/bashrc"))
+        MolinaShell.installAptConf(rootfsDir)
         MolinaShell.writePromptEnv(rootfsDir, TerminalPrefs.promptTheme)
         MolinaDns.writeResolvConf(ctx, rootfsDir)
 
@@ -182,6 +183,8 @@ object TerminalSessions {
             *storageBinds,
             "/usr/bin/env", "-i",
             "HOME=/root", "TERM=xterm-256color", "LANG=C.UTF-8",
+            // debconf tanpa dialog (PRoot tidak mengizinkan tcsetattr); arena glibc dibatasi demi RAM.
+            "DEBIAN_FRONTEND=noninteractive", "MALLOC_ARENA_MAX=2",
             "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
             "MOLINA_HOME=${MolinaShell.HOME_DIR}",
             "MOLINA_BRAND=${MolinaShell.BRAND}",
