@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Gerbang telemetri dan URL
+        run: python3 scripts/telemetry_gate.py
       - uses: actions/setup-java@v4
         with:
           distribution: temurin

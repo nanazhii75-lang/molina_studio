@@ -269,6 +269,15 @@ private fun TerminalIoPage() {
         else "Soft keyboard will be enabled even if hardware keyboard is connected. (Default)",
         TerminalPrefs.softKeyboardOnlyIfNoHardware
     ) { TerminalPrefs.setSoftKeyboardOnlyIfNoHardware(it) }
+
+    Category("Penyimpanan")
+    SwitchRow(
+        "Akses penyimpanan penuh",
+        if (TerminalPrefs.fullStorageAccess)
+            "Seluruh /sdcard terlihat di dalam Debian. Berlaku di sesi baru."
+        else "Hanya /sdcard/molina-studio yang terlihat di dalam Debian. (Default) Berlaku di sesi baru.",
+        TerminalPrefs.fullStorageAccess
+    ) { TerminalPrefs.setFullStorageAccess(it) }
 }
 
 // ---------- Terminal View ----------

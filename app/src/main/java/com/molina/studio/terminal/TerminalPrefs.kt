@@ -68,7 +68,8 @@ data class TerminalSettings(
     val softKeyboard: Boolean = true,
     val softKeyboardOnlyIfNoHardware: Boolean = false,
     val marginAdjustment: Boolean = true,
-    val logcatReporter: Boolean = false
+    val logcatReporter: Boolean = false,
+    val fullStorageAccess: Boolean = false
 )
 
 /**
@@ -91,6 +92,7 @@ private object PrefKeys {
     val SOFT_KEYBOARD_NO_HW = booleanPreferencesKey("soft_keyboard_only_if_no_hw")
     val MARGIN_ADJ = booleanPreferencesKey("margin_adjustment")
     val LOGCAT = booleanPreferencesKey("logcat_reporter")
+    val FULL_STORAGE = booleanPreferencesKey("full_storage_access")
 }
 
 private fun Preferences.toSettings(): TerminalSettings {
@@ -107,7 +109,8 @@ private fun Preferences.toSettings(): TerminalSettings {
         softKeyboard = this[PrefKeys.SOFT_KEYBOARD] ?: d.softKeyboard,
         softKeyboardOnlyIfNoHardware = this[PrefKeys.SOFT_KEYBOARD_NO_HW] ?: d.softKeyboardOnlyIfNoHardware,
         marginAdjustment = this[PrefKeys.MARGIN_ADJ] ?: d.marginAdjustment,
-        logcatReporter = this[PrefKeys.LOGCAT] ?: d.logcatReporter
+        logcatReporter = this[PrefKeys.LOGCAT] ?: d.logcatReporter,
+        fullStorageAccess = this[PrefKeys.FULL_STORAGE] ?: d.fullStorageAccess
     )
 }
 
@@ -122,6 +125,7 @@ private fun MutablePreferences.write(s: TerminalSettings) {
     this[PrefKeys.SOFT_KEYBOARD_NO_HW] = s.softKeyboardOnlyIfNoHardware
     this[PrefKeys.MARGIN_ADJ] = s.marginAdjustment
     this[PrefKeys.LOGCAT] = s.logcatReporter
+    this[PrefKeys.FULL_STORAGE] = s.fullStorageAccess
 }
 
 /**
@@ -162,6 +166,7 @@ object TerminalPrefs {
     val softKeyboardOnlyIfNoHardware: Boolean get() = ui.softKeyboardOnlyIfNoHardware
     val marginAdjustment: Boolean get() = ui.marginAdjustment
     val logcatReporter: Boolean get() = ui.logcatReporter
+    val fullStorageAccess: Boolean get() = ui.fullStorageAccess
 
     /**
      * Aman dipanggil berulang; hanya memuat sekali. Pemuatan awal sengaja sinkron
@@ -218,6 +223,7 @@ object TerminalPrefs {
     fun setSoftKeyboardOnlyIfNoHardware(v: Boolean) = update { copy(softKeyboardOnlyIfNoHardware = v) }
     fun setMarginAdjustment(v: Boolean) = update { copy(marginAdjustment = v) }
     fun setLogcatReporter(v: Boolean) = update { copy(logcatReporter = v) }
+    fun setFullStorageAccess(v: Boolean) = update { copy(fullStorageAccess = v) }
 
     /** Keyboard layar boleh tampil? (Soft Keyboard Enabled + Only If No Hardware). */
     fun softKeyboardAllowed(ctx: Context): Boolean {

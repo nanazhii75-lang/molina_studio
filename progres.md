@@ -42,6 +42,9 @@
 - 2026-10-23: docs: catat ide snapshot otomatis berkas yang sedang diedit ke `MolinaDir.Backup` (lihat Backlog, Fase 6).
 - 2026-10-23: Fase 6 langkah 4: `MolinaApp` (Application) memasang `AppLog.install(LogBus)` di `onCreate` proses; dihapus dari `MainActivity`; manifest `android:name=".MolinaApp"`. Log sebelum Activity (mis. TerminalService) kini tertangkap. Menunggu CI.
 - 2026-10-23: Fase 6 pra-langkah 5, rebranding terminal: `com.termux.terminal` -> `com.molina.terminal`, `com.termux.view` -> `com.molina.terminal.view`, JNI `Java_com_molina_terminal_JNI_*`, lib native `libtermux` -> `libmolina_pty` (`molina_pty.c`), namespace Gradle disesuaikan, impor 4 berkas app. Atribusi Termux (NOTICES, About, URL upstream) sengaja dipertahankan. Menunggu CI + UJI PERANGKAT (JNI tidak terbukti oleh CI).
+- 2026-10-23: Review terminal pra-mpv (audit baca-saja): tidak ada telemetri/donasi/URL dev lama fungsional. Temuan P0: uji perangkat JNI, DNS hardcode, bind /sdcard penuh, hardening symlink ekstraksi, gerbang telemetri CI, LICENSE+source di About. P1: mirror rootfs, release+R8, resume unduhan.
+
+- 2026-10-23: Hardening terminal P0: DNS guest mengikuti DNS sistem (MolinaDns, izin ACCESS_NETWORK_STATE), bind storage default hanya /sdcard/molina-studio (toggle Settings > Terminal I/O > Akses penyimpanan penuh), ekstraksi rootfs tahan symlink (cek path kanonik), gerbang telemetri CI (scripts/telemetry_gate.py: host/izin/dependency). Menunggu CI + uji perangkat.
 
 ## Roadmap Prioritas (disusun 2026-10-23)
 0. Gate: uji perangkat penuh (docs/UJI_PERANGKAT.md) sebelum fase baru. (Selesai 2026-10-23.)

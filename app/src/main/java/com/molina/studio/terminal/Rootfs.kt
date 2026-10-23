@@ -166,6 +166,7 @@ object RootfsManager {
 
     private fun extract(archive: File, root: File) {
         val rootPath = root.toPath().toAbsolutePath().normalize()
+        val rootCanon = root.canonicalPath
         val counting = CountingStream(archive.inputStream().buffered(256 * 1024))
         val total = archive.length()
         var last = -1
@@ -177,6 +178,12 @@ object RootfsManager {
                 val target = rootPath.resolve(name).normalize()
                 if (!target.startsWith(rootPath)) continue // cegah path traversal
                 val f = target.toFile()
+                // Cegah tulis lewat symlink yang mengarah ke luar rootfs.
+                val parent = f.parentFile
+                if (parent != null) {
+                    parent.mkdirs()
+                    if (!parent.isInside(rootCanon)) continue
+                }
                 val perm = e.mode and 0xFFF
                 when {
                     e.isDirectory -> {
@@ -190,7 +197,7 @@ object RootfsManager {
                     }
                     e.isLink -> { // hardlink -> salinan (Android melarang hardlink)
                         val src = rootPath.resolve(e.linkName.removePrefix("./").trimStart('/')).normalize()
-                        if (src.startsWith(rootPath)) {
+                        if (src.startsWith(rootPath) && src.toFile().isInside(rootCanon)) {
                             f.parentFile?.mkdirs()
                             f.delete()
                             src.toFile().copyTo(f, overwrite = true)
@@ -199,6 +206,7 @@ object RootfsManager {
                     }
                     e.isFile -> {
                         f.parentFile?.mkdirs()
+                        if (java.nio.file.Files.isSymbolicLink(f.toPath())) f.delete()
                         f.outputStream().use { out -> tar.copyTo(out, 64 * 1024) }
                         Os.chmod(f.path, perm or 0x180)
                     }
@@ -209,4 +217,10 @@ object RootfsManager {
             }
         }
     }
+}
+
+/** true bila path kanonik (mengikuti symlink) berada di dalam [rootCanon]. */
+private fun File.isInside(rootCanon: String): Boolean {
+    val c = canonicalPath
+    return c == rootCanon || c.startsWith(rootCanon + File.separator)
 }

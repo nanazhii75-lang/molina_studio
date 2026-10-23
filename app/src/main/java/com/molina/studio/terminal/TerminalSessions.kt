@@ -23,6 +23,9 @@ import kotlin.math.min
 object TerminalSessions {
     const val MAX_SESSIONS = 5
 
+    /** Nama folder kerja Molina di storage bersama (satu-satunya yang di-bind secara default). */
+    private const val WORKSPACE_DIR = "molina-studio"
+
     /** true: bila sesi terakhir berakhir, matikan semua proses lalu tutup aplikasi. */
     private const val EXIT_APP_ON_SESSION_END = true
 
@@ -156,14 +159,27 @@ object TerminalSessions {
         // bashrc Molina (prompt berwarna + banner) dan titik mount /storage/emulated/0 di guest.
         MolinaShell.installRc(ctx, File(rootfsDir, "etc/molina/bashrc"))
         MolinaShell.writePromptEnv(rootfsDir, TerminalPrefs.promptTheme)
-        File(rootfsDir, "storage/emulated/0").mkdirs()
+        MolinaDns.writeResolvConf(ctx, rootfsDir)
+
+        // Lingkup storage: default hanya folder kerja Molina; "Akses penuh" membuka seluruh storage.
+        val storageBinds: Array<String> = if (TerminalPrefs.fullStorageAccess) {
+            File(rootfsDir, "storage/emulated/0").mkdirs()
+            arrayOf("--bind=$storage:/sdcard", "--bind=$storage:/storage/emulated/0")
+        } else {
+            val ws = File(storage, WORKSPACE_DIR).apply { mkdirs() }
+            File(rootfsDir, "sdcard/$WORKSPACE_DIR").mkdirs()
+            File(rootfsDir, "storage/emulated/0/$WORKSPACE_DIR").mkdirs()
+            arrayOf(
+                "--bind=${ws.absolutePath}:/sdcard/$WORKSPACE_DIR",
+                "--bind=${ws.absolutePath}:/storage/emulated/0/$WORKSPACE_DIR"
+            )
+        }
 
         val args = arrayOf(
             "proot", "--link2symlink", "--kill-on-exit", "-0",
             "--rootfs=$rootfs", "--cwd=$guestCwd",
             "--bind=/dev", "--bind=/proc", "--bind=/sys",
-            "--bind=$storage:/sdcard",
-            "--bind=$storage:/storage/emulated/0",
+            *storageBinds,
             "/usr/bin/env", "-i",
             "HOME=/root", "TERM=xterm-256color", "LANG=C.UTF-8",
             "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
