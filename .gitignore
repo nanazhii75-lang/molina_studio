@@ -11,3 +11,6 @@ captures/
 # kunci tanda tangan: JANGAN di-commit
 *.p12
 molina-keys/
+# artefak build native 5a
+_native/
+_native_out/
