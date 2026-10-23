@@ -29,6 +29,15 @@
 - 2026-10-23: Cleanup: konstanta `MolinaShell.PS_HOME_SGR` & `PS_OTHER_SGR` (tidak terpakai) dihapus; `PromptTheme` kini satu-satunya sumber warna prompt. Diverifikasi: CI hijau sebelum perubahan, tidak ada pemakaian di kode/assets/gradle. Menunggu CI.
 - 2026-10-23: Fix UI: drawer sesi dipersempit 300dp -> 240dp (konstanta `DrawerWidth`), tombol KEYBOARD/NEW SESSION 108dp -> 100dp dan teks 10sp -> 8sp. Menunggu CI + uji perangkat.
 - 2026-10-23: Signing: kunci tetap (PKCS12) via GitHub Secrets MOLINA_KEYSTORE_B64 + MOLINA_KEYSTORE_PASSWORD; Gradle pakai signingConfig `molina` bila env ada (fallback debug bawaan); CI cetak SHA-256 sertifikat APK; langkah di docs/SIGNING.md. Setelah secrets diisi: uninstall sekali terakhir. Backup molina.p12 di luar repo.
+- 2026-10-23: Docs: roadmap prioritas ditambahkan, status fase di docs/BLUEPRINT.md disinkronkan (Phase 2 COMPLETED, Phase 3-7 dirinci), checklist uji perangkat di docs/UJI_PERANGKAT.md.
+
+## Roadmap Prioritas (disusun 2026-10-23)
+0. Gate: uji perangkat penuh (docs/UJI_PERANGKAT.md) sebelum fase baru.
+1. Fase 6 Code Editor (Rosemoe) lebih dulu dari Cinema: risiko rendah, nilai harian, membuka `molina open`. (Menyimpang dari urutan blueprint.)
+2. Jembatan CLI `molina` (open/play/log) lewat IPC + paste aman (bracketed paste, kirim per potongan, konfirmasi multi-baris).
+3. Fase 5 Cinema bertahap: 5a spike libmpv arm64 di CI (+ lisensi di THIRD_PARTY_NOTICES.md), 5b putar lokal + AppExit + MpvPrefs, 5c event ke LogBus, 5d NewPipe terakhir (sering rusak, perlu update).
+4. Fase 7 Settings Hub (tombol Keluar, hot-reload mpv.conf), selipkan kapan saja.
+Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); prompt dengan branch git + exit code; paket setup Dev/Media (SHA-256); token desain `MolinaTheme` (emas #D4AF37), ikon adaptif + splash; janji tanpa telemetri/donasi/offline-first di About.
 
 ## Backlog Lintas Fase
 - Fase 5 (Cinema/mpv): daftarkan `AppExit.register("mpv") { MPVLib.destroy() }`.

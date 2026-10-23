@@ -141,10 +141,29 @@ progress_template = """# MOLINA STUDIO - FINAL ARCHITECTURE PROGRESS
 - [x] Spesifikasi IPC Unix Socket (`/tmp/molina.sock`) untuk integrasi `LogGrouping.kt`.
 - [x] Konfigurasi build pipeline: GitHub Actions CI (Local build disabled, [skip ci] for docs).
 
-### [Phase 2: Rebranding & Code Cleanup] - PENDING
-- [ ] Refactoring Package Name menyeluruh menjadi `com.molina.studio`.
-- [ ] Pembersihan URL eksternal, tracker, donasi, dan server update lama.
-- [ ] Penyusun UI Navigation Shell 4 Tab dengan Jetpack Compose / Material 3.
+### [Phase 2: Rebranding & Code Cleanup] - COMPLETED (diverifikasi 2026-10-23)
+- [x] Refactoring Package Name menyeluruh menjadi `com.molina.studio`.
+- [x] Pembersihan URL eksternal, tracker, donasi, dan server update lama.
+- [x] Penyusun UI Navigation Shell 4 Tab dengan Jetpack Compose / Material 3.
+- Catatan: `com.termux` hanya namespace library vendored (terminal-emulator/view).
+
+### [Phase 3: Terminal (PRoot Debian)] - IN PROGRESS (menunggu uji perangkat)
+- [x] Emulator Termux v0.118.0 (vendored), Debian trixie arm64 via PRoot, TerminalService, AppExit.
+- [x] Multi-session maks 5, drawer sesi, extra keys, tema prompt, TerminalPrefs (DataStore + StateFlow).
+- [x] Tanda tangan APK tetap via GitHub Secrets (docs/SIGNING.md).
+- [ ] Uji perangkat penuh (docs/UJI_PERANGKAT.md).
+
+### [Phase 4: Log & IPC] - IN PROGRESS (menunggu uji perangkat)
+- [x] LogGrouping + IPC LocalSocket abstract `@molina.log`, tampilan di Settings.
+
+### [Phase 5: MPV Player / Molina Cinema] - PLANNED
+- [ ] 5a spike libmpv arm64 di CI; 5b putar lokal + hook AppExit + MpvPrefs; 5c event ke LogBus; 5d NewPipe.
+
+### [Phase 6: Code Editor (Rosemoe)] - PLANNED (diprioritaskan sebelum Phase 5)
+- [ ] Editor native + perintah `molina open`.
+
+### [Phase 7: Settings Hub] - PLANNED
+- [ ] Tombol Keluar (AppExit), hot-reload mpv.conf.
 """ 
 ```
 
@@ -172,9 +191,28 @@ progress_template = """# MOLINA STUDIO - FINAL ARCHITECTURE PROGRESS
 - [x] Spesifikasi IPC Unix Socket (`/tmp/molina.sock`) untuk integrasi `LogGrouping.kt`.
 - [x] Konfigurasi build pipeline: GitHub Actions CI (Local build disabled, [skip ci] for docs).
 
-### [Phase 2: Rebranding & Code Cleanup] - PENDING
-- [ ] Refactoring Package Name menyeluruh menjadi `com.molina.studio`.
-- [ ] Pembersihan URL eksternal, tracker, donasi, dan server update lama.
-- [ ] Penyusun UI Navigation Shell 4 Tab dengan Jetpack Compose / Material 3.
+### [Phase 2: Rebranding & Code Cleanup] - COMPLETED (diverifikasi 2026-10-23)
+- [x] Refactoring Package Name menyeluruh menjadi `com.molina.studio`.
+- [x] Pembersihan URL eksternal, tracker, donasi, dan server update lama.
+- [x] Penyusun UI Navigation Shell 4 Tab dengan Jetpack Compose / Material 3.
+- Catatan: `com.termux` hanya namespace library vendored (terminal-emulator/view).
+
+### [Phase 3: Terminal (PRoot Debian)] - IN PROGRESS (menunggu uji perangkat)
+- [x] Emulator Termux v0.118.0 (vendored), Debian trixie arm64 via PRoot, TerminalService, AppExit.
+- [x] Multi-session maks 5, drawer sesi, extra keys, tema prompt, TerminalPrefs (DataStore + StateFlow).
+- [x] Tanda tangan APK tetap via GitHub Secrets (docs/SIGNING.md).
+- [ ] Uji perangkat penuh (docs/UJI_PERANGKAT.md).
+
+### [Phase 4: Log & IPC] - IN PROGRESS (menunggu uji perangkat)
+- [x] LogGrouping + IPC LocalSocket abstract `@molina.log`, tampilan di Settings.
+
+### [Phase 5: MPV Player / Molina Cinema] - PLANNED
+- [ ] 5a spike libmpv arm64 di CI; 5b putar lokal + hook AppExit + MpvPrefs; 5c event ke LogBus; 5d NewPipe.
+
+### [Phase 6: Code Editor (Rosemoe)] - PLANNED (diprioritaskan sebelum Phase 5)
+- [ ] Editor native + perintah `molina open`.
+
+### [Phase 7: Settings Hub] - PLANNED
+- [ ] Tombol Keluar (AppExit), hot-reload mpv.conf.
 
 ```
