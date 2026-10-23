@@ -90,3 +90,4 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - 2026-10-23: normalisasi input URL di dialog Buka URL (trim, skema huruf kecil, www. -> https://) dan 'lavf' dihapus dari Utils.PROTOCOLS agar konsisten dengan MPVActivity.resolveUri. yt-dlp dicatat sebagai cadangan fitur 'play universal'. Menunggu CI.
 - 2026-10-23: network-timeout mpv 20 dtk dan user-agent MolinaCinema/<versi> di MPVView. Jika ada server menolak (HTTP 403), hapus opsi user-agent. Menunggu CI.
 - 2026-10-23: LogRedact (core:common): samarkan URL (hanya skema+host), token/kredensial, dan path lokal di log. Fungsi murni, diuji lokal dengan kotlinc (19 kasus lulus). Belum dipakai modul lain. Menunggu CI.
+- 2026-10-23: MpvLog (feature/mpv) menggantikan android.util.Log: pesan disamarkan lewat LogRedact lalu dikirim ke logcat dan AppLog (LogGrouping, sumber mpv). Menutup kebocoran URL/token lewat onNewIntent. feature/mpv kini bergantung pada :core:common. Menunggu CI.

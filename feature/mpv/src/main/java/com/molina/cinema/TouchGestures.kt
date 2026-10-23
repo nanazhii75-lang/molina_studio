@@ -4,7 +4,6 @@ import android.content.SharedPreferences
 import android.content.res.Resources
 import android.graphics.PointF
 import android.os.SystemClock
-import android.util.Log
 import android.view.MotionEvent
 import kotlin.math.*
 
@@ -201,11 +200,11 @@ internal class TouchGestures(private val observer: TouchGesturesObserver) {
 
     fun onTouchEvent(e: MotionEvent): Boolean {
         if (width < 1 || height < 1) {
-            Log.w(TAG, "TouchGestures: width or height not set!")
+            MpvLog.w(TAG, "TouchGestures: width or height not set!")
             return false
         }
         if (!checkFloat(e.x, e.y)) {
-            Log.w(TAG, "TouchGestures: ignoring invalid point ${e.x} ${e.y}")
+            MpvLog.w(TAG, "TouchGestures: ignoring invalid point ${e.x} ${e.y}")
             return false
         }
         var gestureHandled = false

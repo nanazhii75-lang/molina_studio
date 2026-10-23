@@ -16,7 +16,6 @@ import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.text.InputType
-import android.util.Log
 import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
@@ -41,14 +40,14 @@ internal object Utils {
             // for compressed assets. Though none of this is documented...
             val avail = ins.available().toLong()
             if (outFile.length() == avail) {
-                Log.v(TAG, "Skipping copy of asset file (exists same size): $filename")
+                MpvLog.v(TAG, "Skipping copy of asset file (exists same size): $filename")
                 return true
             }
             out = FileOutputStream(outFile)
             ins.copyTo(out)
-            Log.w(TAG, "Copied asset file ($avail bytes): $filename")
+            MpvLog.w(TAG, "Copied asset file ($avail bytes): $filename")
         } catch (e: IOException) {
-            Log.e(TAG, "Failed to copy asset file: $filename", e)
+            MpvLog.e(TAG, "Failed to copy asset file: $filename", e)
             return false
         } finally {
             out?.close()
@@ -86,7 +85,7 @@ internal object Utils {
         try {
             configFile.writeText(parts.joinToString("\n"))
         } catch (e: IOException) {
-            Log.w(TAG, "Failed to write fonts.conf", e)
+            MpvLog.w(TAG, "Failed to write fonts.conf", e)
         }
     }
 

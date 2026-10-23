@@ -5,7 +5,6 @@ import android.os.Build
 import android.os.Environment
 import android.preference.PreferenceManager
 import android.util.AttributeSet
-import android.util.Log
 import android.view.*
 import androidx.core.content.ContextCompat
 import com.molina.cinema.MPVLib.MpvFormat.MPV_FORMAT_DOUBLE
@@ -39,10 +38,10 @@ internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(cont
             val disp = ContextCompat.getDisplayOrDefault(context)
             val refreshRate = disp.mode.refreshRate
 
-            Log.v(TAG, "Display ${disp.displayId} reports FPS of $refreshRate")
+            MpvLog.v(TAG, "Display ${disp.displayId} reports FPS of $refreshRate")
             MPVLib.setOptionString("display-fps-override", refreshRate.toString())
         } else {
-            Log.v(TAG, "Android version too old, disabling refresh rate functionality " +
+            MpvLog.v(TAG, "Android version too old, disabling refresh rate functionality " +
                        "(${Build.VERSION.SDK_INT} < ${Build.VERSION_CODES.M})")
         }
 
@@ -158,7 +157,7 @@ internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(cont
             // Fallback to produced glyph
             if (!event.isPrintingKey) {
                 if (event.repeatCount == 0)
-                    Log.d(TAG, "Unmapped non-printable key ${event.keyCode}")
+                    MpvLog.d(TAG, "Unmapped non-printable key ${event.keyCode}")
                 return false
             }
 
@@ -238,7 +237,7 @@ internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(cont
         for (i in 0 until count) {
             val type = MPVLib.getPropertyString("track-list/$i/type") ?: continue
             if (!tracks.containsKey(type)) {
-                Log.w(TAG, "Got unknown track type: $type")
+                MpvLog.w(TAG, "Got unknown track type: $type")
                 continue
             }
             val mpvId = MPVLib.getPropertyInt("track-list/$i/id") ?: continue

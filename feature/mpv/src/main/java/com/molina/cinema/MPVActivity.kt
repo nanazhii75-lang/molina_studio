@@ -18,7 +18,6 @@ import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.graphics.drawable.Icon
-import android.util.Log
 import android.media.AudioManager
 import android.net.Uri
 import android.os.*
@@ -296,7 +295,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         }
 
         if (filepath == null) {
-            Log.e(TAG, "No file given, exiting")
+            MpvLog.e(TAG, "No file given, exiting")
             showToast(getString(R.string.error_no_file))
             finishWithResult(RESULT_CANCELED)
             return
@@ -322,7 +321,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         if (audioSessionId != AudioManager.ERROR)
             player.setAudioSessionId(audioSessionId)
         else
-            Log.w(TAG, "AudioManager.generateAudioSessionId() returned error")
+            MpvLog.w(TAG, "AudioManager.generateAudioSessionId() returned error")
 
         volumeControlStream = STREAM_TYPE
     }
@@ -343,7 +342,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
     }
 
     override fun onDestroy() {
-        Log.v(TAG, "Exiting.")
+        MpvLog.v(TAG, "Exiting.")
 
         // Suppress any further callbacks
         activityIsForeground = false
@@ -377,7 +376,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
     }
 
     override fun onNewIntent(intent: Intent?) {
-        Log.v(TAG, "onNewIntent($intent)")
+        MpvLog.v(TAG, "onNewIntent($intent)")
         super.onNewIntent(intent)
 
         // Happens when mpv is still running (not necessarily playing) and the user selects a new
@@ -431,7 +430,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
     override fun onPause() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             if (isInMultiWindowMode || isInPictureInPictureMode) {
-                Log.v(TAG, "Going into multi-window mode")
+                MpvLog.v(TAG, "Going into multi-window mode")
                 super.onPause()
                 return
             }
@@ -445,7 +444,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
             try {
                 ContextCompat.startForegroundService(this, intent)
             } catch (e: ForegroundServiceStartNotAllowedException) {
-                Log.w(TAG, e)
+                MpvLog.w(TAG, e)
                 return false
             }
         } else {
@@ -475,7 +474,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
 
         didResumeBackgroundPlayback = shouldBackground
         if (shouldBackground) {
-            Log.v(TAG, "Resuming playback in background")
+            MpvLog.v(TAG, "Resuming playback in background")
             stopServiceHandler.removeCallbacks(stopServiceRunnable)
             val serviceIntent = Intent(this, BackgroundPlaybackService::class.java)
             if (!tryStartForegroundService(serviceIntent)) {
@@ -550,7 +549,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         }
 
         if (lockedUI) { // precaution
-            Log.w(TAG, "resumed with locked UI, unlocking")
+            MpvLog.w(TAG, "resumed with locked UI, unlocking")
             unlockUI()
         }
 
@@ -572,7 +571,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         if (!shouldSavePosition)
             return
         if (MPVLib.getPropertyBoolean("eof-reached") ?: true) {
-            Log.d(TAG, "player indicates EOF, not saving watch-later config")
+            MpvLog.d(TAG, "player indicates EOF, not saving watch-later config")
             return
         }
         MPVLib.command(arrayOf("write-watch-later-config"))
@@ -632,7 +631,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
     // really used anymore after Android 12 (except for AUDIOFOCUS_LOSS),
     // as well as actions equivalent to a focus change that we make up ourselves.
     private fun onAudioFocusChange(type: Int, source: String) {
-        Log.v(TAG, "Audio focus changed: $type ($source)")
+        MpvLog.v(TAG, "Audio focus changed: $type ($source)")
         if (ignoreAudioFocus || isFinishing)
             return
         when (type) {
@@ -714,7 +713,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
     /** Make controls visible, also controls the timeout until they fade. */
     private fun showControls() {
         if (lockedUI) {
-            Log.w(TAG, "cannot show UI in locked mode")
+            MpvLog.w(TAG, "cannot show UI in locked mode")
             return
         }
 
@@ -1018,7 +1017,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
     }
 
     private fun onPiPModeChangedImpl(state: Boolean) {
-        Log.v(TAG, "onPiPModeChanged($state)")
+        MpvLog.v(TAG, "onPiPModeChanged($state)")
         if (state) {
             lockedUI = true
             hideControls()
@@ -1089,7 +1088,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
                     } else if (!paths.isEmpty()) {
                         // Use a memory playlist
                         val memoryUri = Utils.makeMemoryPlaylist(paths)
-                        Log.v(TAG, "Created memory playlist URI (${paths.size})")
+                        MpvLog.v(TAG, "Created memory playlist URI (${paths.size})")
                         return memoryUri
                     }
                 }
@@ -1133,24 +1132,24 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         }
 
         if (filepath == null)
-            Log.e(TAG, "unknown scheme: ${data.scheme}")
+            MpvLog.e(TAG, "unknown scheme: ${data.scheme}")
         return filepath
     }
 
     private fun translateContentUri(uri: Uri): String {
         val resolver = applicationContext.contentResolver
-        Log.v(TAG, "Resolving content URI: $uri")
+        MpvLog.v(TAG, "Resolving content URI: $uri")
         try {
             resolver.openFileDescriptor(uri, "r")?.use { pfd ->
                 // See if we can skip the indirection and read the real file directly
                 val path = Utils.findRealPath(pfd.fd)
                 if (path != null) {
-                    Log.v(TAG, "Found real file path: $path")
+                    MpvLog.v(TAG, "Found real file path: $path")
                     return path
                 }
             }
         } catch(e: Exception) {
-            Log.e(TAG, "Failed to open content fd: $e")
+            MpvLog.e(TAG, "Failed to open content fd: $e")
         }
 
         // Otherwise, just let mpv open the content URI directly via ffmpeg
@@ -1180,7 +1179,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
                 val subfile = resolveUri(suburi) ?: continue
                 val flag = if (subsToEnable.any { it == suburi }) "select" else "auto"
 
-                Log.v(TAG, "Adding subtitles from intent extras: $subfile")
+                MpvLog.v(TAG, "Adding subtitles from intent extras: $subfile")
                 onloadCommands.add(arrayOf("sub-add", subfile, flag))
             }
         }
@@ -1384,7 +1383,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         hiddenButtons.forEach { dialogView.findViewById<View>(it).isVisible = false }
 
         if (Utils.visibleChildren(dialogView) == 0) {
-            Log.w(TAG, "Not showing menu because it would be empty")
+            MpvLog.w(TAG, "Not showing menu because it would be empty")
             restoreState()
             return
         }
@@ -1652,7 +1651,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         if (shouldUseAudioUI == useAudioUI)
             return
         useAudioUI = shouldUseAudioUI
-        Log.v(TAG, "Audio UI: $useAudioUI")
+        MpvLog.v(TAG, "Audio UI: $useAudioUI")
 
         val seekbarGroup = binding.controlsSeekbarGroup
         val buttonGroup = binding.controlsButtonGroup

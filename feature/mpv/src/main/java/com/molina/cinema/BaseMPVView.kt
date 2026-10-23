@@ -2,7 +2,6 @@ package com.molina.cinema
 
 import android.content.Context
 import android.util.AttributeSet
-import android.util.Log
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 
@@ -81,7 +80,7 @@ abstract class BaseMPVView(context: Context, attrs: AttributeSet) : SurfaceView(
     }
 
     override fun surfaceCreated(holder: SurfaceHolder) {
-        Log.w(TAG, "attaching surface")
+        MpvLog.w(TAG, "attaching surface")
         MPVLib.attachSurface(holder.surface)
         // This forces mpv to render subs/osd/whatever into our surface even if it would ordinarily not
         MPVLib.setOptionString("force-window", "yes")
@@ -96,7 +95,7 @@ abstract class BaseMPVView(context: Context, attrs: AttributeSet) : SurfaceView(
     }
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {
-        Log.w(TAG, "detaching surface")
+        MpvLog.w(TAG, "detaching surface")
         MPVLib.setPropertyString("vo", "null")
         MPVLib.setPropertyString("force-window", "no")
         // Note that before calling detachSurface() we need to be sure that libmpv

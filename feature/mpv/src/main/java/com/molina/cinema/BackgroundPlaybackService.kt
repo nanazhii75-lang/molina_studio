@@ -10,7 +10,6 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.support.v4.media.session.MediaSessionCompat
-import android.util.Log
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.core.app.NotificationChannelCompat
@@ -122,7 +121,7 @@ class BackgroundPlaybackService : Service(), MPVLib.EventObserver {
     }
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
-        Log.v(TAG, "BackgroundPlaybackService: starting")
+        MpvLog.v(TAG, "BackgroundPlaybackService: starting")
 
         cachedMetadata.readAll()
         paused = MPVLib.getPropertyBoolean("pause") == true
@@ -150,7 +149,7 @@ class BackgroundPlaybackService : Service(), MPVLib.EventObserver {
         val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.cancel(NOTIFICATION_ID)
 
-        Log.v(TAG, "BackgroundPlaybackService: destroyed")
+        MpvLog.v(TAG, "BackgroundPlaybackService: destroyed")
     }
 
     override fun onBind(intent: Intent): IBinder? { return null }

@@ -9,7 +9,6 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.preference.PreferenceManager
-import android.util.Log
 import android.view.*
 import android.widget.PopupMenu
 import android.widget.Toast
@@ -43,7 +42,7 @@ class FilePickerActivity : AppCompatActivity(), AbstractFilePickerFragment.OnFil
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(null)
-        Log.v(TAG, "FilePickerActivity: created")
+        MpvLog.v(TAG, "FilePickerActivity: created")
 
         setContentView(R.layout.activity_filepicker)
         supportActionBar?.title = ""
@@ -193,11 +192,11 @@ class FilePickerActivity : AppCompatActivity(), AbstractFilePickerFragment.OnFil
         supportActionBar?.show()
 
         if (!FilePickerFragment.hasPermission(this, File("/"))) {
-            Log.v(TAG, "FilePickerActivity: waiting for file picker permission")
+            MpvLog.v(TAG, "FilePickerActivity: waiting for file picker permission")
             return
         }
 
-        Log.v(TAG, "FilePickerActivity: showing file picker")
+        MpvLog.v(TAG, "FilePickerActivity: showing file picker")
         val sharedPrefs = PreferenceManager.getDefaultSharedPreferences(this)
 
         if (getFilterState())
@@ -217,10 +216,10 @@ class FilePickerActivity : AppCompatActivity(), AbstractFilePickerFragment.OnFil
             var vol = vols.find { defaultPath.startsWith(it.path) }
             if (vol == null) {
                 // looks like it wasn't
-                Log.w(TAG, "default path set to \"$defaultPath\" but no such storage volume")
+                MpvLog.w(TAG, "default path set to \"$defaultPath\" but no such storage volume")
                 vol = vols.firstOrNull()
                 if (vol == null) {
-                    Log.e(TAG, "can't find any volumes at all!")
+                    MpvLog.e(TAG, "can't find any volumes at all!")
                 } else {
                     with(fragment!!) {
                         root = vol.path
@@ -267,7 +266,7 @@ class FilePickerActivity : AppCompatActivity(), AbstractFilePickerFragment.OnFil
     }
 
     private fun initDocPicker(root: Uri) {
-        Log.v(TAG, "FilePickerActivity: showing document picker at \"$root\"")
+        MpvLog.v(TAG, "FilePickerActivity: showing document picker at \"$root\"")
         assert(fragment2 == null)
         fragment2 = MPVDocumentPickerFragment(root)
         supportActionBar?.show()
@@ -291,7 +290,7 @@ class FilePickerActivity : AppCompatActivity(), AbstractFilePickerFragment.OnFil
     }
 
     private fun showUrlDialog() {
-        Log.v(TAG, "FilePickerActivity: showing url dialog")
+        MpvLog.v(TAG, "FilePickerActivity: showing url dialog")
         val helper = Utils.OpenUrlDialog(this)
         with (helper) {
             builder.setPositiveButton(R.string.dialog_ok) { _, _ ->
@@ -329,12 +328,12 @@ class FilePickerActivity : AppCompatActivity(), AbstractFilePickerFragment.OnFil
         }
         if (paths != null) {
             result.putExtra("paths", paths)
-            Log.v(TAG, "FilePickerActivity: picked ${paths.size} paths")
+            MpvLog.v(TAG, "FilePickerActivity: picked ${paths.size} paths")
         } else if (path != null) {
             result.putExtra("path", path)
-            Log.v(TAG, "FilePickerActivity: picked \"$path\"")
+            MpvLog.v(TAG, "FilePickerActivity: picked \"$path\"")
         } else {
-            Log.v(TAG, "FilePickerActivity: nothing picked")
+            MpvLog.v(TAG, "FilePickerActivity: nothing picked")
         }
         setResult(code, result)
         finish()

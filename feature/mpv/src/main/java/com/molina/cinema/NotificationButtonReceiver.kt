@@ -5,12 +5,11 @@ import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.util.Log
 import androidx.core.app.PendingIntentCompat
 
 class NotificationButtonReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context?, intent: Intent?) {
-        Log.v(TAG, "NotificationButtonReceiver: ${intent!!.action}")
+        MpvLog.v(TAG, "NotificationButtonReceiver: ${intent!!.action}")
         // remember to update AndroidManifest.xml too when adding here
         when (intent.action) {
             "$PREFIX.PLAY_PAUSE" -> MPVLib.command(arrayOf("cycle", "pause"))

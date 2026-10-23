@@ -10,7 +10,6 @@ import android.content.res.Configuration
 import android.net.Uri
 import android.os.Bundle
 import android.preference.PreferenceManager
-import android.util.Log
 import android.view.View
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
@@ -73,7 +72,7 @@ class MainScreenFragment : Fragment(R.layout.fragment_main_screen) {
         playerLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
             // we don't care about the result but remember that we've been here
             returningFromPlayer = true
-            Log.v(TAG, "returned from player ($it)")
+            MpvLog.v(TAG, "returned from player ($it)")
         }
     }
 

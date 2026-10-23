@@ -3,7 +3,6 @@ package com.molina.cinema
 import com.molina.cinema.databinding.DialogPlaylistBinding
 import android.content.res.ColorStateList
 import android.graphics.Typeface
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -52,7 +51,7 @@ internal class PlaylistDialog(private val player: MPVView) {
     fun refresh() {
         selectedIndex = MPVLib.getPropertyInt("playlist-pos") ?: -1
         playlist = player.loadPlaylist()
-        Log.v(TAG, "PlaylistDialog: loaded ${playlist.size} items")
+        MpvLog.v(TAG, "PlaylistDialog: loaded ${playlist.size} items")
         binding.list.adapter!!.notifyDataSetChanged()
         binding.list.scrollToPosition(playlist.indexOfFirst { it.index == selectedIndex })
 
