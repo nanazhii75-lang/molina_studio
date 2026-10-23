@@ -40,6 +40,7 @@
 - 2026-10-23: Fase 6 langkah 3b: `AndroidMolinaPaths` (implementasi `MolinaPaths`) di `:core:storage`: workspace=ExternalStorage/molina-studio, dataRoot=ExternalStorage/.molina-data, privateRoot=filesDir; `ensureDirs()` membuat subfolder (off-main-thread, butuh izin storage). Belum dirakit di :app. Menunggu CI.
 - 2026-10-23: Fase 6 langkah 3c: `AppPaths` (singleton di `:app`) dirakit; `MainActivity.onResume` memanggil `ensureIfPermitted` (jalan di IO, hanya bila izin storage ada, dicoba ulang tiap resume sampai berhasil; hasil dicatat ke AppLog). Perilaku UI tidak berubah. Menunggu CI.
 - 2026-10-23: docs: catat ide snapshot otomatis berkas yang sedang diedit ke `MolinaDir.Backup` (lihat Backlog, Fase 6).
+- 2026-10-23: Fase 6 langkah 4: `MolinaApp` (Application) memasang `AppLog.install(LogBus)` di `onCreate` proses; dihapus dari `MainActivity`; manifest `android:name=".MolinaApp"`. Log sebelum Activity (mis. TerminalService) kini tertangkap. Menunggu CI.
 
 ## Roadmap Prioritas (disusun 2026-10-23)
 0. Gate: uji perangkat penuh (docs/UJI_PERANGKAT.md) sebelum fase baru. (Selesai 2026-10-23.)
@@ -57,6 +58,6 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - Fase 5 (Cinema/mpv): buat `MpvSettings` + `MpvPrefs` dengan pola `TerminalPrefs` (data class snapshot, `PrefKeys`, satu fungsi `update {}`, DataStore + `StateFlow`, tulis disk async & conflated). Ekstrak base class generik HANYA bila sudah ada 3 store atau lebih; jangan lebih awal.
 - Semua modul (Cinema/Code/Settings): gestur geser horizontal wajib lewat `Modifier.onHorizontalSwipe` (`com.molina.studio.ui`); jangan menulis `pointerInput` + `detectHorizontalDragGestures` manual lagi.
 - Modul fitur: pindahkan Terminal ke `:feature:terminal` paling akhir (cek TerminalService di manifest, assets molina/bashrc, jniLibs + useLegacyPackaging tetap di :app).
-- Log: pasang `AppLog.install(LogBus)` di kelas Application (butuh `android:name` di manifest) agar log sebelum Activity tidak hilang; producer terminal pindah ke `AppLog.log` saat `:feature:terminal` dibuat.
-- Fase 6 langkah 4: kelas Application untuk `AppLog.install(LogBus)` (menyentuh `android:name` di manifest; commit terpisah)
+- Log: producer terminal pindah ke `AppLog.log` saat `:feature:terminal` dibuat.
+- Fase 6 langkah 5: `:feature:code` (Rosemoe), hanya bergantung ke core; `ExitHooks.register("editor")`; kontrak `SettingsSection` di core; `:app` merakit
 - Fase 6 ide (`:feature:code`): snapshot otomatis berkas yang sedang diedit ke `MolinaDir.Backup` (`/sdcard/.molina-data/backup`) SEBELUM `ExitHooks.register("editor") { simpanSemuaBerkas() }` menulis ke berkas asli, agar ada salinan terakhir bila proses diterminasi paksa. Detail (rotasi N salinan, penamaan) diputuskan saat implementasi.

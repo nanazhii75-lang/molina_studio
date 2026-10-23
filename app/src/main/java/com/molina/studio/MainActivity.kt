@@ -3,9 +3,7 @@ package com.molina.studio
 import android.graphics.Rect
 import android.os.Bundle
 import android.view.ViewTreeObserver
-import com.molina.core.common.AppLog
 import com.molina.core.common.AppVisibility
-import com.molina.studio.log.LogBus
 import com.molina.studio.log.LogServer
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -90,7 +88,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        AppLog.install(LogBus)
         LogServer.start()
         com.molina.studio.terminal.TerminalPrefs.init(applicationContext)
         com.molina.studio.terminal.CrashReporter.install(applicationContext)
