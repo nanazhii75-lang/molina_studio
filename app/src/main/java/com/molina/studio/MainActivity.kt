@@ -157,6 +157,10 @@ class MainActivity : ComponentActivity() {
                             )
                             return@Scaffold
                         }
+                        Tab.Mpv -> {
+                            com.molina.studio.cinema.CinemaHome(Modifier.fillMaxSize().padding(pad))
+                            return@Scaffold
+                        }
                         Tab.Settings -> {
                             com.molina.studio.settings.SettingsScreen(Modifier.fillMaxSize().padding(pad))
                             return@Scaffold
