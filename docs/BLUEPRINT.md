@@ -145,7 +145,7 @@ progress_template = """# MOLINA STUDIO - FINAL ARCHITECTURE PROGRESS
 - [x] Refactoring Package Name menyeluruh menjadi `com.molina.studio`.
 - [x] Pembersihan URL eksternal, tracker, donasi, dan server update lama.
 - [x] Penyusun UI Navigation Shell 4 Tab dengan Jetpack Compose / Material 3.
-- Catatan: `com.termux` hanya namespace library vendored (terminal-emulator/view).
+- Catatan: paket library vendored kini `com.molina.terminal` (emulator) dan `com.molina.terminal.view` (view).
 
 ### [Phase 3: Terminal (PRoot Debian)] - COMPLETED (uji perangkat dilaporkan lulus pengguna, 2026-10-23)
 - [x] Emulator Termux v0.118.0 (vendored), Debian trixie arm64 via PRoot, TerminalService, AppExit.
@@ -229,7 +229,7 @@ Tujuan: kontrak antar modul eksplisit (tanpa dependensi melingkar) dan satu pint
 - [x] Refactoring Package Name menyeluruh menjadi `com.molina.studio`.
 - [x] Pembersihan URL eksternal, tracker, donasi, dan server update lama.
 - [x] Penyusun UI Navigation Shell 4 Tab dengan Jetpack Compose / Material 3.
-- Catatan: `com.termux` hanya namespace library vendored (terminal-emulator/view).
+- Catatan: paket library vendored kini `com.molina.terminal` (emulator) dan `com.molina.terminal.view` (view).
 
 ### [Phase 3: Terminal (PRoot Debian)] - COMPLETED (uji perangkat dilaporkan lulus pengguna, 2026-10-23)
 - [x] Emulator Termux v0.118.0 (vendored), Debian trixie arm64 via PRoot, TerminalService, AppExit.

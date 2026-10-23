@@ -1,7 +1,7 @@
 plugins { id("com.android.library") }
 
 android {
-    namespace = "com.termux.terminal"
+    namespace = "com.molina.terminal"
     compileSdk = 35
     defaultConfig {
         minSdk = 26

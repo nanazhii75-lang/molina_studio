@@ -10,10 +10,10 @@ import android.view.inputmethod.InputMethodManager
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import com.termux.terminal.TerminalSession
-import com.termux.terminal.TerminalSessionClient
-import com.termux.view.TerminalView
-import com.termux.view.TerminalViewClient
+import com.molina.terminal.TerminalSession
+import com.molina.terminal.TerminalSessionClient
+import com.molina.terminal.view.TerminalView
+import com.molina.terminal.view.TerminalViewClient
 
 private const val TAG = "MolinaTerminal"
 

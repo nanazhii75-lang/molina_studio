@@ -1,4 +1,4 @@
-package com.termux.view.textselection;
+package com.molina.terminal.view.textselection;
 
 import android.content.ClipData;
 import android.content.ClipboardManager;
@@ -12,10 +12,10 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 
-import com.termux.terminal.TerminalBuffer;
-import com.termux.terminal.WcWidth;
-import com.termux.view.R;
-import com.termux.view.TerminalView;
+import com.molina.terminal.TerminalBuffer;
+import com.molina.terminal.WcWidth;
+import com.molina.terminal.view.R;
+import com.molina.terminal.view.TerminalView;
 
 public class TextSelectionCursorController implements CursorController {
 

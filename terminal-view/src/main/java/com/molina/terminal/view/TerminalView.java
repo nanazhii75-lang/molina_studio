@@ -1,4 +1,4 @@
-package com.termux.view;
+package com.molina.terminal.view;
 
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
@@ -32,10 +32,10 @@ import android.widget.Scroller;
 
 import androidx.annotation.RequiresApi;
 
-import com.termux.terminal.KeyHandler;
-import com.termux.terminal.TerminalEmulator;
-import com.termux.terminal.TerminalSession;
-import com.termux.view.textselection.TextSelectionCursorController;
+import com.molina.terminal.KeyHandler;
+import com.molina.terminal.TerminalEmulator;
+import com.molina.terminal.TerminalSession;
+import com.molina.terminal.view.textselection.TextSelectionCursorController;
 
 /** View displaying and interacting with a {@link TerminalSession}. */
 public final class TerminalView extends View {
@@ -1037,14 +1037,14 @@ public final class TerminalView extends View {
      * display timeout with double tap and not power button.
      *
      * It should also be called on the
-     * {@link com.termux.terminal.TerminalSessionClient#onTerminalCursorStateChange(boolean)}
+     * {@link com.molina.terminal.TerminalSessionClient#onTerminalCursorStateChange(boolean)}
      * callback when cursor is enabled or disabled so that blinker is disabled if cursor is not
      * to be shown. It should also be checked if activity is visible if blinker is to be started
      * before calling this.
      *
      * It should also be called after terminal is reset with {@link TerminalSession#reset()} in case
      * cursor blinker was disabled before reset due to call to
-     * {@link com.termux.terminal.TerminalSessionClient#onTerminalCursorStateChange(boolean)}.
+     * {@link com.molina.terminal.TerminalSessionClient#onTerminalCursorStateChange(boolean)}.
      *
      * How cursor blinker starting works is by registering a {@link Runnable} with the looper of
      * the main thread of the app which when run, toggles the cursor blinking state and re-registers

@@ -1,4 +1,4 @@
-package com.termux.view;
+package com.molina.terminal.view;
 
 import android.content.Context;
 import android.view.GestureDetector;

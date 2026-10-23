@@ -1,4 +1,4 @@
-package com.termux.terminal;
+package com.molina.terminal;
 
 /** Current terminal colors (if different from default). */
 public final class TerminalColors {

@@ -1,9 +1,9 @@
-package com.termux.view.textselection;
+package com.molina.terminal.view.textselection;
 
 import android.view.MotionEvent;
 import android.view.ViewTreeObserver;
 
-import com.termux.view.TerminalView;
+import com.molina.terminal.view.TerminalView;
 
 /**
  * A CursorController instance can be used to control cursors in the text.

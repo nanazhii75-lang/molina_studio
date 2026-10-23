@@ -3,7 +3,7 @@ package com.molina.studio.terminal
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import com.termux.terminal.KeyHandler
+import com.molina.terminal.KeyHandler
 
 /** Aksi tombol ekstra; semua dipanggil dari main thread. */
 object TerminalActions {

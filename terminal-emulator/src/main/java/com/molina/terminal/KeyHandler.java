@@ -1,4 +1,4 @@
-package com.termux.terminal;
+package com.molina.terminal;
 
 import java.util.HashMap;
 import java.util.Map;

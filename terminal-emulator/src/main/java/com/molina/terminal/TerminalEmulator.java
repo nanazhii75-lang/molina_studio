@@ -1,4 +1,4 @@
-package com.termux.terminal;
+package com.molina.terminal;
 
 import android.util.Base64;
 

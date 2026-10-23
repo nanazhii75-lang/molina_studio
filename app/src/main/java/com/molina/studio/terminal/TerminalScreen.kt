@@ -58,7 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.molina.studio.ui.onHorizontalSwipe
 import androidx.compose.ui.viewinterop.AndroidView
-import com.termux.view.TerminalView
+import com.molina.terminal.view.TerminalView
 import kotlin.math.floor
 
 private fun spToPx(ctx: Context, sp: Int): Int =
