@@ -1,7 +1,5 @@
 package com.molina.cinema
 
-import android.content.SharedPreferences
-import android.content.res.Resources
 import android.graphics.PointF
 import android.os.SystemClock
 import android.view.MotionEvent
@@ -174,11 +172,7 @@ internal class TouchGestures(private val observer: TouchGesturesObserver) {
         observer.onPropertyChange(p, diff)
     }
 
-    fun syncSettings(prefs: SharedPreferences, resources: Resources) {
-        val get: (String, Int) -> String = { key, defaultRes ->
-            val v = prefs.getString(key, "")
-            if (v.isNullOrEmpty()) resources.getString(defaultRes) else v
-        }
+    fun syncSettings(cfg: MpvSettings) {
         val map = mapOf(
             "bright" to State.ControlBright,
             "seek" to State.ControlSeek,
@@ -190,12 +184,12 @@ internal class TouchGestures(private val observer: TouchGesturesObserver) {
             "custom" to PropertyChange.Custom
         )
 
-        gestureHoriz = map[get("gesture_horiz", R.string.pref_gesture_horiz_default)] ?: State.Down
-        gestureVertLeft = map[get("gesture_vert_left", R.string.pref_gesture_vert_left_default)] ?: State.Down
-        gestureVertRight = map[get("gesture_vert_right", R.string.pref_gesture_vert_right_default)] ?: State.Down
-        tapGestureLeft = map2[get("gesture_tap_left", R.string.pref_gesture_tap_left_default)]
-        tapGestureCenter = map2[get("gesture_tap_center", R.string.pref_gesture_tap_center_default)]
-        tapGestureRight = map2[get("gesture_tap_right", R.string.pref_gesture_tap_right_default)]
+        gestureHoriz = map[cfg.gestureHoriz] ?: State.Down
+        gestureVertLeft = map[cfg.gestureVertLeft] ?: State.Down
+        gestureVertRight = map[cfg.gestureVertRight] ?: State.Down
+        tapGestureLeft = map2[cfg.gestureTapLeft]
+        tapGestureCenter = map2[cfg.gestureTapCenter]
+        tapGestureRight = map2[cfg.gestureTapRight]
     }
 
     fun onTouchEvent(e: MotionEvent): Boolean {

@@ -3,7 +3,6 @@ package com.molina.cinema
 import android.content.Context
 import android.os.Build
 import android.os.Environment
-import android.preference.PreferenceManager
 import android.util.AttributeSet
 import android.view.*
 import androidx.core.content.ContextCompat
@@ -16,19 +15,19 @@ import kotlin.reflect.KProperty
 
 internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(context, attrs) {
     override fun initOptions() {
-        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
+        val cfg = MpvPrefs.current(context)
 
         // apply phone-optimized defaults
         MPVLib.setOptionString("profile", "fast")
 
         // vo
-        setVo(if (sharedPreferences.getBoolean("gpu_next", false))
+        setVo(if (cfg.gpuNext)
             "gpu-next"
         else
             "gpu")
 
         // hwdec
-        val hwdec = if (sharedPreferences.getBoolean("hardware_decoding", true))
+        val hwdec = if (cfg.hardwareDecoding)
             HWDECS
         else
             "no"
@@ -45,33 +44,11 @@ internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(cont
                        "(${Build.VERSION.SDK_INT} < ${Build.VERSION_CODES.M})")
         }
 
-        // set non-complex options
-        data class Property(val preferenceName: String, val mpvOption: String)
-        val opts = arrayOf(
-                Property("default_audio_language", "alang"),
-                Property("default_subtitle_language", "slang"),
+        // opsi sederhana (bahasa, scale, dscale, tscale) dipetakan MpvPrefs
+        for ((mpvOption, value) in cfg.options)
+            MPVLib.setOptionString(mpvOption, value)
 
-                // vo-related
-                Property("video_scale", "scale"),
-                Property("video_scale_param1", "scale-param1"),
-                Property("video_scale_param2", "scale-param2"),
-
-                Property("video_downscale", "dscale"),
-                Property("video_downscale_param1", "dscale-param1"),
-                Property("video_downscale_param2", "dscale-param2"),
-
-                Property("video_tscale", "tscale"),
-                Property("video_tscale_param1", "tscale-param1"),
-                Property("video_tscale_param2", "tscale-param2")
-        )
-
-        for ((preferenceName, mpvOption) in opts) {
-            val preference = sharedPreferences.getString(preferenceName, "")
-            if (!preference.isNullOrBlank())
-                MPVLib.setOptionString(mpvOption, preference)
-        }
-
-        val debandMode = sharedPreferences.getString("video_debanding", "")
+        val debandMode = cfg.videoDebanding
         if (debandMode == "gradfun") {
             // lower the default radius (16) to improve performance
             MPVLib.setOptionString("vf", "gradfun=radius=12")
@@ -79,16 +56,15 @@ internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(cont
             MPVLib.setOptionString("deband", "yes")
         }
 
-        val vidsync = sharedPreferences.getString("video_sync", resources.getString(R.string.pref_video_interpolation_sync_default))
-        MPVLib.setOptionString("video-sync", vidsync!!)
+        MPVLib.setOptionString("video-sync", cfg.videoSync)
 
-        if (sharedPreferences.getBoolean("video_interpolation", false))
+        if (cfg.videoInterpolation)
             MPVLib.setOptionString("interpolation", "yes")
 
-        if (sharedPreferences.getBoolean("gpudebug", false))
+        if (cfg.gpuDebug)
             MPVLib.setOptionString("gpu-debug", "yes")
 
-        if (sharedPreferences.getBoolean("video_fastdecode", false)) {
+        if (cfg.videoFastDecode) {
             MPVLib.setOptionString("vd-lavc-fast", "yes")
             MPVLib.setOptionString("vd-lavc-skiploopfilter", "nonkey")
         }

@@ -21,7 +21,6 @@ import android.graphics.drawable.Icon
 import android.media.AudioManager
 import android.net.Uri
 import android.os.*
-import android.preference.PreferenceManager.getDefaultSharedPreferences
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.util.DisplayMetrics
@@ -494,50 +493,39 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
     }
 
     private fun readSettings() {
-        // FIXME: settings should be in their own class completely
-        val prefs = getDefaultSharedPreferences(applicationContext)
-        val getString: (String, Int) -> String = { key, defaultRes ->
-            prefs.getString(key, resources.getString(defaultRes))!!
-        }
+        val cfg = MpvPrefs.current(applicationContext)
 
-        gestures.syncSettings(prefs, resources)
+        gestures.syncSettings(cfg)
 
-        val statsMode = prefs.getString("stats_mode", "") ?: ""
+        val statsMode = cfg.statsMode
         this.statsFPS = statsMode == "native_fps"
         this.statsLuaMode = if (statsMode.startsWith("lua"))
-            statsMode.removePrefix("lua").toInt()
+            statsMode.removePrefix("lua").toIntOrNull() ?: 0
         else
             0
-        this.backgroundPlayMode = getString("background_play", R.string.pref_background_play_default)
-        this.noUIPauseMode = getString("no_ui_pause", R.string.pref_no_ui_pause_default)
-        this.shouldSavePosition = prefs.getBoolean("save_position", false)
+        this.backgroundPlayMode = cfg.backgroundPlay
+        this.noUIPauseMode = cfg.noUiPause
+        this.shouldSavePosition = cfg.savePosition
         if (this.autoRotationMode != "manual") // don't reset
-            this.autoRotationMode = getString("auto_rotation", R.string.pref_auto_rotation_default)
-        this.controlsAtBottom = prefs.getBoolean("bottom_controls", true)
-        this.showMediaTitle = prefs.getBoolean("display_media_title", false)
-        this.useTimeRemaining = prefs.getBoolean("use_time_remaining", false)
-        this.rememberBrightness = prefs.getBoolean("remember_brightness", false)
+            this.autoRotationMode = cfg.autoRotation
+        this.controlsAtBottom = cfg.bottomControls
+        this.showMediaTitle = cfg.displayMediaTitle
+        this.useTimeRemaining = cfg.useTimeRemaining
+        this.rememberBrightness = cfg.rememberBrightness
         this.lastScreenBrightness = if (this.rememberBrightness)
-            prefs.getInt("last_screen_brightness", -1)
+            cfg.lastScreenBrightness
         else
             -1
-        this.ignoreAudioFocus = prefs.getBoolean("ignore_audio_focus", false)
-        this.playlistExitWarning = prefs.getBoolean("playlist_exit_warning", true)
-        this.newIntentReplace = prefs.getBoolean("new_intent_replace", false)
-        this.smoothSeekGesture = prefs.getBoolean("seek_gesture_smooth", false)
+        this.ignoreAudioFocus = cfg.ignoreAudioFocus
+        this.playlistExitWarning = cfg.playlistExitWarning
+        this.newIntentReplace = cfg.newIntentReplace
+        this.smoothSeekGesture = cfg.seekGestureSmooth
     }
 
     private fun writeSettings() {
-        val prefs = getDefaultSharedPreferences(applicationContext)
-
-        with (prefs.edit()) {
-            putBoolean("use_time_remaining", useTimeRemaining)
-            if (rememberBrightness)
-                putInt("last_screen_brightness", lastScreenBrightness)
-            else
-                remove("last_screen_brightness")
-            commit()
-        }
+        MpvPrefs.saveUiState(
+            applicationContext, useTimeRemaining, rememberBrightness, lastScreenBrightness
+        )
     }
 
     override fun onStart() {
