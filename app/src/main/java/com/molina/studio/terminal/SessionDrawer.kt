@@ -1,5 +1,6 @@
 package com.molina.studio.terminal
 
+import com.molina.studio.ui.MolinaTheme
 import android.content.Context
 import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
@@ -44,7 +45,7 @@ import androidx.compose.ui.unit.sp
 import com.molina.studio.ui.SwipeDirection
 import com.molina.studio.ui.onHorizontalSwipe
 
-private val Gold = Color(0xFFE6B450)
+private val Gold = MolinaTheme.Gold
 private val CloseRed = Color(0xFFFF8A80)
 private val DrawerWidth = 240.dp
 private val DrawerButtonWidth = 100.dp

@@ -1,5 +1,6 @@
 package com.molina.studio.terminal
 
+import com.molina.studio.ui.MolinaTheme
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,7 +30,7 @@ private const val CHIP_TEXT_SP = 9
 private val ChipDownload = Color(0xFF81D4FA) // biru muda
 private val ChipUpload = Color(0xFFEF5350)   // merah
 private val ChipNormal = Color.White
-private val ChipWarn = Color(0xFFFFD54F)     // kuning: lonjakan
+private val ChipWarn = MolinaTheme.Warn     // kuning: lonjakan
 private val ChipHigh = Color(0xFFFF5252)     // merah: posisi tinggi
 private val ChipLocale: Locale = Locale("id", "ID")
 

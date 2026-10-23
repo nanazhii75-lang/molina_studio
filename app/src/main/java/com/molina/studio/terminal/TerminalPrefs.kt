@@ -1,5 +1,6 @@
 package com.molina.studio.terminal
 
+import com.molina.studio.ui.MolinaTheme
 import android.content.Context
 import android.content.res.Configuration
 import android.util.Log
@@ -38,8 +39,8 @@ enum class PromptTheme(
 ) {
     CinemaGold(
         "cinema_gold", "Cinema Gold",
-        "1;38;2;212;175;55", "1;38;2;196;69;54",
-        Color(0xFFD4AF37), Color(0xFFC44536)
+        "1;${MolinaTheme.GOLD_SGR}", "1;38;2;196;69;54",
+        MolinaTheme.Gold, Color(0xFFC44536)
     ),
     NeonGreen(
         "neon_green", "Neon Green",

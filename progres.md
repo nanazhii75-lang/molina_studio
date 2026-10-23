@@ -46,6 +46,7 @@
 
 - 2026-10-23: Hardening terminal P0: DNS guest mengikuti DNS sistem (MolinaDns, izin ACCESS_NETWORK_STATE), bind storage default hanya /sdcard/molina-studio (toggle Settings > Terminal I/O > Akses penyimpanan penuh), ekstraksi rootfs tahan symlink (cek path kanonik), gerbang telemetri CI (scripts/telemetry_gate.py: host/izin/dependency). Menunggu CI + uji perangkat.
 - 2026-10-23: UI Terminal: panel pemasangan Debian baru (`SetupPanel.kt`: monogram Molina, pill status, kartu info disk/jaringan/SHA-256, langkah Unduh/Verifikasi/Ekstrak, galat ramah + Salin pesan galat) dan bar status 4 chip berbingkai (`StatusChips.kt`, 9sp, bingkai solid saat Warn/High) menggantikan `InstallPanel`/`StatusBar` di TerminalScreen.kt. Font dikecilkan (judul 18sp, isi 11-12sp, tombol 14sp). Tombol Batal ditunda (perlu ubah Rootfs.kt). Menunggu CI + uji perangkat.
+- 2026-10-23: Token desain: `MolinaTheme` (`ui/MolinaTheme.kt`) jadi satu sumber warna (emas #E6B450 + Good/Warn/Bad/Muted/Card); MainActivity, SessionDrawer, TerminalService, SetupPanel, StatusChips memakainya; emas tema prompt Cinema Gold dan banner `MolinaShell.BRAND_SGR` disatukan dari #D4AF37 ke #E6B450 (SGR 230;180;80); tombol Pasang/Coba lagi dipersempit (176dp x 40dp). Menunggu CI + uji perangkat.
 
 ## Roadmap Prioritas (disusun 2026-10-23)
 0. Gate: uji perangkat penuh (docs/UJI_PERANGKAT.md) sebelum fase baru. (Selesai 2026-10-23.)
@@ -53,7 +54,7 @@
 2. Jembatan CLI `molina` (open/play/log) lewat IPC + paste aman (bracketed paste, kirim per potongan, konfirmasi multi-baris).
 3. Fase 5 Cinema bertahap: 5a spike libmpv arm64 di CI (+ lisensi di THIRD_PARTY_NOTICES.md), 5b putar lokal + AppExit + MpvPrefs, 5c event ke LogBus, 5d NewPipe terakhir (sering rusak, perlu update).
 4. Fase 7 Settings Hub (tombol Keluar, hot-reload mpv.conf), selipkan kapan saja.
-Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); prompt dengan branch git + exit code; paket setup Dev/Media (SHA-256); token desain `MolinaTheme` (emas #D4AF37), ikon adaptif + splash; janji tanpa telemetri/donasi/offline-first di About.
+Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); prompt dengan branch git + exit code; paket setup Dev/Media (SHA-256); token desain `MolinaTheme` (emas #E6B450), ikon adaptif + splash; janji tanpa telemetri/donasi/offline-first di About.
 
 ## Backlog Lintas Fase
 - Fase 5 (Cinema/mpv): daftarkan `ExitHooks.register("mpv") { MPVLib.destroy() }`.

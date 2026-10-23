@@ -1,5 +1,6 @@
 package com.molina.studio
 
+import com.molina.studio.ui.MolinaTheme
 import android.graphics.Rect
 import android.os.Bundle
 import android.view.ViewTreeObserver
@@ -63,11 +64,11 @@ private fun rememberKeyboardVisible(): Boolean {
 }
 
 private val MolinaColors = darkColorScheme(
-    background = Color(0xFF0A0A0F),
-    surface = Color(0xFF0A0A0F),
-    primary = Color(0xFFE6B450),
-    onBackground = Color(0xFFEDEDED),
-    onSurface = Color(0xFFEDEDED)
+    background = MolinaTheme.Background,
+    surface = MolinaTheme.Background,
+    primary = MolinaTheme.Gold,
+    onBackground = MolinaTheme.OnBackground,
+    onSurface = MolinaTheme.OnBackground
 )
 
 class MainActivity : ComponentActivity() {

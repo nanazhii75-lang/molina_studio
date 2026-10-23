@@ -1,5 +1,6 @@
 package com.molina.studio.terminal
 
+import com.molina.studio.ui.MolinaTheme
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -83,7 +84,7 @@ class TerminalService : Service() {
             .setSmallIcon(R.drawable.ic_stat_molina)
             .setContentTitle("Molina Terminal")
             .setContentText("Sesi terminal berjalan")
-            .setColor(0xFFE6B450.toInt())
+            .setColor(MolinaTheme.GOLD_ARGB)
             .setCategory(Notification.CATEGORY_SERVICE)
             .setOngoing(true)
             .setOnlyAlertOnce(true)

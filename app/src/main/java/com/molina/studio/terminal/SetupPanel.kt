@@ -1,5 +1,6 @@
 package com.molina.studio.terminal
 
+import com.molina.studio.ui.MolinaTheme
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -36,13 +37,14 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.util.Locale
 
-private val SetupCardBg = Color(0xFF14161B)
-private val SetupCardLine = Color(0xFF2A2D35)
-private val SetupMuted = Color(0xFF9AA0A6)
-private val SetupGood = Color(0xFF69F0AE)
-private val SetupBad = Color(0xFFFF8A80)
-private val SetupWarn = Color(0xFFFFD54F)
+private val SetupCardBg = MolinaTheme.CardBg
+private val SetupCardLine = MolinaTheme.CardLine
+private val SetupMuted = MolinaTheme.Muted
+private val SetupGood = MolinaTheme.Good
+private val SetupBad = MolinaTheme.Bad
+private val SetupWarn = MolinaTheme.Warn
 private val SetupButtonText = Color(0xFF1A1405)
+private val SetupButtonWidth = 176.dp
 private val SetupLocale: Locale = Locale("id", "ID")
 
 // Puncak disk saat pasang: arsip ~30 MB + hasil ekstrak ~105 MB (arsip dihapus di akhir) + cadangan.
@@ -164,7 +166,7 @@ private fun InstallButton(text: String, enabled: Boolean = true, onClick: () -> 
     Button(
         onClick = onClick,
         enabled = enabled,
-        modifier = Modifier.fillMaxWidth().height(44.dp),
+        modifier = Modifier.width(SetupButtonWidth).height(40.dp),
         shape = RoundedCornerShape(50),
         colors = ButtonDefaults.buttonColors(
             containerColor = gold,

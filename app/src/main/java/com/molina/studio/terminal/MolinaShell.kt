@@ -1,12 +1,13 @@
 package com.molina.studio.terminal
 
+import com.molina.studio.ui.MolinaTheme
 import android.content.Context
 import java.io.File
 
 /** Identitas visual shell Molina: banner di sini; warna prompt bersumber dari [PromptTheme]. */
 object MolinaShell {
     const val BRAND = "Welcome Molina Terminal"
-    const val BRAND_SGR = "1;38;2;212;175;55" // kuning emas
+    const val BRAND_SGR = "1;${MolinaTheme.GOLD_SGR}" // emas Molina
     const val HOME_DIR = "/storage/emulated/0/molina-studio"
     const val REDRAW_SEQ = "\u001b[99~"       // dipetakan ke redraw-current-line di bashrc
 
