@@ -385,6 +385,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         if (filepath == null) {
             return
         }
+        PlaybackLog.onRequest(filepath)
 
         if (!activityIsForeground && didResumeBackgroundPlayback) {
             if (this.newIntentReplace) {
@@ -2020,6 +2021,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
 
     override fun event(eventId: Int) {
         if (eventId == MpvEvent.MPV_EVENT_END_FILE) {
+            PlaybackLog.onEnd(psc.position, psc.duration)
             psc.eof()
             updateMediaSession()
         }
@@ -2027,7 +2029,11 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         if (eventId == MpvEvent.MPV_EVENT_SHUTDOWN)
             finishWithResult(if (playbackHasStarted) RESULT_OK else RESULT_CANCELED)
 
+        if (eventId == MpvEvent.MPV_EVENT_FILE_LOADED)
+            PlaybackLog.onLoaded()
+
         if (eventId == MpvEvent.MPV_EVENT_START_FILE) {
+            PlaybackLog.onStart()
             val cmds = onloadCommands.toTypedArray()
             onloadCommands.clear()
             for (c in cmds)
