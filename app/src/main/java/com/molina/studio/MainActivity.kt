@@ -78,6 +78,11 @@ class MainActivity : ComponentActivity() {
         AppVisibility.setForeground(true)
     }
 
+    override fun onResume() {
+        super.onResume()
+        AppPaths.ensureIfPermitted(applicationContext)
+    }
+
     override fun onStop() {
         AppVisibility.setForeground(false)
         super.onStop()
