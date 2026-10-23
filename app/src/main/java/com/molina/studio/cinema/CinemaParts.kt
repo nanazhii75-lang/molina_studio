@@ -35,11 +35,11 @@ internal fun CinemaLogo(message: String) {
 
 @Composable
 internal fun CinemaAction(glyph: String, label: String, onClick: () -> Unit) {
-    Column(Modifier.clickable(onClick = onClick).padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(Modifier.size(56.dp).clip(CircleShape).background(MolinaTheme.CardBg)
+    Column(Modifier.clickable(onClick = onClick).padding(4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(Modifier.size(40.dp).clip(CircleShape).background(MolinaTheme.CardBg)
             .border(1.dp, CinemaPurple, CircleShape), Alignment.Center) {
-            Text(glyph, color = CinemaPurple, fontSize = 22.sp)
+            Text(glyph, color = CinemaPurple, fontSize = 16.sp)
         }
-        Text(label, color = MolinaTheme.Muted, fontSize = 12.sp)
+        Text(label, color = MolinaTheme.Muted, fontSize = 10.sp)
     }
 }
