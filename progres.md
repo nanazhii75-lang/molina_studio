@@ -45,6 +45,7 @@
 - 2026-10-23: Review terminal pra-mpv (audit baca-saja): tidak ada telemetri/donasi/URL dev lama fungsional. Temuan P0: uji perangkat JNI, DNS hardcode, bind /sdcard penuh, hardening symlink ekstraksi, gerbang telemetri CI, LICENSE+source di About. P1: mirror rootfs, release+R8, resume unduhan.
 
 - 2026-10-23: Hardening terminal P0: DNS guest mengikuti DNS sistem (MolinaDns, izin ACCESS_NETWORK_STATE), bind storage default hanya /sdcard/molina-studio (toggle Settings > Terminal I/O > Akses penyimpanan penuh), ekstraksi rootfs tahan symlink (cek path kanonik), gerbang telemetri CI (scripts/telemetry_gate.py: host/izin/dependency). Menunggu CI + uji perangkat.
+- 2026-10-23: UI Terminal: panel pemasangan Debian baru (`SetupPanel.kt`: monogram Molina, pill status, kartu info disk/jaringan/SHA-256, langkah Unduh/Verifikasi/Ekstrak, galat ramah + Salin pesan galat) dan bar status 4 chip berbingkai (`StatusChips.kt`, 9sp, bingkai solid saat Warn/High) menggantikan `InstallPanel`/`StatusBar` di TerminalScreen.kt. Font dikecilkan (judul 18sp, isi 11-12sp, tombol 14sp). Tombol Batal ditunda (perlu ubah Rootfs.kt). Menunggu CI + uji perangkat.
 
 ## Roadmap Prioritas (disusun 2026-10-23)
 0. Gate: uji perangkat penuh (docs/UJI_PERANGKAT.md) sebelum fase baru. (Selesai 2026-10-23.)

@@ -30,10 +30,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -49,11 +47,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.molina.studio.ui.onHorizontalSwipe
@@ -99,10 +93,10 @@ private fun TerminalContent(modifier: Modifier, onOpenSettings: () -> Unit) {
 
     Box(modifier) {
     Column(Modifier.fillMaxSize()) {
-        StatusBar()
+        StatusChips()
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
             if (rootfsState !is RootfsState.Ready) {
-                InstallPanel(rootfsState) { RootfsManager.install(context) }
+                SetupPanel(rootfsState) { RootfsManager.install(context) }
             } else {
                 val fontSp = TerminalPrefs.fontSp
                 val density = LocalDensity.current
@@ -150,83 +144,6 @@ private val KeyRed = Color(0xFFFF8A80)    // ESC, CLEAR
 private val KeyBlue = Color(0xFF82B1FF)   // HOME, panah
 private val KeyGreen = Color(0xFF69F0AE)  // COPY, PASTE
 private val KeyAmber = Color(0xFFFFD54F)  // CTRL, ALT, TAB, menu
-private val DownloadColor = Color(0xFF81D4FA) // biru muda
-private val UploadColor = Color(0xFFEF5350)   // merah
-private val NormalColor = Color.White
-private val WarnColor = Color(0xFFFFD54F)     // kuning: lonjakan
-private val HighColor = Color(0xFFFF5252)     // merah: posisi tinggi
-
-private fun levelStyle(level: Level): SpanStyle = when (level) {
-    Level.Normal -> SpanStyle(color = NormalColor)
-    Level.Warn -> SpanStyle(color = WarnColor, fontWeight = FontWeight.Bold)
-    Level.High -> SpanStyle(color = HighColor, fontWeight = FontWeight.Bold)
-}
-
-@Composable
-private fun StatusBar() {
-    val ctx = LocalContext.current
-    val stats by remember(ctx) { SystemStats.flow(ctx) }.collectAsState(StatsSnapshot())
-    val text = remember(stats) {
-        buildAnnotatedString {
-            withStyle(SpanStyle(color = DownloadColor)) { append("\u2193 ${stats.rxText}") }
-            append("    ")
-            withStyle(SpanStyle(color = UploadColor)) { append("\u2191 ${stats.txText}") }
-            append("    ")
-            withStyle(levelStyle(stats.cpuLevel)) { append("CPU ${stats.cpuPercent}%") }
-            append("    ")
-            withStyle(levelStyle(stats.ramLevel)) {
-                append("RAM app ${stats.ramMb} MB/${stats.totalGbText}GB")
-            }
-        }
-    }
-    Text(
-        text,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
-        color = NormalColor,
-        fontFamily = FontFamily.Monospace,
-        fontSize = 11.sp,
-        maxLines = 1,
-        softWrap = false
-    )
-}
-
-@Composable
-private fun InstallPanel(state: RootfsState, onInstall: () -> Unit) {
-    Column(
-        Modifier.fillMaxSize().padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text("Debian trixie (arm64)", style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface)
-        Spacer(Modifier.height(12.dp))
-        when (state) {
-            is RootfsState.Downloading -> {
-                Text("Mengunduh... ${state.percent}%", color = MaterialTheme.colorScheme.onSurface)
-                Spacer(Modifier.height(8.dp))
-                LinearProgressIndicator(progress = { state.percent / 100f })
-            }
-            is RootfsState.Verifying ->
-                Text("Memverifikasi SHA-256...", color = MaterialTheme.colorScheme.onSurface)
-            is RootfsState.Extracting -> {
-                Text("Mengekstrak... ${state.percent}%", color = MaterialTheme.colorScheme.onSurface)
-                Spacer(Modifier.height(8.dp))
-                LinearProgressIndicator(progress = { state.percent / 100f })
-            }
-            is RootfsState.Failed -> {
-                Text("Gagal: ${state.message}", color = MaterialTheme.colorScheme.error)
-                Spacer(Modifier.height(8.dp))
-                Button(onClick = onInstall) { Text("Coba lagi") }
-            }
-            else -> {
-                Text("Belum terpasang. Unduhan sekitar 30 MB, ruang akhir sekitar 105 MB.",
-                    color = MaterialTheme.colorScheme.onSurface)
-                Spacer(Modifier.height(8.dp))
-                Button(onClick = onInstall) { Text("Pasang Debian") }
-            }
-        }
-    }
-}
 
 private fun createTerminalView(ctx: Context, mods: TerminalModifiers): TerminalView {
     val view = TerminalView(ctx, null)
