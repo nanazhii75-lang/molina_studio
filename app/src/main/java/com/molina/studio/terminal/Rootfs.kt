@@ -28,6 +28,8 @@ sealed interface RootfsState {
     data class Failed(val message: String) : RootfsState
 }
 
+private class InstallCancelled : RuntimeException()
+
 private class CountingStream(input: InputStream) : FilterInputStream(input) {
     @Volatile var count = 0L
     override fun read(): Int {
@@ -52,6 +54,8 @@ object RootfsManager {
     private val _state = MutableStateFlow<RootfsState>(RootfsState.Missing)
     val state: StateFlow<RootfsState> = _state.asStateFlow()
     @Volatile private var running = false
+    @Volatile private var cancelRequested = false
+    @Volatile private var activeConn: HttpURLConnection? = null
 
     fun rootfsDir(ctx: Context) = File(ctx.filesDir, "rootfs/debian")
     private fun marker(ctx: Context) = File(ctx.filesDir, "rootfs/debian.ready")
@@ -69,16 +73,41 @@ object RootfsManager {
         synchronized(this) {
             if (running) return
             running = true
+            cancelRequested = false
         }
         scope.launch {
             try {
                 doInstall(app)
                 _state.value = RootfsState.Ready
             } catch (e: Exception) {
-                _state.value = RootfsState.Failed(e.message ?: e.javaClass.simpleName)
+                if (cancelRequested) {
+                    // Dibatalkan pengguna: buang ekstrak setengah jadi, sisa unduhan dipertahankan.
+                    File(app.filesDir, "rootfs/debian.tmp").deleteRecursively()
+                    _state.value = RootfsState.Missing
+                } else {
+                    _state.value = RootfsState.Failed(e.message ?: e.javaClass.simpleName)
+                }
             } finally {
                 running = false
             }
+        }
+    }
+
+    /** Batalkan pemasangan yang berjalan (unduh, verifikasi, atau ekstrak). Sisa unduhan tetap disimpan. */
+    fun cancel() {
+        if (!running) return
+        cancelRequested = true
+        scope.launch { activeConn?.disconnect() } // di luar main thread; membangunkan read() yang menggantung
+    }
+
+    /** Byte unduhan yang tersimpan (arsip utuh atau sisa .part) untuk dilanjutkan; 0 bila tidak ada. */
+    fun partialBytes(ctx: Context): Long {
+        val archive = File(ctx.cacheDir, "debian-rootfs.tar.gz")
+        val part = File(ctx.cacheDir, "debian-rootfs.tar.gz.part")
+        return when {
+            archive.isFile -> archive.length()
+            part.isFile -> part.length()
+            else -> 0L
         }
     }
 
@@ -123,20 +152,34 @@ object RootfsManager {
     }
 
     private fun download(dest: File) {
+        var offset = if (dest.isFile) dest.length() else 0L
+        if (offset > ROOTFS_SIZE) { dest.delete(); offset = 0L }
+        if (offset == ROOTFS_SIZE) return // sisa unduhan sudah utuh; langsung diverifikasi
         val conn = (URL(ROOTFS_URL).openConnection() as HttpURLConnection).apply {
             connectTimeout = 20_000
             readTimeout = 30_000
             instanceFollowRedirects = true
+            // Tanpa kompresi transport: offset Range harus sama dengan byte berkas.
+            setRequestProperty("Accept-Encoding", "identity")
+            if (offset > 0) setRequestProperty("Range", "bytes=$offset-")
         }
+        activeConn = conn
         try {
-            if (conn.responseCode != 200) error("Unduhan gagal: HTTP ${conn.responseCode}")
-            val total = conn.contentLengthLong.takeIf { it > 0 } ?: ROOTFS_SIZE
+            // 206 = lanjut dari offset; 200 = server mengabaikan Range, ulang dari awal.
+            // Kebenaran akhir dijamin SHA-256: bila hasil gabungan salah, .part dibuang saat verifikasi.
+            val append = when (val code = conn.responseCode) {
+                206 -> true
+                200 -> false
+                else -> error("Unduhan gagal: HTTP $code")
+            }
+            val total = if (append) ROOTFS_SIZE else (conn.contentLengthLong.takeIf { it > 0 } ?: ROOTFS_SIZE)
             conn.inputStream.use { input ->
-                dest.outputStream().use { out ->
+                java.io.FileOutputStream(dest, append).use { out ->
                     val buf = ByteArray(64 * 1024)
-                    var done = 0L
+                    var done = if (append) offset else 0L
                     var last = -1
                     while (true) {
+                        if (cancelRequested) throw InstallCancelled()
                         val n = input.read(buf)
                         if (n < 0) break
                         out.write(buf, 0, n)
@@ -147,6 +190,7 @@ object RootfsManager {
                 }
             }
         } finally {
+            activeConn = null
             conn.disconnect()
         }
     }
@@ -156,6 +200,7 @@ object RootfsManager {
         f.inputStream().use { i ->
             val b = ByteArray(64 * 1024)
             while (true) {
+                if (cancelRequested) throw InstallCancelled()
                 val n = i.read(b)
                 if (n < 0) break
                 md.update(b, 0, n)
@@ -173,6 +218,7 @@ object RootfsManager {
         TarArchiveInputStream(GZIPInputStream(counting, 64 * 1024)).use { tar ->
             while (true) {
                 val e = (tar.nextEntry as? TarArchiveEntry) ?: break
+                if (cancelRequested) throw InstallCancelled()
                 val name = e.name.removePrefix("./").trimStart('/')
                 if (name.isEmpty()) continue
                 val target = rootPath.resolve(name).normalize()

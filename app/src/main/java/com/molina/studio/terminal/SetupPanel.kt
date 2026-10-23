@@ -59,7 +59,7 @@ private enum class SetupNet { Wifi, Cellular, Ethernet, Other, None }
  * Murni UI: hanya membaca [RootfsState]; pemasangan dipicu lewat [onInstall].
  */
 @Composable
-fun SetupPanel(state: RootfsState, onInstall: () -> Unit) {
+fun SetupPanel(state: RootfsState, onInstall: () -> Unit, onCancel: () -> Unit) {
     val gold = MaterialTheme.colorScheme.primary
     val onSurface = MaterialTheme.colorScheme.onSurface
     val installing = state is RootfsState.Downloading ||
@@ -90,7 +90,7 @@ fun SetupPanel(state: RootfsState, onInstall: () -> Unit) {
             when (state) {
                 is RootfsState.Failed -> FailedSection(state.message, onInstall)
                 is RootfsState.Downloading, is RootfsState.Verifying, is RootfsState.Extracting ->
-                    ProgressSection(state)
+                    ProgressSection(state, onCancel)
                 else -> IdleSection(onInstall)
             }
 
@@ -190,6 +190,7 @@ private fun IdleSection(onInstall: () -> Unit) {
         }
     }
     val free = remember { freeBytes(ctx) }
+    val partial = remember { RootfsManager.partialBytes(ctx) }
     val enoughDisk = free < 0 || free >= SETUP_REQUIRED_FREE_MB * 1024L * 1024L
     val freeText = if (free < 0) "tidak diketahui" else "tersedia ${formatBytes(free)}"
     val (netText, netColor) = when (net) {
@@ -203,6 +204,10 @@ private fun IdleSection(onInstall: () -> Unit) {
     SetupCard {
         InfoRow("Unduhan", "~30 MB")
         SetupDivider()
+        if (partial > 0) {
+            InfoRow("Tersimpan", formatBytes(partial), SetupGood)
+            SetupDivider()
+        }
         InfoRow("Ruang disk", "~105 MB \u00B7 $freeText", if (enoughDisk) SetupGood else SetupBad)
         SetupDivider()
         InfoRow("Jaringan", netText, netColor)
@@ -216,7 +221,7 @@ private fun IdleSection(onInstall: () -> Unit) {
     }
     Spacer(Modifier.height(14.dp))
     val canInstall = net != SetupNet.None && enoughDisk
-    InstallButton("Pasang Debian", canInstall, onInstall)
+    InstallButton(if (partial > 0) "Lanjutkan" else "Pasang Debian", canInstall, onInstall)
     if (!canInstall) {
         Spacer(Modifier.height(6.dp))
         Text(
@@ -228,7 +233,8 @@ private fun IdleSection(onInstall: () -> Unit) {
 }
 
 @Composable
-private fun ProgressSection(state: RootfsState) {
+private fun ProgressSection(state: RootfsState, onCancel: () -> Unit) {
+    var cancelling by remember { mutableStateOf(false) }
     val gold = MaterialTheme.colorScheme.primary
     val onSurface = MaterialTheme.colorScheme.onSurface
     val labels = listOf("Unduh", "Verifikasi", "Ekstrak")
@@ -278,6 +284,10 @@ private fun ProgressSection(state: RootfsState) {
     Spacer(Modifier.height(8.dp))
     Text("Biarkan aplikasi tetap terbuka sampai selesai.", color = SetupMuted,
         fontSize = 10.sp, textAlign = TextAlign.Center)
+    Spacer(Modifier.height(2.dp))
+    TextButton(onClick = { cancelling = true; onCancel() }, enabled = !cancelling) {
+        Text(if (cancelling) "Membatalkan..." else "Batal", color = SetupMuted, fontSize = 12.sp)
+    }
 }
 
 @Composable

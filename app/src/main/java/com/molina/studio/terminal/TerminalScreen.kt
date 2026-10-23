@@ -96,7 +96,11 @@ private fun TerminalContent(modifier: Modifier, onOpenSettings: () -> Unit) {
         StatusChips()
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
             if (rootfsState !is RootfsState.Ready) {
-                SetupPanel(rootfsState) { RootfsManager.install(context) }
+                SetupPanel(
+                    rootfsState,
+                    onInstall = { RootfsManager.install(context) },
+                    onCancel = { RootfsManager.cancel() }
+                )
             } else {
                 val fontSp = TerminalPrefs.fontSp
                 val density = LocalDensity.current
