@@ -48,18 +48,25 @@ internal object PlaybackLog {
 
     /** MPV_EVENT_END_FILE. Panggil SEBELUM psc.eof(). */
     fun onEnd(positionMs: Long, durationMs: Long) {
+        // Tanpa START_FILE yang cocok (END_FILE ganda/sisa), jangan mencatat apa pun.
+        if (startedAt == 0L) return
         val elapsed = (SystemClock.elapsedRealtime() - startedAt) / 1000
-        if (!loaded) {
+        val wasLoaded = loaded
+        val shownTarget = target
+        // Reset dulu agar END_FILE berikutnya tidak tercatat dua kali.
+        startedAt = 0L
+        loaded = false
+        if (!wasLoaded) {
             MpvLog.w(
                 TAG,
                 "Berakhir sebelum dimuat (kemungkinan gagal dibuka): " +
-                    "$target setelah ${elapsed}s"
+                    "$shownTarget setelah ${elapsed}s"
             )
             return
         }
         MpvLog.i(
             TAG,
-            "Selesai: $target | posisi ${clock(positionMs)} dari ${clock(durationMs)}"
+            "Selesai: $shownTarget | posisi ${clock(positionMs)} dari ${clock(durationMs)}"
         )
     }
 
