@@ -103,6 +103,17 @@ internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(cont
         MPVLib.setOptionString("tls-verify", "yes")
         MPVLib.setOptionString("tls-ca-file", "${this.context.filesDir.path}/cacert.pem")
         MPVLib.setOptionString("input-default-bindings", "yes")
+        // Jaringan: timeout 20 dtk dan UA Molina
+        val appVersion = try {
+            context.packageManager
+                .getPackageInfo(context.packageName, 0)
+                .versionName
+        } catch (e: Exception) {
+            null
+        } ?: "0"
+        MPVLib.setOptionString("network-timeout", "20")
+        MPVLib.setOptionString(
+            "user-agent", "MolinaCinema/$appVersion")
         // Limit demuxer cache since the defaults are too high for mobile devices
         val cacheMegs = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) 64 else 32
         MPVLib.setOptionString("demuxer-max-bytes", "${cacheMegs * 1024 * 1024}")

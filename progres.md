@@ -88,3 +88,4 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - 2026-10-23: Rencana: URL/video, keamanan, optimasi disepakati; menunggu hasil recon Manifest/mpv sebelum patch.
 - 2026-10-23: hardening intent MPVActivity (exported): extra 'filepath' divalidasi (skema allowlist, tolak path data privat), skema 'lavf' dihapus dari resolveUri. Dukungan URL/video sudah ada (intent http/https/rtmp/rtsp, share, dialog Buka URL). Menunggu CI.
 - 2026-10-23: normalisasi input URL di dialog Buka URL (trim, skema huruf kecil, www. -> https://) dan 'lavf' dihapus dari Utils.PROTOCOLS agar konsisten dengan MPVActivity.resolveUri. yt-dlp dicatat sebagai cadangan fitur 'play universal'. Menunggu CI.
+- 2026-10-23: network-timeout mpv 20 dtk dan user-agent MolinaCinema/<versi> di MPVView. Jika ada server menolak (HTTP 403), hapus opsi user-agent. Menunggu CI.
