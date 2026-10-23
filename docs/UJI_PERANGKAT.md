@@ -32,3 +32,18 @@ Centang `[x]` bila lulus. Catat build (nomor Run CI) di atas hasil uji.
 - [ ] Settings > Log: event muncul, filter & hapus jalan, baris identik digabung
 - [ ] Bar status: net/CPU/RAM bergerak; berhenti saat app di background
 - [ ] Rotasi layar & 10 menit pemakaian: tanpa crash/ANR (cek juga saat startup)
+## G. Cinema / mpv (Fase 5)
+- [ ] Cinema Home: putar file lokal via File (SAF) dan via Tautan (http/https/rtsp/rtmp); URL YouTube ditolak (menunggu 5d)
+- [ ] Gestur: geser horizontal = maju/mundur, geser vertikal kiri = kecerahan, kanan = volume, tap kiri/tengah/kanan sesuai setelan
+- [ ] Setelan mpv (Settings > mpv): ubah toggle (gpu_next, hardware_decoding, background_play, dst.), force-stop, buka ulang Cinema: nilai tersimpan
+- [ ] Reset (Cinema Home): mengembalikan setelan mpv ke bawaan
+- [ ] Keluar dari pemutar (back/tombol): tanpa crash, tidak ada proses mpv nyangkut (`ps` tidak ada sisa)
+- [ ] Keluar aplikasi (AppExit) saat video sedang main: hook mpv menutup dalam ~1,5 dtk, tidak ANR
+- [ ] Tab Log, filter Cinema: baris sumber mpv tampil dengan ikon putar ungu; Error merah, Warn kuning
+- [ ] Log Permintaan/Mulai/Dimuat/Selesai (PlaybackLog) muncul saat membuka & menutup video
+- [ ] Putar file rusak / URL salah: tercatat sebagai Error di Log dengan penyebab (galat terakhir mpv)
+- [ ] Pemutaran latar: kirim app ke background saat main; notifikasi persisten muncul; log mulai/berhenti di tab Log; mpv berhenti sendiri saat video selesai
+- [ ] Audio focus: terima panggilan telepon / putar audio app lain saat video main; log GAIN/LOSS muncul; uji toggle "Ignore Audio Focus" aktif vs nonaktif
+- [ ] Simpan posisi (bila diaktifkan): tutup & buka ulang video yang sama, posisi lanjut
+- [ ] Ingat kecerahan (bila diaktifkan): kecerahan tersimpan antar sesi pemutaran
+- [ ] Peringatan keluar daftar putar aktif: coba keluar dari playlist, muncul dialog konfirmasi
