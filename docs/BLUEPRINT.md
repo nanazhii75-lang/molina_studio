@@ -160,8 +160,8 @@ progress_template = """# MOLINA STUDIO - FINAL ARCHITECTURE PROGRESS
 - [ ] 5a spike libmpv arm64 di CI; 5b putar lokal + hook ExitHooks + MpvPrefs; 5c event ke AppLog; 5d NewPipe (`:engine:newpipe`).
 
 ### [Phase 6: Code Editor (Rosemoe)] - PLANNED (diprioritaskan sebelum Phase 5)
-- [x] Prasyarat modul: `:core:common` + `:core:storage`; `ExitHooks`; `LogLevel`/`LogEvent`/`LogSink`/`AppLog`.
-- [ ] Prasyarat tersisa: `AppVisibility`, `MolinaPaths` + folder, kelas Application untuk `AppLog.install`.
+- [x] Prasyarat modul: `:core:common` + `:core:storage`; `ExitHooks`; `LogLevel`/`LogEvent`/`LogSink`/`AppLog`; `AppVisibility`.
+- [ ] Prasyarat tersisa: `MolinaPaths` + folder, kelas Application untuk `AppLog.install`.
 - [ ] `:feature:code` (Rosemoe) + hook `ExitHooks.register("editor")` + perintah `molina open`.
 
 ### [Phase 7: Settings Hub] - PLANNED
@@ -197,8 +197,9 @@ Tujuan: kontrak antar modul eksplisit (tanpa dependensi melingkar) dan satu pint
 - `MolinaCommand` (`OpenFile(path)`, `Play(uri)`) + `CommandBus` untuk jembatan CLI `molina`.
 - `MolinaPaths` (antarmuka lokasi private/shared/subfolder) dan `ModuleId`.
 - `SettingsSection` (halaman pengaturan per fitur) dan `StreamResolver` (kontrak resolusi URL stream; implementasi di `:engine:newpipe`).
+- `AppVisibility` (status foreground: `StateFlow` read-only; `:app` menulis lewat `setForeground`).
 - Sudah dipindah: `ExitHooks` (dari `AppExit`), `LogLevel`/`LogEvent`/`LogSink`/`AppLog` (`LogBus` tetap di `:app` sebagai implementasi `LogSink`).
-- Kandidat berikutnya (singleton `object` di `:app`): `AppVisibility`. `MolinaLog` (terminal) bukan kandidat core: logger `android.util.Log` terikat `TerminalPrefs`, ikut `:feature:terminal`.
+- Sudah dipindah juga: `AppVisibility` (`StateFlow` read-only, ditulis hanya oleh `:app`). Tidak ada kandidat core lagi. `MolinaLog` (terminal) bukan kandidat core: logger `android.util.Log` terikat `TerminalPrefs`, ikut `:feature:terminal`.
 
 ---
 
@@ -243,8 +244,8 @@ Tujuan: kontrak antar modul eksplisit (tanpa dependensi melingkar) dan satu pint
 - [ ] 5a spike libmpv arm64 di CI; 5b putar lokal + hook ExitHooks + MpvPrefs; 5c event ke AppLog; 5d NewPipe (`:engine:newpipe`).
 
 ### [Phase 6: Code Editor (Rosemoe)] - PLANNED (diprioritaskan sebelum Phase 5)
-- [x] Prasyarat modul: `:core:common` + `:core:storage`; `ExitHooks`; `LogLevel`/`LogEvent`/`LogSink`/`AppLog`.
-- [ ] Prasyarat tersisa: `AppVisibility`, `MolinaPaths` + folder, kelas Application untuk `AppLog.install`.
+- [x] Prasyarat modul: `:core:common` + `:core:storage`; `ExitHooks`; `LogLevel`/`LogEvent`/`LogSink`/`AppLog`; `AppVisibility`.
+- [ ] Prasyarat tersisa: `MolinaPaths` + folder, kelas Application untuk `AppLog.install`.
 - [ ] `:feature:code` (Rosemoe) + hook `ExitHooks.register("editor")` + perintah `molina open`.
 
 ### [Phase 7: Settings Hub] - PLANNED

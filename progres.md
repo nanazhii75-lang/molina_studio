@@ -35,6 +35,7 @@
 - 2026-10-23: Fase 6 langkah 2: kontrak `ExitHook` + registri `ExitHooks` (register/unregister/runAll) dipindah ke `:core:common` (`com.molina.core.common`); `AppExit` kini memanggil `ExitHooks.runAll()` dan tidak lagi menyimpan hook. Perilaku keluar tidak berubah. Menunggu CI.
 - 2026-10-23: Run 23 hijau. Fase 6 langkah 2b: `LogLevel`, `LogEvent`, `LogSink` dan pintu `AppLog` (install/log) dipindah ke `:core:common`; `LogBus` kini mengimplementasi `LogSink` dan dipasang lewat `AppLog.install(LogBus)` di MainActivity. Producer lama di :app tetap memanggil `LogBus.log` (perilaku tidak berubah). `MolinaLog` di terminal itu logger android.util.Log terikat TerminalPrefs: tidak masuk core, ikut :feature:terminal. Menunggu CI.
 - 2026-10-23: Docs: Blueprint disinkron ulang: Fase 3 dan 4 COMPLETED (uji perangkat dilaporkan lulus pengguna; checklist docs/UJI_PERANGKAT.md belum dicentang item per item), blok Fase 5/6 mengikuti `ExitHooks`/`AppLog`, daftar kandidat core diperbarui (sisa: `AppVisibility`; `MolinaLog` ikut :feature:terminal).
+- 2026-10-23: Run 24 hijau. Fase 6 langkah 2c: `AppVisibility` dipindah ke `:core:common` (`StateFlow` read-only + `setForeground`, hanya MainActivity yang menulis); `:core:common` kini memakai `kotlinx-coroutines-core:1.9.0` (api). Prasyarat tersisa: `MolinaPaths` + folder, kelas Application. Menunggu CI.
 
 ## Roadmap Prioritas (disusun 2026-10-23)
 0. Gate: uji perangkat penuh (docs/UJI_PERANGKAT.md) sebelum fase baru. (Selesai 2026-10-23.)

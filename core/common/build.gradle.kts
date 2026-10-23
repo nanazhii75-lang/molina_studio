@@ -9,3 +9,7 @@ kotlin {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
 }
+
+dependencies {
+    api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
+}

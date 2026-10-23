@@ -4,6 +4,7 @@ import android.graphics.Rect
 import android.os.Bundle
 import android.view.ViewTreeObserver
 import com.molina.core.common.AppLog
+import com.molina.core.common.AppVisibility
 import com.molina.studio.log.LogBus
 import com.molina.studio.log.LogServer
 import androidx.activity.ComponentActivity
@@ -74,11 +75,11 @@ private val MolinaColors = darkColorScheme(
 class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
-        AppVisibility.foreground.value = true
+        AppVisibility.setForeground(true)
     }
 
     override fun onStop() {
-        AppVisibility.foreground.value = false
+        AppVisibility.setForeground(false)
         super.onStop()
     }
 
