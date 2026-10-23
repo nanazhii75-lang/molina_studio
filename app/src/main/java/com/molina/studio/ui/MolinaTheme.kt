@@ -14,6 +14,8 @@ object MolinaTheme {
     val Good = Color(0xFF69F0AE)
     val Warn = Color(0xFFFFD54F)
     val Bad = Color(0xFFFF8A80)
+    /** Aksen Molina Cinema (ikon putar, penanda baris log mpv). */
+    val Cinema = Color(0xFFB388FF)
     val Muted = Color(0xFF9AA0A6)
     val CardBg = Color(0xFF14161B)
     val CardLine = Color(0xFF2A2D35)

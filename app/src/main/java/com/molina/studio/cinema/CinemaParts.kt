@@ -17,7 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.molina.studio.ui.MolinaTheme
 
-internal val CinemaPurple = Color(0xFFB388FF)
+internal val CinemaPurple = MolinaTheme.Cinema
 
 @Composable
 internal fun CinemaLogo(message: String) {

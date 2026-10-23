@@ -25,11 +25,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.sp
 import com.molina.core.common.LogLevel
+import com.molina.studio.ui.MolinaTheme
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -43,6 +47,12 @@ private val FILTERS = listOf(
     "crash" to "Crash"
 )
 
+// Log pemutar (MpvLog memakai sumber "mpv") ditampilkan di filter Cinema.
+private val CINEMA_SOURCES = setOf("cinema", "mpv")
+
+private fun matchesFilter(source: String, filter: String): Boolean =
+    if (filter == "cinema") source in CINEMA_SOURCES else source == filter
+
 private val TIME_FMT: DateTimeFormatter =
     DateTimeFormatter.ofPattern("HH:mm:ss.SSS").withZone(ZoneId.systemDefault())
 
@@ -51,7 +61,7 @@ fun LogScreen(modifier: Modifier = Modifier) {
     val entries by LogBus.entries.collectAsState()
     var filter by rememberSaveable { mutableStateOf("") }
     val shown = remember(entries, filter) {
-        if (filter.isEmpty()) entries else entries.filter { it.source == filter }
+        if (filter.isEmpty()) entries else entries.filter { matchesFilter(it.source, filter) }
     }
     val listState = rememberLazyListState()
     val lastCount = shown.lastOrNull()?.count ?: 0
@@ -86,8 +96,7 @@ fun LogScreen(modifier: Modifier = Modifier) {
             ) {
                 items(shown, key = { it.id }) { e ->
                     Text(
-                        format(e),
-                        color = levelColor(e.level),
+                        rowText(e, levelColor(e.level)),
                         fontFamily = FontFamily.Monospace,
                         fontSize = 11.sp
                     )
@@ -116,10 +125,18 @@ private fun RowScope.LogButton(label: String, active: Boolean, onClick: () -> Un
 
 @Composable
 private fun levelColor(level: LogLevel): Color = when (level) {
-    LogLevel.Error -> MaterialTheme.colorScheme.error
-    LogLevel.Warn -> MaterialTheme.colorScheme.primary
+    LogLevel.Error -> MolinaTheme.Bad    // merah lembut: mis. "Galat mpv"
+    LogLevel.Warn -> MolinaTheme.Warn    // kuning: mis. "Berakhir sebelum dimuat"
     LogLevel.Info -> MaterialTheme.colorScheme.onSurface
     LogLevel.Debug -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+}
+
+/** Baris log; baris dari Cinema diberi ikon putar ungu merek di depannya. */
+private fun rowText(e: LogEntry, color: Color) = buildAnnotatedString {
+    if (e.source in CINEMA_SOURCES) {
+        withStyle(SpanStyle(color = MolinaTheme.Cinema)) { append("\u25B6 ") }
+    }
+    withStyle(SpanStyle(color = color)) { append(format(e)) }
 }
 
 private fun format(e: LogEntry): String {
