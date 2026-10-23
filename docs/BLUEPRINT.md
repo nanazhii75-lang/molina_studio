@@ -147,20 +147,22 @@ progress_template = """# MOLINA STUDIO - FINAL ARCHITECTURE PROGRESS
 - [x] Penyusun UI Navigation Shell 4 Tab dengan Jetpack Compose / Material 3.
 - Catatan: `com.termux` hanya namespace library vendored (terminal-emulator/view).
 
-### [Phase 3: Terminal (PRoot Debian)] - IN PROGRESS (menunggu uji perangkat)
+### [Phase 3: Terminal (PRoot Debian)] - COMPLETED (uji perangkat dilaporkan lulus pengguna, 2026-10-23)
 - [x] Emulator Termux v0.118.0 (vendored), Debian trixie arm64 via PRoot, TerminalService, AppExit.
 - [x] Multi-session maks 5, drawer sesi, extra keys, tema prompt, TerminalPrefs (DataStore + StateFlow).
 - [x] Tanda tangan APK tetap via GitHub Secrets (docs/SIGNING.md).
-- [ ] Uji perangkat penuh (docs/UJI_PERANGKAT.md).
+- [x] Uji perangkat penuh (docs/UJI_PERANGKAT.md), dilaporkan lulus pengguna 2026-10-23.
 
-### [Phase 4: Log & IPC] - IN PROGRESS (menunggu uji perangkat)
+### [Phase 4: Log & IPC] - COMPLETED (uji perangkat dilaporkan lulus pengguna, 2026-10-23)
 - [x] LogGrouping + IPC LocalSocket abstract `@molina.log`, tampilan di Settings.
 
 ### [Phase 5: MPV Player / Molina Cinema] - PLANNED
-- [ ] 5a spike libmpv arm64 di CI; 5b putar lokal + hook AppExit + MpvPrefs; 5c event ke LogBus; 5d NewPipe.
+- [ ] 5a spike libmpv arm64 di CI; 5b putar lokal + hook ExitHooks + MpvPrefs; 5c event ke AppLog; 5d NewPipe (`:engine:newpipe`).
 
 ### [Phase 6: Code Editor (Rosemoe)] - PLANNED (diprioritaskan sebelum Phase 5)
-- [ ] Editor native + perintah `molina open`.
+- [x] Prasyarat modul: `:core:common` + `:core:storage`; `ExitHooks`; `LogLevel`/`LogEvent`/`LogSink`/`AppLog`.
+- [ ] Prasyarat tersisa: `AppVisibility`, `MolinaPaths` + folder, kelas Application untuk `AppLog.install`.
+- [ ] `:feature:code` (Rosemoe) + hook `ExitHooks.register("editor")` + perintah `molina open`.
 
 ### [Phase 7: Settings Hub] - PLANNED
 - [ ] Tombol Keluar (AppExit), hot-reload mpv.conf.
@@ -190,12 +192,13 @@ Tujuan: kontrak antar modul eksplisit (tanpa dependensi melingkar) dan satu pint
 - Terminal paling akhir karena berisiko: TerminalService di manifest, assets `molina/bashrc`, jniLibs + `useLegacyPackaging` tetap di `:app`.
 
 ### 5.2 Isi `core:common`
-- `ExitHook` + registri hook keluar (pengganti pemanggilan langsung `AppExit`).
-- `LogEvent` + `LogSink` (pengganti ketergantungan langsung ke `LogBus`).
+- `ExitHook` + registri `ExitHooks` (pengganti pemanggilan langsung `AppExit`).
+- `LogLevel`, `LogEvent`, `LogSink` + pintu `AppLog` (pengganti ketergantungan langsung ke `LogBus`).
 - `MolinaCommand` (`OpenFile(path)`, `Play(uri)`) + `CommandBus` untuk jembatan CLI `molina`.
 - `MolinaPaths` (antarmuka lokasi private/shared/subfolder) dan `ModuleId`.
 - `SettingsSection` (halaman pengaturan per fitur) dan `StreamResolver` (kontrak resolusi URL stream; implementasi di `:engine:newpipe`).
-- Kandidat pertama dipindah (kini singleton `object` di `:app`): `AppExit`, `LogBus`, `AppVisibility`, `MolinaLog`.
+- Sudah dipindah: `ExitHooks` (dari `AppExit`), `LogLevel`/`LogEvent`/`LogSink`/`AppLog` (`LogBus` tetap di `:app` sebagai implementasi `LogSink`).
+- Kandidat berikutnya (singleton `object` di `:app`): `AppVisibility`. `MolinaLog` (terminal) bukan kandidat core: logger `android.util.Log` terikat `TerminalPrefs`, ikut `:feature:terminal`.
 
 ---
 
@@ -227,20 +230,22 @@ Tujuan: kontrak antar modul eksplisit (tanpa dependensi melingkar) dan satu pint
 - [x] Penyusun UI Navigation Shell 4 Tab dengan Jetpack Compose / Material 3.
 - Catatan: `com.termux` hanya namespace library vendored (terminal-emulator/view).
 
-### [Phase 3: Terminal (PRoot Debian)] - IN PROGRESS (menunggu uji perangkat)
+### [Phase 3: Terminal (PRoot Debian)] - COMPLETED (uji perangkat dilaporkan lulus pengguna, 2026-10-23)
 - [x] Emulator Termux v0.118.0 (vendored), Debian trixie arm64 via PRoot, TerminalService, AppExit.
 - [x] Multi-session maks 5, drawer sesi, extra keys, tema prompt, TerminalPrefs (DataStore + StateFlow).
 - [x] Tanda tangan APK tetap via GitHub Secrets (docs/SIGNING.md).
-- [ ] Uji perangkat penuh (docs/UJI_PERANGKAT.md).
+- [x] Uji perangkat penuh (docs/UJI_PERANGKAT.md), dilaporkan lulus pengguna 2026-10-23.
 
-### [Phase 4: Log & IPC] - IN PROGRESS (menunggu uji perangkat)
+### [Phase 4: Log & IPC] - COMPLETED (uji perangkat dilaporkan lulus pengguna, 2026-10-23)
 - [x] LogGrouping + IPC LocalSocket abstract `@molina.log`, tampilan di Settings.
 
 ### [Phase 5: MPV Player / Molina Cinema] - PLANNED
-- [ ] 5a spike libmpv arm64 di CI; 5b putar lokal + hook AppExit + MpvPrefs; 5c event ke LogBus; 5d NewPipe.
+- [ ] 5a spike libmpv arm64 di CI; 5b putar lokal + hook ExitHooks + MpvPrefs; 5c event ke AppLog; 5d NewPipe (`:engine:newpipe`).
 
 ### [Phase 6: Code Editor (Rosemoe)] - PLANNED (diprioritaskan sebelum Phase 5)
-- [ ] Editor native + perintah `molina open`.
+- [x] Prasyarat modul: `:core:common` + `:core:storage`; `ExitHooks`; `LogLevel`/`LogEvent`/`LogSink`/`AppLog`.
+- [ ] Prasyarat tersisa: `AppVisibility`, `MolinaPaths` + folder, kelas Application untuk `AppLog.install`.
+- [ ] `:feature:code` (Rosemoe) + hook `ExitHooks.register("editor")` + perintah `molina open`.
 
 ### [Phase 7: Settings Hub] - PLANNED
 - [ ] Tombol Keluar (AppExit), hot-reload mpv.conf.
