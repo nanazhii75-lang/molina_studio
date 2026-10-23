@@ -51,6 +51,7 @@
 - 2026-10-23: Keputusan pemilik: Fase 5 (mpv) sebelum Fase 6 (Code Editor); lisensi kode Molina GPL-3.0-or-later (FFmpeg GPL + NewPipeExtractor GPLv3).
 - 2026-10-23: Fase 5a (spike native): workflow manual `native-mpv.yml` + `scripts/native_mpv.sh` membangun libmpv/libplayer arm64 dari mpv-android commit 62013d4; mpv/dav1d/libass/libplacebo/FFmpeg dipin ke commit di `native/pins.env` (upstream mengambang di HEAD); unduhan lewat `scripts/native_wget.sh` (HTTPS saja, NDK http->https, SHA-256 dicatat dan diverifikasi bila `native/pins.sha256` terisi); nama kelas JNI diubah ke `com.molina.cinema.MPVLib` saat build. Menunggu run CI + tinjau hash.
 - 2026-10-23: Catatan gerbang telemetri: baris komentar penuh dan folder `scripts/` tidak dipindai; saat `buildscripts/*.sh` upstream masuk repo (5b-0) perlu daftar host build-time terpisah. Belum diubah.
+- 2026-10-23: Fase 5a run #1 hijau: artefak molina-native-arm64 (libmpv, libplayer, libc++_shared, libav*/libsw*; cek NEEDED lulus). SHA-256: libmpv.so e90028a3..., libplayer.so a857127e..., tgz bec3da1f.... 10 hash unduhan dikunci di `native/pins.sha256` (mode verifikasi aktif mulai run #2; unduhan baru wajib dipin sadar). Catatan: arsip gitlab (fontconfig, libxml2) dan gas-preprocessor (master) bisa berubah di sisi server; bila run gagal 'SHA-256 TIDAK COCOK', tinjau dulu sebelum memperbarui pin. Belum dilakukan: uji System.loadLibrary di perangkat (dikerjakan di 5b-0).
 
 ## Roadmap Prioritas (disusun 2026-10-23)
 0. Gate: uji perangkat penuh (docs/UJI_PERANGKAT.md) sebelum fase baru. (Selesai 2026-10-23.)
