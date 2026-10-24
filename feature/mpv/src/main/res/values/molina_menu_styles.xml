@@ -29,4 +29,13 @@
         <item name="android:paddingBottom">6dp</item>
         <item name="android:maxLines">1</item>
     </style>
+
+    <!-- Menu atas: hanya ikon (tekan lama = tooltip) -->
+    <style name="Widget.Molina.MenuIcon" parent="Widget.AppCompat.ImageButton">
+        <item name="android:background">?attr/selectableItemBackgroundBorderless</item>
+        <item name="android:tint">@color/player_dialog_text</item>
+        <item name="android:scaleType">center</item>
+        <item name="android:minWidth">56dp</item>
+        <item name="android:minHeight">56dp</item>
+    </style>
 </resources>
