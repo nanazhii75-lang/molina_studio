@@ -158,3 +158,6 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] app YtdlpRunner (satu proses sekali jalan, batas waktu/ukuran, pohon proses dimatikan), YtdlpStreamResolver (sakelar default mati), YtdlpInstaller (unduh + verifikasi SHA-256 ke rootfs), dipasang di MolinaApp lewat CompositeStreamResolver
 - [x] app ikon Refresh di Pengaturan (mpv, Terminal, Code disiapkan) + halaman Mesin cadangan (yt-dlp)
 - [ ] menunggu CI hijau, lalu uji perangkat
+
+## 2026-10-24 - Perbaikan gerbang telemetri
+- [x] CI: telemetry_gate mengizinkan github.com (unduh yt-dlp opt-in) - menunggu CI hijau
