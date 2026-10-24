@@ -53,7 +53,7 @@ object SettingsNav {
 }
 
 private enum class Page {
-    Home, Terminal, Debugging, TerminalIO, TerminalView, Tampilan, CrashReports, About, Log, Stream
+    Home, Terminal, Debugging, TerminalIO, TerminalView, Tampilan, CrashReports, About, Log, Stream, Network
 }
 
 private fun parentOf(p: Page): Page? = when (p) {
@@ -74,6 +74,7 @@ private fun titleOf(p: Page): String = when (p) {
     Page.About -> "About"
     Page.Log -> "Log"
     Page.Stream -> "Mesin cadangan (yt-dlp)"
+    Page.Network -> "Keamanan jaringan"
 }
 
 /**
@@ -119,6 +120,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                 SettingsItem("Terminal", "Molina Terminal: debugging, I/O, tampilan") { page = Page.Terminal }
                 SettingsItem("Log", "Log aktivitas mpv, Terminal, dan sistem") { page = Page.Log }
                 SettingsItem("Mesin cadangan (yt-dlp)", "TikTok, Facebook, dll. lewat Debian (default mati)") { page = Page.Stream }
+                SettingsItem("Keamanan jaringan", "Kebijakan URL dan jaringan lokal (LAN)") { page = Page.Network }
                 SettingsItem("About", "Versi dan lisensi") { page = Page.About }
             }
             Page.Terminal -> {
@@ -138,6 +140,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             Page.About -> AboutPage()
             Page.Log -> {}
             Page.Stream -> StreamEnginePage()
+            Page.Network -> NetworkSecurityPage()
         }
     }
 }

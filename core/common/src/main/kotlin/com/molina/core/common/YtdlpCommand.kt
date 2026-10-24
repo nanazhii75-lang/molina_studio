@@ -20,7 +20,7 @@ object YtdlpCommand {
 
     /** Argumen yt-dlp untuk satu video. `--` mencegah URL dibaca sebagai opsi. */
     fun resolveArgs(url: String): List<String> = listOf(
-        "-J", "--no-playlist", "--no-warnings", "--no-progress", "--no-cache-dir",
+        "--ignore-config", "-J", "--no-playlist", "--no-warnings", "--no-progress", "--no-cache-dir",
         "--socket-timeout", "20", "--retries", "1",
         "-f", YtdlpParse.FORMAT,
         "--", url,
@@ -30,7 +30,7 @@ object YtdlpCommand {
     fun searchArgs(query: String, limit: Int): List<String> {
         val n = limit.coerceIn(1, 50)
         return listOf(
-            "--flat-playlist", "-j", "--no-warnings", "--no-progress", "--no-cache-dir",
+            "--ignore-config", "--flat-playlist", "-j", "--no-warnings", "--no-progress", "--no-cache-dir",
             "--socket-timeout", "20", "--retries", "1",
             "--", "ytsearch$n:${query.trim()}",
         )

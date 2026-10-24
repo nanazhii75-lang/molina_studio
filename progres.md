@@ -175,3 +175,7 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] uji perangkat: link TikTok, cek log 'unduh ke cache selesai'
 - [x] verifikasi Terminal: `yt-dlp -J --no-simulate` memuat requested_downloads[].filepath (853074 byte, TikTok) - asumsi parser terbukti
 - [x] feat(system): Refresh Pemutar ikut mengosongkan cache unduhan yt-dlp (/tmp/molina-stream) setelah mpv berhenti - menunggu CI hijau
+
+## 2026-10-24 - Keamanan jaringan
+- [x] feat(security): UrlPolicy (daftar putih skema, blok loopback/metadata/SSRF, LAN opt-in), GuardedStreamResolver, gerbang di MpvLoad, mpv load-unsafe-playlists=no, yt-dlp --ignore-config, NetworkSecurityConfig, halaman Keamanan jaringan - menunggu CI hijau
+- [ ] uji perangkat: putar https biasa, TikTok, URL http://127.0.0.1 (harus ditolak), LAN dengan sakelar mati/hidup

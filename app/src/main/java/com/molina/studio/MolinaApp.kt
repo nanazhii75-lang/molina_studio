@@ -4,6 +4,7 @@ import android.app.Application
 import com.molina.cinema.MpvLifecycle
 import com.molina.core.common.AppLog
 import com.molina.core.common.CompositeStreamResolver
+import com.molina.core.common.GuardedStreamResolver
 import com.molina.core.common.StreamResolvers
 import com.molina.engine.newpipe.NewPipeStreamResolver
 import com.molina.studio.log.LogBus
@@ -23,9 +24,11 @@ class MolinaApp : Application() {
         SystemRefresh.install(this)
         // NewPipe lebih dulu; yt-dlp (default mati, lihat Pengaturan) hanya untuk URL yang tak dikenalinya.
         StreamResolvers.install {
-            CompositeStreamResolver(
-                primary = NewPipeStreamResolver(),
-                fallback = YtdlpStreamResolver(this, { StreamEnginePrefs.ytdlpEnabled.value }),
+            GuardedStreamResolver(
+                CompositeStreamResolver(
+                    primary = NewPipeStreamResolver(),
+                    fallback = YtdlpStreamResolver(this, { StreamEnginePrefs.ytdlpEnabled.value }),
+                )
             )
         }
     }

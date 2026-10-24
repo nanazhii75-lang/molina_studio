@@ -32,7 +32,7 @@ object YtdlpFetch {
      * Pesan kemajuan yt-dlp ke stderr karena `-J` membuat mode senyap; `--` mencegah URL dibaca sebagai opsi.
      */
     fun fetchArgs(url: String): List<String> = listOf(
-        "-J", "--no-simulate", "--no-playlist", "--no-warnings", "--no-progress", "--no-cache-dir",
+        "--ignore-config", "-J", "--no-simulate", "--no-playlist", "--no-warnings", "--no-progress", "--no-cache-dir",
         "--no-mtime", "--socket-timeout", "20", "--retries", "2",
         "-f", YtdlpParse.FORMAT,
         "-o", "$CACHE_GUEST_DIR/%(id)s.%(ext)s",

@@ -2,6 +2,7 @@ package com.molina.studio.stream
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.molina.core.common.NetworkPolicy
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,16 +17,30 @@ import kotlinx.coroutines.flow.asStateFlow
 object StreamEnginePrefs {
     private const val FILE = "molina_stream"
     private const val KEY_YTDLP = "ytdlp_enabled"
+    private const val KEY_LAN = "allow_lan"
 
     private var sp: SharedPreferences? = null
     private val _ytdlpEnabled = MutableStateFlow(false)
 
     val ytdlpEnabled: StateFlow<Boolean> = _ytdlpEnabled.asStateFlow()
 
+    private val _allowLan = MutableStateFlow(false)
+
+    /** Izinkan alamat jaringan lokal (default mati). Nilainya juga dicerminkan ke [NetworkPolicy]. */
+    val allowLan: StateFlow<Boolean> = _allowLan.asStateFlow()
+
     fun init(ctx: Context) {
         val p = ctx.applicationContext.getSharedPreferences(FILE, Context.MODE_PRIVATE)
         sp = p
         _ytdlpEnabled.value = p.getBoolean(KEY_YTDLP, false)
+        _allowLan.value = p.getBoolean(KEY_LAN, false)
+        NetworkPolicy.allowLan = _allowLan.value
+    }
+
+    fun enableLan(v: Boolean) {
+        _allowLan.value = v
+        NetworkPolicy.allowLan = v
+        sp?.edit()?.putBoolean(KEY_LAN, v)?.apply()
     }
 
     fun enableYtdlp(v: Boolean) {

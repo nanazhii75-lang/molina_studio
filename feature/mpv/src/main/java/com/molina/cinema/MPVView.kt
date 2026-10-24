@@ -89,6 +89,8 @@ internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(cont
         MPVLib.setOptionString("network-timeout", "20")
         // Studio me-resolve URL sendiri; tanpa ini mpv memanggil youtube-dl yang tidak ada.
         MPVLib.setOptionString("ytdl", "no")
+        // Daftar putar dari jaringan tidak boleh menyisipkan berkas lokal atau protokol lain.
+        MPVLib.setOptionString("load-unsafe-playlists", "no")
         MPVLib.setOptionString(
             "user-agent", "MolinaCinema/$appVersion")
         // Limit demuxer cache since the defaults are too high for mobile devices

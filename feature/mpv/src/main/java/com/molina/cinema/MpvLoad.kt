@@ -1,6 +1,9 @@
 package com.molina.cinema
 
+import com.molina.core.common.AppLog
+import com.molina.core.common.LogLevel
 import com.molina.core.common.StreamHeaders
+import com.molina.core.common.UrlPolicy
 
 /**
  * Menyusun argumen perintah mpv `loadfile` dengan opsi per-entri (header HTTP).
@@ -16,6 +19,12 @@ object MpvLoad {
     const val APPEND = "append"
 
     fun loadfileArgs(url: String, flag: String, headers: Map<String, String>, title: String? = null): Array<String> {
+        // Jaringan dianggap tidak tepercaya: URL yang melanggar kebijakan tidak pernah sampai ke mpv.
+        val verdict = UrlPolicy.check(url)
+        if (verdict is UrlPolicy.Verdict.Blocked) {
+            AppLog.log("net", LogLevel.Warn, "policy", "ditolak: ${verdict.reason.name}")
+            return arrayOf("show-text", "Diblokir: ${verdict.reason.message}", "5000")
+        }
         val opts = listOfNotNull(headerOption(headers), titleOption(title))
         if (opts.isEmpty()) return arrayOf("loadfile", url, flag)
         return arrayOf("loadfile", url, flag, "-1", opts.joinToString(","))
