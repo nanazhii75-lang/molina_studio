@@ -8,6 +8,11 @@ object StreamResolvers {
     @Volatile private var factory: (() -> StreamResolver)? = null
     @Volatile private var instance: StreamResolver? = null
 
+    /** Lepas instance resolver; dibuat ulang malas saat [get] dipanggil lagi. Agar objek engine bisa di-GC. */
+    fun release() {
+        synchronized(this) { instance = null }
+    }
+
     fun install(factory: () -> StreamResolver) {
         synchronized(this) {
             this.factory = factory
