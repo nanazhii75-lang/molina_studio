@@ -31,7 +31,7 @@ Untuk Claude lain yang melanjutkan. Baca seluruhnya sebelum menyentuh kode.
 ## 3. Arsitektur singkat
 - Modul: `:app` (perakit) > `:feature:mpv` (sudah modul), `:core:common` (Kotlin murni), `:core:storage`. Terminal, emulator, dan view masih di `:app` atau vendored (`terminal-emulator`, `terminal-view`, dari Termux v0.118.0). Rencana lengkap: BLUEPRINT bagian 5.
 - Kontrak di `core:common` yang SUDAH ada: `ExitHooks`, `LogLevel/LogEvent/LogSink/AppLog`, `AppVisibility`, `MolinaPaths` + `MolinaDir`, `LogRedact`.
-- Kontrak yang BELUM ada di kode: `StreamResolver`, `SettingsSection`, `MolinaCommand/CommandBus`.
+- Kontrak yang BELUM ada di kode: `SettingsSection`, `MolinaCommand/CommandBus`.
 - Penyimpanan: workspace `/sdcard/molina-studio`, data bersama `/sdcard/.molina-data`, rahasia di `filesDir`/Keystore.
 - Native mpv: dibangun `native-mpv.yml` dari mpv-android `62013d4`; versi dipin di `native/pins.env`, hash unduhan di `native/pins.sha256`, rilis yang dipakai APK di `native/prebuilt.env`. Mengubah pin harus SADAR dan dicatat di `progres.md`.
 - Gerbang telemetri `scripts/telemetry_gate.py` memeriksa host, izin, dan dependensi. Mengubah allowlist harus SADAR dan dicatat. Folder `scripts/` dan baris komentar tidak dipindai.
@@ -48,7 +48,7 @@ Untuk Claude lain yang melanjutkan. Baca seluruhnya sebelum menyentuh kode.
   - 5c event ke AppLog (PlaybackLog, AudioLog, service latar): kode selesai.
   - Tambahan UI: pill kontrol, dialog Settings dan playlist gelap, item aktif biru, Audio only, ikon cari/URL di player, folder jadi playlist (sakelar `play_folder`), prev/next notifikasi, badge LIVE.
   - Perbaikan `memory://` (commit `862e434`).
-  - 5d NewPipe (`:engine:newpipe`): BELUM. Spike `spike-newpipe.yml` belum dijalankan.
+  - 5d NewPipe (`:engine:newpipe`): BELUM dimulai. Spike HIJAU (v0.26.5; hash di `scripts/newpipe/pins.sha256`).
   - BLUEPRINT 5a/5b/5c belum dicentang menunggu uji perangkat seksi G.
 - Fase 6 (Code Editor Rosemoe) dan Fase 7 (Settings Hub): rencana. Urutan keputusan pemilik: mpv sebelum Code Editor.
 - Status CI commit terbaru TIDAK terverifikasi dari sesi penyusunan ini (batas API GitHub). Cek tab Actions.
@@ -58,7 +58,7 @@ Selesai: `memory://` ditolak (diperbaiki `862e434`), `HANDOFF.md` ditulis ulang.
 Masih terbuka:
 1. SELESAI (kode, menunggu CI + uji perangkat): kontrak `StreamResolver` + `ResolvedStream`/`StreamSearchItem`/`StreamOutcome`/`StreamError` dan penyaring `StreamHeaders` di `core:common`. Implementasi nanti di `:engine:newpipe`.
 2. SELESAI (kode, menunggu CI + uji perangkat): header stream ke mpv lewat opsi `loadfile` per-entri (`MpvLoad`), jadi tiap entri playlist membawa headernya sendiri; extra intent `headers` didukung. Keputusan: `tls_verify` dari intent TIDAK didukung. Catatan asli: `MPVActivity.kt` punya `TODO: headers` di parsing extra intent. Opsi mpv `http-header-fields`. Tautan YouTube sering butuh User-Agent/Referer; `MPVView` memasang user-agent `MolinaCinema/<versi>` (risiko HTTP 403, hapus bila ada server menolak). Catatan desain: M3U `memory://` tidak bisa membawa header per entri; gunakan `loadfile` per-entri. URL stream bisa kedaluwarsa: untuk antrean panjang simpan `pageUrl` dan panggil `resolve` sesaat sebelum diputar (lazy), bukan me-resolve semua di depan (bagian 5d).
-3. Jalankan spike NewPipe manual dari Actions (`spike-newpipe.yml`); koordinat JitPack: `com.github.TeamNewPipe:NewPipeExtractor:<versi>`. Minimal SDK 26 sudah sama dengan syarat, tanpa desugaring. Host YouTube perlu masuk gerbang telemetri/allowlist secara sadar.
+3. SELESAI: spike NewPipe hijau, hash dipin di `scripts/newpipe/pins.sha256`; koordinat JitPack: `com.github.TeamNewPipe:NewPipeExtractor:<versi>`. Minimal SDK 26 sudah sama dengan syarat, tanpa desugaring. Host YouTube perlu masuk gerbang telemetri/allowlist secara sadar.
 4. Perbarui seksi G `docs/UJI_PERANGKAT.md` (tambahkan: playlist gelap/biru, folder playlist + sakelar, prev/next notifikasi, Audio only, ikon cari/URL, pill kontrol, multi-pilih `memory://`), jalankan uji, lalu centang BLUEPRINT 5a-5c.
 5. Verifikasi CI hijau dan uji APK terbaru di perangkat.
 
