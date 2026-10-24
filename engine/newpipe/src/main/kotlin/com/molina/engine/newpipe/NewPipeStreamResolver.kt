@@ -38,14 +38,14 @@ import java.io.IOException
  * Galat yang diharapkan dikembalikan sebagai [StreamOutcome.Failure]; pembatalan diteruskan.
  */
 class NewPipeStreamResolver(
-    localization: Localization = Localization.DEFAULT,
-    country: ContentCountry = ContentCountry.DEFAULT,
+    languageCode: String = "en",
+    countryCode: String = "GB",
 ) : StreamResolver {
 
     override val id: String = "newpipe"
 
     init {
-        ensureInit(localization, country)
+        ensureInit(Localization(languageCode, countryCode), ContentCountry(countryCode))
     }
 
     override fun canResolve(url: String): Boolean = serviceFor(url) != null
