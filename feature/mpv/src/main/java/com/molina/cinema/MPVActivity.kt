@@ -2263,7 +2263,10 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
             "time-pos" -> updatePlaybackPos(psc.positionSec)
             "playlist-pos", "playlist-count" -> {
                 updatePlaylistButtons()
-                if (property == "playlist-count") updatePiPParams()
+                if (property == "playlist-count") {
+                    MpvLog.i(TAG, "playlist-count=$value")
+                    updatePiPParams()
+                }
             }
         }
     }

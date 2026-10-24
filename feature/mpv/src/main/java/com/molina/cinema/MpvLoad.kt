@@ -89,8 +89,14 @@ object MpvLoad {
     fun remoteProtocolOptions(url: String): List<String> {
         val scheme = UrlPolicy.scheme(url)
         if (scheme != "http" && scheme != "https") return emptyList()
+        if (isPlaylistUrl(url)) return emptyList()
         val v = fixed(lavfList("protocol_whitelist", REMOTE_PROTOCOLS))
         return listOf("stream-lavf-o=$v", "demuxer-lavf-o=$v")
+    }
+
+    fun isPlaylistUrl(url: String): Boolean {
+        val x = url.substringBefore("#").substringBefore("?").lowercase()
+        return x.endsWith(".m3u") || x.endsWith(".m3u8") || x.endsWith(".pls")
     }
 
     private fun fixed(s: String): String = "%${s.toByteArray(Charsets.UTF_8).size}%$s"
