@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Molina: menu atas hanya ikon. ID tombol tetap (MPVActivity.openTopMenu). Tekan lama = tooltip. -->
+<!-- Molina: menu atas ringkas dengan ikon. ID tombol sama seperti sebelumnya (MPVActivity.openTopMenu). -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:paddingHorizontal="8dp"
-    android:paddingVertical="8dp">
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp">
 
     <!-- Since this dialog does not scroll, don't add too many buttons here! -->
 
@@ -14,47 +14,33 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal">
 
-        <ImageButton
-            android:id="@+id/audioBtn"
-            style="@style/Widget.Molina.MenuIcon"
-            android:layout_width="0dp"
-            android:layout_height="56dp"
-            android:layout_weight="1"
-            android:contentDescription="@string/open_external_audio"
-            android:tooltipText="@string/open_external_audio"
-            android:src="@drawable/ic_menu_audio_file" />
+<Button
+        android:id="@+id/audioBtn"
+        style="@style/Widget.Molina.MenuItem"
+        android:layout_width="0dp"
+        android:layout_weight="1"
+        android:layout_height="wrap_content"
+        android:drawableStart="@drawable/ic_menu_audio_file"
+        android:text="@string/open_external_audio" />
 
-        <ImageButton
-            android:id="@+id/subBtn"
-            style="@style/Widget.Molina.MenuIcon"
-            android:layout_width="0dp"
-            android:layout_height="56dp"
-            android:layout_weight="1"
-            android:contentDescription="@string/open_external_sub"
-            android:tooltipText="@string/open_external_sub"
-            android:src="@drawable/ic_menu_subtitles" />
-
-        <ImageButton
-            android:id="@+id/playlistBtn"
-            style="@style/Widget.Molina.MenuIcon"
-            android:layout_width="0dp"
-            android:layout_height="56dp"
-            android:layout_weight="1"
-            android:contentDescription="@string/action_playlist"
-            android:tooltipText="@string/action_playlist"
-            android:src="@drawable/ic_menu_playlist" />
-
-        <ImageButton
-            android:id="@+id/advancedBtn"
-            style="@style/Widget.Molina.MenuIcon"
-            android:layout_width="0dp"
-            android:layout_height="56dp"
-            android:layout_weight="1"
-            android:contentDescription="@string/advanced_menu"
-            android:tooltipText="@string/advanced_menu"
-            android:src="@drawable/ic_menu_tune" />
+<Button
+        android:id="@+id/subBtn"
+        style="@style/Widget.Molina.MenuItem"
+        android:layout_width="0dp"
+        android:layout_weight="1"
+        android:layout_height="wrap_content"
+        android:drawableStart="@drawable/ic_menu_subtitles"
+        android:text="@string/open_external_sub" />
 
     </LinearLayout>
+
+    <Button
+        android:id="@+id/playlistBtn"
+        style="@style/Widget.Molina.MenuItem"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:drawableStart="@drawable/ic_menu_playlist"
+        android:text="@string/action_playlist" />
 
     <LinearLayout
         android:id="@+id/rowMode"
@@ -62,35 +48,23 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal">
 
-        <ImageButton
-            android:id="@+id/backgroundBtn"
-            style="@style/Widget.Molina.MenuIcon"
-            android:layout_width="0dp"
-            android:layout_height="56dp"
-            android:layout_weight="1"
-            android:contentDescription="@string/resume_bg_playback"
-            android:tooltipText="@string/resume_bg_playback"
-            android:src="@drawable/ic_menu_headset" />
+<Button
+        android:id="@+id/backgroundBtn"
+        style="@style/Widget.Molina.MenuItem"
+        android:layout_width="0dp"
+        android:layout_weight="1"
+        android:layout_height="wrap_content"
+        android:drawableStart="@drawable/ic_menu_headset"
+        android:text="@string/resume_bg_playback" />
 
-        <ImageButton
-            android:id="@+id/audioOnlyBtn"
-            style="@style/Widget.Molina.MenuIcon"
-            android:layout_width="0dp"
-            android:layout_height="56dp"
-            android:layout_weight="1"
-            android:contentDescription="@string/audio_only_on"
-            android:tooltipText="@string/audio_only_on"
-            android:src="@drawable/ic_menu_audiotrack" />
-
-        <ImageButton
-            android:id="@+id/orientationBtn"
-            style="@style/Widget.Molina.MenuIcon"
-            android:layout_width="0dp"
-            android:layout_height="56dp"
-            android:layout_weight="1"
-            android:contentDescription="@string/switch_orientation"
-            android:tooltipText="@string/switch_orientation"
-            android:src="@drawable/ic_menu_rotate" />
+<Button
+        android:id="@+id/audioOnlyBtn"
+        style="@style/Widget.Molina.MenuItem"
+        android:layout_width="0dp"
+        android:layout_weight="1"
+        android:layout_height="wrap_content"
+        android:drawableStart="@drawable/ic_menu_audiotrack"
+        android:text="@string/audio_only_on" />
 
     </LinearLayout>
 
@@ -100,35 +74,63 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal">
 
-        <ImageButton
-            android:id="@+id/chapterPrev"
-            style="@style/Widget.Molina.MenuIcon"
-            android:layout_width="0dp"
-            android:layout_height="56dp"
-            android:layout_weight="1"
-            android:contentDescription="@string/dialog_prev"
-            android:tooltipText="@string/dialog_prev"
-            android:src="@drawable/ic_menu_prev" />
-
-        <ImageButton
+        <Button
             android:id="@+id/chapterBtn"
-            style="@style/Widget.Molina.MenuIcon"
+            style="@style/Widget.Molina.MenuItem"
             android:layout_width="0dp"
-            android:layout_height="56dp"
-            android:layout_weight="1"
-            android:contentDescription="@string/chapter_button"
-            android:tooltipText="@string/chapter_button"
-            android:src="@drawable/ic_menu_chapters" />
+            android:layout_height="wrap_content"
+            android:layout_weight="3"
+            android:drawableStart="@drawable/ic_menu_chapters"
+            android:text="@string/chapter_button" />
 
-        <ImageButton
-            android:id="@+id/chapterNext"
-            style="@style/Widget.Molina.MenuIcon"
+        <Button
+            android:id="@+id/chapterPrev"
+            style="@style/Widget.Molina.MenuItem"
             android:layout_width="0dp"
-            android:layout_height="56dp"
+            android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:contentDescription="@string/dialog_next"
-            android:tooltipText="@string/dialog_next"
-            android:src="@drawable/ic_menu_next" />
+            android:gravity="center"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:background="@drawable/alpha_lighten"
+            android:text="@string/dialog_prev" />
+
+        <Button
+            android:id="@+id/chapterNext"
+            style="@style/Widget.Molina.MenuItem"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:background="@drawable/alpha_lighten"
+            android:text="@string/dialog_next" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+<Button
+        android:id="@+id/advancedBtn"
+        style="@style/Widget.Molina.MenuItem"
+        android:layout_width="0dp"
+        android:layout_weight="1"
+        android:layout_height="wrap_content"
+        android:drawableStart="@drawable/ic_menu_tune"
+        android:text="@string/advanced_menu" />
+
+<Button
+        android:id="@+id/orientationBtn"
+        style="@style/Widget.Molina.MenuItem"
+        android:layout_width="0dp"
+        android:layout_weight="1"
+        android:layout_height="wrap_content"
+        android:drawableStart="@drawable/ic_menu_rotate"
+        android:text="@string/switch_orientation" />
 
     </LinearLayout>
 
