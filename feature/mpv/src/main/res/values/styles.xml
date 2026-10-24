@@ -41,6 +41,7 @@
         <item name="android:textColorPrimary">@color/player_dialog_text</item>
         <item name="android:textColorSecondary">@color/player_dialog_text_secondary</item>
         <item name="colorAccent">@color/player_dialog_text</item>
+        <item name="dialogCornerRadius">28dp</item>
     </style>
 
     <!-- theme for preferences -->
