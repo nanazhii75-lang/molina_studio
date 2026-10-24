@@ -1005,7 +1005,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         }
 
         val restore = pauseForDialog()
-        with (AlertDialog.Builder(this)) {
+        with (AlertDialog.Builder(this, R.style.AppTheme_PlayerDialog)) {
             setMessage(getString(R.string.exit_warning_playlist, notYetPlayed))
             setPositiveButton(R.string.dialog_yes) { dialog, _ ->
                 dialog.dismiss()
@@ -1296,7 +1296,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         val selectedIndex = tracks.indexOfFirst { it.mpvId == selectedMpvId }
         val restore = pauseForDialog()
 
-        with (AlertDialog.Builder(this)) {
+        with (AlertDialog.Builder(this, R.style.AppTheme_PlayerDialog)) {
             setSingleChoiceItems(tracks.map { it.name }.toTypedArray(), selectedIndex) { dialog, item ->
                 val trackId = tracks[item].mpvId
 
@@ -1324,7 +1324,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
             trackSwitchNotification { TrackData(it.mpvId, SubTrackDialog.TRACK_TYPE) }
         }
 
-        dialog = with (AlertDialog.Builder(this)) {
+        dialog = with (AlertDialog.Builder(this, R.style.AppTheme_PlayerDialog)) {
             val inflater = LayoutInflater.from(context)
             setView(impl.buildView(inflater))
             setOnDismissListener { restore() }
@@ -1413,7 +1413,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
             items.add(0, Pair("HW+ (mediacodec)", "mediacodec"))
         val hwdecActive = player.hwdecActive
         val selectedIndex = items.indexOfFirst { it.second == hwdecActive }
-        with (AlertDialog.Builder(this)) {
+        with (AlertDialog.Builder(this, R.style.AppTheme_PlayerDialog)) {
             setSingleChoiceItems(items.map { it.first }.toTypedArray(), selectedIndex ) { dialog, idx ->
                 MPVLib.setPropertyString("hwdec", items[idx].second)
                 dialog.dismiss()
@@ -1547,7 +1547,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
                             getString(R.string.ui_chapter_fallback, it.index+1, timecode)
                     }.toTypedArray()
                     val selectedIndex = MPVLib.getPropertyInt("chapter") ?: 0
-                    with (AlertDialog.Builder(this)) {
+                    with (AlertDialog.Builder(this, R.style.AppTheme_PlayerDialog)) {
                         setSingleChoiceItems(chapterArray, selectedIndex) { dialog, item ->
                             MPVLib.setPropertyInt("chapter", chapters[item].index)
                             dialog.dismiss()
@@ -1589,7 +1589,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         picker: PickerDialog, @StringRes titleRes: Int, property: String,
         restoreState: StateRestoreCallback
     ) {
-        val dialog = with(AlertDialog.Builder(this)) {
+        val dialog = with(AlertDialog.Builder(this, R.style.AppTheme_PlayerDialog)) {
             setTitle(titleRes)
             val inflater = LayoutInflater.from(context)
             setView(picker.buildView(inflater))
@@ -1625,7 +1625,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
                 },
                 MenuItem(R.id.aspectBtn) {
                     val ratios = resources.getStringArray(R.array.aspect_ratios)
-                    with (AlertDialog.Builder(this)) {
+                    with (AlertDialog.Builder(this, R.style.AppTheme_PlayerDialog)) {
                         setItems(R.array.aspect_ratio_names) { dialog, item ->
                             if (ratios[item] == "panscan") {
                                 MPVLib.setPropertyString("video-aspect-override", "-1")
@@ -1669,7 +1669,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         })
         buttons.add(MenuItem(R.id.subDelayBtn) {
             val picker = SubDelayDialog(-600.0, 600.0)
-            val dialog = with(AlertDialog.Builder(this)) {
+            val dialog = with(AlertDialog.Builder(this, R.style.AppTheme_PlayerDialog)) {
                 setTitle(R.string.sub_delay)
                 val inflater = LayoutInflater.from(context)
                 setView(picker.buildView(inflater))
