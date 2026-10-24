@@ -164,3 +164,8 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 
 ## 2026-10-24 - Refactor StreamEnginePrefs
 - [x] refactor(app): StreamEnginePrefs jadi satu StateFlow<Boolean> (hapus isYtdlpEnabled, cermin Compose) - menunggu CI hijau
+
+## 2026-10-24 - CI hijau
+- [x] CI hijau: Refresh Sistem, yt-dlp resolver/pemasang, StreamEnginePrefs StateFlow (uji perangkat belum)
+- [ ] uji perangkat 1-5 (ikon Refresh, Mesin cadangan, TikTok/Facebook)
+- [ ] 5d-3: video terpisah (stream video + audio)
