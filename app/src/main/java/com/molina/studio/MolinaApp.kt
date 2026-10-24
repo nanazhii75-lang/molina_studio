@@ -25,7 +25,7 @@ class MolinaApp : Application() {
         StreamResolvers.install {
             CompositeStreamResolver(
                 primary = NewPipeStreamResolver(),
-                fallback = YtdlpStreamResolver(this, StreamEnginePrefs::isYtdlpEnabled),
+                fallback = YtdlpStreamResolver(this, { StreamEnginePrefs.ytdlpEnabled.value }),
             )
         }
     }

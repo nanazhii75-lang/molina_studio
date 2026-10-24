@@ -161,3 +161,6 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 
 ## 2026-10-24 - Perbaikan gerbang telemetri
 - [x] CI: telemetry_gate mengizinkan github.com (unduh yt-dlp opt-in) - menunggu CI hijau
+
+## 2026-10-24 - Refactor StreamEnginePrefs
+- [x] refactor(app): StreamEnginePrefs jadi satu StateFlow<Boolean> (hapus isYtdlpEnabled, cermin Compose) - menunggu CI hijau

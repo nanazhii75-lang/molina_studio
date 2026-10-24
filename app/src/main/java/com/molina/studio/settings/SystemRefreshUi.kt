@@ -190,6 +190,7 @@ private fun RefreshRow(title: String, subtitle: String, enabled: Boolean, onClic
 internal fun StreamEnginePage() {
     val ctx = LocalContext.current
     val install by YtdlpInstaller.state.collectAsState()
+    val ytdlpOn by StreamEnginePrefs.ytdlpEnabled.collectAsState()
     var status by remember { mutableStateOf<YtdlpStatus?>(null) }
     LaunchedEffect(install) {
         status = withContext(Dispatchers.IO) { YtdlpLocator.status(ctx) }
@@ -199,9 +200,9 @@ internal fun StreamEnginePage() {
         "Aktifkan yt-dlp (cadangan)",
         "Untuk TikTok, Facebook, dan situs lain yang tidak dikenali NewPipe. Satu resolusi memulai " +
             "proot + python (RAM bisa naik ratusan MB sesaat), jadi default mati.",
-        StreamEnginePrefs.ytdlpEnabled
+        ytdlpOn
     ) {
-        StreamEnginePrefs.setYtdlpEnabled(it)
+        StreamEnginePrefs.enableYtdlp(it)
         StreamResolvers.release()
     }
 
