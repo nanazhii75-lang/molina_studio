@@ -86,11 +86,22 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
                 is Prepared.Ready -> {
                     p.title?.let { streamTitles[p.url] = it }
                     MPVLib.command(MpvLoad.loadfileArgs(p.url, flag, headers + p.headers, p.title))
+                    appendResolved(p, headers)
                     onLoaded()
                 }
                 is Prepared.Failed -> showToast(getString(StreamLoader.messageRes(p.error)), true)
             }
         }
+    }
+
+    /** Sisa playlist hasil resolver (mis. daftar channel yt-dlp) ditambahkan setelah item pertama. */
+    private fun appendResolved(p: Prepared.Ready, headers: Map<String, String>) {
+        if (p.entries.size < 2) return
+        for (e in p.entries.drop(1)) {
+            e.title?.let { streamTitles[e.url] = it }
+            MPVLib.command(MpvLoad.loadfileArgs(e.url, MpvLoad.APPEND, headers + p.headers, e.title))
+        }
+        MpvLog.i(TAG, "Playlist resolver: ${p.entries.size} entri")
     }
 
     // Playlist hasil pencarian (jendela bergulir): hanya diakses dari main thread.
@@ -457,7 +468,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
                 when (p) {
                     is Prepared.Ready -> {
                         p.title?.let { streamTitles[p.url] = it }
-                        player.playWhenReady(p.url, startHeaders + p.headers, p.title)
+                        player.playWhenReady(p.url, startHeaders + p.headers, p.title) { appendResolved(p, startHeaders) }
                     }
                     is Prepared.Failed -> {
                         showToast(getString(StreamLoader.messageRes(p.error)), true)

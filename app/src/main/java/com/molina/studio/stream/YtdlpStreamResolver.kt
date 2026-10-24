@@ -39,8 +39,15 @@ internal class YtdlpStreamResolver(
         if (YtdlpFetch.needsLocalFetch(pageUrl)) return fetchLocal(bin, pageUrl, where)
         val o = YtdlpRunner.run(ctx, bin, YtdlpCommand.resolveArgs(pageUrl), RESOLVE_TIMEOUT_MS)
         if (o.timedOut) return fail(StreamError.NETWORK, "lewat waktu ${RESOLVE_TIMEOUT_MS / 1000}s ($where)")
-        if (o.exit != 0) return failure(o.exit, o.stderr, where)
-        val parsed = YtdlpParse.single(o.stdout)
+        if (o.exit != 0) {
+            // yt-dlp tidak mengenal situsnya: anggap stream langsung (seperti ytdl_hook mpv), mpv yang membuka.
+            if (o.exit != 126 && o.exit != 127 && YtdlpCommand.classify(o.stderr) == StreamError.UNSUPPORTED) {
+                AppLog.log("stream", LogLevel.Info, TAG, "yt-dlp tidak mengenal URL; diteruskan ke mpv ($where)")
+                return StreamOutcome.Success(ResolvedStream(url = pageUrl))
+            }
+            return failure(o.exit, o.stderr, where)
+        }
+        val parsed = YtdlpParse.resolve(o.stdout)
             ?: return fail(StreamError.PARSE, "keluaran tidak terbaca ($where)")
         return StreamOutcome.Success(parsed)
     }

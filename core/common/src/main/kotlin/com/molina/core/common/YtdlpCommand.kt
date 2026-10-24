@@ -18,9 +18,19 @@ object YtdlpCommand {
 
     const val HINT_INSTALL = "yt-dlp belum terpasang. Buka Pengaturan > Mesin cadangan (yt-dlp) > Pasang."
 
+    /**
+     * URL video di dalam playlist (list= / playlist=) tetap satu video. Selain itu halaman daftar
+     * (mis. channel IPTV) boleh jadi playlist, tanpa mengekstrak tiap entri (flat).
+     */
+    fun playlistFlag(url: String): String {
+        val q = url.substringAfter('?', "").substringBefore('#').lowercase()
+        val inList = q.split('&').any { it.startsWith("list=") || it.startsWith("playlist=") }
+        return if (inList) "--no-playlist" else "--flat-playlist"
+    }
+
     /** Argumen yt-dlp untuk satu video. `--` mencegah URL dibaca sebagai opsi. */
     fun resolveArgs(url: String): List<String> = listOf(
-        "--ignore-config", "-J", "--no-playlist", "--no-warnings", "--no-progress", "--no-cache-dir",
+        "--ignore-config", "-J", playlistFlag(url), "--no-warnings", "--no-progress", "--no-cache-dir",
         "--socket-timeout", "20", "--retries", "1",
         "-f", YtdlpParse.FORMAT,
         "--", url,

@@ -21,12 +21,22 @@ class GuardedStreamResolver(
         }
         val r = inner.resolve(pageUrl)
         if (r is StreamOutcome.Success) {
+            if (r.value.entries.isNotEmpty()) return guardEntries(r.value)
             val post = UrlPolicy.check(r.value.url, allowLan())
             if (post is UrlPolicy.Verdict.Blocked) {
                 return StreamOutcome.Failure(StreamError.UNSUPPORTED, "URL hasil resolusi ditolak: ${post.reason.message}")
             }
         }
         return r
+    }
+
+    /** Playlist: entri yang ditolak [UrlPolicy] dibuang; yang pertama lolos jadi item utama. */
+    private fun guardEntries(v: ResolvedStream): StreamOutcome<ResolvedStream> {
+        val ok = v.entries.filter { UrlPolicy.check(it.url, allowLan()) is UrlPolicy.Verdict.Allowed }
+        if (ok.isEmpty()) {
+            return StreamOutcome.Failure(StreamError.UNSUPPORTED, "semua entri ditolak kebijakan URL")
+        }
+        return StreamOutcome.Success(v.copy(url = ok[0].url, title = ok[0].title, entries = ok))
     }
 
     override suspend fun search(query: String, limit: Int): StreamOutcome<List<StreamSearchItem>> =

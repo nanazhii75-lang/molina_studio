@@ -17,7 +17,12 @@ data class ResolvedStream(
     val durationSec: Long? = null,
     /** Epoch ms perkiraan URL kedaluwarsa; null = tidak diketahui. */
     val expiresAtMs: Long? = null,
+    /** Playlist hasil resolver (mis. daftar channel yt-dlp); kosong = satu stream. Entri pertama = [url]. */
+    val entries: List<StreamEntry> = emptyList(),
 )
+
+/** Satu item playlist hasil resolver. */
+data class StreamEntry(val url: String, val title: String? = null)
 
 /** Satu hasil pencarian judul. [pageUrl] diteruskan ke [StreamResolver.resolve] saat dipilih. */
 data class StreamSearchItem(

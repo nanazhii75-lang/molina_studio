@@ -1,5 +1,6 @@
 package com.molina.cinema
 
+import com.molina.core.common.StreamEntry
 import com.molina.core.common.StreamError
 import com.molina.core.common.StreamHeaders
 import com.molina.core.common.StreamOutcome
@@ -9,7 +10,12 @@ import kotlinx.coroutines.withContext
 
 /** Hasil persiapan satu masukan web sebelum diberikan ke mpv. */
 internal sealed interface Prepared {
-    data class Ready(val url: String, val headers: Map<String, String>, val title: String?) : Prepared
+    data class Ready(
+        val url: String,
+        val headers: Map<String, String>,
+        val title: String?,
+        val entries: List<StreamEntry> = emptyList(),
+    ) : Prepared
     data class Failed(val error: StreamError) : Prepared
 }
 
@@ -34,7 +40,7 @@ internal object StreamLoader {
                 withContext(Dispatchers.Main) { onResolving() }
                 when (val r = resolver.resolve(raw)) {
                     is StreamOutcome.Success ->
-                        Prepared.Ready(r.value.url, StreamHeaders.sanitize(r.value.headers), r.value.title)
+                        Prepared.Ready(r.value.url, StreamHeaders.sanitize(r.value.headers), r.value.title, r.value.entries)
                     is StreamOutcome.Failure -> Prepared.Failed(r.error)
                 }
             }

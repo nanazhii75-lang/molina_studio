@@ -11,6 +11,31 @@ object YtdlpParse {
 
     private val EXPIRE = Regex("[?&]expire=(\\d{9,11})|/expire/(\\d{9,11})")
 
+    const val MAX_ENTRIES = 200
+
+    /** Satu video ([single]) atau playlist `-J --flat-playlist` (daftar channel, dll.). */
+    fun resolve(json: String): ResolvedStream? {
+        val o = MiniJson.parseObject(json) ?: return null
+        if (o["_type"] != "playlist") return single(json)
+        val seen = HashSet<String>()
+        val list = ArrayList<StreamEntry>()
+        for (e in (o["entries"] as? List<*>).orEmpty()) {
+            val m = e as? Map<*, *> ?: continue
+            val url = ((m["url"] as? String) ?: (m["webpage_url"] as? String))?.trim() ?: continue
+            if (!url.startsWith("https://") && !url.startsWith("http://")) continue
+            if (!seen.add(url)) continue
+            list.add(StreamEntry(url, (m["title"] as? String)?.trim()?.ifEmpty { null }))
+            if (list.size >= MAX_ENTRIES) break
+        }
+        if (list.isEmpty()) return null
+        return ResolvedStream(
+            url = list[0].url,
+            headers = StreamHeaders.sanitize(strings(o["http_headers"])),
+            title = list[0].title,
+            entries = list,
+        )
+    }
+
     fun single(json: String): ResolvedStream? {
         val o = MiniJson.parseObject(json) ?: return null
         if (o["_type"] == "playlist") return null

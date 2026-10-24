@@ -73,13 +73,19 @@ abstract class BaseMPVView(context: Context, attrs: AttributeSet) : SurfaceView(
      * Untuk hasil resolusi asinkron (thread utama): muat sekarang bila surface sudah terpasang,
      * jika belum antre seperti [playFile] agar surfaceCreated() yang memuatnya.
      */
-    fun playWhenReady(filePath: String, headers: Map<String, String> = emptyMap(), title: String? = null) {
+    fun playWhenReady(filePath: String, headers: Map<String, String> = emptyMap(), title: String? = null,
+                      after: (() -> Unit)? = null) {
         if (surfaceAttached) {
             MPVLib.command(MpvLoad.loadfileArgs(filePath, MpvLoad.REPLACE, headers, title))
+            after?.invoke()
         } else {
             playFile(filePath, headers, title)
+            pendingAfter = after
         }
     }
+
+    // Dijalankan sesaat setelah item pertama dimuat (mis. menambah sisa playlist hasil resolver).
+    private var pendingAfter: (() -> Unit)? = null
 
     private var folderFiles: List<String>? = null
     private var folderIndex = 0
@@ -134,6 +140,8 @@ abstract class BaseMPVView(context: Context, attrs: AttributeSet) : SurfaceView(
             filePath = null
             fileHeaders = emptyMap()
             fileTitle = null
+            pendingAfter?.invoke()
+            pendingAfter = null
         } else {
             // We disable video output when the context disappears, enable it back
             MPVLib.setPropertyString("vo", voInUse)
