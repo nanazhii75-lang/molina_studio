@@ -96,7 +96,16 @@ fun CinemaHome(modifier: Modifier = Modifier) {
             CinemaAction("\uD83D\uDCC4", "File") { pick.launch(arrayOf("video/*", "audio/*")) }
             CinemaAction("\uD83D\uDD17", "Tautan") { dialog = true }
             CinemaAction("\u2699", "Setelan") { if (!CinemaActions.openSettings(ctx)) info = "Setelan gagal dibuka." }
-            CinemaAction("\u21BB", "Reset") { info = ""; input = "" }
+            CinemaAction("\u21BB", "Reset") {
+                input = ""
+                results = emptyList()
+                showResults = false
+                info = "Menyegarkan\u2026"
+                scope.launch {
+                    val r = withContext(Dispatchers.Default) { MemoryRefresh.run(!live) }
+                    info = MemoryRefresh.describe(r)
+                }
+            }
         }
     }
     if (dialog) AlertDialog(

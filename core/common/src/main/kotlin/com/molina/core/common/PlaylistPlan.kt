@@ -69,6 +69,19 @@ class RollingQueue(private val plan: PlaylistPlan) {
         return pending() != null
     }
 
+    /** True bila sedang menyiapkan item (prefetch otomatis atau lompat dari dialog). */
+    val busy: Boolean get() = inFlight
+
+    /** Indeks item yang belum disiapkan, berurutan seperti daftar hasil. */
+    fun pendingIndices(): List<Int> = (cursor until plan.urls.size).toList()
+
+    /** Seperti [begin] tetapi tanpa syarat posisi mpv: dipakai saat pengguna melompat ke item belum siap. */
+    fun beginForced(): Int? {
+        if (inFlight || pending() == null) return null
+        inFlight = true
+        return cursor
+    }
+
     fun url(i: Int): String = plan.urls[i]
     fun title(i: Int): String = plan.titleAt(i)
 }

@@ -10,16 +10,26 @@ import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 
-internal class PlaylistDialog(private val player: MPVView) {
+/** Baris item hasil pencarian yang belum di-resolve (belum ada di antrean mpv). */
+internal data class PendingRow(val planIndex: Int, val title: String)
+
+internal class PlaylistDialog(
+    private val player: MPVView,
+    /** URL stream -> judul; menggantikan nama berkas mentah. */
+    private val titles: () -> Map<String, String> = { emptyMap() },
+    private val pending: () -> List<PendingRow> = { emptyList() },
+) {
     private lateinit var binding: DialogPlaylistBinding
 
     private var playlist = listOf<MPVView.PlaylistItem>()
+    private var pendingRows = listOf<PendingRow>()
     private var selectedIndex = -1
 
     interface Listeners {
         fun pickFile()
         fun openUrl()
         fun onItemPicked(item: MPVView.PlaylistItem)
+        fun onPendingPicked(planIndex: Int) {}
     }
 
     var listeners: Listeners? = null
@@ -51,6 +61,7 @@ internal class PlaylistDialog(private val player: MPVView) {
     fun refresh() {
         selectedIndex = MPVLib.getPropertyInt("playlist-pos") ?: -1
         playlist = player.loadPlaylist()
+        pendingRows = pending()
         MpvLog.v(TAG, "PlaylistDialog: loaded ${playlist.size} items")
         binding.list.adapter!!.notifyDataSetChanged()
         binding.list.scrollToPosition(playlist.indexOfFirst { it.index == selectedIndex })
@@ -84,8 +95,12 @@ internal class PlaylistDialog(private val player: MPVView) {
     }
 
     private fun clickItem(position: Int) {
-        val item = playlist[position]
-        listeners?.onItemPicked(item)
+        if (position < 0) return
+        if (position < playlist.size) {
+            listeners?.onItemPicked(playlist[position])
+        } else {
+            pendingRows.getOrNull(position - playlist.size)?.let { listeners?.onPendingPicked(it.planIndex) }
+        }
     }
 
     class CustomAdapter(private val parent: PlaylistDialog) :
@@ -102,8 +117,9 @@ internal class PlaylistDialog(private val player: MPVView) {
                 }
             }
 
-            fun bind(item: MPVView.PlaylistItem, selected: Boolean) {
-                textView.text = item.title ?: Utils.fileBasename(item.filename)
+            fun bind(text: String, selected: Boolean, dim: Boolean = false) {
+                textView.text = text
+                textView.alpha = if (dim) 0.5f else 1f
                 textView.setTypeface(null, if (selected) Typeface.BOLD else Typeface.NORMAL)
                 textView.setTextColor(ContextCompat.getColor(textView.context,
                     if (selected) R.color.player_playlist_active else R.color.player_dialog_text))
@@ -117,11 +133,16 @@ internal class PlaylistDialog(private val player: MPVView) {
         }
 
         override fun onBindViewHolder(viewHolder: ViewHolder, position: Int) {
-            val item = parent.playlist[position]
-            viewHolder.bind(item, item.index == parent.selectedIndex)
+            if (position < parent.playlist.size) {
+                val item = parent.playlist[position]
+                val text = parent.titles()[item.filename] ?: item.title ?: Utils.fileBasename(item.filename)
+                viewHolder.bind(text, item.index == parent.selectedIndex)
+            } else {
+                viewHolder.bind(parent.pendingRows[position - parent.playlist.size].title, false, true)
+            }
         }
 
-        override fun getItemCount() = parent.playlist.size
+        override fun getItemCount() = parent.playlist.size + parent.pendingRows.size
     }
 
     companion object {

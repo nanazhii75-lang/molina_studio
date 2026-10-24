@@ -83,6 +83,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
             val p = StreamLoader.prepare(raw) { showToast(getString(R.string.stream_resolving), true) }
             when (p) {
                 is Prepared.Ready -> {
+                    p.title?.let { streamTitles[p.url] = it }
                     MPVLib.command(MpvLoad.loadfileArgs(p.url, flag, headers + p.headers, p.title))
                     onLoaded()
                 }
@@ -110,6 +111,57 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         return RollingQueue(plan)
     }
 
+    // URL stream -> judul, untuk dialog playlist (nama berkas stream tidak informatif).
+    private val streamTitles = HashMap<String, String>()
+
+    /** Baris "belum siap" di dialog playlist: sisa hasil pencarian yang belum di-resolve. */
+    private fun pendingRows(): List<PendingRow> {
+        val q = rolling ?: return emptyList()
+        return q.pendingIndices().map { i ->
+            PendingRow(i, q.title(i).ifEmpty { "#${i + 1}" })
+        }
+    }
+
+    /**
+     * Pengguna mengetuk item yang belum siap: semua item dari kursor sampai item itu di-resolve
+     * berurutan dan ditambahkan (urutan terjaga), lalu pemutaran melompat ke yang terakhir berhasil.
+     */
+    private fun jumpToPending(planIndex: Int) {
+        val q = rolling ?: return
+        if (q.busy) {
+            showToast(getString(R.string.stream_resolving), true)
+            return
+        }
+        streamScope.launch {
+            var target = -1
+            var first = true
+            while (true) {
+                val i = q.beginForced() ?: break
+                val p = StreamLoader.prepare(q.url(i)) {
+                    if (first) showToast(getString(R.string.stream_resolving), true)
+                }
+                first = false
+                if (rolling !== q) return@launch
+                when (p) {
+                    is Prepared.Ready -> {
+                        val title = p.title ?: q.title(i).ifEmpty { null }
+                        title?.let { streamTitles[p.url] = it }
+                        MPVLib.command(MpvLoad.loadfileArgs(p.url, MpvLoad.APPEND, p.headers, title))
+                        q.succeeded()
+                        PlaybackLog.onPrefetched(i + 1, title.orEmpty())
+                        target = (MPVLib.getPropertyInt("playlist-count") ?: 0) - 1
+                    }
+                    is Prepared.Failed -> {
+                        PlaybackLog.onPrefetchSkipped(i + 1, p.error.name)
+                        q.failed()
+                    }
+                }
+                if (i >= planIndex) break
+            }
+            if (target >= 0) MPVLib.setPropertyInt("playlist-pos", target)
+        }
+    }
+
     /**
      * Dipanggil saat sebuah item selesai dimuat. Bila antrean mpv tak punya item sesudah posisi
      * kini, item berikutnya di-resolve di latar lalu ditambahkan. Yang gagal dilewati.
@@ -126,6 +178,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
                 when (p) {
                     is Prepared.Ready -> {
                         val title = p.title ?: q.title(i).ifEmpty { null }
+                        title?.let { streamTitles[p.url] = it }
                         MPVLib.command(MpvLoad.loadfileArgs(p.url, MpvLoad.APPEND, p.headers, title))
                         q.succeeded()
                         PlaybackLog.onPrefetched(i + 1, title.orEmpty())
@@ -401,7 +454,10 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
             streamScope.launch {
                 val p = StreamLoader.prepare(filepath) { showToast(getString(R.string.stream_resolving), true) }
                 when (p) {
-                    is Prepared.Ready -> player.playWhenReady(p.url, startHeaders + p.headers, p.title)
+                    is Prepared.Ready -> {
+                        p.title?.let { streamTitles[p.url] = it }
+                        player.playWhenReady(p.url, startHeaders + p.headers, p.title)
+                    }
                     is Prepared.Failed -> {
                         showToast(getString(StreamLoader.messageRes(p.error)), true)
                         finishWithResult(RESULT_CANCELED)
@@ -534,6 +590,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
     /** Ganti isi playlist: seluruh folder bila berlaku, kalau tidak berkas/URL tunggal. */
     private fun loadReplacing(intent: Intent?, filepath: String, headers: Map<String, String>) {
         rolling = playlistFrom(intent, filepath)
+        streamTitles.clear()
         val folder = resolveFolderPlaylist(intent, filepath)
         if (folder != null) {
             MpvLog.i(TAG, "Playlist folder: ${folder.first.size} berkas")
@@ -1462,7 +1519,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
     }
 
     private fun openPlaylistMenu(restore: StateRestoreCallback) {
-        val impl = PlaylistDialog(player)
+        val impl = PlaylistDialog(player, { streamTitles }, { pendingRows() })
         lateinit var dialog: AlertDialog
 
         impl.listeners = object : PlaylistDialog.Listeners {
@@ -1491,6 +1548,11 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
             override fun onItemPicked(item: MPVView.PlaylistItem) {
                 MPVLib.setPropertyInt("playlist-pos", item.index)
                 dialog.dismiss()
+            }
+
+            override fun onPendingPicked(planIndex: Int) {
+                dialog.dismiss()
+                jumpToPending(planIndex)
             }
         }
 
