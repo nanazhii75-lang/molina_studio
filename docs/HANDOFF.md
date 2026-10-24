@@ -62,7 +62,7 @@ Masih terbuka:
 4. Perbarui seksi G `docs/UJI_PERANGKAT.md` (tambahkan: playlist gelap/biru, folder playlist + sakelar, prev/next notifikasi, Audio only, ikon cari/URL, pill kontrol, multi-pilih `memory://`), jalankan uji, lalu centang BLUEPRINT 5a-5c.
 5. Verifikasi CI hijau dan uji APK terbaru di perangkat.
 
-Utang kecil: dialog track/speed/subtitle masih terang; teks sakelar baru hanya bahasa Inggris (13 locale); `onNewIntent` belum memuat folder; tint ikon PiP belum diverifikasi; FIXME upstream (`RESULT_OK` vs `CANCELED`, kemungkinan race di `BaseMPVView`, hack di `BackgroundPlaybackService`); alasan end-file tidak ada di JNI sehingga `PlaybackLog` tidak mencatatnya.
+Utang kecil: teks sakelar baru hanya bahasa Inggris (13 locale); `onNewIntent` belum memuat folder; tint ikon PiP belum diverifikasi; FIXME upstream (`RESULT_OK` vs `CANCELED`, kemungkinan race di `BaseMPVView`, hack di `BackgroundPlaybackService`); alasan end-file tidak ada di JNI sehingga `PlaybackLog` tidak mencatatnya.
 Bukan utang fase mpv: optimasi RAM, snapshot `MolinaDir.Backup`, Fase 6.
 
 ## 6. Jebakan yang pernah terjadi
