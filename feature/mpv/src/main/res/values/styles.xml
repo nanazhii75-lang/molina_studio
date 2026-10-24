@@ -34,6 +34,15 @@
         <item name="android:windowBackground">#000000</item>
     </style>
 
+    <!-- dialog Settings player: latar hitam, teks putih -->
+    <style name="AppTheme.PlayerDialog" parent="Theme.AppCompat.Dialog.Alert">
+        <item name="colorBackgroundFloating">@color/player_dialog_bg</item>
+        <item name="android:colorBackgroundFloating">@color/player_dialog_bg</item>
+        <item name="android:textColorPrimary">@color/player_dialog_text</item>
+        <item name="android:textColorSecondary">@color/player_dialog_text_secondary</item>
+        <item name="colorAccent">@color/player_dialog_text</item>
+    </style>
+
     <!-- theme for preferences -->
     <style name="AppTheme.Preference" parent="Theme.Material3.DayNight">
         <item name="toolbarStyle">@style/AppTheme.Toolbar.Style</item>

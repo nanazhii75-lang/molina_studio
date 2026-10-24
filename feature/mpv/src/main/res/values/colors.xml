@@ -20,4 +20,11 @@
     <color name="nnf_light_separator_color">#1e000000</color>
     <!-- 12% white in BLACK THEME -->
     <color name="nnf_dark_separator_color">#1effffff</color>
+
+    <!-- Dialog Settings player (gelap) -->
+    <color name="player_dialog_bg">#0F0F0F</color>
+    <color name="player_dialog_text">#FFFFFF</color>
+    <color name="player_dialog_text_secondary">#B3FFFFFF</color>
+    <color name="alpha12pct_light">#1fffffff</color>
+    <color name="alpha24pct_light">#3dffffff</color>
 </resources>

@@ -64,7 +64,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:background="@drawable/alpha_darken"
+            android:background="@drawable/alpha_lighten"
             android:text="@string/dialog_prev"
             android:textAllCaps="false" />
 
@@ -74,7 +74,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:background="@drawable/alpha_darken"
+            android:background="@drawable/alpha_lighten"
             android:text="@string/dialog_next"
             android:textAllCaps="false" />
 
