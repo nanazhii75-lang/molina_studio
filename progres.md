@@ -184,3 +184,5 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] feat(security): tahap 2 - gerbang URL untuk subtitle intent, judul intent dibersihkan, BROWSABLE dicabut dari filter berkas lokal, layar privat (FLAG_SECURE + filter sentuhan) dengan sakelar, scripts/native_audit.sh - menunggu CI hijau
 - [ ] jalankan `bash scripts/native_audit.sh` pada pustaka native hasil CI; catat peringatan RELRO/BIND_NOW
 - [ ] uji perangkat: screenshot Terminal (harus hitam), Recents, sakelar Layar privat, TikTok tetap jalan
+
+- Audit jaringan tahap 3 (hanya baca): redirect/segmen/playlist belum dijaga UrlPolicy; protocol_whitelist belum ada; memory:// terblokir CONTROL_CHARS. Rencana: A (memory+skema), B (whitelist per entri), C (Molina Shield).
