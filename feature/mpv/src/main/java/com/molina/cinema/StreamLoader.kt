@@ -29,6 +29,15 @@ internal object StreamLoader {
     fun isWebUrl(raw: String): Boolean =
         raw.startsWith("http://", ignoreCase = true) || raw.startsWith("https://", ignoreCase = true)
 
+    private val BARE_HOSTS = listOf("www.", "youtu.be/", "youtube.com/", "m.youtube.com/", "music.youtube.com/")
+
+    /** Teks bebas (bukan URL, bukan path berkas, bukan host tanpa skema) dianggap kata kunci pencarian judul. */
+    fun isQuery(raw: String): Boolean {
+        val t = raw.trim()
+        return t.isNotEmpty() && !t.contains("://") && !t.startsWith("/") &&
+            BARE_HOSTS.none { t.startsWith(it, ignoreCase = true) }
+    }
+
     /** [onResolving] dipanggil di thread utama hanya bila resolver benar-benar akan dipakai. */
     suspend fun prepare(raw: String, onResolving: () -> Unit = {}): Prepared {
         if (!isWebUrl(raw)) return Prepared.Ready(raw, emptyMap(), null)

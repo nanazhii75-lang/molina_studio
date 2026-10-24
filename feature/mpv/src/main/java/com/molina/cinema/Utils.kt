@@ -503,7 +503,7 @@ internal object Utils {
         return if (t.startsWith("www.", ignoreCase = true)) "https://$t" else t
     }
 
-    class OpenUrlDialog(context: Context, themeRes: Int = 0) {
+    class OpenUrlDialog(context: Context, themeRes: Int = 0, private val allowQuery: Boolean = false) {
         val builder = AlertDialog.Builder(context, themeRes)
         private val editText = EditText(builder.context)
         private lateinit var dialog: AlertDialog
@@ -514,8 +514,9 @@ internal object Utils {
         }
 
         init {
-            editText.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
-            editText.hint = context.getString(R.string.search_url_hint)
+            editText.inputType = if (allowQuery) InputType.TYPE_CLASS_TEXT
+                else InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
+            editText.hint = context.getString(if (allowQuery) R.string.search_query_hint else R.string.search_url_hint)
             editText.addTextChangedListener {
                 if (it.isNullOrEmpty()) {
                     editText.error = null
@@ -530,12 +531,13 @@ internal object Utils {
             }
 
             builder.apply {
-                setTitle(R.string.action_open_url)
+                setTitle(if (allowQuery) R.string.search_dialog_title else R.string.action_open_url)
                 setView(editText)
             }
         }
 
         private fun validate(text: String): Boolean {
+            if (allowQuery && StreamLoader.isQuery(text)) return true
             val uri = Uri.parse(normalizeUrl(text))
             return uri.isHierarchical && !uri.isRelative &&
                     !(uri.host.isNullOrEmpty() && uri.path.isNullOrEmpty()) &&

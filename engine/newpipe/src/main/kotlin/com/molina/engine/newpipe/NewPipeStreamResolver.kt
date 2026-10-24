@@ -12,6 +12,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.runInterruptible
+import org.schabi.newpipe.extractor.InfoItem
 import org.schabi.newpipe.extractor.NewPipe
 import org.schabi.newpipe.extractor.ServiceList
 import org.schabi.newpipe.extractor.StreamingService
@@ -89,10 +90,28 @@ class NewPipeStreamResolver(
             val items = runInterruptible(Dispatchers.IO) {
                 val service = ServiceList.YouTube
                 val handler = service.searchQHFactory.fromQuery(q)
-                SearchInfo.getInfo(service, handler).relatedItems.orEmpty()
+                val first = SearchInfo.getInfo(service, handler)
+                val all = ArrayList<InfoItem>(first.relatedItems.orEmpty())
+                var page = first.nextPage
+                var pages = 1
+                // Satu halaman YouTube hanya ~20 entri campuran; lanjutkan sampai [limit] video terkumpul.
+                try {
+                    while (page != null && pages < 6 && all.count { it is StreamInfoItem } < limit) {
+                        val more = SearchInfo.getMoreItems(service, handler, page)
+                        all.addAll(more.items.orEmpty())
+                        page = more.nextPage
+                        pages++
+                    }
+                } catch (e: InterruptedException) {
+                    throw e
+                } catch (e: Exception) {
+                    // halaman lanjutan gagal: pakai hasil yang sudah terkumpul
+                }
+                all
             }
             val out = items.asSequence()
                 .filterIsInstance<StreamInfoItem>()
+                .distinctBy { it.url }
                 .map { i ->
                     StreamSearchItem(
                         pageUrl = i.url,

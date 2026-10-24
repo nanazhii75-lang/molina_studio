@@ -17,6 +17,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.molina.cinema.BackgroundPlaybackState
+import com.molina.core.common.PlaylistPlan
 import com.molina.core.common.StreamError
 import com.molina.core.common.StreamOutcome
 import com.molina.core.common.StreamResolvers
@@ -61,7 +62,7 @@ fun CinemaHome(modifier: Modifier = Modifier) {
         searching = true
         info = "Mencari\u2026"
         scope.launch {
-            val outcome = withContext(Dispatchers.IO) { StreamResolvers.get()?.search(q, 15) }
+            val outcome = withContext(Dispatchers.IO) { StreamResolvers.get()?.search(q, PlaylistPlan.MAX_ITEMS) }
             searching = false
             when (outcome) {
                 null -> info = "Mesin pencarian belum siap."
@@ -130,7 +131,7 @@ fun CinemaHome(modifier: Modifier = Modifier) {
     )
     if (showResults) AlertDialog(
         onDismissRequest = { showResults = false },
-        title = { Text("Hasil pencarian") },
+        title = { Text("Hasil pencarian (${results.size})") },
         text = {
             LazyColumn(Modifier.heightIn(max = 380.dp)) {
                 items(results) { r ->

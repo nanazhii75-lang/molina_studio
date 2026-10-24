@@ -73,6 +73,14 @@
     <string name="search_url_hint">Paste link here</string>
     <string name="search_url_play">Play</string>
     <string name="search_url_queue">Add to queue</string>
+    <string name="search_dialog_title">Open URL or search</string>
+    <string name="search_query_hint">Paste link or type a title</string>
+    <string name="search_searching">Searching…</string>
+    <string name="search_unavailable">Search engine is not ready</string>
+    <string name="search_no_results">No results for “%1$s”</string>
+    <string name="search_results_title">Search results (%1$d)</string>
+    <string name="search_close">Close</string>
+    <string name="search_added">Added to queue: %1$s</string>
     <string name="action_open_doc">Open document</string>
     <string name="action_open_doc_tree">Open document tree</string>
     <string name="action_pick_file">Pick file</string>

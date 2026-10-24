@@ -221,3 +221,10 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM terbukti: kompilasi penuh (sandbox 1 core), build Android arm64, dan pemutaran. Jalankan workflow Native mpv (manual), lalu isi NATIVE_TAG dan NATIVE_SHA256 baru di native/prebuilt.env, lalu CI APK
 - [ ] uji perangkat setelah pin baru: mkv/mp4/mp3/ts, IPTV id.m3u, HLS, DASH, rtsp/rtmp bila punya, subtitle .srt/.ass, gambar. Format di luar daftar (mxf, wtv, swf, nut, dll.) memang tidak akan terbuka
 - [ ] D2 (berikutnya): daftar putih decoder setelah D1 terbukti; native_audit dijadikan fatal bila build pertama bersih
+
+## 2026-10-25 - Cinema E1 (pencarian judul di player, hasil sampai 50)
+- [x] D1 di-push (commit 8f2cf73); pin native baru menyusul setelah workflow Native mpv dijalankan
+- [x] feat(player): ikon cari di player menerima judul (bukan hanya URL): Play = daftar hasil lalu putar yang diketuk dan sisanya jadi antrean bergulir; Add to queue = tambahkan item yang diketuk (daftar tetap terbuka). Daftar menampilkan judul, kanal, durasi, sampai 50 hasil
+- [x] fix(search): NewPipe hanya mengambil 1 halaman (~10-20 video); kini lanjut halaman berikutnya (maks. 6) sampai 50 video, hasil tanpa duplikat; Cinema Home memakai batas yang sama (sebelumnya 15)
+- [ ] BELUM dikompilasi (menunggu CI) dan belum diuji di perangkat: ketik judul di dialog player, cek 50 hasil, ketuk = putar + antrean berlanjut, Add to queue, URL biasa tetap jalan, Open URL di layar utama/pemilih berkas tidak berubah
+- [ ] batas: antrean bergulir hanya untuk URL tonton YouTube; pencarian lewat yt-dlp (ytsearchN) tidak diubah

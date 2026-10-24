@@ -4,6 +4,9 @@ import com.molina.core.common.PlaylistExtras
 import com.molina.core.common.PlaylistPlan
 import com.molina.core.common.RollingQueue
 import com.molina.core.common.StreamHeaders
+import com.molina.core.common.StreamOutcome
+import com.molina.core.common.StreamResolvers
+import com.molina.core.common.StreamSearchItem
 import com.molina.core.common.ShieldProxy
 import com.molina.core.common.ShieldStats
 import com.molina.core.common.UrlPolicy
@@ -40,7 +43,10 @@ import android.util.Rational
 import androidx.core.content.ContextCompat
 import android.view.*
 import android.view.ViewGroup.MarginLayoutParams
+import android.widget.ArrayAdapter
 import android.widget.Button
+import android.widget.ListView
+import android.widget.TextView
 import android.widget.SeekBar
 import android.widget.Toast
 import androidx.activity.addCallback
@@ -111,6 +117,8 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
 
     // Playlist hasil pencarian (jendela bergulir): hanya diakses dari main thread.
     private var rolling: RollingQueue? = null
+
+    private var searchJob: kotlinx.coroutines.Job? = null
 
     /** Antrean dari extra Intent Cinema Home; null bila tidak ada atau tidak valid. */
     private fun playlistFrom(intent: Intent?, current: String): RollingQueue? {
@@ -1547,17 +1555,25 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
     private fun openSearchUrl() {
         val restoreState = pauseForDialog()
         var playNow = false
-        val helper = Utils.OpenUrlDialog(this, R.style.AppTheme_PlayerDialog)
+        val helper = Utils.OpenUrlDialog(this, R.style.AppTheme_PlayerDialog, allowQuery = true)
         with (helper) {
             builder.setPositiveButton(R.string.search_url_play) { _, _ ->
-                playNow = true
-                PlaybackLog.onRequest(helper.text)
-                loadWeb(helper.text, MpvLoad.REPLACE)
+                if (StreamLoader.isQuery(helper.text)) {
+                    searchAndShow(helper.text, append = false)
+                } else {
+                    playNow = true
+                    PlaybackLog.onRequest(helper.text)
+                    loadWeb(helper.text, MpvLoad.REPLACE)
+                }
             }
             builder.setNeutralButton(R.string.search_url_queue) { _, _ ->
-                PlaybackLog.onRequest(helper.text)
-                loadWeb(helper.text, MpvLoad.APPEND) {
-                    showToast(getString(R.string.notice_file_appended), true)
+                if (StreamLoader.isQuery(helper.text)) {
+                    searchAndShow(helper.text, append = true)
+                } else {
+                    PlaybackLog.onRequest(helper.text)
+                    loadWeb(helper.text, MpvLoad.APPEND) {
+                        showToast(getString(R.string.notice_file_appended), true)
+                    }
                 }
             }
             builder.setNegativeButton(R.string.dialog_cancel) { dialog, _ -> dialog.cancel() }
@@ -1568,6 +1584,104 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
             }
             create().show()
         }
+    }
+
+    /** Cari judul lewat resolver (sampai [PlaylistPlan.MAX_ITEMS] hasil) lalu tampilkan daftar pilihan. */
+    private fun searchAndShow(query: String, append: Boolean) {
+        searchJob?.cancel()
+        showToast(getString(R.string.search_searching), true)
+        searchJob = streamScope.launch {
+            val outcome = kotlinx.coroutines.withContext(Dispatchers.IO) {
+                StreamResolvers.get()?.search(query, PlaylistPlan.MAX_ITEMS)
+            }
+            when (outcome) {
+                null -> showToast(getString(R.string.search_unavailable), true)
+                is StreamOutcome.Failure -> showToast(getString(StreamLoader.messageRes(outcome.error)), true)
+                is StreamOutcome.Success ->
+                    if (outcome.value.isEmpty()) showToast(getString(R.string.search_no_results, query), true)
+                    else showSearchResults(outcome.value, append)
+            }
+        }
+    }
+
+    private fun searchMeta(item: StreamSearchItem): String {
+        val parts = ArrayList<String>(2)
+        item.uploader?.let { parts.add(it) }
+        item.durationSec?.let { s ->
+            val h = s / 3600
+            val m = (s % 3600) / 60
+            val sec = s % 60
+            parts.add(
+                if (h > 0) String.format(java.util.Locale.ROOT, "%d:%02d:%02d", h, m, sec)
+                else String.format(java.util.Locale.ROOT, "%d:%02d", m, sec)
+            )
+        }
+        return parts.joinToString(" \u00B7 ")
+    }
+
+    /**
+     * Daftar hasil (maks. 50). Mode putar: ketuk = putar sekarang dan hasil lain jadi antrean bergulir
+     * (sama seperti Cinema Home). Mode antrean: ketuk = tambahkan satu item, daftar tetap terbuka.
+     */
+    private fun showSearchResults(items: List<StreamSearchItem>, append: Boolean) {
+        val restore = pauseForDialog()
+        var chosen = false
+        val adapter = object : ArrayAdapter<StreamSearchItem>(this, R.layout.dialog_search_item, R.id.search_title, items) {
+            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+                val row = super.getView(position, convertView, parent)
+                val item = items[position]
+                row.findViewById<TextView>(R.id.search_title).text = item.title
+                val meta = row.findViewById<TextView>(R.id.search_meta)
+                val line = searchMeta(item)
+                meta.text = line
+                meta.visibility = if (line.isEmpty()) View.GONE else View.VISIBLE
+                return row
+            }
+        }
+        val list = ListView(this)
+        list.adapter = adapter
+        lateinit var dialog: AlertDialog
+        list.setOnItemClickListener { _, _, pos, _ ->
+            val picked = items[pos]
+            if (append) {
+                PlaybackLog.onRequest(picked.pageUrl)
+                loadWeb(picked.pageUrl, MpvLoad.APPEND) {
+                    showToast(getString(R.string.search_added, picked.title), true)
+                }
+            } else {
+                chosen = true
+                dialog.dismiss()
+                playSearchResult(items, pos)
+            }
+        }
+        dialog = AlertDialog.Builder(this, R.style.AppTheme_PlayerDialog)
+            .setTitle(getString(R.string.search_results_title, items.size))
+            .setView(list)
+            .setNegativeButton(R.string.search_close) { d, _ -> d.dismiss() }
+            .setOnDismissListener {
+                restore()
+                if (chosen) player.paused = false
+            }
+            .create()
+        dialog.show()
+    }
+
+    /** Putar hasil yang diketuk; hasil tonton YouTube lainnya (maks. 50) menjadi antrean bergulir. */
+    private fun playSearchResult(items: List<StreamSearchItem>, pos: Int) {
+        val picked = items[pos]
+        val valid = items.filter { PlaylistPlan.isWatchUrl(it.pageUrl) }
+            .distinctBy { it.pageUrl }
+            .take(PlaylistPlan.MAX_ITEMS)
+        val idx = valid.indexOfFirst { it.pageUrl == picked.pageUrl }
+        val plan = if (idx >= 0) {
+            runCatching {
+                PlaylistPlan.parse(valid.map { it.pageUrl }, valid.map { it.title }, idx, picked.pageUrl)
+            }.getOrNull()
+        } else null
+        rolling = plan?.let { RollingQueue(it) }
+        plan?.let { PlaybackLog.onPlaylist(it.urls.size, it.index + 1) }
+        PlaybackLog.onRequest(picked.pageUrl)
+        loadWeb(picked.pageUrl, MpvLoad.REPLACE)
     }
 
     private fun openPlaylistMenu(restore: StateRestoreCallback) {
