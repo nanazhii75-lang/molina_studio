@@ -73,6 +73,7 @@ class BackgroundPlaybackService : Service(), MPVLib.EventObserver {
             setSmallIcon(R.drawable.ic_mpv_symbolic)
             setContentIntent(pendingIntent)
             setOngoing(true)
+            setColor(getColor(R.color.player_playlist_active))
         }
 
         // With an active media session, the media style will override everything
@@ -91,19 +92,19 @@ class BackgroundPlaybackService : Service(), MPVLib.EventObserver {
         }
 
         val playPauseAction = if (paused)
-            buildNotificationAction(R.drawable.ic_play_arrow_black_24dp, R.string.btn_play, "PLAY_PAUSE")
+            buildNotificationAction(R.drawable.ic_notif_play, R.string.btn_play, "PLAY_PAUSE")
         else
-            buildNotificationAction(R.drawable.ic_pause_black_24dp, R.string.btn_pause, "PLAY_PAUSE")
+            buildNotificationAction(R.drawable.ic_notif_pause, R.string.btn_pause, "PLAY_PAUSE")
 
         val style = MediaStyle()
         mediaToken?.let { style.setMediaSession(it) }
         if (shouldShowPrevNext) {
             builder.addAction(buildNotificationAction(
-                R.drawable.ic_skip_previous_black_24dp, R.string.dialog_prev, "ACTION_PREV"
+                R.drawable.ic_notif_prev, R.string.dialog_prev, "ACTION_PREV"
             ))
             builder.addAction(playPauseAction)
             builder.addAction(buildNotificationAction(
-                R.drawable.ic_skip_next_black_24dp, R.string.dialog_next, "ACTION_NEXT"
+                R.drawable.ic_notif_next, R.string.dialog_next, "ACTION_NEXT"
             ))
             style.setShowActionsInCompactView(0, 1, 2) // all
         } else {
