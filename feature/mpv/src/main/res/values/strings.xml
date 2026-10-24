@@ -61,6 +61,8 @@
     <string name="open_external_sub">Open external subtitle…</string>
     <string name="advanced_menu">Advanced…</string>
     <string name="resume_bg_playback">Play in background</string>
+    <string name="audio_only_on">Audio only</string>
+    <string name="audio_only_off">Back to video</string>
     <string name="toggle_stats">Toggle stats</string>
     <string name="chapter_button">Chapter</string>
     <string name="sub_seek_button">Seek by subtitle</string>

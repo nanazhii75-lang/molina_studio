@@ -1362,11 +1362,12 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
     data class MenuItem(@IdRes val idRes: Int, val handler: () -> Boolean)
     private fun genericMenu(
             @LayoutRes layoutRes: Int, buttons: List<MenuItem>, hiddenButtons: Set<Int>,
-            restoreState: StateRestoreCallback) {
+            restoreState: StateRestoreCallback, onViewReady: (View) -> Unit = {}) {
         lateinit var dialog: AlertDialog
 
         val builder = AlertDialog.Builder(this, R.style.AppTheme_PlayerDialog)
         val dialogView = LayoutInflater.from(builder.context).inflate(layoutRes, null)
+        onViewReady(dialogView)
 
         for (button in buttons) {
             val buttonView = dialogView.findViewById<Button>(button.idRes)
@@ -1437,6 +1438,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
                     moveTaskToBack(true)
                     false
                 },
+                MenuItem(R.id.audioOnlyBtn) { toggleAudioOnly(); true },
                 MenuItem(R.id.chapterBtn) {
                     val chapters = player.loadChapters()
                     if (chapters.isEmpty())
@@ -1474,11 +1476,17 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
 
         if (!isPlayingAudio)
             hiddenButtons.add(R.id.backgroundBtn)
+        // tombol Audio only hanya berguna bila ada video + audio, atau saat mode ini aktif (untuk kembali)
+        if (!forcedAudioOnly && (player.vid == -1 || !isPlayingAudio))
+            hiddenButtons.add(R.id.audioOnlyBtn)
         if ((MPVLib.getPropertyInt("chapter-list/count") ?: 0) == 0)
             hiddenButtons.add(R.id.rowChapter)
         /******/
 
-        genericMenu(R.layout.dialog_top_menu, buttons, hiddenButtons, restoreState)
+        genericMenu(R.layout.dialog_top_menu, buttons, hiddenButtons, restoreState) { v ->
+            v.findViewById<Button>(R.id.audioOnlyBtn)
+                .setText(if (forcedAudioOnly) R.string.audio_only_off else R.string.audio_only_on)
+        }
     }
 
     private fun genericPickerDialog(
@@ -1593,6 +1601,19 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         /******/
 
         genericMenu(R.layout.dialog_advanced_menu, buttons, hiddenButtons, restoreState)
+    }
+
+    private var forcedAudioOnly = false
+
+    /** Matikan/nyalakan track video lewat property `vid`; UI audio dipicu oleh observer current-tracks/video/image. */
+    private fun toggleAudioOnly() {
+        forcedAudioOnly = !forcedAudioOnly
+        if (forcedAudioOnly)
+            player.vid = -1
+        else
+            MPVLib.setPropertyString("vid", "auto")
+        MpvLog.i(TAG, "Audio only: $forcedAudioOnly")
+        showToast(getString(if (forcedAudioOnly) R.string.audio_only_on else R.string.audio_only_off), true)
     }
 
     private fun cycleOrientation() {
