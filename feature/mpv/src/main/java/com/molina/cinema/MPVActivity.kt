@@ -1,6 +1,11 @@
 package com.molina.cinema
 
 import com.molina.core.common.StreamHeaders
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import com.molina.cinema.databinding.PlayerBinding
 import com.molina.cinema.MPVLib.MpvEvent
 import android.animation.Animator
@@ -57,6 +62,32 @@ typealias ActivityResultCallback = (Int, Intent?) -> Unit
 typealias StateRestoreCallback = () -> Unit
 
 class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObserver {
+    // Resolusi stream (NewPipe) jalan di sini; dibatalkan di onDestroy.
+    private val streamScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+
+    /**
+     * Muat masukan web: halaman yang dikenali resolver di-resolve dulu (toast saat memuat, toast
+     * galat bila gagal); selain itu langsung ke mpv secara sinkron (urutan antrean terjaga).
+     */
+    private fun loadWeb(raw: String, flag: String, headers: Map<String, String> = emptyMap(),
+                        onLoaded: () -> Unit = {}) {
+        if (!StreamLoader.isWebUrl(raw)) {
+            MPVLib.command(MpvLoad.loadfileArgs(raw, flag, headers))
+            onLoaded()
+            return
+        }
+        streamScope.launch {
+            val p = StreamLoader.prepare(raw) { showToast(getString(R.string.stream_resolving), true) }
+            when (p) {
+                is Prepared.Ready -> {
+                    MPVLib.command(MpvLoad.loadfileArgs(p.url, flag, headers + p.headers, p.title))
+                    onLoaded()
+                }
+                is Prepared.Failed -> showToast(getString(StreamLoader.messageRes(p.error)), true)
+            }
+        }
+    }
+
     // for calls to eventUi() and eventPropertyUi()
     private val eventUiHandler = Handler(Looper.getMainLooper())
     // for use with fadeRunnable1..3
@@ -311,6 +342,18 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         if (folder != null) {
             MpvLog.i(TAG, "Playlist folder: ${folder.first.size} berkas")
             player.playFolder(folder.first, folder.second)
+        } else if (StreamLoader.isWebUrl(filepath)) {
+            val startHeaders = intentHeaders
+            streamScope.launch {
+                val p = StreamLoader.prepare(filepath) { showToast(getString(R.string.stream_resolving), true) }
+                when (p) {
+                    is Prepared.Ready -> player.playWhenReady(p.url, startHeaders + p.headers, p.title)
+                    is Prepared.Failed -> {
+                        showToast(getString(StreamLoader.messageRes(p.error)), true)
+                        finishWithResult(RESULT_CANCELED)
+                    }
+                }
+            }
         } else {
             player.playFile(filepath, intentHeaders)
         }
@@ -361,6 +404,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         // register the noisy receiver again right after it is unregistered below.
         player.removeObserver(this)
         PlaybackLog.detach()
+        streamScope.cancel()
         eventUiHandler.removeCallbacksAndMessages(null)
         fadeHandler.removeCallbacksAndMessages(null)
         sleepTimer.cancel()
@@ -412,8 +456,9 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
                 loadReplacing(intent, filepath, headers)
                 showToast(getString(R.string.notice_file_play))
             } else {
-                MPVLib.command(MpvLoad.loadfileArgs(filepath, MpvLoad.APPEND, headers))
-                showToast(getString(R.string.notice_file_appended))
+                loadWeb(filepath, MpvLoad.APPEND, headers) {
+                    showToast(getString(R.string.notice_file_appended))
+                }
             }
             moveTaskToBack(true)
         } else {
@@ -439,7 +484,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
             MpvLog.i(TAG, "Playlist folder: ${folder.first.size} berkas")
             player.loadFolder(folder.first, folder.second)
         } else {
-            MPVLib.command(MpvLoad.loadfileArgs(filepath, MpvLoad.REPLACE, headers))
+            loadWeb(filepath, MpvLoad.REPLACE, headers)
         }
     }
 
@@ -1343,12 +1388,13 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
             builder.setPositiveButton(R.string.search_url_play) { _, _ ->
                 playNow = true
                 PlaybackLog.onRequest(helper.text)
-                MPVLib.command(arrayOf("loadfile", helper.text, "replace"))
+                loadWeb(helper.text, MpvLoad.REPLACE)
             }
             builder.setNeutralButton(R.string.search_url_queue) { _, _ ->
                 PlaybackLog.onRequest(helper.text)
-                MPVLib.command(arrayOf("loadfile", helper.text, "append"))
-                showToast(getString(R.string.notice_file_appended), true)
+                loadWeb(helper.text, MpvLoad.APPEND) {
+                    showToast(getString(R.string.notice_file_appended), true)
+                }
             }
             builder.setNegativeButton(R.string.dialog_cancel) { dialog, _ -> dialog.cancel() }
             builder.setOnDismissListener {
@@ -1380,8 +1426,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
                 val helper = Utils.OpenUrlDialog(this@MPVActivity)
                 with (helper) {
                     builder.setPositiveButton(R.string.dialog_ok) { _, _ ->
-                        MPVLib.command(arrayOf("loadfile", helper.text, "append"))
-                        impl.refresh()
+                        loadWeb(helper.text, MpvLoad.APPEND) { impl.refresh() }
                     }
                     builder.setNegativeButton(R.string.dialog_cancel) { dialog, _ -> dialog.cancel() }
                     create().show()

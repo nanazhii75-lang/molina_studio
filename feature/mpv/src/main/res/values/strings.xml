@@ -227,4 +227,13 @@
     <string name="sleep_timer_set">Sleep timer set: %d min</string>
     <string name="sleep_timer_cancelled">Sleep timer off</string>
     <string name="sleep_timer_done">Sleep timer: playback paused</string>
+    <string name="stream_resolving">Resolving stream…</string>
+    <string name="stream_err_unsupported">This link is not supported</string>
+    <string name="stream_err_not_found">Video not found or unavailable</string>
+    <string name="stream_err_private">This video is private</string>
+    <string name="stream_err_age">This video is age-restricted</string>
+    <string name="stream_err_geo">This video is blocked in your region</string>
+    <string name="stream_err_network">Network problem or blocked by the site, try again</string>
+    <string name="stream_err_parse">Could not read this page (the extractor may need an update)</string>
+    <string name="stream_err_unknown">Could not resolve the stream</string>
 </resources>

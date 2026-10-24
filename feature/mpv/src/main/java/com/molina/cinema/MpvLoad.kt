@@ -15,9 +15,17 @@ object MpvLoad {
     const val REPLACE = "replace"
     const val APPEND = "append"
 
-    fun loadfileArgs(url: String, flag: String, headers: Map<String, String>): Array<String> {
-        val opt = headerOption(headers) ?: return arrayOf("loadfile", url, flag)
-        return arrayOf("loadfile", url, flag, "-1", opt)
+    fun loadfileArgs(url: String, flag: String, headers: Map<String, String>, title: String? = null): Array<String> {
+        val opts = listOfNotNull(headerOption(headers), titleOption(title))
+        if (opts.isEmpty()) return arrayOf("loadfile", url, flag)
+        return arrayOf("loadfile", url, flag, "-1", opts.joinToString(","))
+    }
+
+    /** Opsi `force-media-title=...` (maks 200 karakter, tanpa karakter kontrol) atau null. */
+    fun titleOption(title: String?): String? {
+        val t = title?.filter { it >= ' ' && it != '\u007f' }?.trim()?.take(200)
+        if (t.isNullOrEmpty()) return null
+        return "force-media-title=" + fixed(t)
     }
 
     /** Opsi `http-header-fields=...` atau null bila tidak ada header valid. */

@@ -56,14 +56,29 @@ abstract class BaseMPVView(context: Context, attrs: AttributeSet) : SurfaceView(
 
     private var filePath: String? = null
     private var fileHeaders: Map<String, String> = emptyMap()
+    private var fileTitle: String? = null
+    @Volatile private var surfaceAttached = false
 
     /**
      * Set the first file to be played once the player is ready.
      * [headers]: header HTTP untuk entri ini (disaring di MpvLoad); kosong = perilaku lama.
      */
-    fun playFile(filePath: String, headers: Map<String, String> = emptyMap()) {
+    fun playFile(filePath: String, headers: Map<String, String> = emptyMap(), title: String? = null) {
         this.filePath = filePath
         this.fileHeaders = headers
+        this.fileTitle = title
+    }
+
+    /**
+     * Untuk hasil resolusi asinkron (thread utama): muat sekarang bila surface sudah terpasang,
+     * jika belum antre seperti [playFile] agar surfaceCreated() yang memuatnya.
+     */
+    fun playWhenReady(filePath: String, headers: Map<String, String> = emptyMap(), title: String? = null) {
+        if (surfaceAttached) {
+            MPVLib.command(MpvLoad.loadfileArgs(filePath, MpvLoad.REPLACE, headers, title))
+        } else {
+            playFile(filePath, headers, title)
+        }
     }
 
     private var folderFiles: List<String>? = null
@@ -105,6 +120,7 @@ abstract class BaseMPVView(context: Context, attrs: AttributeSet) : SurfaceView(
 
     override fun surfaceCreated(holder: SurfaceHolder) {
         MpvLog.w(TAG, "attaching surface")
+        surfaceAttached = true
         MPVLib.attachSurface(holder.surface)
         // This forces mpv to render subs/osd/whatever into our surface even if it would ordinarily not
         MPVLib.setOptionString("force-window", "yes")
@@ -114,9 +130,10 @@ abstract class BaseMPVView(context: Context, attrs: AttributeSet) : SurfaceView(
             loadFolder(folder, folderIndex)
             folderFiles = null
         } else if (filePath != null) {
-            MPVLib.command(MpvLoad.loadfileArgs(filePath as String, MpvLoad.REPLACE, fileHeaders))
+            MPVLib.command(MpvLoad.loadfileArgs(filePath as String, MpvLoad.REPLACE, fileHeaders, fileTitle))
             filePath = null
             fileHeaders = emptyMap()
+            fileTitle = null
         } else {
             // We disable video output when the context disappears, enable it back
             MPVLib.setPropertyString("vo", voInUse)
@@ -125,6 +142,7 @@ abstract class BaseMPVView(context: Context, attrs: AttributeSet) : SurfaceView(
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {
         MpvLog.w(TAG, "detaching surface")
+        surfaceAttached = false
         MPVLib.setPropertyString("vo", "null")
         MPVLib.setPropertyString("force-window", "no")
         // Note that before calling detachSurface() we need to be sure that libmpv
