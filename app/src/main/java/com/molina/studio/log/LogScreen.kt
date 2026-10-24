@@ -1,5 +1,13 @@
 package com.molina.studio.log
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.content.Intent
+import android.widget.Toast
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -56,6 +64,7 @@ private fun matchesFilter(source: String, filter: String): Boolean =
 private val TIME_FMT: DateTimeFormatter =
     DateTimeFormatter.ofPattern("HH:mm:ss.SSS").withZone(ZoneId.systemDefault())
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun LogScreen(modifier: Modifier = Modifier) {
     val entries by LogBus.entries.collectAsState()
@@ -64,6 +73,7 @@ fun LogScreen(modifier: Modifier = Modifier) {
         if (filter.isEmpty()) entries else entries.filter { matchesFilter(it.source, filter) }
     }
     val listState = rememberLazyListState()
+    val ctx = LocalContext.current
     val lastCount = shown.lastOrNull()?.count ?: 0
 
     // Ikuti entri terbaru hanya bila pengguna sudah berada di dasar daftar.
@@ -82,6 +92,10 @@ fun LogScreen(modifier: Modifier = Modifier) {
             LogButton("Hapus", false) { LogBus.clear() }
             LogButton("Uji", false) { sendTest() }
         }
+        Row(Modifier.fillMaxWidth()) {
+            LogButton("Salin", false) { copyLogs(ctx, shown) }
+            LogButton("Bagikan", false) { shareLogs(ctx, shown) }
+        }
         if (shown.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
@@ -97,6 +111,10 @@ fun LogScreen(modifier: Modifier = Modifier) {
                 items(shown, key = { it.id }) { e ->
                     Text(
                         rowText(e, levelColor(e.level)),
+                        modifier = Modifier.fillMaxWidth().combinedClickable(
+                            onClick = {},
+                            onLongClick = { copyText(ctx, format(e), "1 baris") }
+                        ),
                         fontFamily = FontFamily.Monospace,
                         fontSize = 11.sp
                     )
@@ -143,6 +161,38 @@ private fun format(e: LogEntry): String {
     val n = if (e.count > 1) "  \u00D7${e.count}" else ""
     return "${TIME_FMT.format(Instant.ofEpochMilli(e.time))} ${e.level.code} " +
         "${e.source}/${e.tag}: ${e.message}$n"
+}
+
+private const val MAX_COPY_LINES = 2000
+private const val MAX_SHARE_LINES = 800
+
+private fun joinLogs(list: List<LogEntry>, max: Int): String =
+    list.takeLast(max).joinToString("\n") { format(it) }
+
+private fun copyText(ctx: Context, text: String, what: String) {
+    val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+    cm.setPrimaryClip(ClipData.newPlainText("Molina Log", text))
+    Toast.makeText(ctx, "Tersalin: $what", Toast.LENGTH_SHORT).show()
+}
+
+private fun copyLogs(ctx: Context, list: List<LogEntry>) {
+    if (list.isEmpty()) {
+        Toast.makeText(ctx, "Belum ada log", Toast.LENGTH_SHORT).show()
+        return
+    }
+    copyText(ctx, joinLogs(list, MAX_COPY_LINES), "${minOf(list.size, MAX_COPY_LINES)} baris")
+}
+
+private fun shareLogs(ctx: Context, list: List<LogEntry>) {
+    if (list.isEmpty()) {
+        Toast.makeText(ctx, "Belum ada log", Toast.LENGTH_SHORT).show()
+        return
+    }
+    val send = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_TEXT, joinLogs(list, MAX_SHARE_LINES))
+    }
+    ctx.startActivity(Intent.createChooser(send, "Bagikan log").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
 }
 
 /** Kirim satu baris uji lewat socket IPC (jalur penuh klien -> server -> bus -> UI). */
