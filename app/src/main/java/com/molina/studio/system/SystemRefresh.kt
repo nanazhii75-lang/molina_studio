@@ -9,6 +9,7 @@ import com.molina.core.common.RefreshReport
 import com.molina.core.common.Refreshable
 import com.molina.core.common.Refreshers
 import com.molina.studio.cinema.MemoryRefresh
+import com.molina.studio.stream.StreamCache
 import com.molina.studio.stream.YtdlpRunner
 import com.molina.studio.terminal.TerminalService
 import com.molina.studio.terminal.TerminalSessions
@@ -52,8 +53,10 @@ internal class MpvRefreshable(private val app: Context) : Refreshable {
         // 1) proses luar (yt-dlp + proot + python), 2) pemutar lewat jalur resmi, 3) lepas resolver + GC.
         killed += YtdlpRunner.cancelActive()
         val stopped = if (MpvControl.shutdown(app)) 1 else 0
+        // Cache unduhan TikTok dibersihkan setelah mpv berhenti, supaya tidak menghapus berkas yang sedang diputar.
+        val cleared = try { StreamCache.clear(app) } catch (e: Exception) { 0 }
         val mem = MemoryRefresh.run(releaseResolver = true)
-        AppLog.log("system", LogLevel.Info, "refresh", "mpv: dihentikan=$stopped dimatikan=$killed ${MemoryRefresh.describe(mem)}")
+        AppLog.log("system", LogLevel.Info, "refresh", "mpv: dihentikan=$stopped dimatikan=$killed cache=$cleared ${MemoryRefresh.describe(mem)}")
         return RefreshReport(id, stopped = stopped, killed = killed, note = MemoryRefresh.describe(mem))
     }
 }

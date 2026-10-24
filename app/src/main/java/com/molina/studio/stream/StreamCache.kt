@@ -27,6 +27,14 @@ internal object StreamCache {
         }
     }
 
+    /** Hapus seluruh isi cache (dipakai Refresh Pemutar). Aman dipanggil setelah mpv berhenti; mengembalikan jumlah berkas terhapus. */
+    fun clear(ctx: Context): Int {
+        val files = dir(ctx).listFiles() ?: return 0
+        var n = 0
+        for (f in files) if (f.isFile && f.delete()) n++
+        return n
+    }
+
     /** Sisakan [KEEP_FILES] berkas terbaru dalam batas [MAX_BYTES]; sisa unduhan setengah jadi yang basi dibuang. */
     fun prune(ctx: Context) {
         val files = dir(ctx).listFiles()?.filter { it.isFile } ?: return

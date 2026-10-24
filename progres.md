@@ -174,3 +174,4 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] fix(stream): TikTok 403 di mpv -> mode unduh-ke-cache (yt-dlp mengunduh, mpv memutar berkas lokal), StreamCache (maks 5 berkas/300 MB), mpv ytdl=no - menunggu CI hijau
 - [ ] uji perangkat: link TikTok, cek log 'unduh ke cache selesai'
 - [x] verifikasi Terminal: `yt-dlp -J --no-simulate` memuat requested_downloads[].filepath (853074 byte, TikTok) - asumsi parser terbukti
+- [x] feat(system): Refresh Pemutar ikut mengosongkan cache unduhan yt-dlp (/tmp/molina-stream) setelah mpv berhenti - menunggu CI hijau
