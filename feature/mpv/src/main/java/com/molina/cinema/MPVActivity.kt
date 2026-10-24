@@ -1117,6 +1117,26 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
     // Tolak skema tak dikenal dan path di dalam data privat aplikasi.
     private fun isAllowedCustomPath(path: String): Boolean {
         if (path.isBlank()) return false
+        if (path.startsWith("memory://", ignoreCase = true))
+            return isAllowedMemoryPlaylist(path)
+        return isAllowedEntry(path)
+    }
+
+    // Playlist memory:// hanya diterima bila setiap barisnya lolos validasi yang sama
+    // dengan entri tunggal. Skema memory sendiri ditolak di dalam isi (cegah rekursi).
+    private fun isAllowedMemoryPlaylist(uri: String): Boolean {
+        val header = "memory://#EXTM3U"
+        if (!uri.startsWith(header, ignoreCase = true)) return false
+        val entries = uri.substring(header.length)
+            .split('\n')
+            .map { it.trimEnd('\r') }
+            .filter { it.isNotEmpty() && !it.startsWith("#") }
+        if (entries.isEmpty() || entries.size > MAX_MEMORY_PLAYLIST_ENTRIES) return false
+        return entries.all { isAllowedEntry(it) }
+    }
+
+    private fun isAllowedEntry(path: String): Boolean {
+        if (path.isBlank()) return false
         if (path.contains("://")) {
             val scheme = path.substringBefore("://").lowercase()
             return scheme in ALLOWED_CUSTOM_SCHEMES
@@ -2218,6 +2238,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
 
     companion object {
         private const val TAG = "mpv"
+        private const val MAX_MEMORY_PLAYLIST_ENTRIES = 1000
         private val ALLOWED_CUSTOM_SCHEMES = setOf(
             "http", "https", "rtmp", "rtmps", "rtp", "rtsp", "mms", "mmst", "mmsh",
             "tcp", "udp", "ftp", "content", "file", "data"
