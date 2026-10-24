@@ -77,7 +77,7 @@ abstract class BaseMPVView(context: Context, attrs: AttributeSet) : SurfaceView(
         folderIndex = index
     }
 
-    private fun loadFolder(files: List<String>, index: Int) {
+    fun loadFolder(files: List<String>, index: Int) {
         MPVLib.command(arrayOf("loadfile", files[index], "replace"))
         files.forEachIndexed { i, f ->
             if (i != index) MPVLib.command(arrayOf("loadfile", f, "append"))

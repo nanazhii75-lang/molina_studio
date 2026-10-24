@@ -307,12 +307,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         player.addObserver(this)
         player.initialize(filesDir.path, cacheDir.path)
         // Folder jadi playlist: dari pemilih lama (extra) atau dari Cinema Home (ACTION_VIEW)
-        val wantFolder = intent.getBooleanExtra("folder_playlist", false) ||
-            (intent.action == Intent.ACTION_VIEW && MpvPrefs.current(this).playFolder)
-        val folder = if (wantFolder && isAllowedCustomPath(filepath))
-            Utils.folderPlaylist(filepath) else null
-        if (wantFolder && folder == null)
-            MpvLog.i(TAG, "Playlist folder tidak dipakai (bukan berkas lokal atau folder hanya 1 media)")
+        val folder = resolveFolderPlaylist(intent, filepath)
         if (folder != null) {
             MpvLog.i(TAG, "Playlist folder: ${folder.first.size} berkas")
             player.playFolder(folder.first, folder.second)
@@ -413,13 +408,35 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
 
         if (!activityIsForeground && didResumeBackgroundPlayback) {
             if (this.newIntentReplace) {
-                MPVLib.command(MpvLoad.loadfileArgs(filepath, MpvLoad.REPLACE, headers))
+                loadReplacing(intent, filepath, headers)
                 showToast(getString(R.string.notice_file_play))
             } else {
                 MPVLib.command(MpvLoad.loadfileArgs(filepath, MpvLoad.APPEND, headers))
                 showToast(getString(R.string.notice_file_appended))
             }
             moveTaskToBack(true)
+        } else {
+            loadReplacing(intent, filepath, headers)
+        }
+    }
+
+    /** Folder jadi playlist untuk [filepath] bila diminta (extra folder_playlist, atau ACTION_VIEW + sakelar). */
+    private fun resolveFolderPlaylist(intent: Intent?, filepath: String): Pair<List<String>, Int>? {
+        val wantFolder = intent?.getBooleanExtra("folder_playlist", false) == true ||
+            (intent?.action == Intent.ACTION_VIEW && MpvPrefs.current(this).playFolder)
+        if (!wantFolder) return null
+        val folder = if (isAllowedCustomPath(filepath)) Utils.folderPlaylist(filepath) else null
+        if (folder == null)
+            MpvLog.i(TAG, "Playlist folder tidak dipakai (bukan berkas lokal atau folder hanya 1 media)")
+        return folder
+    }
+
+    /** Ganti isi playlist: seluruh folder bila berlaku, kalau tidak berkas/URL tunggal. */
+    private fun loadReplacing(intent: Intent?, filepath: String, headers: Map<String, String>) {
+        val folder = resolveFolderPlaylist(intent, filepath)
+        if (folder != null) {
+            MpvLog.i(TAG, "Playlist folder: ${folder.first.size} berkas")
+            player.loadFolder(folder.first, folder.second)
         } else {
             MPVLib.command(MpvLoad.loadfileArgs(filepath, MpvLoad.REPLACE, headers))
         }
