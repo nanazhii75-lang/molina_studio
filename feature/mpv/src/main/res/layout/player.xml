@@ -78,6 +78,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:layoutDirection="ltr"
+                android:paddingLeft="16dp"
+                android:paddingRight="16dp"
+                tools:ignore="RtlHardcoded"
                 android:orientation="horizontal"
                 android:weightSum="100">
 
@@ -215,7 +218,7 @@
             tools:text="[gesture]" />
 
         <!-- Lock / PiP / Settings: menempel di atas baris seekbar, rata kanan dengan teks end time.
-             marginRight 48dp = lebar nextBtn (baris seekbar dipaksa LTR, jadi pakai Right bukan End). -->
+             marginRight 64dp = lebar nextBtn 48dp + inset baris seekbar 16dp (baris seekbar dipaksa LTR, jadi pakai Right bukan End). -->
         <LinearLayout
             android:id="@+id/top_controls"
             tools:ignore="RtlHardcoded"
@@ -224,7 +227,7 @@
             android:layout_height="wrap_content"
             android:layout_above="@id/controls"
             android:layout_alignRight="@id/controls"
-            android:layout_marginRight="48dp"
+            android:layout_marginRight="64dp"
             android:layout_marginBottom="4dp"
             android:alpha="0.5"
             android:background="@drawable/bg_pill_controls"
