@@ -213,3 +213,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] feat(security): ShieldPrefs (sakelar Shield, blokir pelacak, hapus Referer) + bagian Molina Shield di Pengaturan > Keamanan jaringan (jumlah blokir + 8 kejadian terakhir: host dan alasan, tanpa URL) + lencana gembok/peringatan/perisai di bilah atas pemutar - menunggu CI hijau
 - [ ] uji perangkat: lencana muncul (https=gembok, http=peringatan), ketuk lencana = info, sakelar Shield mati lalu Refresh Pemutar = pemutaran tetap jalan, blokir 127.0.0.1 tercatat di daftar
 - [ ] berikutnya: daftar host LAN tepercaya per host (C3), lalu D (perkecil build FFmpeg + audit native)
+
+## 2026-10-25 - Molina Shield D1 (perkecil permukaan serangan FFmpeg)
+- [x] C2 hijau dan diuji di perangkat
+- [x] feat(security): native/molina_ffmpeg_profile.sh = daftar putih FFmpeg (12 protokol, ~70 demuxer; default upstream 41 protokol dan 361 demuxer) + flag pengerasan (stack-protector-strong, FORTIFY, RELRO penuh, noexecstack); disisipkan ke ffmpeg.sh upstream oleh scripts/native_mpv.sh; scripts/ffmpeg_components_audit.sh memeriksa config_components.h hasil build (GAGAL bila ada ftp/concat/pipe/dst. atau jumlah melebihi batas); hasil audit komponen dan pengerasan ikut BUILD-INFO.txt
+- [x] terverifikasi: configure FFmpeg SHA dipin dengan mbedtls+libdav1d+libxml2 lolos; hitungan 41->12 protokol, 361->70 demuxer; audit lulus pada profil dan GAGAL pada build default (uji negatif)
+- [ ] BELUM terbukti: kompilasi penuh (sandbox 1 core), build Android arm64, dan pemutaran. Jalankan workflow Native mpv (manual), lalu isi NATIVE_TAG dan NATIVE_SHA256 baru di native/prebuilt.env, lalu CI APK
+- [ ] uji perangkat setelah pin baru: mkv/mp4/mp3/ts, IPTV id.m3u, HLS, DASH, rtsp/rtmp bila punya, subtitle .srt/.ass, gambar. Format di luar daftar (mxf, wtv, swf, nut, dll.) memang tidak akan terbuka
+- [ ] D2 (berikutnya): daftar putih decoder setelah D1 terbukti; native_audit dijadikan fatal bila build pertama bersih

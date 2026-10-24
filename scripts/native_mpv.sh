@@ -39,6 +39,24 @@ grep -q 'com/molina/cinema/MPVLib' "$UP/app/src/main/jni/jni_utils.cpp"
 grep -q 'Java_com_molina_cinema_MPVLib_' "$UP/app/src/main/jni/jni_utils.h"
 if grep -rn 'is/xyz\|is_xyz' "$UP/app/src/main/jni"; then echo "sisa nama lama di JNI" >&2; exit 1; fi
 
+msg "Profil FFmpeg Molina (daftar putih demuxer/protokol + pengerasan)"
+FFSH="$UP/buildscripts/scripts/ffmpeg.sh"
+cp "$ROOT/native/molina_ffmpeg_profile.sh" "$UP/buildscripts/scripts/molina_ffmpeg_profile.sh"
+if ! grep -q molina_ffmpeg_args "$FFSH"; then
+  python3 - "$FFSH" << 'PYEOF'
+import sys
+p = sys.argv[1]
+s = open(p).read()
+a = "args=(\n"
+b = "\n)\n../configure \"${args[@]}\""
+assert s.count(a) == 1 and s.count(b) == 1, "ffmpeg.sh upstream berubah, sesuaikan patch"
+s = s.replace(a, ". ../../scripts/molina_ffmpeg_profile.sh\n\n" + a, 1)
+s = s.replace(b, "\n)\nargs+=(\"${molina_ffmpeg_args[@]}\")\n../configure \"${args[@]}\"", 1)
+open(p, "w").write(s)
+PYEOF
+fi
+grep -q molina_ffmpeg_args "$FFSH" && grep -q molina_ffmpeg_profile.sh "$FFSH"
+
 cd "$UP/buildscripts"
 # shellcheck source=/dev/null
 . ./include/depinfo.sh
@@ -65,6 +83,8 @@ chmod +x sdk/bin/gas-preprocessor.pl
 
 msg "Kompilasi dependensi (arm64)"
 ./buildall.sh --only-deps mpv --arch arm64
+msg "Audit komponen FFmpeg yang terkompilasi"
+bash "$ROOT/scripts/ffmpeg_components_audit.sh" deps/ffmpeg/_build_arm64/config_components.h "$OUT/ffmpeg-components.txt"
 msg "Kompilasi libmpv (arm64)"
 ./buildall.sh -n mpv --arch arm64 || {
   [ -f deps/mpv/_build_arm64/config.h ] || cat deps/mpv/_build_arm64/meson-logs/meson-log.txt || true
@@ -94,6 +114,8 @@ while [ "$changed" -eq 1 ]; do
 done
 for f in libmpv.so libplayer.so libc++_shared.so; do [ -f "$D/$f" ] || { echo "hilang: $f" >&2; exit 1; }; done
 "$BIN/llvm-strip" --strip-unneeded "$D"/*.so
+msg "Audit pengerasan .so (informasi; belum fatal)"
+bash "$ROOT/scripts/native_audit.sh" "$D" | tee "$OUT/hardening-audit.txt" || echo "PERINGATAN: native_audit melaporkan GAGAL (lihat hardening-audit.txt)"
 SYS=" libc.so libm.so libdl.so liblog.so libandroid.so libz.so libEGL.so libGLESv2.so libGLESv3.so libOpenSLES.so libmediandk.so libnativewindow.so libvulkan.so libjnigraphics.so libaaudio.so libstdc++.so "
 bad=0
 for f in "$D"/*.so; do
@@ -107,4 +129,6 @@ done
   && tar -czf molina-native-arm64.tgz jniLibs && sha256sum molina-native-arm64.tgz >> SHA256SUMS )
 { echo "mpv-android=$UPSTREAM_SHA"; echo "mpv=$MPV_SHA"; echo "dav1d=$DAV1D_SHA"; echo "ffmpeg=$FFMPEG_SHA"
   echo "libass=$LIBASS_SHA"; echo "libplacebo=$LIBPLACEBO_SHA"; echo "ndk=$v_ndk_n"; } > "$OUT/BUILD-INFO.txt"
+{ echo "--- komponen FFmpeg (profil Molina)"; cat "$OUT/ffmpeg-components.txt"
+  echo "--- audit pengerasan"; cat "$OUT/hardening-audit.txt"; } >> "$OUT/BUILD-INFO.txt"
 cat "$OUT/SHA256SUMS"; du -sh "$OUT/molina-native-arm64.tgz"
