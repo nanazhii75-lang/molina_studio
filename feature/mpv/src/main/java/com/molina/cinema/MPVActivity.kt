@@ -1324,7 +1324,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
             }
         }
 
-        dialog = with (AlertDialog.Builder(this)) {
+        dialog = with (AlertDialog.Builder(this, R.style.AppTheme_PlayerDialog)) {
             val inflater = LayoutInflater.from(context)
             setView(impl.buildView(inflater))
             setOnDismissListener { restore() }
@@ -1969,7 +1969,10 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         if (!activityIsForeground) return
         when (property) {
             "time-pos" -> updatePlaybackPos(psc.positionSec)
-            "playlist-pos", "playlist-count" -> updatePlaylistButtons()
+            "playlist-pos", "playlist-count" -> {
+                updatePlaylistButtons()
+                if (property == "playlist-count") updatePiPParams()
+            }
         }
     }
 

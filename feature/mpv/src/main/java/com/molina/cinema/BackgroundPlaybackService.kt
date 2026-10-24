@@ -173,7 +173,15 @@ class BackgroundPlaybackService : Service(), MPVLib.EventObserver {
         refreshNotification()
     }
 
-    override fun eventProperty(property: String, value: Long) { }
+    override fun eventProperty(property: String, value: Long) {
+        if (property != "playlist-count")
+            return
+        val show = value > 1
+        if (show == shouldShowPrevNext)
+            return
+        shouldShowPrevNext = show
+        refreshNotification()
+    }
 
     override fun eventProperty(property: String, value: Double) { }
 

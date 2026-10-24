@@ -64,20 +64,21 @@ internal class PlaylistDialog(private val player: MPVView) {
             binding.list.parent.requestLayout()
         }
 
-        val accent = ContextCompat.getColor(binding.root.context, R.color.accent)
+        val accent = ContextCompat.getColor(binding.root.context, R.color.player_playlist_active)
+        val normal = ContextCompat.getColor(binding.root.context, R.color.player_dialog_text)
         val disabled = ContextCompat.getColor(binding.root.context, R.color.alpha_disabled)
         //
         val shuffleState = player.getShuffle()
         binding.shuffleBtn.apply {
             isEnabled = playlist.size > 1
             imageTintList = if (isEnabled)
-                if (shuffleState) ColorStateList.valueOf(accent) else null
+                ColorStateList.valueOf(if (shuffleState) accent else normal)
             else
                 ColorStateList.valueOf(disabled)
         }
         val repeatState = player.getRepeat()
         binding.repeatBtn.apply {
-            imageTintList = if (repeatState > 0) ColorStateList.valueOf(accent) else null
+            imageTintList = ColorStateList.valueOf(if (repeatState > 0) accent else normal)
             setImageResource(if (repeatState == 2) R.drawable.ic_repeat_one_24dp else R.drawable.ic_repeat_24dp)
         }
     }
@@ -104,6 +105,8 @@ internal class PlaylistDialog(private val player: MPVView) {
             fun bind(item: MPVView.PlaylistItem, selected: Boolean) {
                 textView.text = item.title ?: Utils.fileBasename(item.filename)
                 textView.setTypeface(null, if (selected) Typeface.BOLD else Typeface.NORMAL)
+                textView.setTextColor(ContextCompat.getColor(textView.context,
+                    if (selected) R.color.player_playlist_active else R.color.player_dialog_text))
             }
         }
 
