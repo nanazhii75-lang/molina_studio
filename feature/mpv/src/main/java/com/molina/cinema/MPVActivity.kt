@@ -4,6 +4,8 @@ import com.molina.core.common.PlaylistExtras
 import com.molina.core.common.PlaylistPlan
 import com.molina.core.common.RollingQueue
 import com.molina.core.common.StreamHeaders
+import com.molina.core.common.ShieldProxy
+import com.molina.core.common.ShieldStats
 import com.molina.core.common.UrlPolicy
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -68,6 +70,9 @@ typealias StateRestoreCallback = () -> Unit
 class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObserver {
     // Resolusi stream (NewPipe) jalan di sini; dibatalkan di onDestroy.
     private val streamScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+
+    /** Path entri yang sedang diputar, disimpan agar lencana Shield tidak memanggil mpv dari thread UI. */
+    @Volatile private var shieldPath: String = ""
 
     /**
      * Muat masukan web: halaman yang dikenali resolver di-resolve dulu (toast saat memuat, toast
@@ -347,6 +352,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
             cycleDecoderBtn.setOnClickListener { player.cycleHwdec() }
             cycleSpeedBtn.setOnClickListener { cycleSpeed() }
             topLockBtn.setOnClickListener { lockUI() }
+            shieldBadge.setOnClickListener { showShieldInfo() }
             topPiPBtn.setOnClickListener { goIntoPiP() }
             topMenuBtn.setOnClickListener { openTopMenu() }
             topSearchBtn.setOnClickListener { openSearchUrl() }
@@ -415,6 +421,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
 
         // Initialize listeners for the player view
         initListeners()
+        streamScope.launch { ShieldStats.blockedCount.collect { updateShieldBadge() } }
 
         gestures = TouchGestures(this)
 
@@ -1241,6 +1248,29 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
 
     private fun playlistPrev() = MPVLib.command(arrayOf("playlist-prev"))
     private fun playlistNext() = MPVLib.command(arrayOf("playlist-next"))
+
+    /** Lencana Molina Shield: gembok (https), peringatan (http/rtmp/rtsp), perisai (lokal) + jumlah blokir. */
+    private fun updateShieldBadge() {
+        val p = shieldPath
+        val icon = when {
+            UrlPolicy.scheme(p) == "https" -> "\uD83D\uDD12"
+            UrlPolicy.isCleartext(p) -> "\u26A0"
+            else -> "\uD83D\uDEE1"
+        }
+        val n = ShieldStats.blockedCount.value
+        binding.shieldBadge.text = if (n > 0) "$icon $n" else icon
+    }
+
+    private fun showShieldInfo() {
+        val p = shieldPath
+        val line = when {
+            UrlPolicy.scheme(p) == "https" -> "Terenkripsi (https)."
+            UrlPolicy.isCleartext(p) -> "TIDAK terenkripsi: isinya bisa dibaca atau diubah di jaringan."
+            else -> "Sumber lokal."
+        }
+        val shield = if (ShieldProxy.proxyUrl() != null) "Molina Shield aktif" else "Molina Shield mati"
+        showToast("$line $shield. Diblokir: ${ShieldStats.blockedCount.value}", true)
+    }
 
     private fun showToast(msg: String, cancel: Boolean = false) {
         if (cancel)
@@ -2382,6 +2412,11 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
 
         if (eventId == MpvEvent.MPV_EVENT_SHUTDOWN)
             finishWithResult(if (playbackHasStarted) RESULT_OK else RESULT_CANCELED)
+
+        if (eventId == MpvEvent.MPV_EVENT_START_FILE || eventId == MpvEvent.MPV_EVENT_FILE_LOADED) {
+            shieldPath = MPVLib.getPropertyString("path") ?: ""
+            runOnUiThread { updateShieldBadge() }
+        }
 
         if (eventId == MpvEvent.MPV_EVENT_FILE_LOADED) {
             PlaybackLog.onLoaded()

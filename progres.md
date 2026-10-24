@@ -207,3 +207,9 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] belum terbukti: build FFmpeg n9.0.2 + mbedtls milik Molina (CONNECT + TLS verifikasi host), kompilasi Kotlin (belum dikompilasi di sandbox)
 - [ ] uji perangkat: IPTV id.m3u (http polos), https biasa, HLS, TikTok, dan http://127.0.0.1 / redirect ke LAN (harus diblokir, cek log 'shield')
 - [ ] tidak tercakup: rtmp/rtsp, yt-dlp di Debian. Berikutnya: C2 (pembersihan header, UI gembok) lalu D (perkecil build FFmpeg)
+
+## 2026-10-25 - Molina Shield C2 (UI dan pengaturan)
+- [x] C1 hijau dan lolos uji perangkat (IPTV, pemutaran normal)
+- [x] feat(security): ShieldPrefs (sakelar Shield, blokir pelacak, hapus Referer) + bagian Molina Shield di Pengaturan > Keamanan jaringan (jumlah blokir + 8 kejadian terakhir: host dan alasan, tanpa URL) + lencana gembok/peringatan/perisai di bilah atas pemutar - menunggu CI hijau
+- [ ] uji perangkat: lencana muncul (https=gembok, http=peringatan), ketuk lencana = info, sakelar Shield mati lalu Refresh Pemutar = pemutaran tetap jalan, blokir 127.0.0.1 tercatat di daftar
+- [ ] berikutnya: daftar host LAN tepercaya per host (C3), lalu D (perkecil build FFmpeg + audit native)

@@ -51,7 +51,12 @@ object TrackerList {
     @Volatile
     var allowed: Set<String> = emptySet()
 
+    /** Sakelar pengguna: mati berarti tidak ada domain yang dianggap pelacak. */
+    @Volatile
+    var enabled: Boolean = true
+
     fun isTracker(host: String): Boolean {
+        if (!enabled) return false
         val h = host.lowercase().trimEnd('.')
         if (h.isEmpty()) return false
         if (matches(allowed, h)) return false

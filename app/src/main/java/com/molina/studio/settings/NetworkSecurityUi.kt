@@ -3,7 +3,10 @@ package com.molina.studio.settings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import com.molina.core.common.ShieldStats
 import com.molina.studio.security.PrivacyPrefs
+import com.molina.studio.security.ShieldPrefs
 import com.molina.studio.stream.StreamEnginePrefs
 
 /** Halaman "Keamanan jaringan": kebijakan URL untuk mpv dan yt-dlp. Jaringan dianggap tidak tepercaya. */
@@ -11,6 +14,37 @@ import com.molina.studio.stream.StreamEnginePrefs
 internal fun NetworkSecurityPage() {
     val lan by StreamEnginePrefs.allowLan.collectAsState()
     val secure by PrivacyPrefs.secureScreen.collectAsState()
+    val shieldOn by ShieldPrefs.enabled.collectAsState()
+    val trackersOn by ShieldPrefs.blockTrackers.collectAsState()
+    val refererOff by ShieldPrefs.stripReferer.collectAsState()
+    val blocked by ShieldStats.blockedCount.collectAsState()
+    val recent = remember(blocked) { ShieldStats.recent().takeLast(8).reversed() }
+    Category("Molina Shield")
+    SwitchRow(
+        "Aktifkan Molina Shield",
+        "Semua lalu lintas http/https pemutar lewat filter lokal: redirect, segmen HLS, dan playlist ke alamat " +
+            "privat atau loopback diblokir, termasuk DNS yang diarahkan ke alamat privat. Perubahan berlaku penuh " +
+            "setelah Refresh Pemutar atau membuka ulang pemutar. Tidak mencakup rtmp/rtsp dan yt-dlp.",
+        shieldOn
+    ) { ShieldPrefs.setEnabled(it) }
+    SwitchRow(
+        "Blokir pelacak dan iklan",
+        "Menolak domain iklan, analitik, dan telemetri yang dipanggil oleh stream atau playlist.",
+        trackersOn
+    ) { ShieldPrefs.setBlockTrackers(it) }
+    SwitchRow(
+        "Hapus header Referer",
+        "Mencegah server mengetahui halaman asal. Matikan bila channel IPTV tertentu menolak diputar.",
+        refererOff
+    ) { ShieldPrefs.setStripReferer(it) }
+    SettingsItem(
+        "Diblokir sesi ini: $blocked",
+        if (recent.isEmpty()) "Belum ada permintaan yang diblokir. Hanya host dan alasan yang dicatat, tidak pernah URL lengkap."
+        else recent.joinToString("\n") {
+            java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date(it.atMs)) +
+                "  " + it.host + " - " + it.reason
+        }
+    ) {}
     Category("Kebijakan URL")
     SettingsItem(
         "Daftar putih skema",

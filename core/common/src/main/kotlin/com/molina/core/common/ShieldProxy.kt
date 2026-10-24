@@ -52,10 +52,17 @@ object ShieldProxy {
         Thread(r, "molina-shield").apply { isDaemon = true }
     }
 
+    /** Sakelar pengguna (ShieldPrefs). Mati: [proxyUrl] null sehingga mpv tidak memakai proxy. */
+    @Volatile var enabled: Boolean = true
+
+    /** Buang header Referer sebelum diteruskan ke server asal (default mati: sebagian IPTV memerlukannya). */
+    @Volatile var stripReferer: Boolean = false
+
     fun isRunning(): Boolean = server?.isClosed == false
 
     /** URL proxy untuk opsi `http_proxy` FFmpeg, atau null bila Shield tidak berjalan. */
     fun proxyUrl(): String? {
+        if (!enabled) return null
         val s = server ?: return null
         if (s.isClosed) return null
         return "http" + "://" + USER + ":" + token + "@127.0.0.1:" + s.localPort
@@ -182,7 +189,7 @@ object ShieldProxy {
                 if (c <= 0) continue
                 if (l.indexOf('\n') >= 0 || l.indexOf('\r') >= 0) continue
                 val name = l.substring(0, c).trim().lowercase()
-                if (name in DROP_HEADERS) continue
+                if (name in DROP_HEADERS || (stripReferer && name == "referer")) continue
                 if (name == "host") hasHost = true
                 sb.append(l).append("\r\n")
             }
