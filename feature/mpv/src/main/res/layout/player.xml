@@ -24,7 +24,7 @@
             android:layout_alignParentBottom="true"
             android:layout_centerHorizontal="true"
             android:layout_marginLeft="24dp"
-            android:layout_marginTop="60dp"
+            android:layout_marginTop="0dp"
             android:layout_marginRight="24dp"
             android:layout_marginBottom="60dp"
             android:background="#bf000000"
@@ -214,13 +214,18 @@
             android:visibility="gone"
             tools:text="[gesture]" />
 
+        <!-- Lock / PiP / Settings: menempel di atas baris seekbar, rata kanan dengan teks end time.
+             marginRight 48dp = lebar nextBtn (baris seekbar dipaksa LTR, jadi pakai Right bukan End). -->
         <LinearLayout
             android:id="@+id/top_controls"
+            tools:ignore="RtlHardcoded"
             style="?buttonBarStyle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_alignParentTop="true"
-            android:layout_alignParentEnd="true"
+            android:layout_above="@id/controls"
+            android:layout_alignRight="@id/controls"
+            android:layout_marginRight="48dp"
+            android:layout_marginBottom="4dp"
             android:alpha="0.5"
             android:background="#bf000000"
             android:orientation="horizontal">
