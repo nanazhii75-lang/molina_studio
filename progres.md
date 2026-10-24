@@ -200,3 +200,10 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] fix(stream): .m3u/.pls masuk DIRECT_EXT sehingga tidak lewat yt-dlp (yt-dlp membaca .m3u sebagai 1 stream HLS); mpv memecah daftar sendiri - menunggu CI hijau
 - [ ] uji perangkat: https://iptv-org.github.io/iptv/countries/id.m3u -> playlist-count harus >1, daftar di PlaylistDialog terisi
 - [ ] jika masih 1: kirim log `playlist-count` dan baris `stream`/`policy` (cek load-unsafe-playlists)
+
+## 2026-10-25 - Molina Shield C1 (proxy keamanan jaringan)
+- [x] feat(security): ShieldProxy (proxy HTTP/CONNECT di 127.0.0.1, port acak + token), ShieldPolicy (cek IP hasil DNS, anti-rebinding, port sensitif), TrackerList, ShieldStats; mpv memakai http_proxy lewat stream-lavf-o/demuxer-lavf-o; whitelist protokol per entri + httpproxy - menunggu CI hijau
+- [x] terverifikasi dengan ffprobe 6.1 + proxy rujukan: HTTP memakai GET URL absolut, HTTPS memakai CONNECT, token lewat tantangan 407, HLS (playlist+segmen) lewat proxy, redirect ke loopback diblokir di lompatan kedua
+- [ ] belum terbukti: build FFmpeg n9.0.2 + mbedtls milik Molina (CONNECT + TLS verifikasi host), kompilasi Kotlin (belum dikompilasi di sandbox)
+- [ ] uji perangkat: IPTV id.m3u (http polos), https biasa, HLS, TikTok, dan http://127.0.0.1 / redirect ke LAN (harus diblokir, cek log 'shield')
+- [ ] tidak tercakup: rtmp/rtsp, yt-dlp di Debian. Berikutnya: C2 (pembersihan header, UI gembok) lalu D (perkecil build FFmpeg)

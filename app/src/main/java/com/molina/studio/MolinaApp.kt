@@ -5,6 +5,7 @@ import com.molina.cinema.MpvLifecycle
 import com.molina.core.common.AppLog
 import com.molina.core.common.CompositeStreamResolver
 import com.molina.core.common.GuardedStreamResolver
+import com.molina.core.common.ShieldProxy
 import com.molina.core.common.StreamResolvers
 import com.molina.engine.newpipe.NewPipeStreamResolver
 import com.molina.studio.log.LogBus
@@ -19,6 +20,8 @@ class MolinaApp : Application() {
     override fun onCreate() {
         super.onCreate()
         AppLog.install(LogBus)
+        // Molina Shield harus hidup sebelum mpv diinisialisasi (opsi http_proxy dibaca saat init).
+        ShieldProxy.start()
         MpvLifecycle.installExitHook()
         StreamEnginePrefs.init(this)
         PrivacyPrefs.init(this)

@@ -2,6 +2,7 @@ package com.molina.cinema
 
 import com.molina.core.common.AppLog
 import com.molina.core.common.LogLevel
+import com.molina.core.common.ShieldProxy
 import com.molina.core.common.StreamHeaders
 import com.molina.core.common.UrlPolicy
 
@@ -22,7 +23,8 @@ object MpvLoad {
     const val MAX_MEMORY_ENTRIES = 1000
 
     /** Satu-satunya protokol yang boleh dipakai ffmpeg untuk sumber http/https (termasuk redirect, segmen HLS/DASH). */
-    const val REMOTE_PROTOCOLS = "http,https,tls,tcp,crypto,data"
+    // httpproxy wajib: FFmpeg memakainya untuk tunnel CONNECT saat https lewat Molina Shield.
+    const val REMOTE_PROTOCOLS = "http,https,tls,tcp,crypto,data,httpproxy"
 
     /** Protokol ffmpeg yang tidak pernah dibutuhkan pemutar dan rawan disalahgunakan, berlaku untuk semua sumber. */
     const val GLOBAL_PROTOCOL_BLACKLIST = "concat,concatf,subfile,ftp,sftp,unix,md5,gopher,gophers,pipe,fd,tee"
@@ -80,7 +82,8 @@ object MpvLoad {
     fun lavfList(key: String, protocols: String): String = "$key=" + fixed(protocols)
 
     /** Nilai awal `stream-lavf-o` dan `demuxer-lavf-o` (global): blacklist protokol berbahaya. */
-    fun globalProtocolOption(): String = lavfList("protocol_blacklist", GLOBAL_PROTOCOL_BLACKLIST)
+    fun globalProtocolOption(): String =
+        lavfOptions(listOfNotNull("protocol_blacklist" to GLOBAL_PROTOCOL_BLACKLIST, proxyPair()))
 
     /**
      * Whitelist ketat per entri untuk http/https. Menimpa opsi global untuk entri itu saja. Skema lain
@@ -90,7 +93,7 @@ object MpvLoad {
         val scheme = UrlPolicy.scheme(url)
         if (scheme != "http" && scheme != "https") return emptyList()
         if (isPlaylistUrl(url)) return emptyList()
-        val v = fixed(lavfList("protocol_whitelist", REMOTE_PROTOCOLS))
+        val v = fixed(lavfOptions(listOfNotNull("protocol_whitelist" to REMOTE_PROTOCOLS, proxyPair())))
         return listOf("stream-lavf-o=$v", "demuxer-lavf-o=$v")
     }
 
@@ -98,6 +101,13 @@ object MpvLoad {
         val x = url.substringBefore("#").substringBefore("?").lowercase()
         return x.endsWith(".m3u") || x.endsWith(".m3u8") || x.endsWith(".pls")
     }
+
+    /** Beberapa pasangan key=value untuk satu opsi `*-lavf-o`, tiap nilai berawalan panjang-tetap. */
+    fun lavfOptions(pairs: List<Pair<String, String>>): String =
+        pairs.joinToString(",") { it.first + "=" + fixed(it.second) }
+
+    /** `http_proxy` Molina Shield bila proxy berjalan; null (tanpa proxy) bila tidak. */
+    fun proxyPair(): Pair<String, String>? = ShieldProxy.proxyUrl()?.let { "http_proxy" to it }
 
     private fun fixed(s: String): String = "%${s.toByteArray(Charsets.UTF_8).size}%$s"
 }
