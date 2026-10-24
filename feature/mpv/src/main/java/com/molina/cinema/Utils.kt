@@ -265,6 +265,43 @@ internal object Utils {
         return lines.joinToString("\n", "", "\n")
     }
 
+    private val NUM_PARTS = Regex("\\d+|\\D+")
+
+    /** Urutan alami: "ep2" sebelum "ep10", huruf besar/kecil diabaikan. */
+    fun naturalCompare(a: String, b: String): Int {
+        val x = NUM_PARTS.findAll(a.lowercase()).map { it.value }.toList()
+        val y = NUM_PARTS.findAll(b.lowercase()).map { it.value }.toList()
+        for (i in 0 until minOf(x.size, y.size)) {
+            val p = x[i]
+            val q = y[i]
+            val c = if (p[0].isDigit() && q[0].isDigit()) {
+                val pt = p.trimStart('0')
+                val qt = q.trimStart('0')
+                if (pt.length != qt.length) pt.length - qt.length else pt.compareTo(qt)
+            } else p.compareTo(q)
+            if (c != 0) return c
+        }
+        return x.size - y.size
+    }
+
+    /**
+     * Media satu folder dengan berkas [path] (urut alami) dan indeks berkas itu.
+     * Null bila bukan berkas lokal atau foldernya hanya berisi satu media.
+     */
+    fun folderPlaylist(path: String): Pair<List<String>, Int>? {
+        if (path.contains("://")) return null
+        val file = File(path)
+        if (!file.isFile) return null
+        val skip = setOf("cue", "m3u", "m3u8", "pls", "strm", "vlc")
+        val siblings = file.parentFile?.listFiles { f ->
+            f.isFile && !f.name.startsWith(".") &&
+                f.extension.lowercase().let { it in MEDIA_EXTENSIONS && it !in skip }
+        } ?: return null
+        val list = siblings.sortedWith { a, b -> naturalCompare(a.name, b.name) }.map { it.path }
+        val idx = list.indexOf(file.path)
+        return if (list.size > 1 && idx >= 0) Pair(list, idx) else null
+    }
+
     class AudioMetadata {
         var mediaTitle: String? = null
             private set

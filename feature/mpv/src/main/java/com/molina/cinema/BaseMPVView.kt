@@ -63,6 +63,26 @@ abstract class BaseMPVView(context: Context, attrs: AttributeSet) : SurfaceView(
         this.filePath = filePath
     }
 
+    private var folderFiles: List<String>? = null
+    private var folderIndex = 0
+
+    /**
+     * Mainkan satu folder sebagai playlist, mulai dari berkas ke-[index].
+     */
+    fun playFolder(files: List<String>, index: Int) {
+        folderFiles = files
+        folderIndex = index
+    }
+
+    private fun loadFolder(files: List<String>, index: Int) {
+        MPVLib.command(arrayOf("loadfile", files[index], "replace"))
+        files.forEachIndexed { i, f ->
+            if (i != index) MPVLib.command(arrayOf("loadfile", f, "append"))
+        }
+        // berkas terpilih dipindah ke urutan aslinya (setelah entri sebelumnya)
+        if (index > 0) MPVLib.command(arrayOf("playlist-move", "0", (index + 1).toString()))
+    }
+
     private var voInUse: String = "gpu"
 
     /**
@@ -86,7 +106,11 @@ abstract class BaseMPVView(context: Context, attrs: AttributeSet) : SurfaceView(
         // This forces mpv to render subs/osd/whatever into our surface even if it would ordinarily not
         MPVLib.setOptionString("force-window", "yes")
 
-        if (filePath != null) {
+        val folder = folderFiles
+        if (folder != null) {
+            loadFolder(folder, folderIndex)
+            folderFiles = null
+        } else if (filePath != null) {
             MPVLib.command(arrayOf("loadfile", filePath as String))
             filePath = null
         } else {

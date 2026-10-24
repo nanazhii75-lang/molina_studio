@@ -56,7 +56,7 @@ class MainScreenFragment : Fragment(R.layout.fragment_main_screen) {
                 lastPath = path
             }
             it.data?.getStringExtra("path")?.let { path ->
-                playFile(path)
+                playFile(path, folder = true)
                 return@registerForActivityResult
             }
             it.data?.getStringArrayExtra("paths")?.let { paths ->
@@ -204,7 +204,7 @@ class MainScreenFragment : Fragment(R.layout.fragment_main_screen) {
         }
     }
 
-    private fun playFile(filepath: String) {
+    private fun playFile(filepath: String, folder: Boolean = false) {
         val i: Intent
         if (filepath.startsWith("content://")) {
             i = Intent(Intent.ACTION_VIEW, Uri.parse(filepath))
@@ -212,6 +212,7 @@ class MainScreenFragment : Fragment(R.layout.fragment_main_screen) {
             i = Intent()
             // if we pass 'filepath' it will go directly to mpv without any processing
             i.putExtra("filepath", filepath)
+            if (folder) i.putExtra("folder_playlist", true)
         }
         i.setClass(requireContext(), MPVActivity::class.java)
         playerLauncher.launch(i)

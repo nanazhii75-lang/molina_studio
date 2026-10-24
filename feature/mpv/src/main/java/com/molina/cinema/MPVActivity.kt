@@ -304,7 +304,14 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         PlaybackLog.attach()
         player.addObserver(this)
         player.initialize(filesDir.path, cacheDir.path)
-        player.playFile(filepath)
+        val folder = if (intent.getBooleanExtra("folder_playlist", false) && isAllowedCustomPath(filepath))
+            Utils.folderPlaylist(filepath) else null
+        if (folder != null) {
+            MpvLog.i(TAG, "Playlist folder: ${folder.first.size} berkas")
+            player.playFolder(folder.first, folder.second)
+        } else {
+            player.playFile(filepath)
+        }
 
         mediaSession = initMediaSession()
         updateMediaSession()
