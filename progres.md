@@ -186,3 +186,9 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] uji perangkat: screenshot Terminal (harus hitam), Recents, sakelar Layar privat, TikTok tetap jalan
 
 - Audit jaringan tahap 3 (hanya baca): redirect/segmen/playlist belum dijaga UrlPolicy; protocol_whitelist belum ada; memory:// terblokir CONTROL_CHARS. Rencana: A (memory+skema), B (whitelist per entri), C (Molina Shield).
+
+## 2026-10-24 - Jaringan tahap 3 (A+B)
+- [x] fix(security): playlist memory:// diperiksa per baris lewat UrlPolicy (sebelumnya seluruh string ditolak CONTROL_CHARS), daftar skema intent disamakan dengan UrlPolicy, path privat dicek juga untuk file:// - menunggu CI hijau
+- [x] feat(security): ffmpeg protocol_blacklist global (concat, subfile, ftp, sftp, unix, md5, gopher, pipe, fd, tee) dan protocol_whitelist ketat per entri http/https (http,https,tls,tcp,crypto,data) - menunggu CI hijau
+- [ ] uji perangkat: https biasa, HLS (m3u8) jarak jauh, TikTok, bagikan 2+ berkas ke Molina (memory://), video lokal dari /sdcard, rtmp/rtsp bila ada
+- [ ] belum dijaga: redirect/segmen ke alamat privat (butuh Molina Shield, tahap C); m3u8 lokal belum dibatasi whitelist

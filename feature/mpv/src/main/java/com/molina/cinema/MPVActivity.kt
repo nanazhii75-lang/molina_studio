@@ -1319,8 +1319,16 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         if (path.isBlank()) return false
         if (path.contains("://")) {
             val scheme = path.substringBefore("://").lowercase()
-            return scheme in ALLOWED_CUSTOM_SCHEMES
+            if (scheme !in ALLOWED_CUSTOM_SCHEMES) return false
+            if (scheme == "file") return isOutsidePrivateData(Uri.parse(path).path)
+            return UrlPolicy.check(path) is UrlPolicy.Verdict.Allowed
         }
+        return isOutsidePrivateData(path)
+    }
+
+    // Path di dalam data privat aplikasi (termasuk lewat symlink) tidak boleh dibuka dari luar.
+    private fun isOutsidePrivateData(path: String?): Boolean {
+        if (path.isNullOrBlank()) return false
         return try {
             val real = File(path).canonicalPath
             val privateRoot = File(applicationInfo.dataDir).canonicalPath
@@ -1332,13 +1340,10 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
 
     private fun resolveUri(data: Uri): String? {
         val filepath = when (data.scheme) {
-            "file" -> data.path
+            "file" -> data.path?.takeIf { isOutsidePrivateData(it) }
             "content" -> translateContentUri(data)
-            // mpv supports data URIs but needs data:// to pass it through correctly
-            "data" -> "data://${data.schemeSpecificPart}"
-            "http", "https", "rtmp", "rtmps", "rtp", "rtsp", "mms", "mmst", "mmsh",
-            "tcp", "udp", "ftp"
-            -> data.toString()
+            // Skema lain (data, tcp, udp, ftp, mms, rtp) ditolak: tidak lolos UrlPolicy dan tidak dipakai.
+            "http", "https", "rtmp", "rtmps", "rtsp" -> data.toString()
             else -> null
         }
 
@@ -2499,9 +2504,9 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
     companion object {
         private const val TAG = "mpv"
         private const val MAX_MEMORY_PLAYLIST_ENTRIES = 1000
+        // Hanya skema yang juga diizinkan UrlPolicy.
         private val ALLOWED_CUSTOM_SCHEMES = setOf(
-            "http", "https", "rtmp", "rtmps", "rtp", "rtsp", "mms", "mmst", "mmsh",
-            "tcp", "udp", "ftp", "content", "file", "data"
+            "http", "https", "rtmp", "rtmps", "rtsp", "content", "file"
         )
         // how long should controls be displayed on screen (ms)
         private const val CONTROLS_DISPLAY_TIMEOUT = 1500L

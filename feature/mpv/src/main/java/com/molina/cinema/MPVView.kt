@@ -91,6 +91,10 @@ internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(cont
         MPVLib.setOptionString("ytdl", "no")
         // Daftar putar dari jaringan tidak boleh menyisipkan berkas lokal atau protokol lain.
         MPVLib.setOptionString("load-unsafe-playlists", "no")
+        // Lapisan ffmpeg: protokol berbahaya diblokir untuk semua sumber. Whitelist ketat untuk
+        // http/https dipasang per entri di MpvLoad.remoteProtocolOptions.
+        MPVLib.setOptionString("stream-lavf-o", MpvLoad.globalProtocolOption())
+        MPVLib.setOptionString("demuxer-lavf-o", MpvLoad.globalProtocolOption())
         MPVLib.setOptionString(
             "user-agent", "MolinaCinema/$appVersion")
         // Limit demuxer cache since the defaults are too high for mobile devices

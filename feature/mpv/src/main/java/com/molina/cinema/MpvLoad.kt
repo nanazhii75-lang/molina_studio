@@ -18,14 +18,23 @@ object MpvLoad {
     const val REPLACE = "replace"
     const val APPEND = "append"
 
+    private const val MEMORY_HEADER = "memory://#EXTM3U"
+    const val MAX_MEMORY_ENTRIES = 1000
+
+    /** Satu-satunya protokol yang boleh dipakai ffmpeg untuk sumber http/https (termasuk redirect, segmen HLS/DASH). */
+    const val REMOTE_PROTOCOLS = "http,https,tls,tcp,crypto,data"
+
+    /** Protokol ffmpeg yang tidak pernah dibutuhkan pemutar dan rawan disalahgunakan, berlaku untuk semua sumber. */
+    const val GLOBAL_PROTOCOL_BLACKLIST = "concat,concatf,subfile,ftp,sftp,unix,md5,gopher,gophers,pipe,fd,tee"
+
     fun loadfileArgs(url: String, flag: String, headers: Map<String, String>, title: String? = null): Array<String> {
         // Jaringan dianggap tidak tepercaya: URL yang melanggar kebijakan tidak pernah sampai ke mpv.
-        val verdict = UrlPolicy.check(url)
+        val verdict = if (isMemoryPlaylist(url)) memoryPlaylistVerdict(url) else UrlPolicy.check(url)
         if (verdict is UrlPolicy.Verdict.Blocked) {
             AppLog.log("net", LogLevel.Warn, "policy", "ditolak: ${verdict.reason.name}")
             return arrayOf("show-text", "Diblokir: ${verdict.reason.message}", "5000")
         }
-        val opts = listOfNotNull(headerOption(headers), titleOption(title))
+        val opts = listOfNotNull(headerOption(headers), titleOption(title)) + remoteProtocolOptions(url)
         if (opts.isEmpty()) return arrayOf("loadfile", url, flag)
         return arrayOf("loadfile", url, flag, "-1", opts.joinToString(","))
     }
@@ -43,6 +52,45 @@ object MpvLoad {
         if (clean.isEmpty()) return null
         val list = clean.entries.joinToString(",") { fixed("${it.key}: ${it.value}") }
         return "http-header-fields=" + fixed(list)
+    }
+
+    fun isMemoryPlaylist(url: String): Boolean = url.startsWith(MEMORY_HEADER, ignoreCase = true)
+
+    /**
+     * Playlist memory:// (bagikan banyak berkas) memuat baris baru, jadi tidak bisa diperiksa sebagai satu
+     * URL. Tiap baris diperiksa UrlPolicy; skema memory di dalam isi ditolak sendiri oleh UrlPolicy.
+     */
+    fun memoryPlaylistVerdict(url: String): UrlPolicy.Verdict {
+        if (!isMemoryPlaylist(url)) return UrlPolicy.Verdict.Blocked(UrlPolicy.Reason.BAD_SCHEME)
+        val entries = url.substring(MEMORY_HEADER.length)
+            .split('\n')
+            .map { it.trimEnd('\r') }
+            .filter { it.isNotEmpty() && !it.startsWith("#") }
+        if (entries.isEmpty() || entries.size > MAX_MEMORY_ENTRIES) {
+            return UrlPolicy.Verdict.Blocked(UrlPolicy.Reason.MALFORMED)
+        }
+        for (e in entries) {
+            val v = UrlPolicy.check(e)
+            if (v is UrlPolicy.Verdict.Blocked) return v
+        }
+        return UrlPolicy.Verdict.Allowed
+    }
+
+    /** Opsi ffmpeg `key=<daftar>` untuk `stream-lavf-o` / `demuxer-lavf-o` (daftar berawalan panjang-tetap). */
+    fun lavfList(key: String, protocols: String): String = "$key=" + fixed(protocols)
+
+    /** Nilai awal `stream-lavf-o` dan `demuxer-lavf-o` (global): blacklist protokol berbahaya. */
+    fun globalProtocolOption(): String = lavfList("protocol_blacklist", GLOBAL_PROTOCOL_BLACKLIST)
+
+    /**
+     * Whitelist ketat per entri untuk http/https. Menimpa opsi global untuk entri itu saja. Skema lain
+     * (berkas lokal, rtmp, rtsp) tidak diubah: tetap hanya kena blacklist global.
+     */
+    fun remoteProtocolOptions(url: String): List<String> {
+        val scheme = UrlPolicy.scheme(url)
+        if (scheme != "http" && scheme != "https") return emptyList()
+        val v = fixed(lavfList("protocol_whitelist", REMOTE_PROTOCOLS))
+        return listOf("stream-lavf-o=$v", "demuxer-lavf-o=$v")
     }
 
     private fun fixed(s: String): String = "%${s.toByteArray(Charsets.UTF_8).size}%$s"
