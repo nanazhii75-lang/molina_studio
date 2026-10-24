@@ -363,6 +363,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         PlaybackLog.detach()
         eventUiHandler.removeCallbacksAndMessages(null)
         fadeHandler.removeCallbacksAndMessages(null)
+        sleepTimer.cancel()
         stopServiceHandler.removeCallbacksAndMessages(null)
 
         if (becomingNoisyReceiverRegistered) {
@@ -1688,6 +1689,11 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
             false
         })
 
+        buttons.add(MenuItem(R.id.sleepTimerBtn) {
+            pickSleepTimer(restoreState)
+            false
+        })
+
         if (player.vid == -1)
             hiddenButtons.addAll(arrayOf(R.id.rowVideo1, R.id.rowVideo2, R.id.aspectBtn))
         if (player.aid == -1 || player.vid == -1)
@@ -1696,7 +1702,51 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
             hiddenButtons.addAll(arrayOf(R.id.subDelayBtn, R.id.rowSubSeek))
         /******/
 
-        genericMenu(R.layout.dialog_advanced_menu, buttons, hiddenButtons, restoreState)
+        genericMenu(R.layout.dialog_advanced_menu, buttons, hiddenButtons, restoreState) { v ->
+            if (sleepTimer.active) {
+                val left = ((sleepTimer.remainingMs() + 59_999L) / 60_000L).toInt()
+                v.findViewById<Button>(R.id.sleepTimerBtn).text =
+                    getString(R.string.sleep_timer_active, left)
+            }
+        }
+    }
+
+    private val sleepHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val sleepTimer = SleepTimer(
+        clock = { android.os.SystemClock.elapsedRealtime() },
+        postDelayed = { ms, r -> sleepHandler.postDelayed(r, ms) },
+        remove = { r -> sleepHandler.removeCallbacks(r) },
+        getVolume = { MPVLib.getPropertyDouble("volume") },
+        setVolume = { MPVLib.setPropertyDouble("volume", it) },
+        isPaused = { player.paused == true },
+        pause = { player.paused = true },
+        onExpired = {
+            MpvLog.i(TAG, "Sleep timer habis, pemutaran dijeda")
+            showToast(getString(R.string.sleep_timer_done))
+        },
+    )
+
+    /** Pilih durasi sleep timer (0 = matikan). Fade-out dan jeda diurus [SleepTimer]. */
+    private fun pickSleepTimer(restoreState: StateRestoreCallback) {
+        val minutes = intArrayOf(0, 15, 30, 45, 60, 90)
+        val labels = minutes.map {
+            if (it == 0) getString(R.string.sleep_timer_off) else getString(R.string.sleep_timer_min, it)
+        }.toTypedArray()
+        with (AlertDialog.Builder(this, R.style.AppTheme_PlayerDialog)) {
+            setTitle(R.string.sleep_timer)
+            setItems(labels) { dialog, idx ->
+                val m = minutes[idx]
+                sleepTimer.start(m)
+                MpvLog.i(TAG, "Sleep timer: $m menit")
+                showToast(
+                    if (m == 0) getString(R.string.sleep_timer_cancelled)
+                    else getString(R.string.sleep_timer_set, m)
+                )
+                dialog.dismiss()
+            }
+            setOnDismissListener { restoreState() }
+            create().show()
+        }
     }
 
     private var forcedAudioOnly = false

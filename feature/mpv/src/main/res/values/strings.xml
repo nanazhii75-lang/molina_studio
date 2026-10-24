@@ -219,4 +219,12 @@
     <!-- File picker -->
     <string name="nnf_name">Name</string>
     <string name="nnf_permission_external_write_denied">Permission to access file system denied</string>
+    <!-- Sleep timer -->
+    <string name="sleep_timer">Sleep timer</string>
+    <string name="sleep_timer_active">Sleep timer: %d min left</string>
+    <string name="sleep_timer_off">Off</string>
+    <string name="sleep_timer_min">%d min</string>
+    <string name="sleep_timer_set">Sleep timer set: %d min</string>
+    <string name="sleep_timer_cancelled">Sleep timer off</string>
+    <string name="sleep_timer_done">Sleep timer: playback paused</string>
 </resources>
