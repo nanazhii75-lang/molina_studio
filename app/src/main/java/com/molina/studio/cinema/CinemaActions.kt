@@ -21,8 +21,9 @@ internal object CinemaActions {
         val scheme = u.scheme?.lowercase() ?: return Input.Invalid
         val host = u.host?.lowercase().orEmpty()
         if (scheme !in SCHEMES || host.isEmpty()) return Input.Invalid
-        val yt = host == "youtu.be" || host.endsWith("youtube.com")
-        return if (yt) Input.NeedsExtractor else Input.Direct(u)
+        // YouTube dan situs lain sama-sama diteruskan ke MPVActivity; StreamLoader/NewPipe yang
+        // memutuskan apakah perlu resolve (5d-2a). NeedsExtractor tidak lagi dihasilkan.
+        return Input.Direct(u)
     }
 
     fun play(ctx: Context, uri: Uri): Boolean = start(
