@@ -50,3 +50,4 @@ Centang `[x]` bila lulus. Catat build (nomor Run CI) di atas hasil uji.
 - [ ] Simpan posisi (bila diaktifkan): tutup & buka ulang video yang sama, posisi lanjut
 - [ ] Ingat kecerahan (bila diaktifkan): kecerahan tersimpan antar sesi pemutaran
 - [ ] Peringatan keluar daftar putar aktif: coba keluar dari playlist, muncul dialog konfirmasi
+- [ ] Header stream (Fase 5c-hdr): putar URL dari server uji yang memantulkan header permintaan dengan intent ACTION_VIEW + extra `headers` (String[] [nama, nilai, ...]); header terkirim ke server, log hanya menampilkan jumlah 'dipakai/ditolak' (bukan isinya); header tak valid (spasi/CRLF/Host) ditolak; tanpa extra, perilaku sama seperti sebelumnya. Syarat: mpv mendukung `loadfile <url> <flag> -1 <opsi>` (mpv >= 0.38)
