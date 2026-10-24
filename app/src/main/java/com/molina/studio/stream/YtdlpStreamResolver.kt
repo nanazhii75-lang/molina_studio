@@ -11,6 +11,7 @@ import com.molina.core.common.StreamResolver
 import com.molina.core.common.StreamSearchItem
 import com.molina.core.common.YtdlUrls
 import com.molina.core.common.YtdlpCommand
+import com.molina.core.common.YtdlpFetch
 import com.molina.core.common.YtdlpParse
 import com.molina.core.common.YtdlpSearch
 
@@ -35,6 +36,7 @@ internal class YtdlpStreamResolver(
         }
         val where = LogRedact.target(pageUrl)
         AppLog.log("stream", LogLevel.Info, TAG, "resolve $where")
+        if (YtdlpFetch.needsLocalFetch(pageUrl)) return fetchLocal(bin, pageUrl, where)
         val o = YtdlpRunner.run(ctx, bin, YtdlpCommand.resolveArgs(pageUrl), RESOLVE_TIMEOUT_MS)
         if (o.timedOut) return fail(StreamError.NETWORK, "lewat waktu ${RESOLVE_TIMEOUT_MS / 1000}s ($where)")
         if (o.exit != 0) return failure(o.exit, o.stderr, where)
@@ -53,6 +55,27 @@ internal class YtdlpStreamResolver(
         if (o.timedOut) return fail(StreamError.NETWORK, "pencarian lewat waktu")
         if (o.exit != 0) return failure(o.exit, o.stderr, "pencarian")
         return StreamOutcome.Success(YtdlpSearch.parse(o.stdout.lines(), limit))
+    }
+
+    /**
+     * Mode unduh-ke-cache (TikTok): CDN-nya menolak mpv dengan 403, tetapi yt-dlp sendiri bisa
+     * mengambil berkasnya. yt-dlp mengunduh ke cache Debian, mpv memutar berkas lokalnya.
+     */
+    private suspend fun fetchLocal(bin: String, pageUrl: String, where: String): StreamOutcome<ResolvedStream> {
+        StreamCache.prune(ctx)
+        val o = YtdlpRunner.run(ctx, bin, YtdlpFetch.fetchArgs(pageUrl), FETCH_TIMEOUT_MS)
+        if (o.timedOut) return fail(StreamError.NETWORK, "unduhan lewat waktu ${FETCH_TIMEOUT_MS / 1000}s ($where)")
+        if (o.exit != 0) return failure(o.exit, o.stderr, where)
+        val d = YtdlpFetch.parseDownloaded(o.stdout)
+            ?: return fail(StreamError.PARSE, "keluaran unduhan tidak terbaca ($where)")
+        val file = StreamCache.resolveHost(ctx, d.guestPath)
+            ?: return fail(StreamError.PARSE, "berkas unduhan tidak ditemukan ($where)")
+        if (file.length() < MIN_LOCAL_BYTES) return fail(StreamError.PARSE, "berkas unduhan terlalu kecil ($where)")
+        file.setLastModified(System.currentTimeMillis())
+        AppLog.log("stream", LogLevel.Info, TAG, "unduh ke cache selesai ${file.length() / 1024} KB ($where)")
+        return StreamOutcome.Success(
+            ResolvedStream(url = file.absolutePath, title = d.title, durationSec = d.durationSec)
+        )
     }
 
     private fun unsupported(hint: String?): StreamOutcome.Failure {
@@ -77,6 +100,8 @@ internal class YtdlpStreamResolver(
     private companion object {
         const val TAG = "ytdlp"
         const val RESOLVE_TIMEOUT_MS = 75_000L
+        const val FETCH_TIMEOUT_MS = 120_000L
+        const val MIN_LOCAL_BYTES = 10_000L
         const val SEARCH_TIMEOUT_MS = 60_000L
     }
 }

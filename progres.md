@@ -169,3 +169,7 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] CI hijau: Refresh Sistem, yt-dlp resolver/pemasang, StreamEnginePrefs StateFlow (uji perangkat belum)
 - [ ] uji perangkat 1-5 (ikon Refresh, Mesin cadangan, TikTok/Facebook)
 - [ ] 5d-3: video terpisah (stream video + audio)
+
+## 2026-10-24 - TikTok 403 (unduh ke cache)
+- [x] fix(stream): TikTok 403 di mpv -> mode unduh-ke-cache (yt-dlp mengunduh, mpv memutar berkas lokal), StreamCache (maks 5 berkas/300 MB), mpv ytdl=no - menunggu CI hijau
+- [ ] uji perangkat: link TikTok, cek log 'unduh ke cache selesai'
