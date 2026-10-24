@@ -1,5 +1,6 @@
 package com.molina.cinema
 
+import com.molina.core.common.StreamHeaders
 import com.molina.cinema.databinding.PlayerBinding
 import com.molina.cinema.MPVLib.MpvEvent
 import android.animation.Animator
@@ -292,6 +293,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         val filepath = parsePathFromIntent(intent)
         if (intent.action == Intent.ACTION_VIEW) {
             parseIntentExtras(intent.extras)
+            intentHeaders = parseHeadersExtra(intent.extras)
         }
 
         if (filepath == null) {
@@ -315,7 +317,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
             MpvLog.i(TAG, "Playlist folder: ${folder.first.size} berkas")
             player.playFolder(folder.first, folder.second)
         } else {
-            player.playFile(filepath)
+            player.playFile(filepath, intentHeaders)
         }
 
         mediaSession = initMediaSession()
@@ -406,18 +408,20 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
             return
         }
         PlaybackLog.onRequest(filepath)
+        val headers = if (intent?.action == Intent.ACTION_VIEW)
+            parseHeadersExtra(intent?.extras) else emptyMap()
 
         if (!activityIsForeground && didResumeBackgroundPlayback) {
             if (this.newIntentReplace) {
-                MPVLib.command(arrayOf("loadfile", filepath, "replace"))
+                MPVLib.command(MpvLoad.loadfileArgs(filepath, MpvLoad.REPLACE, headers))
                 showToast(getString(R.string.notice_file_play))
             } else {
-                MPVLib.command(arrayOf("loadfile", filepath, "append"))
+                MPVLib.command(MpvLoad.loadfileArgs(filepath, MpvLoad.APPEND, headers))
                 showToast(getString(R.string.notice_file_appended))
             }
             moveTaskToBack(true)
         } else {
-            MPVLib.command(arrayOf("loadfile", filepath))
+            MPVLib.command(MpvLoad.loadfileArgs(filepath, MpvLoad.REPLACE, headers))
         }
     }
 
@@ -1222,7 +1226,23 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
             if (!it.isNullOrEmpty())
                 pushOption("force-media-title", it)
         }
-        // TODO: `headers` would be good, maybe `tls_verify`
+        // `headers` ditangani parseHeadersExtra (opsi loadfile per-entri). `tls_verify` sengaja
+        // tidak didukung: extra dari aplikasi lain tidak boleh melemahkan verifikasi TLS.
+    }
+
+    // Header HTTP dari extra intent: String[] berpasangan [nama1, nilai1, nama2, nilai2, ...]
+    // (konvensi pemutar Android lain). Disaring StreamHeaders; hanya jumlah yang dicatat, bukan isinya.
+    private fun parseHeadersExtra(extras: Bundle?): Map<String, String> {
+        val arr = extras?.getStringArray("headers") ?: return emptyMap()
+        val raw = LinkedHashMap<String, String>()
+        var i = 0
+        while (i + 1 < arr.size && i < 64) {
+            raw[arr[i] ?: ""] = arr[i + 1] ?: ""
+            i += 2
+        }
+        val clean = StreamHeaders.sanitize(raw)
+        MpvLog.i(TAG, "Header dari intent: ${clean.size} dipakai, ${raw.size - clean.size} ditolak")
+        return clean
     }
 
     // UI (Part 2)
@@ -2235,6 +2255,9 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
             }
         }
     }
+
+    // Header HTTP dari intent pembuka (hanya untuk berkas pertama), lihat parseHeadersExtra
+    private var intentHeaders: Map<String, String> = emptyMap()
 
     companion object {
         private const val TAG = "mpv"

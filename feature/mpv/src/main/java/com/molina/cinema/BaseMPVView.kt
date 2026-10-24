@@ -55,12 +55,15 @@ abstract class BaseMPVView(context: Context, attrs: AttributeSet) : SurfaceView(
     protected abstract fun observeProperties()
 
     private var filePath: String? = null
+    private var fileHeaders: Map<String, String> = emptyMap()
 
     /**
      * Set the first file to be played once the player is ready.
+     * [headers]: header HTTP untuk entri ini (disaring di MpvLoad); kosong = perilaku lama.
      */
-    fun playFile(filePath: String) {
+    fun playFile(filePath: String, headers: Map<String, String> = emptyMap()) {
         this.filePath = filePath
+        this.fileHeaders = headers
     }
 
     private var folderFiles: List<String>? = null
@@ -111,8 +114,9 @@ abstract class BaseMPVView(context: Context, attrs: AttributeSet) : SurfaceView(
             loadFolder(folder, folderIndex)
             folderFiles = null
         } else if (filePath != null) {
-            MPVLib.command(arrayOf("loadfile", filePath as String))
+            MPVLib.command(MpvLoad.loadfileArgs(filePath as String, MpvLoad.REPLACE, fileHeaders))
             filePath = null
+            fileHeaders = emptyMap()
         } else {
             // We disable video output when the context disappears, enable it back
             MPVLib.setPropertyString("vo", voInUse)
