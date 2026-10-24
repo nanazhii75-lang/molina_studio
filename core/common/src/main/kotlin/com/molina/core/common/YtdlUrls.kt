@@ -2,8 +2,10 @@ package com.molina.core.common
 
 /** Penyaring URL untuk jalur yt-dlp: URL media langsung tidak perlu memulai proses proot. */
 object YtdlUrls {
+    // m3u/pls = daftar putar IPTV: dibuka mpv sendiri agar tiap channel jadi entri.
+    // Lewat yt-dlp, .m3u dibaca sebagai SATU stream HLS (daftar hanya 1 item).
     private val DIRECT_EXT = setOf(
-        "m3u8", "mpd", "mp4", "m4v", "mkv", "webm", "mov", "avi", "flv", "ts",
+        "m3u8", "m3u", "pls", "mpd", "mp4", "m4v", "mkv", "webm", "mov", "avi", "flv", "ts",
         "mp3", "m4a", "aac", "opus", "ogg", "flac", "wav",
     )
 
