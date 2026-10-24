@@ -91,6 +91,19 @@ class MainActivity : ComponentActivity() {
         AppPaths.ensureIfPermitted(applicationContext)
     }
 
+    /** FLAG_SECURE + filter sentuhan sesuai sakelar Pengaturan > Keamanan dan privasi. */
+    private fun applyPrivacy() {
+        val on = com.molina.studio.security.PrivacyPrefs.secureScreen.value
+        if (on) window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+        else window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+        window.decorView.filterTouchesWhenObscured = on
+    }
+
+    override fun onDestroy() {
+        com.molina.studio.security.PrivacyPrefs.onChange = null
+        super.onDestroy()
+    }
+
     override fun onStop() {
         AppVisibility.setForeground(false)
         super.onStop()
@@ -102,6 +115,8 @@ class MainActivity : ComponentActivity() {
             checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
         ) storagePermission.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
         LogServer.start()
+        applyPrivacy()
+        com.molina.studio.security.PrivacyPrefs.onChange = { runOnUiThread { applyPrivacy() } }
         com.molina.studio.terminal.TerminalPrefs.init(applicationContext)
         com.molina.studio.terminal.CrashReporter.install(applicationContext)
         com.molina.studio.terminal.CrashReporter.notifyPending(applicationContext)

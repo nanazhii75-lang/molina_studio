@@ -4,6 +4,7 @@ import com.molina.core.common.PlaylistExtras
 import com.molina.core.common.PlaylistPlan
 import com.molina.core.common.RollingQueue
 import com.molina.core.common.StreamHeaders
+import com.molina.core.common.UrlPolicy
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -1387,6 +1388,11 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
 
             for (suburi in subList) {
                 val subfile = resolveUri(suburi) ?: continue
+                // MPVActivity exported: URL subtitle dari aplikasi lain tidak boleh melewati kebijakan URL.
+                if (UrlPolicy.check(subfile) is UrlPolicy.Verdict.Blocked) {
+                    MpvLog.i(TAG, "Subtitle dari intent ditolak kebijakan URL")
+                    continue
+                }
                 val flag = if (subsToEnable.any { it == suburi }) "select" else "auto"
 
                 MpvLog.v(TAG, "Adding subtitles from intent extras: $subfile")
@@ -1399,7 +1405,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         }
         extras.getString("title", "").let {
             if (!it.isNullOrEmpty())
-                pushOption("force-media-title", it)
+                pushOption("force-media-title", it.filter { c -> c >= ' ' && c != '\u007f' }.take(200))
         }
         // `headers` ditangani parseHeadersExtra (opsi loadfile per-entri). `tls_verify` sengaja
         // tidak didukung: extra dari aplikasi lain tidak boleh melemahkan verifikasi TLS.

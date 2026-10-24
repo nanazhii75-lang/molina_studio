@@ -179,3 +179,8 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 ## 2026-10-24 - Keamanan jaringan
 - [x] feat(security): UrlPolicy (daftar putih skema, blok loopback/metadata/SSRF, LAN opt-in), GuardedStreamResolver, gerbang di MpvLoad, mpv load-unsafe-playlists=no, yt-dlp --ignore-config, NetworkSecurityConfig, halaman Keamanan jaringan - menunggu CI hijau
 - [ ] uji perangkat: putar https biasa, TikTok, URL http://127.0.0.1 (harus ditolak), LAN dengan sakelar mati/hidup
+
+## 2026-10-24 - Pengerasan tahap 2
+- [x] feat(security): tahap 2 - gerbang URL untuk subtitle intent, judul intent dibersihkan, BROWSABLE dicabut dari filter berkas lokal, layar privat (FLAG_SECURE + filter sentuhan) dengan sakelar, scripts/native_audit.sh - menunggu CI hijau
+- [ ] jalankan `bash scripts/native_audit.sh` pada pustaka native hasil CI; catat peringatan RELRO/BIND_NOW
+- [ ] uji perangkat: screenshot Terminal (harus hitam), Recents, sakelar Layar privat, TikTok tetap jalan

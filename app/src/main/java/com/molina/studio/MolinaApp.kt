@@ -8,6 +8,7 @@ import com.molina.core.common.GuardedStreamResolver
 import com.molina.core.common.StreamResolvers
 import com.molina.engine.newpipe.NewPipeStreamResolver
 import com.molina.studio.log.LogBus
+import com.molina.studio.security.PrivacyPrefs
 import com.molina.studio.stream.StreamEnginePrefs
 import com.molina.studio.stream.YtdlpStreamResolver
 import com.molina.studio.system.MpvControl
@@ -20,6 +21,7 @@ class MolinaApp : Application() {
         AppLog.install(LogBus)
         MpvLifecycle.installExitHook()
         StreamEnginePrefs.init(this)
+        PrivacyPrefs.init(this)
         MpvControl.install(this)
         SystemRefresh.install(this)
         // NewPipe lebih dulu; yt-dlp (default mati, lihat Pengaturan) hanya untuk URL yang tak dikenalinya.

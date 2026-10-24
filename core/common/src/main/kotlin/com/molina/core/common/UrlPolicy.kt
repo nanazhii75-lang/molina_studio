@@ -30,7 +30,7 @@ object UrlPolicy {
         BAD_PORT("port tidak valid"),
         NON_ASCII_HOST("host non-ASCII ditolak (rawan penyamaran)"),
         LOOPBACK("alamat lokal perangkat atau metadata ditolak"),
-        PRIVATE_ADDRESS("alamat jaringan lokal ditolak (aktifkan di Keamanan jaringan)"),
+        PRIVATE_ADDRESS("alamat jaringan lokal ditolak (aktifkan di Keamanan dan privasi)"),
     }
 
     sealed interface Verdict {
