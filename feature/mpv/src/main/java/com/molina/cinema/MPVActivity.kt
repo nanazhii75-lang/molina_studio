@@ -1,5 +1,8 @@
 package com.molina.cinema
 
+import com.molina.core.common.PlaylistExtras
+import com.molina.core.common.PlaylistPlan
+import com.molina.core.common.RollingQueue
 import com.molina.core.common.StreamHeaders
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -84,6 +87,56 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
                     onLoaded()
                 }
                 is Prepared.Failed -> showToast(getString(StreamLoader.messageRes(p.error)), true)
+            }
+        }
+    }
+
+    // Playlist hasil pencarian (jendela bergulir): hanya diakses dari main thread.
+    private var rolling: RollingQueue? = null
+
+    /** Antrean dari extra Intent Cinema Home; null bila tidak ada atau tidak valid. */
+    private fun playlistFrom(intent: Intent?, current: String): RollingQueue? {
+        if (intent == null || intent.action != Intent.ACTION_VIEW) return null
+        // runCatching: extra dari aplikasi lain bisa berisi elemen null.
+        val plan = runCatching {
+            PlaylistPlan.parse(
+                intent.getStringArrayListExtra(PlaylistExtras.URLS),
+                intent.getStringArrayListExtra(PlaylistExtras.TITLES),
+                intent.getIntExtra(PlaylistExtras.INDEX, -1),
+                current
+            )
+        }.getOrNull() ?: return null
+        PlaybackLog.onPlaylist(plan.urls.size, plan.index + 1)
+        return RollingQueue(plan)
+    }
+
+    /**
+     * Dipanggil saat sebuah item selesai dimuat. Bila antrean mpv tak punya item sesudah posisi
+     * kini, item berikutnya di-resolve di latar lalu ditambahkan. Yang gagal dilewati.
+     */
+    private fun prefetchNext() {
+        val q = rolling ?: return
+        streamScope.launch {
+            val count = MPVLib.getPropertyInt("playlist-count") ?: return@launch
+            val pos = MPVLib.getPropertyInt("playlist-pos") ?: return@launch
+            var i = q.begin(count, pos) ?: return@launch
+            while (true) {
+                val p = StreamLoader.prepare(q.url(i))
+                if (rolling !== q) return@launch // playlist diganti saat menunggu
+                when (p) {
+                    is Prepared.Ready -> {
+                        val title = p.title ?: q.title(i).ifEmpty { null }
+                        MPVLib.command(MpvLoad.loadfileArgs(p.url, MpvLoad.APPEND, p.headers, title))
+                        q.succeeded()
+                        PlaybackLog.onPrefetched(i + 1, title.orEmpty())
+                        return@launch
+                    }
+                    is Prepared.Failed -> {
+                        PlaybackLog.onPrefetchSkipped(i + 1, p.error.name)
+                        if (!q.failed()) return@launch
+                        i = q.begin(count, pos) ?: return@launch
+                    }
+                }
             }
         }
     }
@@ -336,6 +389,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
 
         PlaybackLog.attach()
         player.addObserver(this)
+        rolling = playlistFrom(intent, filepath)
         player.initialize(filesDir.path, cacheDir.path)
         // Folder jadi playlist: dari pemilih lama (extra) atau dari Cinema Home (ACTION_VIEW)
         val folder = resolveFolderPlaylist(intent, filepath)
@@ -479,6 +533,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
 
     /** Ganti isi playlist: seluruh folder bila berlaku, kalau tidak berkas/URL tunggal. */
     private fun loadReplacing(intent: Intent?, filepath: String, headers: Map<String, String>) {
+        rolling = playlistFrom(intent, filepath)
         val folder = resolveFolderPlaylist(intent, filepath)
         if (folder != null) {
             MpvLog.i(TAG, "Playlist folder: ${folder.first.size} berkas")
@@ -2241,8 +2296,10 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         if (eventId == MpvEvent.MPV_EVENT_SHUTDOWN)
             finishWithResult(if (playbackHasStarted) RESULT_OK else RESULT_CANCELED)
 
-        if (eventId == MpvEvent.MPV_EVENT_FILE_LOADED)
+        if (eventId == MpvEvent.MPV_EVENT_FILE_LOADED) {
             PlaybackLog.onLoaded()
+            prefetchNext()
+        }
 
         if (eventId == MpvEvent.MPV_EVENT_START_FILE) {
             PlaybackLog.onStart()

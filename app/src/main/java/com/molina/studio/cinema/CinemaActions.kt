@@ -3,6 +3,9 @@ package com.molina.studio.cinema
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import com.molina.core.common.PlaylistExtras
+import com.molina.core.common.PlaylistPlan
+import com.molina.core.common.StreamSearchItem
 
 /** Peluncur Molina Cinema (MPVActivity) dan validasi input. Input pengguna dianggap tidak tepercaya. */
 internal object CinemaActions {
@@ -43,6 +46,25 @@ internal object CinemaActions {
             .setClassName(ctx.packageName, PLAYER)
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     )
+
+    /**
+     * Putar hasil yang diketuk dan jadikan hasil lain sebagai playlist (urutan sama dengan daftar).
+     * Bila kurang dari 2 hasil valid, jatuh ke pemutaran tunggal.
+     */
+    fun playResults(ctx: Context, items: List<StreamSearchItem>, picked: StreamSearchItem): Boolean {
+        val list = items.filter { PlaylistPlan.isWatchUrl(it.pageUrl) }.take(PlaylistPlan.MAX_ITEMS)
+        val idx = list.indexOfFirst { it.pageUrl == picked.pageUrl }
+        val uri = Uri.parse(picked.pageUrl)
+        if (idx < 0 || list.size < 2) return play(ctx, uri)
+        return start(
+            ctx,
+            Intent(Intent.ACTION_VIEW, uri)
+                .setClassName(ctx.packageName, PLAYER)
+                .putStringArrayListExtra(PlaylistExtras.URLS, ArrayList(list.map { it.pageUrl }))
+                .putStringArrayListExtra(PlaylistExtras.TITLES, ArrayList(list.map { it.title }))
+                .putExtra(PlaylistExtras.INDEX, idx)
+        )
+    }
 
     fun openSettings(ctx: Context): Boolean =
         start(ctx, Intent().setClassName(ctx.packageName, SETTINGS))

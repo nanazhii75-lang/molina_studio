@@ -129,7 +129,7 @@ fun CinemaHome(modifier: Modifier = Modifier) {
                         Modifier.fillMaxWidth().clickable {
                             showResults = false
                             val d = CinemaActions.classify(r.pageUrl)
-                            info = if (d is CinemaActions.Input.Direct && CinemaActions.play(ctx, d.uri)) "" else FAIL
+                            info = if (d is CinemaActions.Input.Direct && CinemaActions.playResults(ctx, results, r)) "" else FAIL
                         }.padding(vertical = 10.dp)
                     ) {
                         Text(r.title, maxLines = 2, overflow = TextOverflow.Ellipsis, fontSize = 15.sp)

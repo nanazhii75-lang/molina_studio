@@ -87,6 +87,22 @@ internal object PlaybackLog {
         MpvLog.i(TAG, sb.toString())
     }
 
+    /** Playlist pencarian diterima: [total] item, mulai dari nomor [start] (1-based). */
+    fun onPlaylist(total: Int, start: Int) {
+        MpvLog.i(TAG, "Playlist pencarian: $total item, mulai dari #$start")
+    }
+
+    /** Item nomor [number] (1-based) berhasil disiapkan dan ditambahkan ke antrean mpv. */
+    fun onPrefetched(number: Int, title: String) {
+        val t = LogRedact.text(title)
+        MpvLog.i(TAG, "Antrean +#$number" + (if (t.isNotEmpty()) " | judul $t" else ""))
+    }
+
+    /** Item nomor [number] gagal disiapkan dan dilewati; [reason] nama StreamError. */
+    fun onPrefetchSkipped(number: Int, reason: String) {
+        MpvLog.w(TAG, "Antrean lewati #$number | penyebab $reason")
+    }
+
     /** MPV_EVENT_END_FILE. Panggil SEBELUM psc.eof(). */
     fun onEnd(positionMs: Long, durationMs: Long) {
         // Tanpa START_FILE yang cocok (END_FILE ganda/sisa), jangan mencatat apa pun.
