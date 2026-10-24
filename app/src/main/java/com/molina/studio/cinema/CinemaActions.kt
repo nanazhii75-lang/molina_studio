@@ -9,21 +9,32 @@ internal object CinemaActions {
     private const val PLAYER = "com.molina.cinema.MPVActivity"
     private const val SETTINGS = "com.molina.cinema.preferences.PreferenceActivity"
     private val SCHEMES = setOf("http", "https", "rtsp", "rtmp", "rtmps")
+    private val BARE_HOSTS = listOf("www.", "youtu.be/", "youtube.com/", "m.youtube.com/", "music.youtube.com/")
 
     sealed interface Input {
         class Direct(val uri: Uri) : Input
-        object NeedsExtractor : Input
+        /** Bukan URL: diperlakukan sebagai kata kunci pencarian judul. */
+        object Query : Input
+        /** Mengandung "://" tetapi skema/host tidak didukung. */
         object Invalid : Input
+        object Empty : Input
+    }
+
+    /** Tambahkan https:// pada tautan tanpa skema yang jelas berupa host web (www., youtu.be, dst.). */
+    fun normalize(raw: String): String {
+        val t = raw.trim()
+        if (t.contains("://")) return t
+        return if (BARE_HOSTS.any { t.startsWith(it, ignoreCase = true) }) "https://$t" else t
     }
 
     fun classify(raw: String): Input {
-        val u = runCatching { Uri.parse(raw.trim()) }.getOrNull() ?: return Input.Invalid
-        val scheme = u.scheme?.lowercase() ?: return Input.Invalid
-        val host = u.host?.lowercase().orEmpty()
-        if (scheme !in SCHEMES || host.isEmpty()) return Input.Invalid
-        // YouTube dan situs lain sama-sama diteruskan ke MPVActivity; StreamLoader/NewPipe yang
-        // memutuskan apakah perlu resolve (5d-2a). NeedsExtractor tidak lagi dihasilkan.
-        return Input.Direct(u)
+        val t = normalize(raw)
+        if (t.isEmpty()) return Input.Empty
+        val u = runCatching { Uri.parse(t) }.getOrNull()
+        val scheme = u?.scheme?.lowercase()
+        val host = u?.host?.lowercase().orEmpty()
+        if (u != null && scheme in SCHEMES && host.isNotEmpty()) return Input.Direct(u)
+        return if (t.contains("://")) Input.Invalid else Input.Query
     }
 
     fun play(ctx: Context, uri: Uri): Boolean = start(
