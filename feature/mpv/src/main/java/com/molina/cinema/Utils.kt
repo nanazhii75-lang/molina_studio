@@ -466,24 +466,29 @@ internal object Utils {
         return if (t.startsWith("www.", ignoreCase = true)) "https://$t" else t
     }
 
-    class OpenUrlDialog(context: Context) {
-        val builder = AlertDialog.Builder(context)
+    class OpenUrlDialog(context: Context, themeRes: Int = 0) {
+        val builder = AlertDialog.Builder(context, themeRes)
         private val editText = EditText(builder.context)
         private lateinit var dialog: AlertDialog
 
+        private fun setConfirmEnabled(enabled: Boolean) {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = enabled
+            dialog.getButton(AlertDialog.BUTTON_NEUTRAL)?.isEnabled = enabled
+        }
+
         init {
             editText.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
+            editText.hint = context.getString(R.string.search_url_hint)
             editText.addTextChangedListener {
-                val positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
                 if (it.isNullOrEmpty()) {
                     editText.error = null
-                    positiveButton.isEnabled = false
+                    setConfirmEnabled(false)
                 } else if (validate(it.toString())) {
                     editText.error = null
-                    positiveButton.isEnabled = true
+                    setConfirmEnabled(true)
                 } else {
                     editText.error = context.getString(R.string.uri_invalid_protocol)
-                    positiveButton.isEnabled = false
+                    setConfirmEnabled(false)
                 }
             }
 
@@ -503,7 +508,7 @@ internal object Utils {
         fun create(): AlertDialog {
             dialog = builder.create()
             editText.post { // initial state
-                dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = false
+                setConfirmEnabled(false)
             }
             return dialog
         }

@@ -199,6 +199,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
             topLockBtn.setOnClickListener { lockUI() }
             topPiPBtn.setOnClickListener { goIntoPiP() }
             topMenuBtn.setOnClickListener { openTopMenu() }
+            topSearchBtn.setOnClickListener { openSearchUrl() }
             unlockBtn.setOnClickListener { unlockUI() }
             playbackDurationTxt.setOnClickListener {
                 useTimeRemaining = !useTimeRemaining
@@ -1261,6 +1262,32 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
             create()
         }
         dialog.show()
+    }
+
+    /** Ikon cari/URL di player: putar sekarang (replace) atau tambah ke antrean (append), tanpa keluar dari player. */
+    private fun openSearchUrl() {
+        val restoreState = pauseForDialog()
+        var playNow = false
+        val helper = Utils.OpenUrlDialog(this, R.style.AppTheme_PlayerDialog)
+        with (helper) {
+            builder.setPositiveButton(R.string.search_url_play) { _, _ ->
+                playNow = true
+                PlaybackLog.onRequest(helper.text)
+                MPVLib.command(arrayOf("loadfile", helper.text, "replace"))
+            }
+            builder.setNeutralButton(R.string.search_url_queue) { _, _ ->
+                PlaybackLog.onRequest(helper.text)
+                MPVLib.command(arrayOf("loadfile", helper.text, "append"))
+                showToast(getString(R.string.notice_file_appended), true)
+            }
+            builder.setNegativeButton(R.string.dialog_cancel) { dialog, _ -> dialog.cancel() }
+            builder.setOnDismissListener {
+                restoreState()
+                if (playNow)
+                    player.paused = false
+            }
+            create().show()
+        }
     }
 
     private fun openPlaylistMenu(restore: StateRestoreCallback) {

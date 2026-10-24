@@ -70,6 +70,9 @@
     <string name="action_settings">Settings</string>
     <string name="action_playlist">Playlist</string>
     <string name="action_open_url">Open URL</string>
+    <string name="search_url_hint">Paste link here</string>
+    <string name="search_url_play">Play</string>
+    <string name="search_url_queue">Add to queue</string>
     <string name="action_open_doc">Open document</string>
     <string name="action_open_doc_tree">Open document tree</string>
     <string name="action_pick_file">Pick file</string>
