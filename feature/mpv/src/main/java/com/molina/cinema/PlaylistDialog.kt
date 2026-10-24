@@ -7,6 +7,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 
@@ -30,6 +31,10 @@ internal class PlaylistDialog(
         fun openUrl()
         fun onItemPicked(item: MPVView.PlaylistItem)
         fun onPendingPicked(planIndex: Int) {}
+        /** Tombol Exit pada action bar. */
+        fun onExit() {}
+        /** Tombol Menu pada action bar (buka menu atas). */
+        fun onMenu() {}
     }
 
     var listeners: Listeners? = null
@@ -44,6 +49,10 @@ internal class PlaylistDialog(
 
         binding.fileBtn.setOnClickListener { listeners?.pickFile() }
         binding.urlBtn.setOnClickListener { listeners?.openUrl() }
+
+        binding.exitBtn.setOnClickListener { listeners?.onExit() }
+        binding.menuBtn.setOnClickListener { listeners?.onMenu() }
+        binding.infoBtn.setOnClickListener { showInfo() }
 
         binding.shuffleBtn.setOnClickListener {
             player.changeShuffle(true)
@@ -82,16 +91,29 @@ internal class PlaylistDialog(
         val shuffleState = player.getShuffle()
         binding.shuffleBtn.apply {
             isEnabled = playlist.size > 1
-            imageTintList = if (isEnabled)
-                ColorStateList.valueOf(if (shuffleState) accent else normal)
-            else
-                ColorStateList.valueOf(disabled)
+            val c = if (!isEnabled) disabled else if (shuffleState) accent else normal
+            setTextColor(c)
+            compoundDrawableTintList = ColorStateList.valueOf(c)
         }
         val repeatState = player.getRepeat()
         binding.repeatBtn.apply {
-            imageTintList = ColorStateList.valueOf(if (repeatState > 0) accent else normal)
-            setImageResource(if (repeatState == 2) R.drawable.ic_repeat_one_24dp else R.drawable.ic_repeat_24dp)
+            val c = if (repeatState > 0) accent else normal
+            setTextColor(c)
+            setCompoundDrawablesRelativeWithIntrinsicBounds(
+                0, if (repeatState == 2) R.drawable.ic_repeat_one_24dp else R.drawable.ic_repeat_24dp, 0, 0)
+            compoundDrawableTintList = ColorStateList.valueOf(c)
         }
+    }
+
+    private fun showInfo() {
+        val ctx = binding.root.context
+        val total = playlist.size + pendingRows.size
+        val pos = playlist.indexOfFirst { it.index == selectedIndex } + 1
+        val on = "ON"
+        val off = "OFF"
+        val rep = when (player.getRepeat()) { 2 -> "1"; 1 -> on; else -> off }
+        Toast.makeText(ctx, ctx.getString(R.string.tv_info_format, pos.coerceAtLeast(1), total,
+            if (player.getShuffle()) on else off, rep), Toast.LENGTH_LONG).show()
     }
 
     private fun clickItem(position: Int) {
@@ -108,21 +130,28 @@ internal class PlaylistDialog(
 
         class ViewHolder(private val parent: PlaylistDialog, view: View) :
             RecyclerView.ViewHolder(view) {
-            private val textView: TextView
+            private val textView: TextView = view.findViewById(android.R.id.text1)
+            private val numberView: TextView = view.findViewById(R.id.channelNumber)
 
             init {
-                textView = view.findViewById(android.R.id.text1)
                 view.setOnClickListener {
                     parent.clickItem(bindingAdapterPosition)
                 }
             }
 
-            fun bind(text: String, selected: Boolean, dim: Boolean = false) {
+            fun bind(number: Int, text: String, selected: Boolean, dim: Boolean = false) {
+                val ctx = textView.context
+                numberView.text = String.format("%03d", number)
                 textView.text = text
-                textView.alpha = if (dim) 0.5f else 1f
+                itemView.alpha = if (dim) 0.5f else 1f
+                // Baris terpilih: kotak biru ala menu TV; lainnya: baris gelap
+                itemView.setBackgroundResource(
+                    if (selected) R.drawable.bg_channel_selected else R.drawable.bg_channel_row)
                 textView.setTypeface(null, if (selected) Typeface.BOLD else Typeface.NORMAL)
-                textView.setTextColor(ContextCompat.getColor(textView.context,
-                    if (selected) R.color.player_playlist_active else R.color.player_dialog_text))
+                val textColor = ContextCompat.getColor(ctx, R.color.player_dialog_text)
+                textView.setTextColor(textColor)
+                // Nomor: kuning hijau ala daftar channel; saat terpilih jadi putih
+                numberView.setTextColor(if (selected) textColor else 0xFFC8E600.toInt())
             }
         }
 
@@ -136,9 +165,9 @@ internal class PlaylistDialog(
             if (position < parent.playlist.size) {
                 val item = parent.playlist[position]
                 val text = parent.titles()[item.filename] ?: item.title ?: Utils.fileBasename(item.filename)
-                viewHolder.bind(text, item.index == parent.selectedIndex)
+                viewHolder.bind(position + 1, text, item.index == parent.selectedIndex)
             } else {
-                viewHolder.bind(parent.pendingRows[position - parent.playlist.size].title, false, true)
+                viewHolder.bind(position + 1, parent.pendingRows[position - parent.playlist.size].title, false, true)
             }
         }
 

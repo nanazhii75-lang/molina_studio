@@ -1,115 +1,137 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Molina: menu atas ringkas dengan ikon. ID tombol sama seperti sebelumnya (MPVActivity.openTopMenu). -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical" android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp">
 
     <!-- Since this dialog does not scroll, don't add too many buttons here! -->
 
-    <TableRow
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
 
-        <Button
-            android:id="@+id/audioBtn"
-            style="@style/Widget.AppCompat.Button.Borderless"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/open_external_audio"
-            android:textAllCaps="false" />
+<Button
+        android:id="@+id/audioBtn"
+        style="@style/Widget.Molina.MenuItem"
+        android:layout_width="0dp"
+        android:layout_weight="1"
+        android:layout_height="wrap_content"
+        android:drawableStart="@drawable/ic_menu_audio_file"
+        android:text="@string/open_external_audio" />
 
-        <Button
-            android:id="@+id/subBtn"
-            style="@style/Widget.AppCompat.Button.Borderless"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/open_external_sub"
-            android:textAllCaps="false" />
-    </TableRow>
+<Button
+        android:id="@+id/subBtn"
+        style="@style/Widget.Molina.MenuItem"
+        android:layout_width="0dp"
+        android:layout_weight="1"
+        android:layout_height="wrap_content"
+        android:drawableStart="@drawable/ic_menu_subtitles"
+        android:text="@string/open_external_sub" />
+
+    </LinearLayout>
 
     <Button
         android:id="@+id/playlistBtn"
-        style="@style/Widget.AppCompat.Button.Borderless"
+        style="@style/Widget.Molina.MenuItem"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/action_playlist"
-        android:textAllCaps="false" />
+        android:drawableStart="@drawable/ic_menu_playlist"
+        android:text="@string/action_playlist" />
 
-    <TableRow
+    <LinearLayout
         android:id="@+id/rowMode"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
 
-        <Button
-            android:id="@+id/backgroundBtn"
-            style="@style/Widget.AppCompat.Button.Borderless"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/resume_bg_playback"
-            android:textAllCaps="false" />
+<Button
+        android:id="@+id/backgroundBtn"
+        style="@style/Widget.Molina.MenuItem"
+        android:layout_width="0dp"
+        android:layout_weight="1"
+        android:layout_height="wrap_content"
+        android:drawableStart="@drawable/ic_menu_headset"
+        android:text="@string/resume_bg_playback" />
 
-        <Button
-            android:id="@+id/audioOnlyBtn"
-            style="@style/Widget.AppCompat.Button.Borderless"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/audio_only_on"
-            android:textAllCaps="false" />
-    </TableRow>
+<Button
+        android:id="@+id/audioOnlyBtn"
+        style="@style/Widget.Molina.MenuItem"
+        android:layout_width="0dp"
+        android:layout_weight="1"
+        android:layout_height="wrap_content"
+        android:drawableStart="@drawable/ic_menu_audiotrack"
+        android:text="@string/audio_only_on" />
 
-    <TableRow
+    </LinearLayout>
+
+    <LinearLayout
         android:id="@+id/rowChapter"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
 
         <Button
             android:id="@+id/chapterBtn"
-            style="@style/Widget.AppCompat.Button.Borderless"
+            style="@style/Widget.Molina.MenuItem"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="4"
-            android:text="@string/chapter_button"
-            android:textAllCaps="false" />
+            android:layout_weight="3"
+            android:drawableStart="@drawable/ic_menu_chapters"
+            android:text="@string/chapter_button" />
 
         <Button
             android:id="@+id/chapterPrev"
-            style="@style/Widget.AppCompat.Button.Borderless"
+            style="@style/Widget.Molina.MenuItem"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
+            android:gravity="center"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
             android:background="@drawable/alpha_lighten"
-            android:text="@string/dialog_prev"
-            android:textAllCaps="false" />
+            android:text="@string/dialog_prev" />
 
         <Button
             android:id="@+id/chapterNext"
-            style="@style/Widget.AppCompat.Button.Borderless"
+            style="@style/Widget.Molina.MenuItem"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
+            android:gravity="center"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
             android:background="@drawable/alpha_lighten"
-            android:text="@string/dialog_next"
-            android:textAllCaps="false" />
+            android:text="@string/dialog_next" />
 
-    </TableRow>
+    </LinearLayout>
 
-    <Button
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+<Button
         android:id="@+id/advancedBtn"
-        style="@style/Widget.AppCompat.Button.Borderless"
-        android:layout_width="match_parent"
+        style="@style/Widget.Molina.MenuItem"
+        android:layout_width="0dp"
+        android:layout_weight="1"
         android:layout_height="wrap_content"
-        android:text="@string/advanced_menu"
-        android:textAllCaps="false" />
+        android:drawableStart="@drawable/ic_menu_tune"
+        android:text="@string/advanced_menu" />
 
-    <Button
+<Button
         android:id="@+id/orientationBtn"
-        style="@style/Widget.AppCompat.Button.Borderless"
-        android:layout_width="match_parent"
+        style="@style/Widget.Molina.MenuItem"
+        android:layout_width="0dp"
+        android:layout_weight="1"
         android:layout_height="wrap_content"
-        android:text="@string/switch_orientation"
-        android:textAllCaps="false" />
+        android:drawableStart="@drawable/ic_menu_rotate"
+        android:text="@string/switch_orientation" />
+
+    </LinearLayout>
 
 </LinearLayout>

@@ -228,3 +228,8 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] fix(search): NewPipe hanya mengambil 1 halaman (~10-20 video); kini lanjut halaman berikutnya (maks. 6) sampai 50 video, hasil tanpa duplikat; Cinema Home memakai batas yang sama (sebelumnya 15)
 - [ ] BELUM dikompilasi (menunggu CI) dan belum diuji di perangkat: ketik judul di dialog player, cek 50 hasil, ketuk = putar + antrean berlanjut, Add to queue, URL biasa tetap jalan, Open URL di layar utama/pemilih berkas tidak berubah
 - [ ] batas: antrean bergulir hanya untuk URL tonton YouTube; pencarian lewat yt-dlp (ytsearchN) tidak diubah
+
+## 2026-10-25 - Cinema UI menu atas + playlist TV
+- [x] feat(player-ui): dialog_top_menu kini berikon (ikon di kiri teks, 2 kolom ringkas, ID tombol tetap); style Widget.Molina.MenuItem dan Widget.Molina.TvKey
+- [x] feat(player-ui): Playlist ala daftar channel TV: nomor 001/002/..., baris terpilih kotak biru bergradasi, Shuffle dan Repeat pindah ke footer, action bar Shuffle/Repeat/Info/Menu/Exit, PICK FILE dan OPEN URL berikon tetap ada
+- [ ] BELUM dikompilasi (menunggu CI) dan belum diuji di perangkat: tampil di API 26, Shuffle/Repeat berubah warna, Info (toast), Menu membuka menu atas, Exit menutup, klik item = putar, antrean pending tampil redup

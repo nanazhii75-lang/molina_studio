@@ -244,4 +244,10 @@
     <string name="stream_err_network">Network problem or blocked by the site, try again</string>
     <string name="stream_err_parse">Could not read this page (the extractor may need an update)</string>
     <string name="stream_err_unknown">Could not resolve the stream</string>
+    <string name="tv_key_exit" translatable="false">Exit</string>
+    <string name="tv_key_info" translatable="false">Info</string>
+    <string name="tv_key_menu" translatable="false">Menu</string>
+    <string name="tv_key_shuffle" translatable="false">Shuffle</string>
+    <string name="tv_key_repeat" translatable="false">Repeat</string>
+    <string name="tv_info_format" translatable="false">Channel %1$03d dari %2$03d  |  Shuffle: %3$s  |  Repeat: %4$s</string>
 </resources>

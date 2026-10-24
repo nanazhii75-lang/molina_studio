@@ -1720,6 +1720,13 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
                 dialog.dismiss()
                 jumpToPending(planIndex)
             }
+
+            override fun onExit() = dialog.dismiss()
+
+            override fun onMenu() {
+                dialog.dismiss()
+                openTopMenu()
+            }
         }
 
         dialog = with (AlertDialog.Builder(this, R.style.AppTheme_PlayerDialog)) {
