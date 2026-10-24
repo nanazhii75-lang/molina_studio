@@ -192,3 +192,4 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] feat(security): ffmpeg protocol_blacklist global (concat, subfile, ftp, sftp, unix, md5, gopher, pipe, fd, tee) dan protocol_whitelist ketat per entri http/https (http,https,tls,tcp,crypto,data) - menunggu CI hijau
 - [ ] uji perangkat: https biasa, HLS (m3u8) jarak jauh, TikTok, bagikan 2+ berkas ke Molina (memory://), video lokal dari /sdcard, rtmp/rtsp bila ada
 - [ ] belum dijaga: redirect/segmen ke alamat privat (butuh Molina Shield, tahap C); m3u8 lokal belum dibatasi whitelist
+- 2026-10-24: Hasil uji IPTV Studio: URL yang diuji adalah stream langsung (bukan M3U), playlist-count=1 sehingga wajar. Dugaan whitelist/load-unsafe-playlists belum terbukti (belum ada uji dengan file .m3u). Studio belum punya fitur daftar channel IPTV; sumber daftar di Suite masih dicari. Catatan terpisah: h264_mediacodec "surface and native_window are NULL" (jatuh ke decode software).
