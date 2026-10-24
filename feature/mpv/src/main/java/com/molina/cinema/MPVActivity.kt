@@ -304,8 +304,13 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         PlaybackLog.attach()
         player.addObserver(this)
         player.initialize(filesDir.path, cacheDir.path)
-        val folder = if (intent.getBooleanExtra("folder_playlist", false) && isAllowedCustomPath(filepath))
+        // Folder jadi playlist: dari pemilih lama (extra) atau dari Cinema Home (ACTION_VIEW)
+        val wantFolder = intent.getBooleanExtra("folder_playlist", false) ||
+            (intent.action == Intent.ACTION_VIEW && MpvPrefs.current(this).playFolder)
+        val folder = if (wantFolder && isAllowedCustomPath(filepath))
             Utils.folderPlaylist(filepath) else null
+        if (wantFolder && folder == null)
+            MpvLog.i(TAG, "Playlist folder tidak dipakai (bukan berkas lokal atau folder hanya 1 media)")
         if (folder != null) {
             MpvLog.i(TAG, "Playlist folder: ${folder.first.size} berkas")
             player.playFolder(folder.first, folder.second)
