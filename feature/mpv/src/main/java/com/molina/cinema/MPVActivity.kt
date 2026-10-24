@@ -1548,6 +1548,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
             setOnDismissListener { restore() }
             create()
         }
+        dialog.window?.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
         dialog.show()
     }
 
@@ -1802,7 +1803,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         onViewReady(dialogView)
 
         for (button in buttons) {
-            val buttonView = dialogView.findViewById<Button>(button.idRes)
+            val buttonView = dialogView.findViewById<View>(button.idRes)
             buttonView.setOnClickListener {
                 val ret = button.handler()
                 if (ret) // restore state immediately
@@ -1916,8 +1917,13 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         /******/
 
         genericMenu(R.layout.dialog_top_menu, buttons, hiddenButtons, restoreState) { v ->
-            v.findViewById<Button>(R.id.audioOnlyBtn)
-                .setText(if (forcedAudioOnly) R.string.audio_only_off else R.string.audio_only_on)
+            v.findViewById<android.widget.ImageButton>(R.id.audioOnlyBtn).apply {
+                val label = getString(if (forcedAudioOnly) R.string.audio_only_off else R.string.audio_only_on)
+                contentDescription = label
+                tooltipText = label
+                imageTintList = ColorStateList.valueOf(ContextCompat.getColor(context,
+                    if (forcedAudioOnly) R.color.player_playlist_active else R.color.player_dialog_text))
+            }
         }
     }
 

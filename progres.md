@@ -233,3 +233,9 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] feat(player-ui): dialog_top_menu kini berikon (ikon di kiri teks, 2 kolom ringkas, ID tombol tetap); style Widget.Molina.MenuItem dan Widget.Molina.TvKey
 - [x] feat(player-ui): Playlist ala daftar channel TV: nomor 001/002/..., baris terpilih kotak biru bergradasi, Shuffle dan Repeat pindah ke footer, action bar Shuffle/Repeat/Info/Menu/Exit, PICK FILE dan OPEN URL berikon tetap ada
 - [ ] BELUM dikompilasi (menunggu CI) dan belum diuji di perangkat: tampil di API 26, Shuffle/Repeat berubah warna, Info (toast), Menu membuka menu atas, Exit menutup, klik item = putar, antrean pending tampil redup
+
+## 2026-10-25 - Cinema UI v2 (menu ikon-saja + pencarian playlist)
+- [x] feat(player-ui): menu atas hanya ikon (ImageButton, tooltip tekan-lama, ID tetap); Audio only aktif berwarna biru; chapter prev/next berikon
+- [x] feat(player-ui): playlist: tombol Cari (saring nama; ketik angka = lompat ke nomor channel, Enter = putar), penghitung 003/012 dan jam HH:mm di header; nomor channel tetap saat disaring
+- [ ] BELUM dikompilasi (menunggu CI) dan belum diuji di perangkat: keyboard + resize dialog, filter, lompat nomor, Enter memutar, ikon menu terbaca, audio-only toggle
+- [ ] belum dikerjakan: nama grup (header Semua/kiri-kanan) karena entri playlist belum membawa group-title M3U
