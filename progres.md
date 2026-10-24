@@ -152,3 +152,9 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] core:common YtdlUrls.needsYtdl + CompositeStreamResolver (menunggu CI)
 - [ ] app YtdlpRunner + YtdlpStreamResolver (sakelar default mati)
 - [ ] core:common Refreshable + ProcessReaper; ikon Refresh Sistem di Pengaturan
+
+## 2026-10-24 - Refresh Sistem + yt-dlp resolver (langkah 2 dan 3)
+- [x] core:common Refreshable/Refreshers, ProcessReaper (SIGTERM, tunggu, SIGKILL, verifikasi; lindungi diri, init, logcat), ProcFs, YtdlpCommand (argv proot, klasifikasi galat), YtdlpInstall (SHA2-256SUMS)
+- [x] app YtdlpRunner (satu proses sekali jalan, batas waktu/ukuran, pohon proses dimatikan), YtdlpStreamResolver (sakelar default mati), YtdlpInstaller (unduh + verifikasi SHA-256 ke rootfs), dipasang di MolinaApp lewat CompositeStreamResolver
+- [x] app ikon Refresh di Pengaturan (mpv, Terminal, Code disiapkan) + halaman Mesin cadangan (yt-dlp)
+- [ ] menunggu CI hijau, lalu uji perangkat

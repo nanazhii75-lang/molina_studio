@@ -53,7 +53,7 @@ object SettingsNav {
 }
 
 private enum class Page {
-    Home, Terminal, Debugging, TerminalIO, TerminalView, Tampilan, CrashReports, About, Log
+    Home, Terminal, Debugging, TerminalIO, TerminalView, Tampilan, CrashReports, About, Log, Stream
 }
 
 private fun parentOf(p: Page): Page? = when (p) {
@@ -73,6 +73,7 @@ private fun titleOf(p: Page): String = when (p) {
     Page.CrashReports -> "Crash Reporter"
     Page.About -> "About"
     Page.Log -> "Log"
+    Page.Stream -> "Mesin cadangan (yt-dlp)"
 }
 
 /**
@@ -83,6 +84,7 @@ private fun titleOf(p: Page): String = when (p) {
 @Composable
 fun SettingsScreen(modifier: Modifier = Modifier) {
     var page by rememberSaveable { mutableStateOf(Page.Home) }
+    var showRefresh by remember { mutableStateOf(false) }
     BackHandler(enabled = page != Page.Home) { page = parentOf(page) ?: Page.Home }
     LaunchedEffect(SettingsNav.openTerminal) {
         if (SettingsNav.openTerminal) {
@@ -104,14 +106,19 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
         if (up != null) {
             TextButton(onClick = { page = up }) { Text("\u2190 ${titleOf(up)}") }
         }
-        Text(
-            titleOf(page), style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.primary
-        )
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                titleOf(page), style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f)
+            )
+            if (page == Page.Home) RefreshIconButton { showRefresh = true }
+        }
+        if (showRefresh) SystemRefreshDialog { showRefresh = false }
         when (page) {
             Page.Home -> {
                 SettingsItem("Terminal", "Molina Terminal: debugging, I/O, tampilan") { page = Page.Terminal }
                 SettingsItem("Log", "Log aktivitas mpv, Terminal, dan sistem") { page = Page.Log }
+                SettingsItem("Mesin cadangan (yt-dlp)", "TikTok, Facebook, dll. lewat Debian (default mati)") { page = Page.Stream }
                 SettingsItem("About", "Versi dan lisensi") { page = Page.About }
             }
             Page.Terminal -> {
@@ -130,6 +137,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             Page.CrashReports -> CrashReportsPage()
             Page.About -> AboutPage()
             Page.Log -> {}
+            Page.Stream -> StreamEnginePage()
         }
     }
 }
@@ -373,7 +381,7 @@ private fun AboutPage() {
 // ---------- Komponen bersama ----------
 
 @Composable
-private fun Category(title: String) {
+internal fun Category(title: String) {
     Text(
         title, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp),
         color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge
@@ -381,7 +389,7 @@ private fun Category(title: String) {
 }
 
 @Composable
-private fun SettingsItem(title: String, subtitle: String, onClick: () -> Unit) {
+internal fun SettingsItem(title: String, subtitle: String, onClick: () -> Unit) {
     Column(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 14.dp)) {
         Text(
             title, color = MaterialTheme.colorScheme.onSurface,
@@ -395,7 +403,7 @@ private fun SettingsItem(title: String, subtitle: String, onClick: () -> Unit) {
 }
 
 @Composable
-private fun SwitchRow(title: String, summary: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+internal fun SwitchRow(title: String, summary: String, checked: Boolean, onChange: (Boolean) -> Unit) {
     Row(
         Modifier.fillMaxWidth().clickable { onChange(!checked) }.padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
