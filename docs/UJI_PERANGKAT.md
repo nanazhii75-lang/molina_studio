@@ -23,6 +23,8 @@ Centang `[x]` bila lulus. Catat build (nomor Run CI) di atas hasil uji.
 ## D. Service & Keluar
 - [ ] Notifikasi persisten (Buka/Keluar); sesi tetap hidup 5+ menit di background
 - [ ] Keluar: semua proses mati (`ps`), hilang dari recents
+- [ ] Notifikasi persisten mpv (prioritas rendah, tanpa bunyi) muncul saat video main di latar; Play/Pause (dan Prev/Next bila playlist) berfungsi dari notifikasi; badge LIVE ungu tampil di Cinema Home selama service aktif (catatan: `POST_NOTIFICATIONS` tidak berlaku di perangkat uji API 26; relevan hanya bila kelak diuji di Android 13+)
+- [ ] Keluar aplikasi (AppExit) saat BackgroundPlaybackService aktif: proses mpv berhenti, notifikasi & badge LIVE hilang, tidak ada service nyangkut (`dumpsys activity services` bersih dari BackgroundPlaybackService)
 
 ## E. Pengaturan (DataStore)
 - [ ] Ubah semua toggle Settings > Terminal, force-stop, buka: nilai tersimpan
@@ -32,6 +34,7 @@ Centang `[x]` bila lulus. Catat build (nomor Run CI) di atas hasil uji.
 - [ ] Settings > Log: event muncul, filter & hapus jalan, baris identik digabung
 - [ ] Bar status: net/CPU/RAM bergerak; berhenti saat app di background
 - [ ] Rotasi layar & 10 menit pemakaian: tanpa crash/ANR (cek juga saat startup)
+- [ ] Konsistensi warna: badge LIVE di Cinema Home dan ikon sumber mpv di tab Log memakai ungu yang sama (MolinaTheme.Cinema)
 ## G. Cinema / mpv (Fase 5)
 - [ ] Cinema Home: putar file lokal via File (SAF) dan via Tautan (http/https/rtsp/rtmp); URL YouTube ditolak (menunggu 5d)
 - [ ] Gestur: geser horizontal = maju/mundur, geser vertikal kiri = kecerahan, kanan = volume, tap kiri/tengah/kanan sesuai setelan
