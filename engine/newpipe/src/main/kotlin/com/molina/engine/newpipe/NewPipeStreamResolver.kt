@@ -27,6 +27,7 @@ import org.schabi.newpipe.extractor.exceptions.SignInConfirmNotBotException
 import org.schabi.newpipe.extractor.localization.ContentCountry
 import org.schabi.newpipe.extractor.localization.Localization
 import org.schabi.newpipe.extractor.search.SearchInfo
+import org.schabi.newpipe.extractor.services.youtube.YoutubeParsingHelper
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import org.schabi.newpipe.extractor.stream.StreamInfoItem
 import java.io.IOException
@@ -67,6 +68,7 @@ class NewPipeStreamResolver(
             StreamOutcome.Success(
                 ResolvedStream(
                     url = pick.url,
+                    headers = mapOf("User-Agent" to userAgentFor(pick.url)),
                     title = info.name?.takeIf { it.isNotBlank() },
                     durationSec = info.duration.takeIf { it > 0 },
                     expiresAtMs = StreamPicker.expiresAtMs(pick.url),
@@ -121,6 +123,18 @@ class NewPipeStreamResolver(
             null
         }
 
+    /** URL googlevideo terikat ke klien asalnya: UA harus cocok, jika tidak 403. Pola molina_suite. */
+    private fun userAgentFor(url: String): String = try {
+        when {
+            YoutubeParsingHelper.isIosStreamingUrl(url) -> YoutubeParsingHelper.getIosUserAgent(null)
+            YoutubeParsingHelper.isAndroidStreamingUrl(url) -> YoutubeParsingHelper.getAndroidUserAgent(null)
+            YoutubeParsingHelper.isVisionOsStreamingUrl(url) -> YoutubeParsingHelper.getVisionOsUserAgent(null)
+            else -> WEB_USER_AGENT
+        }
+    } catch (e: Exception) {
+        WEB_USER_AGENT
+    }
+
     private fun fail(error: StreamError, detail: String): StreamOutcome.Failure {
         AppLog.log(SOURCE, LogLevel.Warn, "resolve", "gagal $error: $detail")
         return StreamOutcome.Failure(error, detail)
@@ -136,6 +150,8 @@ class NewPipeStreamResolver(
 
     internal companion object {
         const val SOURCE = "newpipe"
+        const val WEB_USER_AGENT =
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:140.0) Gecko/20100101 Firefox/140.0"
         private val lock = Any()
         private var initialized = false
 

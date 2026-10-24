@@ -146,3 +146,9 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] core:common Refreshable + ProcessReaper (SIGTERM lalu SIGKILL grup proses)
 - [ ] app YtdlpRunner + YtdlpStreamResolver (sakelar default mati)
 - [ ] app ikon Refresh Sistem di Pengaturan (mpv / terminal / code nanti / semua)
+
+## 2026-10-24 - yt-dlp terpasang & langkah 1 resolver
+- [x] yt-dlp 2026.10.21 terpasang di rootfs Debian (zipapp, /root/.local/bin dan /usr/local/bin)
+- [x] core:common YtdlUrls.needsYtdl + CompositeStreamResolver (menunggu CI)
+- [ ] app YtdlpRunner + YtdlpStreamResolver (sakelar default mati)
+- [ ] core:common Refreshable + ProcessReaper; ikon Refresh Sistem di Pengaturan
