@@ -1,0 +1,166 @@
+package com.molina.engine.newpipe
+
+import com.molina.core.common.AppLog
+import com.molina.core.common.LogLevel
+import com.molina.core.common.ResolvedStream
+import com.molina.core.common.StreamError
+import com.molina.core.common.StreamOutcome
+import com.molina.core.common.StreamResolver
+import com.molina.core.common.StreamSearchItem
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.runInterruptible
+import org.schabi.newpipe.extractor.NewPipe
+import org.schabi.newpipe.extractor.ServiceList
+import org.schabi.newpipe.extractor.StreamingService
+import org.schabi.newpipe.extractor.exceptions.AgeRestrictedContentException
+import org.schabi.newpipe.extractor.exceptions.ContentNotAvailableException
+import org.schabi.newpipe.extractor.exceptions.ContentNotSupportedException
+import org.schabi.newpipe.extractor.exceptions.ExtractionException
+import org.schabi.newpipe.extractor.exceptions.GeographicRestrictionException
+import org.schabi.newpipe.extractor.exceptions.ParsingException
+import org.schabi.newpipe.extractor.exceptions.PrivateContentException
+import org.schabi.newpipe.extractor.exceptions.ReCaptchaException
+import org.schabi.newpipe.extractor.exceptions.SignInConfirmNotBotException
+import org.schabi.newpipe.extractor.localization.ContentCountry
+import org.schabi.newpipe.extractor.localization.Localization
+import org.schabi.newpipe.extractor.search.SearchInfo
+import org.schabi.newpipe.extractor.stream.StreamInfo
+import org.schabi.newpipe.extractor.stream.StreamInfoItem
+import java.io.IOException
+
+/**
+ * Implementasi [StreamResolver] berbasis NewPipeExtractor (resolusi langsung di perangkat, tanpa
+ * API resmi). Semua pekerjaan jaringan jalan di Dispatchers.IO lewat runInterruptible sehingga
+ * pembatalan coroutine menginterupsi thread (ditambah timeout di [MolinaDownloader]).
+ * Galat yang diharapkan dikembalikan sebagai [StreamOutcome.Failure]; pembatalan diteruskan.
+ */
+class NewPipeStreamResolver(
+    localization: Localization = Localization.DEFAULT,
+    country: ContentCountry = ContentCountry.DEFAULT,
+) : StreamResolver {
+
+    override val id: String = "newpipe"
+
+    init {
+        ensureInit(localization, country)
+    }
+
+    override fun canResolve(url: String): Boolean = serviceFor(url) != null
+
+    override suspend fun resolve(pageUrl: String): StreamOutcome<ResolvedStream> {
+        val service = serviceFor(pageUrl)
+            ?: return StreamOutcome.Failure(StreamError.UNSUPPORTED, "url tidak dikenali")
+        val started = System.nanoTime()
+        return try {
+            val info = runInterruptible(Dispatchers.IO) { StreamInfo.getInfo(service, pageUrl) }
+            val pick = StreamPicker.pick(info)
+                ?: return fail(StreamError.NOT_FOUND, "tidak ada stream yang bisa diputar")
+            val ms = (System.nanoTime() - started) / 1_000_000
+            AppLog.log(
+                SOURCE, LogLevel.Info, "resolve",
+                "OK layanan=${service.serviceInfo.name} jenis=${pick.kind}" +
+                    (if (pick.height > 0) " ${pick.height}p" else "") + " dalam ${ms}ms",
+            )
+            StreamOutcome.Success(
+                ResolvedStream(
+                    url = pick.url,
+                    title = info.name?.takeIf { it.isNotBlank() },
+                    durationSec = info.duration.takeIf { it > 0 },
+                    expiresAtMs = StreamPicker.expiresAtMs(pick.url),
+                ),
+            )
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            currentCoroutineContext().ensureActive() // interupsi akibat pembatalan bukan galat jaringan
+            failFrom("resolve", e)
+        }
+    }
+
+    override suspend fun search(query: String, limit: Int): StreamOutcome<List<StreamSearchItem>> {
+        val q = query.trim()
+        if (q.isEmpty()) return StreamOutcome.Success(emptyList())
+        return try {
+            val items = runInterruptible(Dispatchers.IO) {
+                val service = ServiceList.YouTube
+                val handler = service.searchQHFactory.fromQuery(q)
+                SearchInfo.getInfo(service, handler).relatedItems.orEmpty()
+            }
+            val out = items.asSequence()
+                .filterIsInstance<StreamInfoItem>()
+                .map { i ->
+                    StreamSearchItem(
+                        pageUrl = i.url,
+                        title = i.name.orEmpty(),
+                        uploader = i.uploaderName?.takeIf { it.isNotBlank() },
+                        durationSec = i.duration.takeIf { it >= 0 },
+                        thumbnailUrl = i.thumbnails.orEmpty().maxByOrNull { it.height }?.url,
+                    )
+                }
+                .take(limit.coerceAtLeast(0))
+                .toList()
+            AppLog.log(SOURCE, LogLevel.Info, "search", "OK ${out.size} hasil")
+            StreamOutcome.Success(out)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            currentCoroutineContext().ensureActive()
+            failFrom("search", e)
+        }
+    }
+
+    private fun serviceFor(url: String): StreamingService? =
+        try {
+            ServiceList.all().firstOrNull {
+                it.getLinkTypeByUrl(url) == StreamingService.LinkType.STREAM
+            }
+        } catch (e: Exception) {
+            null
+        }
+
+    private fun fail(error: StreamError, detail: String): StreamOutcome.Failure {
+        AppLog.log(SOURCE, LogLevel.Warn, "resolve", "gagal $error: $detail")
+        return StreamOutcome.Failure(error, detail)
+    }
+
+    /** Detail hanya nama kelas galat: pesan extractor bisa memuat URL/token. */
+    private fun failFrom(tag: String, e: Exception): StreamOutcome.Failure {
+        val error = map(e)
+        val detail = e.javaClass.simpleName
+        AppLog.log(SOURCE, LogLevel.Warn, tag, "gagal $error: $detail")
+        return StreamOutcome.Failure(error, detail)
+    }
+
+    internal companion object {
+        const val SOURCE = "newpipe"
+        private val lock = Any()
+        private var initialized = false
+
+        private fun ensureInit(l: Localization, c: ContentCountry) {
+            synchronized(lock) {
+                if (!initialized) {
+                    NewPipe.init(MolinaDownloader(), l, c)
+                    initialized = true
+                }
+            }
+        }
+
+        /** Urutan penting: subkelas lebih dulu dari induknya. */
+        fun map(e: Exception): StreamError = when (e) {
+            is AgeRestrictedContentException -> StreamError.AGE_RESTRICTED
+            is GeographicRestrictionException -> StreamError.GEO_BLOCKED
+            is PrivateContentException -> StreamError.PRIVATE
+            is ContentNotAvailableException -> StreamError.NOT_FOUND
+            is ContentNotSupportedException -> StreamError.UNSUPPORTED
+            is SignInConfirmNotBotException -> StreamError.NETWORK
+            is ParsingException -> StreamError.PARSE
+            is ReCaptchaException -> StreamError.NETWORK
+            is ExtractionException -> StreamError.UNKNOWN
+            is IOException -> StreamError.NETWORK
+            else -> StreamError.UNKNOWN
+        }
+    }
+}

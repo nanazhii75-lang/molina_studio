@@ -6,6 +6,7 @@ import os, re, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 ALLOWED_HOSTS = {
+    "jitpack.io",  # build-time saja: NewPipeExtractor (grup com.github.TeamNewPipe), dipin SHA-256
     "raw.githubusercontent.com",  # rootfs Debian (dipin ke commit + SHA-256)
     "schemas.android.com", "www.w3.org",  # namespace XML, bukan koneksi
     "mozilla.org", "www.gnu.org",  # teks lisensi di header berkas (MPL/LGPL), bukan koneksi

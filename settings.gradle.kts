@@ -3,7 +3,15 @@ pluginManagement {
 }
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-    repositories { google(); mavenCentral() }
+    repositories {
+        google(); mavenCentral()
+        // JitPack hanya untuk NewPipeExtractor + nanojson (grup com.github.TeamNewPipe); hash dipin
+        // di scripts/newpipe/pins.sha256 dan diverifikasi tugas verifyNewPipePins.
+        exclusiveContent {
+            forRepository { maven("https://jitpack.io") }
+            filter { includeGroup("com.github.TeamNewPipe") }
+        }
+    }
 }
 rootProject.name = "molina-studio"
-include(":app", ":core:common", ":core:storage", ":terminal-emulator", ":terminal-view", ":feature:mpv")
+include(":app", ":core:common", ":core:storage", ":terminal-emulator", ":terminal-view", ":feature:mpv", ":engine:newpipe")

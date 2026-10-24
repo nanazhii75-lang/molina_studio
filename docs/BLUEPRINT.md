@@ -160,7 +160,7 @@ progress_template = """# MOLINA STUDIO - FINAL ARCHITECTURE PROGRESS
 - [x] Prasyarat inti lunas: `MolinaPaths` + `AppPaths`, `MolinaApp` (`AppLog.install`), `ExitHooks`, `AppVisibility`; izin storage diminta sekali di `MainActivity`.
 - [x] 5a libmpv arm64 di CI (artefak dipin, hash terverifikasi).
 - [ ] 5b putar lokal + hook ExitHooks + MpvPrefs dan 5c event ke AppLog: KODE selesai, CI hijau; menunggu uji perangkat seksi G (`docs/UJI_PERANGKAT.md`) sebelum dicentang.
-- [ ] 5d NewPipe (`:engine:newpipe`): kontrak `StreamResolver` + header per entri selesai (CI hijau, belum diuji di perangkat); spike HIJAU (hash di `scripts/newpipe/pins.sha256`); modul belum dibuat.
+- [ ] 5d NewPipe (`:engine:newpipe`): kontrak `StreamResolver` + header per entri selesai (CI hijau, belum diuji di perangkat); spike HIJAU (hash di `scripts/newpipe/pins.sha256`); 5d-1: modul `:engine:newpipe` dibuat (NewPipeStreamResolver, MolinaDownloader HTTPS-only, StreamPicker, tugas verifyNewPipePins); belum dipakai UI, menunggu CI + uji perangkat.
 
 ### [Phase 6: Code Editor (Rosemoe)] - PLANNED (dikerjakan setelah Phase 5 mpv)
 - [x] Prasyarat modul: `:core:common` + `:core:storage`; `ExitHooks`; `LogLevel`/`LogEvent`/`LogSink`/`AppLog`; `AppVisibility`.
