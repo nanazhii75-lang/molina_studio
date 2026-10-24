@@ -41,6 +41,13 @@
         android:title="@string/pref_playlist_exit_warning_title" />
 
     <SwitchPreferenceCompat
+        android:defaultValue="true"
+        app:iconSpaceReserved="false"
+        android:key="play_folder"
+        android:summary="@string/pref_play_folder_summary"
+        android:title="@string/pref_play_folder_title" />
+
+    <SwitchPreferenceCompat
         android:defaultValue="false"
         app:iconSpaceReserved="false"
         android:key="remember_brightness"

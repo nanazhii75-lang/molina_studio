@@ -56,7 +56,7 @@ class MainScreenFragment : Fragment(R.layout.fragment_main_screen) {
                 lastPath = path
             }
             it.data?.getStringExtra("path")?.let { path ->
-                playFile(path, folder = true)
+                playFile(path, folder = MpvPrefs.current(requireContext()).playFolder)
                 return@registerForActivityResult
             }
             it.data?.getStringArrayExtra("paths")?.let { paths ->

@@ -147,6 +147,8 @@
 
     <string name="pref_playlist_exit_warning_title">Playlist exit confirmation</string>
     <string name="pref_playlist_exit_warning_summary">Show a confirmation dialog before exiting when a playlist is loaded.</string>
+    <string name="pref_play_folder_title">Play entire folder</string>
+    <string name="pref_play_folder_summary">When you open a local file, queue all media in the same folder as a playlist, starting from the chosen file.</string>
 
     <string name="pref_seek_gesture_smooth_title">Smoother seeking</string>
 

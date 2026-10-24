@@ -31,6 +31,7 @@ data class MpvSettings(
     val lastScreenBrightness: Int = -1,
     val ignoreAudioFocus: Boolean = false,
     val playlistExitWarning: Boolean = true,
+    val playFolder: Boolean = true,
     val newIntentReplace: Boolean = false,
     val seekGestureSmooth: Boolean = false,
 

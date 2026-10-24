@@ -127,6 +127,7 @@ object MpvPrefs {
             lastScreenBrightness = int(KEY_LAST_BRIGHTNESS, -1),
             ignoreAudioFocus = bool("ignore_audio_focus", false),
             playlistExitWarning = bool("playlist_exit_warning", true),
+            playFolder = bool("play_folder", true),
             newIntentReplace = bool("new_intent_replace", false),
             seekGestureSmooth = bool("seek_gesture_smooth", false),
 
