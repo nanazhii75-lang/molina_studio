@@ -541,3 +541,10 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] CI commit Play/preview: ISI SETELAH CEK TAB ACTIONS. Risiko: ClickableText, LazyColumn items(count), IntrinsicSize, withFrameNanos
 - [ ] uji perangkat: Play di .md/.json (valid dan rusak, lompat ke galat), .sh, .py (print + sleep, keluaran live), Berhenti, timeout, Debian belum terpasang, python3 belum ada, pindah tab saat berjalan
 - [ ] lanjut: Refreshers id "code", pratinjau HTML native, sinkron scroll editor-pratinjau, item menu "Script execution"
+
+## 2026-10-25 - Tinjauan halaman penuh [CODE-PREVIEW-FULLPAGE]
+- [x] feat(code): Play pada .md/.json membuka halaman Tinjauan penuh (appbar hitam: kembali, judul "Tinjauan", subjudul path berkas; isi native; tanpa toggle terang). Back sistem dan tombol panah menutupnya; bottom nav disembunyikan saat terbuka
+- [x] Panel bawah kini khusus Keluaran skrip (.sh/.py). Galat JSON: "Lompat ke baris" menutup Tinjauan dan menyorot posisi galat di editor
+- [x] Dampak: :feature:code (+androidx.activity:activity-compose:1.9.3, versi sama dengan :app), :app (MainActivity: sembunyikan bottom nav). Manifest dan JNI mpv tidak disentuh
+- [ ] CI commit Tinjauan penuh: ISI SETELAH CEK TAB ACTIONS. Risiko: BackHandler, clickable(indication = null)
+- [ ] uji perangkat: Play di .md -> halaman penuh; Back; ubah isi lalu Play lagi; JSON rusak -> lompat ke galat; bottom nav kembali muncul
