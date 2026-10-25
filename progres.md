@@ -278,3 +278,18 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Layar Tinjauan: hitam pekat, CSS Markdown, cegah kilatan putih
 - [x] Temuan: file tersimpan di root /storage/emulated/0/, usulan default ke folder kerja
 - [ ] Menunggu jawaban pertanyaan terbuka 12-16
+
+## 2026-10-25 - Sesi modul Code: kickoff [SESI-CODE-MODULE-KICKOFF-2026-10-25]
+- [x] Clone dan baca blueprint-code-editor v1-v3, HANDOFF, BLUEPRINT Fase 6
+- [x] Temuan: belum ada kode editor; tab Code masih placeholder; :app Compose, :feature:mpv View/XML
+- [ ] Menunggu konfirmasi tahapan dari pemilik dan jawaban pertanyaan terbuka (stack token, Rosemoe, SAF, toolbar A/B)
+
+## 2026-10-25 - Code Editor: keputusan pertanyaan terbuka [CODE-KEPUTUSAN-Q1-16]
+- [x] Stack: :feature:code (Compose) + Rosemoe via AndroidView; token Compose Color; akses file path langsung
+- [x] Toolbar Opsi A, 10 ikon 36dp (hitbox 48dp); Play menurut ekstensi (eksekusi menunggu CommandBus)
+- [x] Hapus menu 'Lakukan' dan toggle terang Tinjauan; 'Kirim ke Library' disembunyikan; Blok = cari dalam seleksi
+- [x] UTF-8 ketat (gagal = read-only + banner); simpan tanpa BOM, LF untuk file baru, line ending asli dipertahankan
+- [x] Tinjauan: WebView JS mati + commonmark-java (dependensi baru, wajib lolos telemetry_gate)
+- [x] Koreksi path: folder kerja/default simpan = /storage/emulated/0/molina-studio (bukan .../Molina)
+- [ ] Saran: Code=emas #FFB300, Settings=champagne #CDBFA3 di nav bawah (F5)
+- [ ] Berikutnya: F1 tokens + modul :feature:code (menyentuh settings.gradle.kts, app/build.gradle.kts, kemungkinan Manifest)
