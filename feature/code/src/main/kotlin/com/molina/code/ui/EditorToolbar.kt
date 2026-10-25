@@ -34,19 +34,18 @@ import androidx.compose.ui.unit.dp
 
 /**
  * Toolbar editor (F3, Opsi A): flat penuh lebar di Surface2 + rail emas. Grup:
- * [Simpan] | [Tempel Undo Redo] | [Cari Kiri Kanan] | [Tab Play] | [Tutup].
+ * [Simpan] | [Tempel Undo Redo] | [Cari Kiri Kanan] | [PilihSemuaSalin Play] | [Tutup].
  * Simpan, Cari, dan Play sudah tampil tetapi aksinya menyusul (F3e, F3c, fase Play).
  */
 @Composable
 internal fun EditorToolbar(
     tab: EditorTab,
-    tabCount: Int,
     onPaste: () -> Unit,
     onUndo: () -> Unit,
     onRedo: () -> Unit,
     onLeft: () -> Unit,
     onRight: () -> Unit,
-    onTabs: () -> Unit,
+    onSelectAllCopy: () -> Unit,
     onClose: () -> Unit
 ) {
     // Membaca revision memicu hitung ulang Undo/Redo setiap isi berubah.
@@ -54,6 +53,7 @@ internal fun EditorToolbar(
     val ed = tab.editor
     val canUndo = rev >= 0 && ed?.canUndo() == true
     val canRedo = rev >= 0 && ed?.canRedo() == true
+    val hasText = rev >= 0 && (ed?.text?.length ?: 0) > 0
 
     val ctx = LocalContext.current
     var hasClip by remember { mutableStateOf(false) }
@@ -109,9 +109,11 @@ internal fun EditorToolbar(
             ToolbarButton(ToolbarIcon.Left, CodeColors.IconDefault, enabled = true, onClick = onLeft)
             ToolbarButton(ToolbarIcon.Right, CodeColors.IconDefault, enabled = true, onClick = onRight)
             GroupDivider()
+            // Pilih semua lalu salin otomatis (keputusan pemilik; menggantikan "Manajemen tab")
             ToolbarButton(
-                ToolbarIcon.Tabs, CodeColors.IconDefault,
-                enabled = true, badge = tabCount, onClick = onTabs
+                ToolbarIcon.SelectAll,
+                if (hasText) CodeColors.IconDefault else CodeColors.IconDisabled,
+                enabled = hasText, onClick = onSelectAllCopy
             )
             // Play: file belum bisa dijalankan
             ToolbarButton(ToolbarIcon.Play, CodeColors.IconDisabled, enabled = false, onClick = {})

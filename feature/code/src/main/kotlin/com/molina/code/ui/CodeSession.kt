@@ -65,13 +65,6 @@ class CodeSession(val workDir: String) {
         if (tabs.any { it.id == id }) activeId = id
     }
 
-    /** Pindah ke tab berikutnya, melingkar. Dipakai tombol Tab di toolbar. */
-    fun selectNext() {
-        if (tabs.size < 2) return
-        val i = tabs.indexOfFirst { it.id == activeId }
-        activeId = tabs[(i + 1) % tabs.size].id
-    }
-
     /** Menutup tab. Selalu menyisakan satu tab kosong. Konfirmasi tab dirty ada di layar. */
     fun close(id: Int) {
         val index = tabs.indexOfFirst { it.id == id }

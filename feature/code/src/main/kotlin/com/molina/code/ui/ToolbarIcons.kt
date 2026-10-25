@@ -3,6 +3,7 @@ package com.molina.code.ui
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -10,9 +11,14 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale
 
 /** Ikon toolbar. Digambar dengan Canvas pada kisi 24x24 agar tanpa dependency ikon tambahan. */
-internal enum class ToolbarIcon { Save, Paste, Undo, Redo, Find, Left, Right, Tabs, Play, Close }
+internal enum class ToolbarIcon { Save, Paste, Undo, Redo, Find, Left, Right, SelectAll, Play, Close }
 
 private val IconStroke = Stroke(width = 2f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+
+private val DashStroke = Stroke(
+    width = 2f, cap = StrokeCap.Round, join = StrokeJoin.Round,
+    pathEffect = PathEffect.dashPathEffect(floatArrayOf(3f, 2.5f))
+)
 
 private fun icon(build: Path.() -> Unit): Path = Path().apply(build)
 
@@ -91,16 +97,20 @@ internal fun DrawScope.drawToolbarIcon(kind: ToolbarIcon, color: Color, dot: Boo
                 icon { moveTo(9f, 5f); lineTo(16f, 12f); lineTo(9f, 19f) },
                 color, style = IconStroke
             )
-            ToolbarIcon.Tabs -> {
+            ToolbarIcon.SelectAll -> {
+                // kotak putus-putus (pilihan) + kotak penuh (salinan)
                 drawPath(
                     icon {
-                        moveTo(3f, 9f); lineTo(15f, 9f); lineTo(15f, 20f)
-                        lineTo(3f, 20f); close()
+                        moveTo(3f, 3f); lineTo(15f, 3f); lineTo(15f, 15f)
+                        lineTo(3f, 15f); close()
                     },
-                    color, style = IconStroke
+                    color, style = DashStroke
                 )
                 drawPath(
-                    icon { moveTo(8f, 5f); lineTo(21f, 5f); lineTo(21f, 16f); lineTo(18f, 16f) },
+                    icon {
+                        moveTo(9f, 9f); lineTo(21f, 9f); lineTo(21f, 21f)
+                        lineTo(9f, 21f); close()
+                    },
                     color, style = IconStroke
                 )
             }

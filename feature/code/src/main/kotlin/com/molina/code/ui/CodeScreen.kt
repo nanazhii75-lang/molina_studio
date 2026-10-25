@@ -32,6 +32,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
 import io.github.rosemoe.sora.widget.SelectionMovement
 
 /**
@@ -41,6 +43,7 @@ import io.github.rosemoe.sora.widget.SelectionMovement
 @Composable
 fun CodeScreen(session: CodeSession, modifier: Modifier = Modifier) {
     var pendingClose by remember { mutableStateOf<EditorTab?>(null) }
+    val ctx = LocalContext.current
 
     Column(modifier.fillMaxWidth().background(CodeColors.EditorBg)) {
         PathHeader(session.workDir)
@@ -51,13 +54,20 @@ fun CodeScreen(session: CodeSession, modifier: Modifier = Modifier) {
         session.active?.let { tab ->
             EditorToolbar(
                 tab = tab,
-                tabCount = session.tabs.size,
                 onPaste = { tab.editor?.pasteText() },
                 onUndo = { tab.editor?.undo() },
                 onRedo = { tab.editor?.redo() },
                 onLeft = { tab.editor?.moveSelection(SelectionMovement.LEFT) },
                 onRight = { tab.editor?.moveSelection(SelectionMovement.RIGHT) },
-                onTabs = { session.selectNext() },
+                onSelectAllCopy = {
+                    tab.editor?.let { ed ->
+                        if (ed.text.length > 0) {
+                            ed.selectAll()
+                            ed.copyText()
+                            Toast.makeText(ctx, "Semua teks disalin", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                },
                 onClose = { if (tab.dirty) pendingClose = tab else session.close(tab.id) }
             )
         }
