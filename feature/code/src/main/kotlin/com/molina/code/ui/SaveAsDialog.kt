@@ -62,14 +62,15 @@ private const val MAX_EXT_LENGTH = 16
 /**
  * Dialog "Simpan sebagai" (F3e, blueprint bagian 20.3): nama berkas + titik + ekstensi dengan
  * saran, Enkode terkunci UTF-8, konfirmasi timpa. Folder tujuan = [CodeSession.defaultSaveDir];
- * pemilih folder menyusul bersama panel direktori (F4).
+ * pemilih folder lewat tombol UBAH (F4).
  */
 @Composable
 internal fun SaveAsDialog(session: CodeSession, req: SaveAsRequest) {
     val ctx = LocalContext.current
     val focusManager = LocalFocusManager.current
     val tab = req.tab
-    val dir = remember { session.defaultSaveDir(tab) }
+    var dir by remember { mutableStateOf(session.defaultSaveDir(tab)) }
+    var pickerOpen by remember { mutableStateOf(false) }
     val initial = tab.file?.name
 
     var name by remember { mutableStateOf(initial?.substringBeforeLast('.') ?: "") }
@@ -98,6 +99,11 @@ internal fun SaveAsDialog(session: CodeSession, req: SaveAsRequest) {
         val target = File(dir, FileStore.fullName(name, ext))
         if (target.isDirectory) {
             error = "Sudah ada folder bernama itu"
+            return
+        }
+        val holder = session.tabFor(target)
+        if (holder != null && holder !== tab) {
+            error = "Berkas itu sedang terbuka di tab lain"
             return
         }
         if (target.exists() && target != tab.file && !confirmOverwrite) {
@@ -131,11 +137,21 @@ internal fun SaveAsDialog(session: CodeSession, req: SaveAsRequest) {
             Spacer(Modifier.height(16.dp))
 
             Label("Folder:")
-            BasicText(
-                text = dir.path,
-                modifier = Modifier.padding(top = 2.dp),
-                style = TextStyle(color = CodeColors.TextSecondary, fontSize = 13.sp)
-            )
+            Row(
+                Modifier.fillMaxWidth().padding(top = 2.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                BasicText(
+                    text = dir.path,
+                    modifier = Modifier.weight(1f),
+                    style = TextStyle(color = CodeColors.TextSecondary, fontSize = 13.sp)
+                )
+                BasicText(
+                    text = "UBAH",
+                    modifier = Modifier.clickable { pickerOpen = true }.padding(start = 12.dp, top = 8.dp, bottom = 8.dp),
+                    style = TextStyle(color = CodeColors.Gold, fontSize = 13.sp)
+                )
+            }
             Spacer(Modifier.height(16.dp))
 
             Label("Nama Berkas:")
@@ -256,10 +272,25 @@ internal fun SaveAsDialog(session: CodeSession, req: SaveAsRequest) {
             }
         }
     }
+
+    if (pickerOpen) {
+        PickerDialog(
+            mode = PickMode.Folder,
+            start = dir,
+            title = "Pilih folder",
+            onPick = {
+                dir = it
+                pickerOpen = false
+                error = null
+                confirmOverwrite = false
+            },
+            onDismiss = { pickerOpen = false }
+        )
+    }
 }
 
 @Composable
-private fun Label(text: String) {
+internal fun Label(text: String) {
     BasicText(
         text = text,
         style = TextStyle(color = CodeColors.LabelChampagne, fontSize = 13.sp)
@@ -268,7 +299,7 @@ private fun Label(text: String) {
 
 /** Field satu baris dengan garis bawah: hairline saat idle, emas saat fokus. */
 @Composable
-private fun UnderlineField(
+internal fun UnderlineField(
     value: String,
     onChange: (String) -> Unit,
     hint: String,

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -46,7 +47,7 @@ import androidx.compose.ui.platform.LocalContext
 import io.github.rosemoe.sora.widget.SelectionMovement
 
 /**
- * Layar tab Code (F2, F3): header path, tab bar, editor, toolbar. Panel direktori (F4) belum ada.
+ * Layar tab Code (F2, F3, F4): header path, tab bar, editor, toolbar, dan panel direktori.
  * Menu titik tiga ada di OverflowMenu.kt (F3b). Semua warna/ukuran dari [CodeColors] dan [CodeDimens].
  */
 @Composable
@@ -55,38 +56,52 @@ fun CodeScreen(session: CodeSession, modifier: Modifier = Modifier) {
     val ctx = LocalContext.current
     SideEffect { session.toast = { msg -> Toast.makeText(ctx, msg, Toast.LENGTH_SHORT).show() } }
 
-    Column(modifier.fillMaxWidth().background(CodeColors.EditorBg)) {
-        PathHeader(session)
-        EditorTabBar(session) { tab ->
-            if (tab.dirty) pendingClose = tab else session.close(tab.id)
-        }
-        EditorHost(session, Modifier.weight(1f).fillMaxWidth())
-        if (session.find.open) {
-            session.active?.let { FindBar(session, it) }
-        }
-        session.active?.let { tab ->
-            EditorToolbar(
-                tab = tab,
-                onSave = { session.save(tab) },
-                onPaste = { tab.editor?.pasteText() },
-                onUndo = { tab.editor?.undo() },
-                onRedo = { tab.editor?.redo() },
-                onLeft = { tab.editor?.moveSelection(SelectionMovement.LEFT) },
-                onRight = { tab.editor?.moveSelection(SelectionMovement.RIGHT) },
-                onSelectAllCopy = {
-                    tab.editor?.let { ed ->
-                        if (ed.text.length > 0) {
-                            ed.selectAll()
-                            ed.copyText()
-                            Toast.makeText(ctx, "Semua teks disalin", Toast.LENGTH_SHORT).show()
+    Box(modifier.fillMaxWidth()) {
+        Column(Modifier.fillMaxSize().background(CodeColors.EditorBg)) {
+            PathHeader(session)
+            EditorTabBar(session) { tab ->
+                if (tab.dirty) pendingClose = tab else session.close(tab.id)
+            }
+            EditorHost(session, Modifier.weight(1f).fillMaxWidth())
+            if (session.find.open) {
+                session.active?.let { FindBar(session, it) }
+            }
+            session.active?.let { tab ->
+                EditorToolbar(
+                    tab = tab,
+                    onSave = { session.save(tab) },
+                    onPaste = { tab.editor?.pasteText() },
+                    onUndo = { tab.editor?.undo() },
+                    onRedo = { tab.editor?.redo() },
+                    onLeft = { tab.editor?.moveSelection(SelectionMovement.LEFT) },
+                    onRight = { tab.editor?.moveSelection(SelectionMovement.RIGHT) },
+                    onSelectAllCopy = {
+                        tab.editor?.let { ed ->
+                            if (ed.text.length > 0) {
+                                ed.selectAll()
+                                ed.copyText()
+                                Toast.makeText(ctx, "Semua teks disalin", Toast.LENGTH_SHORT).show()
+                            }
                         }
-                    }
-                },
-                onFind = { session.openFind() },
-                onClose = { if (tab.dirty) pendingClose = tab else session.close(tab.id) }
-            )
+                    },
+                    onFind = { session.openFind() },
+                    onClose = { if (tab.dirty) pendingClose = tab else session.close(tab.id) }
+                )
+            }
         }
+        // Pegangan geser dari tepi kiri area editor (di bawah header + tab bar, di atas toolbar)
+        EdgeSwipeHandle(
+            session,
+            Modifier
+                .align(Alignment.CenterStart)
+                .fillMaxHeight()
+                .width(CodeDimens.EdgeSwipeWidth)
+                .padding(top = CodeDimens.HeaderHeight + CodeDimens.TabBarHeight, bottom = CodeDimens.ToolbarHeight)
+        )
+        DirectoryPanel(session)
     }
+
+    FileDialogs(session)
 
     if (session.gotoOpen) {
         session.active?.let { GotoLineDialog(it) { session.gotoOpen = false } }
@@ -115,25 +130,39 @@ private fun Hairline() {
     Box(Modifier.fillMaxWidth().height(CodeDimens.Hairline).background(CodeColors.Hairline))
 }
 
-/** Header path folder kerja + tombol titik tiga yang membuka [OverflowMenu] (F3b). */
+/**
+ * Header: ikon folder (buka panel direktori), path berkas aktif (atau folder utama bila tab baru),
+ * chip status isi (Diubah / Tersimpan / Baru), dan tombol titik tiga yang membuka [OverflowMenu].
+ */
 @Composable
 private fun PathHeader(session: CodeSession) {
     var menuOpen by remember { mutableStateOf(false) }
+    val tab = session.active
+    val path = tab?.file?.path ?: session.dir.root.path
     Row(
         Modifier
             .fillMaxWidth()
             .height(CodeDimens.HeaderHeight)
-            .background(CodeColors.Surface1)
-            .padding(start = 12.dp),
+            .background(CodeColors.Surface1),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        Box(
+            Modifier
+                .width(CodeDimens.HeaderHeight)
+                .fillMaxHeight()
+                .clickable { session.dir.openPanel() },
+            contentAlignment = Alignment.Center
+        ) {
+            Canvas(Modifier.size(CodeDimens.DrawerHeaderIcon)) { drawDirIcon(DirIcon.Folder, CodeColors.FolderYellow) }
+        }
         BasicText(
-            text = session.workDir,
-            modifier = Modifier.weight(1f),
+            text = path,
+            modifier = Modifier.weight(1f).clickable { session.dir.openPanel() },
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             style = TextStyle(color = CodeColors.TextSecondary, fontSize = CodeDimens.PathTextSize)
         )
+        if (tab != null) StatusChip(tab)
         Box(
             Modifier
                 .width(CodeDimens.HeaderHeight)
@@ -148,6 +177,30 @@ private fun PathHeader(session: CodeSession) {
         }
     }
     Hairline()
+}
+
+/** Status isi tab: titik emas + "Diubah" bila beda dari yang tersimpan; "Tersimpan" bila sama; "Baru" bila belum punya berkas. */
+@Composable
+private fun StatusChip(tab: EditorTab) {
+    val label: String
+    val color: androidx.compose.ui.graphics.Color
+    when {
+        tab.loading -> { label = "Memuat"; color = CodeColors.IconDim }
+        tab.dirty -> { label = "Diubah"; color = CodeColors.Gold }
+        tab.file != null -> { label = "Tersimpan"; color = CodeColors.IconDim }
+        else -> { label = "Baru"; color = CodeColors.IconDim }
+    }
+    Row(Modifier.padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        if (tab.dirty && !tab.loading) {
+            Box(Modifier.size(CodeDimens.DirtyDot).background(CodeColors.Gold, CircleShape))
+            Spacer(Modifier.width(4.dp))
+        }
+        BasicText(
+            text = label,
+            maxLines = 1,
+            style = TextStyle(color = color, fontSize = CodeDimens.StatusTextSize)
+        )
+    }
 }
 
 @Composable

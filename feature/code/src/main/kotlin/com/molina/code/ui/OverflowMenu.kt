@@ -55,7 +55,7 @@ private const val MAX_SHARE_CHARS = 200_000
 /**
  * Menu titik tiga (F3b, blueprint bagian 14): 5 grup dipisah hairline, baris 44dp, tinggi maks 72%
  * layar, di-anchor kanan atas. Item yang fiturnya belum ada tampil redup dan menyala bertahap
- * sesuai fase (Buka/Muat ulang di F4, Cari/Pergi ke baris di F3c, dst).
+ * sesuai fase (Buka, Muat ulang, Aksi file aktif sejak F4).
  */
 @Composable
 internal fun OverflowMenu(session: CodeSession, onDismiss: () -> Unit) {
@@ -72,9 +72,19 @@ internal fun OverflowMenu(session: CodeSession, onDismiss: () -> Unit) {
                 session.saveAsActive()
                 onDismiss()
             },
-            MenuEntry("Buka"),
-            MenuEntry("Muat ulang"),
-            MenuEntry("Aksi file")
+            MenuEntry("Buka", enabled = true) {
+                session.picker = PickerRequest(PickMode.File, session.defaultOpenDir(), "Buka berkas") { session.openFile(it) }
+                onDismiss()
+            },
+            MenuEntry("Muat ulang", enabled = tab?.file != null && !tab.loading) {
+                session.reloadActive()
+                session.dir.refresh()
+                onDismiss()
+            },
+            MenuEntry("Aksi file", enabled = tab?.file != null) {
+                tab?.file?.let { session.fileDialog = FileDialog.Menu(it) }
+                onDismiss()
+            }
         ),
         listOf(
             MenuEntry("Cari", enabled = tab != null) { session.openFind(); onDismiss() },
@@ -97,6 +107,13 @@ internal fun OverflowMenu(session: CodeSession, onDismiss: () -> Unit) {
         listOf(
             MenuEntry("Syntax"),
             MenuEntry("Enkode: UTF-8 (terkunci)"),
+            MenuEntry("Akhir baris: ${tab?.eol?.label ?: "LF"}", enabled = tab != null && !tab.loading) {
+                tab?.let {
+                    it.eol = it.eol.other()
+                    it.recomputeDirty()
+                    session.scheduleDraft()
+                }
+            },
             MenuEntry("Gaya Visual"),
             MenuEntry("Pembungkus kata", enabled = tab != null, checked = tab?.wordWrap ?: true) {
                 tab?.let {

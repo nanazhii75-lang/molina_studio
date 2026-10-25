@@ -58,9 +58,11 @@ internal fun EditorTab.editorOrCreate(context: Context): CodeEditor {
     ed.subscribeEvent(ContentChangeEvent::class.java) { ev, _ ->
         // setText (pemulihan/muat) bukan edit pengguna: tidak boleh menandai dirty
         if (ev.action != ContentChangeEvent.ACTION_SET_NEW_TEXT) {
+            // Tandai dirty seketika, lalu bandingkan dengan isi tersimpan setelah edit berhenti:
+            // undo sampai kembali ke isi awal menghapus titik emas (blueprint bagian 31.2).
             dirty = true
-            edits++
             onEdited?.invoke()
+            scheduleDirtyCheck(ed)
         }
         // post: riwayat undo baru final setelah event selesai
         ed.post { revision++ }

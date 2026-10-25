@@ -2,6 +2,7 @@ package com.molina.code.ui
 
 import android.os.Handler
 import android.os.Looper
+import android.view.View
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -17,12 +18,15 @@ import java.util.concurrent.TimeUnit
 /**
  * Satu tab editor. Tiap tab punya instance editor sendiri (dibuat malas) sehingga isi, posisi
  * kursor, dan riwayat undo/redo terpisah per tab (blueprint bagian 7).
+ *
+ * Penanda dirty dibandingkan dengan isi tersimpan (baseline berupa sidik jari teks), jadi undo
+ * sampai kembali ke isi awal menghapus titik emas (blueprint bagian 31.2).
  */
 class EditorTab internal constructor(val id: Int, initialTitle: String) {
     var title by mutableStateOf(initialTitle)
         internal set
 
-    /** True bila isi berubah sejak dibuka/disimpan. Menjadi titik emas pada judul tab. */
+    /** True bila isi berbeda dari yang tersimpan/dibuka. Menjadi titik emas pada judul tab. */
     var dirty by mutableStateOf(false)
         internal set
 
@@ -30,7 +34,7 @@ class EditorTab internal constructor(val id: Int, initialTitle: String) {
     var file by mutableStateOf<File?>(null)
         internal set
 
-    /** True selama isi tab hasil pemulihan draf masih dibaca; editor dikunci agar tidak tertimpa. */
+    /** True selama isi tab masih dibaca dari disk/draf; editor dikunci agar tidak tertimpa. */
     var loading by mutableStateOf(false)
         internal set
 
@@ -48,17 +52,25 @@ class EditorTab internal constructor(val id: Int, initialTitle: String) {
     var findRevision by mutableIntStateOf(0)
         internal set
 
+    /** Akhir baris yang dipakai saat menulis ke disk. Editor sendiri selalu memegang teks LF. */
+    internal var eol by mutableStateOf(Eol.LF)
+
     /** State agar find bar dan toolbar ikut diperbarui begitu editor tab selesai dibuat. */
     internal var editor by mutableStateOf<CodeEditor?>(null)
 
-    /** Jumlah edit pengguna (bukan setText). Simpan async hanya membersihkan dirty bila angka ini tidak berubah. */
-    internal var edits = 0
+    /** Sidik jari isi tersimpan/dibuka (pembanding dirty). Tab "Baru" = sidik jari teks kosong. */
+    internal var baseFp: Long = FileStore.EMPTY_FP
+
+    /** Akhir baris pada isi tersimpan/dibuka. Beda dari [eol] = dirty (hanya akhir baris yang berubah). */
+    internal var baseEol: Eol = Eol.LF
 
     /** Teks hasil pemulihan yang menunggu editor dibuat. */
     internal var pendingText: String? = null
 
-    /** Dipasang sesi: dipanggil tiap edit pengguna untuk menjadwalkan autosave draf. */
+    /** Dipasang sesi: dipanggil tiap perubahan status isi untuk menjadwalkan autosave draf. */
     internal var onEdited: (() -> Unit)? = null
+
+    private val checkTask = Runnable { recomputeDirty() }
 
     /** Isi tab saat ini; null bila lebih panjang dari [maxChars] atau belum ada. */
     internal fun currentTextOrNull(maxChars: Int): String? {
@@ -71,18 +83,87 @@ class EditorTab internal constructor(val id: Int, initialTitle: String) {
         return if (p.length > maxChars) null else p
     }
 
-    /** Pasang isi hasil pemulihan. Aman dipanggil sebelum maupun sesudah editor dibuat. */
-    internal fun applyLoaded(text: String, asDirty: Boolean) {
+    /** Tab kosong yang belum pernah disentuh; boleh dipakai ulang saat membuka berkas. */
+    internal fun isPristine(): Boolean {
+        if (file != null || dirty || loading) return false
+        val len = editor?.text?.length ?: (pendingText?.length ?: 0)
+        return len == 0
+    }
+
+    /** Bandingkan isi sekarang dengan baseline. Dipanggil setelah edit (ditunda) dan setelah simpan/muat. */
+    internal fun recomputeDirty() {
+        if (loading) return
+        val ed = editor
+        val text: String? = if (ed != null) {
+            val c = ed.text
+            if (c.length > MAX_COMPARE_CHARS) null else c.toString()
+        } else {
+            pendingText ?: ""
+        }
+        val now = text == null || FileStore.fingerprint(text) != baseFp || eol != baseEol
+        if (now != dirty) {
+            dirty = now
+            onEdited?.invoke()
+        }
+    }
+
+    /** Tunda hitung ulang dirty sampai edit berhenti (trailing debounce), supaya mengetik tetap ringan. */
+    internal fun scheduleDirtyCheck(view: View) {
+        view.removeCallbacks(checkTask)
+        view.postDelayed(checkTask, DIRTY_CHECK_MS)
+    }
+
+    /** Isi [text] kini tersimpan di disk dengan akhir baris [savedEol]. */
+    internal fun markSaved(text: String, savedEol: Eol) {
+        baseFp = FileStore.fingerprint(text)
+        baseEol = savedEol
+        recomputeDirty()
+    }
+
+    /** Pasang isi bersih dari disk (buka atau muat ulang). Teks sudah LF. */
+    internal fun applyDiskText(text: String, fileEol: Eol) {
+        setBody(text)
+        eol = fileEol
+        baseEol = fileEol
+        baseFp = FileStore.fingerprint(text)
+        dirty = false
+        loading = false
+        editor?.setEditable(!readOnly)
+    }
+
+    /** Pasang isi dari draf: baseline dan akhir baris dikembalikan, lalu dirty dihitung ulang. */
+    internal fun applyDraft(text: String, draftEol: Eol, base: Long, baseEolSaved: Eol) {
+        setBody(text)
+        eol = draftEol
+        baseFp = base
+        baseEol = baseEolSaved
+        loading = false
+        editor?.setEditable(!readOnly)
+        dirty = true
+        recomputeDirty()
+    }
+
+    /** Berkas tab dihapus dari disk: isi tinggal di editor, jadi tab ditandai belum tersimpan. */
+    internal fun markOrphaned() {
+        file = null
+        baseFp = FileStore.ORPHAN_FP
+        dirty = true
+        onEdited?.invoke()
+    }
+
+    private fun setBody(text: String) {
         val ed = editor
         if (ed == null) pendingText = text else ed.setText(text)
-        dirty = asDirty
-        loading = false
-        ed?.setEditable(!readOnly)
     }
 
     internal fun disposeEditor() {
         editor?.release()
         editor = null
+    }
+
+    companion object {
+        private const val DIRTY_CHECK_MS = 150L
+        private const val MAX_COMPARE_CHARS = 2_000_000
     }
 }
 
@@ -90,8 +171,8 @@ class EditorTab internal constructor(val id: Int, initialTitle: String) {
 class SaveAsRequest internal constructor(val tab: EditorTab, val after: (() -> Unit)?)
 
 /**
- * Status layar Code: daftar tab dan tab aktif. Dibuat SATU kali di tingkat Activity supaya tab
- * tidak hilang saat pengguna pindah ke tab bawah lain.
+ * Status layar Code: daftar tab, tab aktif, dan panel direktori. Dibuat SATU kali di tingkat
+ * Activity supaya tab tidak hilang saat pengguna pindah ke tab bawah lain.
  *
  * Bila [draftDir] diberikan, tab beserta isi yang belum disimpan ditulis ke folder itu (autosave
  * berjeda 1,5 detik, plus [flushDrafts] saat Activity berhenti) dan dipulihkan saat sesi dibuat
@@ -109,6 +190,16 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
     var saveAs by mutableStateOf<SaveAsRequest?>(null)
         private set
 
+    /** Dialog aksi berkas (menu, ganti nama, hapus, baru). Dirender oleh [FileDialogs]. */
+    internal var fileDialog by mutableStateOf<FileDialog?>(null)
+
+    /** Pemilih berkas/folder yang sedang terbuka (null = tertutup). */
+    internal var picker by mutableStateOf<PickerRequest?>(null)
+
+    /** Tab dirty yang menunggu konfirmasi Muat ulang. */
+    internal var reloadConfirm by mutableStateOf<EditorTab?>(null)
+        private set
+
     var activeId by mutableIntStateOf(-1)
         private set
 
@@ -118,12 +209,15 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
     private var nextId = 1
     private var lastSaveDir: File? = null
 
-    private val main = Handler(Looper.getMainLooper())
+    internal val mainHandler = Handler(Looper.getMainLooper())
     private val io: ExecutorService = Executors.newSingleThreadExecutor { r ->
         Thread(r, "molina-code-io").apply { isDaemon = true }
     }
     private val store: DraftStore? = draftDir?.let { DraftStore(it) }
     private val draftTask = Runnable { persistDrafts() }
+
+    /** Panel direktori (F4). Folder utama awal = folder kerja. */
+    internal val dir = DirectoryState(this, File(workDir))
 
     val active: EditorTab?
         get() = tabs.firstOrNull { it.id == activeId }
@@ -183,6 +277,143 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
         scheduleDraft()
     }
 
+    // ---------------------------------------------------------------- Buka berkas (F4)
+
+    /** Tab yang sedang memegang [file] (dibandingkan lewat path kanonik), atau null. */
+    internal fun tabFor(file: File): EditorTab? {
+        val key = FileStore.keyOf(file)
+        return tabs.firstOrNull { t -> t.file?.let { FileStore.keyOf(it) } == key }
+    }
+
+    /** True bila ada tab yang berkasnya sama dengan atau berada di bawah [file] (folder). */
+    internal fun hasTabUnder(file: File): Boolean {
+        val key = FileStore.keyOf(file)
+        return tabs.any { t ->
+            val k = t.file?.let { FileStore.keyOf(it) } ?: return@any false
+            k == key || k.startsWith("$key/")
+        }
+    }
+
+    /** Folder awal pemilih Buka: folder berkas tab aktif, lalu folder utama panel. */
+    internal fun defaultOpenDir(): File = active?.file?.parentFile ?: dir.root
+
+    /**
+     * Buka berkas di tab. Berkas yang sudah terbuka hanya dipilih (tidak ada tab ganda). Tab "Baru"
+     * yang masih kosong dipakai ulang. Isi dibaca di thread IO; tab dikunci selama dibaca.
+     */
+    fun openFile(file: File) {
+        dir.closePanel()
+        val existing = tabFor(file)
+        if (existing != null) {
+            activeId = existing.id
+            return
+        }
+        val reuse = active?.takeIf { it.isPristine() }
+        val tab = reuse ?: newTab()
+        tab.file = file
+        tab.title = file.name
+        tab.loading = true
+        tab.editor?.setEditable(false)
+        dir.selected = file.path
+        scheduleDraft()
+        runIo {
+            val r = FileStore.readForOpen(file)
+            mainHandler.post {
+                if (tabs.none { it === tab }) return@post
+                val text = r.text
+                if (text == null) {
+                    toast(r.error ?: "Gagal membuka ${file.name}")
+                    if (reuse != null) {
+                        tab.file = null
+                        tab.title = nextUntitledTitle()
+                        tab.loading = false
+                        tab.editor?.setEditable(!tab.readOnly)
+                    } else {
+                        close(tab.id)
+                    }
+                } else {
+                    tab.applyDiskText(text, r.eol)
+                    if (r.hadBom) toast("BOM dibuang saat berkas disimpan")
+                }
+                scheduleDraft()
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------- Muat ulang (F4)
+
+    /** Muat ulang tab aktif dari disk. Tab dirty meminta konfirmasi dulu (buang perubahan). */
+    fun reloadActive() {
+        val tab = active ?: return
+        if (tab.file == null) {
+            toast("Berkas belum disimpan")
+            return
+        }
+        if (tab.loading) return
+        if (tab.dirty) reloadConfirm = tab else doReload(tab)
+    }
+
+    internal fun cancelReload() {
+        reloadConfirm = null
+    }
+
+    internal fun doReload(tab: EditorTab) {
+        reloadConfirm = null
+        val f = tab.file ?: return
+        tab.loading = true
+        tab.editor?.setEditable(false)
+        runIo {
+            val r = FileStore.readForOpen(f)
+            mainHandler.post {
+                if (tabs.none { it === tab }) return@post
+                val text = r.text
+                if (text == null) {
+                    toast(r.error ?: "Gagal memuat ulang ${f.name}")
+                    tab.loading = false
+                    tab.editor?.setEditable(!tab.readOnly)
+                } else {
+                    tab.applyDiskText(text, r.eol)
+                    toast("Dimuat ulang: ${f.name}")
+                }
+                scheduleDraft()
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------- Sinkron tab dengan operasi berkas (F4)
+
+    /** Berkas/folder [old] diganti nama jadi [new]: arahkan tab yang menunjuk ke sana. */
+    internal fun onRenamed(old: File, new: File) {
+        val oldKey = FileStore.keyOf(old)
+        for (t in tabs) {
+            val f = t.file ?: continue
+            val k = FileStore.keyOf(f)
+            if (k == oldKey) {
+                t.file = new
+                t.title = new.name
+            } else if (k.startsWith("$oldKey/")) {
+                t.file = File(new, k.substring(oldKey.length + 1))
+            }
+        }
+        scheduleDraft()
+    }
+
+    /** Berkas/folder [gone] dihapus: tab di dalamnya tetap terbuka sebagai belum tersimpan. */
+    internal fun onDeleted(gone: File) {
+        val key = FileStore.keyOf(gone)
+        var orphaned = 0
+        for (t in tabs) {
+            val f = t.file ?: continue
+            val k = FileStore.keyOf(f)
+            if (k == key || k.startsWith("$key/")) {
+                t.markOrphaned()
+                orphaned++
+            }
+        }
+        if (orphaned > 0) toast("Berkas dihapus dari disk. Tab tetap terbuka (belum disimpan)")
+        scheduleDraft()
+    }
+
     // ---------------------------------------------------------------- Simpan (F3e)
 
     /**
@@ -205,9 +436,9 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
         saveAs = null
     }
 
-    /** Folder awal dialog Simpan sebagai: folder berkas tab, lalu folder simpan terakhir, lalu folder kerja. */
+    /** Folder awal dialog Simpan sebagai: folder berkas tab, lalu folder simpan terakhir, lalu folder utama panel. */
     internal fun defaultSaveDir(tab: EditorTab): File =
-        tab.file?.parentFile ?: lastSaveDir ?: File(workDir)
+        tab.file?.parentFile ?: lastSaveDir ?: dir.root
 
     internal fun commitSaveAs(req: SaveAsRequest, target: File) {
         saveAs = null
@@ -217,25 +448,28 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
 
     private fun writeTab(tab: EditorTab, target: File, after: (() -> Unit)?) {
         val text = tab.currentTextOrNull(Int.MAX_VALUE) ?: ""
-        val mark = tab.edits
+        val eol = tab.eol
         runIo {
             val err = try {
-                FileStore.writeUtf8Atomic(target, text)
+                FileStore.writeUtf8Atomic(target, FileStore.applyEol(text, eol))
                 null
             } catch (e: Exception) {
                 e
             }
-            main.post {
+            mainHandler.post {
                 if (err != null) {
                     toast("Gagal menyimpan: ${err.message ?: err.javaClass.simpleName}")
                 } else {
                     tab.file = target
                     tab.title = target.name
-                    val unchanged = tab.edits == mark
-                    if (unchanged) tab.dirty = false
+                    // Baseline = isi yang barusan ditulis. Bila pengguna mengetik selama penulisan,
+                    // recomputeDirty membiarkan tab tetap dirty dan "after" tidak dijalankan.
+                    tab.markSaved(text, eol)
+                    dir.selected = target.path
+                    dir.refreshParentOf(target)
                     scheduleDraft()
                     toast("Tersimpan: ${target.name}")
-                    if (unchanged) {
+                    if (!tab.dirty) {
                         after?.invoke()
                     } else if (after != null) {
                         toast("Ada perubahan baru, tab tidak ditutup")
@@ -250,8 +484,8 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
     /** Jadwalkan tulis draf 1,5 detik setelah edit terakhir (debounce). */
     internal fun scheduleDraft() {
         if (store == null) return
-        main.removeCallbacks(draftTask)
-        main.postDelayed(draftTask, DRAFT_DELAY_MS)
+        mainHandler.removeCallbacks(draftTask)
+        mainHandler.postDelayed(draftTask, DRAFT_DELAY_MS)
     }
 
     private fun persistDrafts() {
@@ -263,7 +497,7 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
     /** Tulis draf sekarang dan tunggu selesai (maks 2 detik). Dipanggil dari Activity.onStop. */
     fun flushDrafts() {
         val st = store ?: return
-        main.removeCallbacks(draftTask)
+        mainHandler.removeCallbacks(draftTask)
         val snap = snapshot() ?: return
         try {
             io.submit(Runnable { st.write(snap) }).get(2, TimeUnit.SECONDS)
@@ -276,9 +510,12 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
         if (store == null) return null
         val entries = tabs.map { tab ->
             val text = if (tab.dirty && !tab.loading) tab.currentTextOrNull(MAX_DRAFT_CHARS) else null
-            DraftEntry(tab.id, tab.title, tab.file?.path, tab.dirty, tab.wordWrap, tab.readOnly, text)
+            DraftEntry(
+                tab.id, tab.title, tab.file?.path, tab.dirty, tab.wordWrap, tab.readOnly, text,
+                tab.eol, tab.baseEol, tab.baseFp
+            )
         }
-        return DraftSnapshot(activeId, nextId, entries)
+        return DraftSnapshot(activeId, nextId, entries, dir.root.path)
     }
 
     /** Pulihkan daftar tab dari draf. Isi dibaca di thread IO; tab dikunci (loading) sampai selesai. */
@@ -286,31 +523,32 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
         val st = store ?: return false
         val snap = st.load() ?: return false
         if (snap.tabs.isEmpty()) return false
+        snap.root?.let { dir.restoreRoot(File(it)) }
         for (t in snap.tabs) {
             val tab = EditorTab(t.id, t.title)
             tab.onEdited = { scheduleDraft() }
             tab.file = t.path?.let { File(it) }
             tab.wordWrap = t.wrap
             tab.readOnly = t.readOnly
+            tab.eol = t.eol
+            tab.baseEol = t.baseEol
+            tab.baseFp = t.baseFp
             tab.dirty = t.dirty
             tabs.add(tab)
             if (!t.dirty && tab.file == null) continue // tab kosong: tidak ada yang dibaca
             tab.loading = true
             runIo {
-                var text: String? = if (t.dirty) st.readDraft(t.id) else null
-                var asDirty = t.dirty
-                if (text == null) {
-                    text = tab.file?.let { FileStore.readUtf8OrNull(it) }
-                    asDirty = false
-                }
-                val loaded = text
-                val dirtyFinal = asDirty
-                main.post {
-                    if (loaded == null) {
+                val draft: String? = if (t.dirty) st.readDraft(t.id) else null
+                val disk: OpenResult? = if (draft == null) tab.file?.let { FileStore.readForOpen(it) } else null
+                mainHandler.post {
+                    val diskText = disk?.text
+                    if (draft != null) {
+                        tab.applyDraft(draft, t.eol, t.baseFp, t.baseEol)
+                    } else if (disk != null && diskText != null) {
+                        tab.applyDiskText(diskText, disk.eol)
+                    } else {
                         toast("Gagal memuat ${tab.title}")
                         close(tab.id)
-                    } else {
-                        tab.applyLoaded(loaded, dirtyFinal)
                     }
                 }
             }
@@ -320,7 +558,8 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
         return true
     }
 
-    private fun runIo(block: () -> Unit) {
+    /** Jalankan [block] di thread IO tunggal sesi. Aman dipanggil setelah sesi dilepas (diabaikan). */
+    internal fun runIo(block: () -> Unit) {
         try {
             io.execute(block)
         } catch (e: RejectedExecutionException) {
@@ -329,7 +568,7 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
     }
 
     fun releaseAll() {
-        main.removeCallbacks(draftTask)
+        mainHandler.removeCallbacks(draftTask)
         tabs.forEach { it.disposeEditor() }
         io.shutdown()
     }
