@@ -18,6 +18,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -124,6 +129,8 @@ private fun W7Header(
     actions: @Composable () -> Unit
 ) {
     val focus = LocalFocusManager.current
+    // Kolom cari hanya boleh fokus setelah disentuh pengguna (cegah fokus otomatis + keyboard).
+    val touched = remember { mutableStateOf(false) }
     Column(
         Modifier.fillMaxWidth()
             .background(Brush.verticalGradient(listOf(W7D.BarTop, W7D.BarBottom)))
@@ -159,7 +166,17 @@ private fun W7Header(
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(onSearch = { focus.clearFocus() }),
                 modifier = Modifier.weight(1f).height(30.dp).background(W7D.Field)
-                    .border(1.dp, W7D.Field).padding(horizontal = 8.dp),
+                    .border(1.dp, W7D.Field).padding(horizontal = 8.dp)
+                    .onFocusChanged { if (!it.isFocused) touched.value = false }
+                    .focusProperties { canFocus = touched.value }
+                    .pointerInput(Unit) {
+                        awaitPointerEventScope {
+                            while (true) {
+                                val e = awaitPointerEvent(PointerEventPass.Initial)
+                                if (e.changes.any { c -> c.pressed }) touched.value = true
+                            }
+                        }
+                    },
                 decorationBox = { inner ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(Modifier.weight(1f), Alignment.CenterStart) {

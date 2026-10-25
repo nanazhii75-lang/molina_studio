@@ -35,6 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -112,6 +113,9 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     var page by rememberSaveable { mutableStateOf(Page.Home) }
     var query by rememberSaveable { mutableStateOf("") }
     var showRefresh by remember { mutableStateOf(false) }
+    val focus = LocalFocusManager.current
+    // Lepas fokus (dan tutup keyboard) setiap kali halaman Settings berganti.
+    LaunchedEffect(page) { focus.clearFocus() }
     fun open(p: Page) { query = ""; page = p }
     BackHandler(enabled = query.isNotBlank() || page != Page.Home) {
         if (query.isNotBlank()) query = "" else page = parentOf(page) ?: Page.Home

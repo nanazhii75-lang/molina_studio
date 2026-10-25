@@ -564,3 +564,10 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi (CI). Risiko: rendah
 - [ ] uji perangkat: Home hanya ubin Sistem; klik Sistem tampil 4 elemen + card RAM; Back ke Home; pencarian "Log" dan "Keamanan" jalur "Settings > Sistem"; ikon refresh tetap jalan
 - [ ] keputusan: yt-dlp dan About tetap di Sistem, atau dipindah?
+
+## 2026-10-26 - Settings: keyboard tidak lagi terpicu otomatis [SETTINGS-NO-AUTOFOCUS]
+- [x] fix(settings): kolom "Cari setelan" hanya bisa fokus setelah disentuh (focusProperties + pointerInput); fokus otomatis saat Settings dibuka dicegah
+- [x] fix(settings): fokus dilepas setiap halaman Settings berganti (LaunchedEffect(page) clearFocus), keyboard menutup saat klik menu
+- [x] Dampak: app/.../settings/Win7SettingsUi.kt dan SettingsScreen.kt. Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi (CI). Risiko: rendah (focusProperties, onFocusChanged, pointerInput)
+- [ ] uji perangkat: buka Settings tanpa keyboard; ketuk kolom cari lalu ketik; klik menu menutup keyboard; Back dan pindah tab
