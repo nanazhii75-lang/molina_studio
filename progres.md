@@ -344,3 +344,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] uji perangkat: toolbar di atas nav, rail emas tipis; Tempel nonaktif saat clipboard kosong; Undo/Redo menyala setelah mengetik; kursor kiri/kanan; badge angka berubah saat + tab; Tab berpindah melingkar; Tutup tab dirty memunculkan dialog; keyboard terbuka: nav tersembunyi, toolbar menempel di atas keyboard; nav Code emas dan Settings champagne
 - [ ] terkait: putuskan penyatuan tiga emas (#E6B450, #FFB300, #E9B949) setelah melihat tampilan
 - [ ] berikutnya: F3b menu titik tiga, F3c find bar, F3d kursor/seleksi
+
+## 2026-10-25 - Nav bawah: palet diselaraskan [NAV-PALET-SELARAS]
+- [x] F3 toolbar hijau di CI (#107)
+- [x] style(nav): garis atas nav diganti rail emas 1dp (transparan, #FFB300 40%, transparan) selaras rail toolbar Code; tab mpv #B388FF menjadi #B9A7E8, Terminal #69F0AE menjadi #8FCBA6 (hue dipertahankan agar cocok dengan aksen Cinema/Terminal di dalam layar)
+- [x] Dampak: hanya warna dan tinggi garis di MainActivity.kt. Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi (menunggu CI). Risiko rendah (nilai warna dan satu lambda listOf)
+- [ ] temuan: latar nav sebenarnya #0A0A0F (MolinaTheme.Background), bukan #2A2218 seperti asumsi blueprint, sehingga toolbar cokelat hangat Code duduk di atas nav hitam dingin; menunggu keputusan pemilik
+- [ ] terkait: putuskan penyatuan tiga emas (#E6B450, #FFB300, #E9B949) setelah melihat tampilan
