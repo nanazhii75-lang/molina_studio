@@ -332,3 +332,15 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] menunggu CI. Risiko: AAR 0.23.6 dibangun AGP 8.8.0 vs proyek 8.7.3; ketersediaan 0.23.6 di Maven Central belum terverifikasi langsung
 - [ ] jalur naik versi (AGP + Kotlin 2.2+ + compileSdk 36 untuk semua modul) ditunda sebagai tugas tersendiri
 - [x] Pemilik menyetujui warna nav bawah (Code #FFB300, Settings #CDBFA3) dikerjakan bersamaan F3 setelah CI hijau
+
+## 2026-10-25 - Code Editor F3: toolbar + warna nav [CODE-F3-TOOLBAR]
+- [x] F2 hijau di CI (#106) setelah Rosemoe 0.23.6
+- [x] feat(code): EditorToolbar (Opsi A: flat Surface2 + rail emas, 10 ikon Canvas rata lebar, pembatas grup, badge jumlah tab), ToolbarIcons.kt, token ToolbarIconSize; efek tekan gold 16% menggantikan ripple bawaan
+- [x] Aksi hidup: Tempel (aktif bila clipboard ada), Undo/Redo (aktif sesuai stack), kursor kiri/kanan, Tab, Tutup (dirty = dialog Buang/Batal)
+- [x] Warna nav bawah: Code emas #FFB300, Settings champagne #CDBFA3 (sesuai keputusan pemilik)
+- [x] Dampak: Gradle tidak berubah; MainActivity.kt hanya dua nilai warna; Manifest dan JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi (menunggu CI). Risiko: gambar ikon Canvas (when sebagai ekspresi terakhir lambda), moveSelection/pasteText Rosemoe (sudah dicocokkan ke source 0.23.6)
+- [ ] keputusan sementara, perlu konfirmasi: tombol Tab = pindah ke tab berikutnya melingkar (blueprint belum mendefinisikan); Simpan/Cari/Play tampil tapi belum bereaksi (F3e/F3c/fase Play); Cari dan Play berwarna icon_disabled
+- [ ] uji perangkat: toolbar di atas nav, rail emas tipis; Tempel nonaktif saat clipboard kosong; Undo/Redo menyala setelah mengetik; kursor kiri/kanan; badge angka berubah saat + tab; Tab berpindah melingkar; Tutup tab dirty memunculkan dialog; keyboard terbuka: nav tersembunyi, toolbar menempel di atas keyboard; nav Code emas dan Settings champagne
+- [ ] terkait: putuskan penyatuan tiga emas (#E6B450, #FFB300, #E9B949) setelah melihat tampilan
+- [ ] berikutnya: F3b menu titik tiga, F3c find bar, F3d kursor/seleksi
