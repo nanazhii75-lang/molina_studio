@@ -588,3 +588,13 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] CI commit HTML: ISI SETELAH CEK TAB ACTIONS. Risiko: WebView/AndroidView(onRelease), pencarian Settings
 - [ ] uji perangkat: Play di .html (tabel, daftar, tautan); saklar WebView lalu Play lagi; tautan di WebView terbuka di peramban; Back menutup Tinjauan
 - [ ] lanjut: aktifkan isi halaman "Script execution" (Pintasan skrip)
+
+## 2026-10-26 - Script Execution + keluaran skrip satu halaman [SCRIPT-EXECUTION]
+- [x] feat(code): menu titik tiga "Kirim ke Script Execution" (ganti "Kirim ke Library"); sumber sama = entri diperbarui
+- [x] feat(code): Play pada .sh/.py membuka halaman Keluaran penuh (status, BERHENTI/ULANGI/BAGIKAN); panel bawah lama dihapus
+- [x] feat(settings): Script execution: accordion judul/catatan/isi (maks 3.000 baris), tambah/ubah/hapus/salin, ScriptStore JSON atomik (maks 50)
+- [x] feat(settings): JALANKAN menulis skrip ke /root/.molina/scripts lalu mengetik chmod +x + Enter ke sesi Molina Terminal (aktif/baru), pindah ke tab Terminal
+- [x] Diuji di JVM: 12.712 uji lulus (ScriptLaunch: hitung baris, CRLF, nama berkas, perintah). Manifest dan JNI mpv tidak disentuh
+- [ ] CI commit Script Execution: ISI SETELAH CEK TAB ACTIONS. Risiko: BasicTextField 3.000 baris, key(), return@Column di accordion, ScriptNav di MainActivity
+- [ ] uji perangkat: kirim dari editor lalu cek di Settings; kirim ulang (diperbarui); tambah/edit/hapus; >3.000 baris menolak simpan; JALANKAN sesi aktif dan baru; Debian belum terpasang; .py dan .sh membuka Keluaran penuh, Back menutup
+- [ ] lanjut: sinkron dua arah (Settings ke editor) dan tombol "Buka di editor"
