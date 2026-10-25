@@ -18,3 +18,4 @@ _native_out/
 feature/mpv/src/main/jniLibs/
 __pycache__/
 molina_*.py
+# pemicu CI
