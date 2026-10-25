@@ -1,8 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <item name="primary" type="color">#722b72</item>
-    <item name="primary_dark" type="color">@color/primary</item>
-    <item name="accent" type="color">@color/primary</item>
+    <item name="primary" type="color">#B9D1EA</item>
+    <item name="primary_dark" type="color">#9FBFE3</item>
+    <item name="accent" type="color">#3C7FB1</item>
+
+    <!-- Win7 Aero: pemilih file lama diseragamkan dengan Win7OpenDialog -->
+    <color name="win7_folder">#F3CF6E</color>
+    <color name="win7_separator">#D5DFE5</color>
+    <color name="win7_text">#1E1E1E</color>
 
     <color name="tint_normal">#ffffff</color>
     <color name="tint_disabled">#3c3c3c</color>

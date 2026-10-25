@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <style name="FilePickerTheme" parent="Theme.AppCompat">
-        <item name="nnf_separator_color">@color/primary</item>
+    <style name="FilePickerTheme" parent="Theme.AppCompat.Light">
+        <item name="android:windowBackground">#FFFFFF</item>
+        <item name="nnf_separator_color">@color/win7_separator</item>
 
         <!-- Set these to match your theme -->
         <item name="colorPrimary">@color/primary</item>
@@ -10,8 +11,8 @@
 
         <!-- Need to set this also to style create folder dialog -->
         <item name="alertDialogTheme">@style/FilePickerTheme.AlertDialog</item>
-        <item name="android:textColorPrimary">@android:color/background_light</item>
-        <item name="android:textColorLink">@android:color/background_light</item>
+        <item name="android:textColorPrimary">@color/win7_text</item>
+        <item name="android:textColorLink">@color/accent</item>
     </style>
 
     <style name="FilePickerThemeSpecial" parent="FilePickerTheme">
@@ -19,7 +20,7 @@
         <item name="android:windowTranslucentNavigation">true</item>
     </style>
 
-    <style name="FilePickerTheme.AlertDialog" parent="Theme.AppCompat.Dialog.Alert">
+    <style name="FilePickerTheme.AlertDialog" parent="Theme.AppCompat.Light.Dialog.Alert">
         <item name="colorPrimary">@color/primary</item>
         <item name="colorPrimaryDark">@color/primary_dark</item>
     </style>

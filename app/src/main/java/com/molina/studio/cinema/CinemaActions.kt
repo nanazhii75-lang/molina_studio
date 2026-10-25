@@ -66,6 +66,12 @@ internal object CinemaActions {
         )
     }
 
+    /** Putar berkas lokal lewat extra "filepath" (tanpa file://). Validasi path ada di MPVActivity. */
+    fun playPath(ctx: Context, path: String): Boolean = start(
+        ctx,
+        Intent().setClassName(ctx.packageName, PLAYER).putExtra("filepath", path)
+    )
+
     fun openSettings(ctx: Context): Boolean =
         start(ctx, Intent().setClassName(ctx.packageName, SETTINGS))
 

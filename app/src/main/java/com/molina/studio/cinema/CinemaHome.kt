@@ -1,7 +1,5 @@
 package com.molina.studio.cinema
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -53,9 +51,7 @@ fun CinemaHome(modifier: Modifier = Modifier) {
     var searching by remember { mutableStateOf(false) }
     var results by remember { mutableStateOf<List<StreamSearchItem>>(emptyList()) }
     var showResults by remember { mutableStateOf(false) }
-    val pick = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null && !CinemaActions.play(ctx, uri)) info = FAIL
-    }
+    var openLocal by rememberSaveable { mutableStateOf(false) }
 
     fun search(q: String) {
         if (searching) return
@@ -94,7 +90,7 @@ fun CinemaHome(modifier: Modifier = Modifier) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) { CinemaLogo(info.ifEmpty { HINT }) }
         Row(Modifier.fillMaxWidth(), Arrangement.SpaceEvenly) {
-            CinemaAction("\uD83D\uDCC4", "File") { pick.launch(arrayOf("video/*", "audio/*")) }
+            CinemaAction("\uD83D\uDCC4", "File") { openLocal = true }
             CinemaAction("\uD83D\uDD17", "Tautan") { dialog = true }
             CinemaAction("\u2699", "Setelan") { if (!CinemaActions.openSettings(ctx)) info = "Setelan gagal dibuka." }
             CinemaAction("\u21BB", "Reset") {
@@ -128,6 +124,13 @@ fun CinemaHome(modifier: Modifier = Modifier) {
             }) { Text("Buka") }
         },
         dismissButton = { TextButton({ dialog = false }) { Text("Batal") } }
+    )
+    if (openLocal) Win7OpenDialog(
+        onDismiss = { openLocal = false },
+        onPick = { f ->
+            openLocal = false
+            if (!CinemaActions.playPath(ctx, f.absolutePath)) info = FAIL
+        }
     )
     if (showResults) SearchResultsDialog(
         results = results,

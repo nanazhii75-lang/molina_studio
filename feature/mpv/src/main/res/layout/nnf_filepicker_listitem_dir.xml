@@ -24,7 +24,7 @@
         android:adjustViewBounds="true"
         android:scaleType="center"
         app:srcCompat="@drawable/nnf_ic_folder_black_48dp"
-        app:tint="?attr/colorAccent"
+        app:tint="@color/win7_folder"
         android:visibility="visible"
         tools:ignore="ContentDescription" />
 
