@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 140" width="1040" height="280">
+  <rect width="520" height="140" fill="#0A0A0F"/>
+  <g transform="translate(16,16) scale(1.0)">
+    <svg viewBox="0 0 108 108" width="108" height="108">
+      <rect width="108" height="108" rx="24" fill="#0A0A0F"/>
+      <path d="M32,26h44a10,10 0 0 1 10,10v36a10,10 0 0 1 -10,10h-44a10,10 0 0 1 -10,-10v-36a10,10 0 0 1 10,-10z" fill="#14161B" stroke="#2A2D35" stroke-width="2"/>
+      <circle cx="31" cy="35.5" r="2" fill="#E6B450"/>
+      <circle cx="38" cy="35.5" r="2" fill="#E6B450" fill-opacity="0.55"/>
+      <circle cx="45" cy="35.5" r="2" fill="#E6B450" fill-opacity="0.25"/>
+      <path d="M36,48L52,60L36,72" fill="none" stroke="#E6B450" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M58,68.5h18a2.5,2.5 0 0 1 0,5h-18a2.5,2.5 0 0 1 0,-5z" fill="#F5D58A"/>
+    </svg>
+  </g>
+  <text x="146" y="74" font-family="'JetBrains Mono','DejaVu Sans Mono',monospace" font-size="46" font-weight="700" letter-spacing="4" fill="#EDEDED">MOLINA</text>
+  <text x="148" y="104" font-family="'JetBrains Mono','DejaVu Sans Mono',monospace" font-size="15" letter-spacing="9" fill="#E6B450">TERMINAL</text>
+</svg>
