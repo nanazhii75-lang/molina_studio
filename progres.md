@@ -446,3 +446,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: hanya :feature:code (CodeColors, EditorHost, FindBar). Gradle, Manifest, JNI mpv tidak disentuh
 - [ ] BELUM dikompilasi (CI). Risiko (belum dicocokkan ke source Rosemoe 0.23.6): LINE_NUMBER_CURRENT, LINE_NUMBER_PANEL, LINE_NUMBER_PANEL_TEXT, cursor.leftLine, text.getColumnCount, setSelection(line, column)
 - [ ] uji perangkat: Pergi ke 1, tengah, terakhir; 57:12; 57:999 (dijepit); Cari next/prev berulang cepat; scroll cepat (panel nomor); ganti tab saat menyala
+
+## 2026-10-25 - Cari: default blok+sensitif, blok warna Claude [CODE-FIND-CLAUDE]
+- [x] feat(code): FindState.wholeWord default ON (matchCase sudah ON); label "Sensitif huruf besar/kecil"
+- [x] feat(code): EditorSelection/SearchMatch terakota Claude (50%/28%)
+- [x] feat(code): stopSearchKeepSelection: kata hasil terakhir tetap terblok saat find bar ditutup
+- [x] Dampak: hanya :feature:code (FindState, FindBar, CodeColors). Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi (CI). Risiko (belum dicocokkan ke source Rosemoe 0.23.6): Cursor.isSelected/leftLine/leftColumn/rightLine/rightColumn, CodeEditor.setSelectionRegion(4 Int)
+- [ ] uji perangkat: teks "Kt.KT,kt": cari Kt/KT/kt masing-masing 1/1; Sensitif OFF cari kt = 3/3; tutup find bar, kata tetap terblok terakota
