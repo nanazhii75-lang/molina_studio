@@ -556,3 +556,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Diuji di JVM: 6.634 uji lulus. Gerbang telemetri lulus. Manifest dan JNI mpv tidak disentuh
 - [ ] CI commit scroll/Bagikan/Penyegaran: ISI SETELAH CEK TAB ACTIONS
 - [ ] uji perangkat: kursor di tengah dokumen .md lalu Play (terbuka di bagian itu); BAGIKAN; skrip `sleep 100` lalu Penyegaran sistem (berhenti, ringkasan "Dihentikan")
+
+## 2026-10-26 - Settings: Terminal, Log, Keamanan, info perangkat dipindah ke submenu Sistem [SETTINGS-SYSTEM-SUBMENU]
+- [x] refactor(settings): Home Settings hanya memuat ubin "Sistem" (links dikosongkan, W7SystemSummary dicabut dari Home)
+- [x] Halaman Sistem memuat Terminal, Log, Keamanan dan privasi, Mesin cadangan (yt-dlp), About, lalu card informasi perangkat
+- [x] Dampak: hanya app/.../settings/SettingsScreen.kt. Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi (CI). Risiko: rendah
+- [ ] uji perangkat: Home hanya ubin Sistem; klik Sistem tampil 4 elemen + card RAM; Back ke Home; pencarian "Log" dan "Keamanan" jalur "Settings > Sistem"; ikon refresh tetap jalan
+- [ ] keputusan: yt-dlp dan About tetap di Sistem, atau dipindah?

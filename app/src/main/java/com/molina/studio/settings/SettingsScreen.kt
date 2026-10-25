@@ -102,8 +102,8 @@ private val INDEX = listOf(
 )
 
 /**
- * Settings Hub bergaya Panel Kontrol Windows 7. Beranda berisi ubin "Sistem" dan ringkasan perangkat;
- * halaman Sistem memuat Terminal, Log, Mesin cadangan, Keamanan, dan About. Halaman Terminal meniru
+ * Settings Hub bergaya Panel Kontrol Windows 7. Beranda hanya berisi ubin "Sistem";
+ * halaman Sistem memuat Terminal, Log, Mesin cadangan, Keamanan, About, dan ringkasan perangkat. Halaman Terminal meniru
  * struktur Settings Termux (Debugging, Terminal I/O, Terminal View) dan menambah "Tampilan Molina",
  * Crash Reporter, serta Logcat Reporter. Menu Donate dan aplikasi pendamping Termux sengaja tidak ada.
  */
@@ -147,15 +147,9 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         W7CategoryTile(
                             icon = { W7IconMonitor(52.dp) },
                             title = "Sistem",
-                            links = listOf(
-                                "Terminal" to { open(Page.Terminal) },
-                                "Log" to { open(Page.Log) },
-                                "Keamanan dan privasi" to { open(Page.Network) }
-                            ),
+                            links = emptyList(),
                             onOpen = { open(Page.System) }
                         )
-                        Spacer(Modifier.height(12.dp))
-                        W7SystemSummary()
                     }
                     Page.System -> {
                         W7Link({ W7IconTerminal() }, "Terminal", "Molina Terminal: debugging, I/O, tampilan") { open(Page.Terminal) }
@@ -163,6 +157,8 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         W7Link({ W7IconYtdlp() }, "Mesin cadangan (yt-dlp)", "TikTok, Facebook, dll. lewat Debian (default mati)") { open(Page.Stream) }
                         W7Link({ W7IconShield() }, "Keamanan dan privasi", "Kebijakan URL, jaringan lokal (LAN), layar privat") { open(Page.Network) }
                         W7Link({ W7IconInfo() }, "About", "Versi dan lisensi") { open(Page.About) }
+                        Spacer(Modifier.height(12.dp))
+                        W7SystemSummary()
                     }
                     Page.Terminal -> {
                         SettingsItem("Debugging", "Preferences for debugging") { page = Page.Debugging }
