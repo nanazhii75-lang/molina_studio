@@ -119,6 +119,8 @@ class NewPipeStreamResolver(
                         uploader = i.uploaderName?.takeIf { it.isNotBlank() },
                         durationSec = i.duration.takeIf { it >= 0 },
                         thumbnailUrl = i.thumbnails.orEmpty().maxByOrNull { it.height }?.url,
+                        uploadedAtMs = i.uploadDate?.offsetDateTime()?.toInstant()?.toEpochMilli(),
+                        uploadedText = i.textualUploadDate?.takeIf { it.isNotBlank() },
                     )
                 }
                 .take(limit.coerceAtLeast(0))

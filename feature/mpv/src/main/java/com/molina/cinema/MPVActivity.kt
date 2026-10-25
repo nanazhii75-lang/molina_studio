@@ -1618,6 +1618,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
                 else String.format(java.util.Locale.ROOT, "%d:%02d", m, sec)
             )
         }
+        com.molina.core.common.RelativeTime.label(item)?.let { parts.add(it) }
         return parts.joinToString(" \u00B7 ")
     }
 

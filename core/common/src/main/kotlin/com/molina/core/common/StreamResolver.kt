@@ -31,6 +31,10 @@ data class StreamSearchItem(
     val uploader: String? = null,
     val durationSec: Long? = null,
     val thumbnailUrl: String? = null,
+    /** Waktu unggah (epoch ms); null = tidak diketahui (mis. siaran langsung). Untuk YouTube berupa perkiraan. */
+    val uploadedAtMs: Long? = null,
+    /** Teks waktu unggah mentah dari sumber (mis. "2 days ago"), dipakai bila [uploadedAtMs] kosong. */
+    val uploadedText: String? = null,
 )
 
 enum class StreamError {

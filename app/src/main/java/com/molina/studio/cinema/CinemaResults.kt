@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.molina.core.common.RelativeTime
 import com.molina.core.common.StreamSearchItem
 import com.molina.studio.R
 import com.molina.studio.ui.MolinaTheme
@@ -217,7 +218,7 @@ private fun ChannelRow(e: ResultEntry, isSelected: Boolean, onPress: () -> Unit,
             Text(e.item.title, color = Color.White, fontSize = 15.sp, maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal)
-            val meta = listOfNotNull(e.item.uploader, e.item.durationSec?.let { duration(it) })
+            val meta = listOfNotNull(e.item.uploader, e.item.durationSec?.let { duration(it) }, RelativeTime.label(e.item))
                 .joinToString(" \u00B7 ")
             if (meta.isNotEmpty()) Text(meta, fontSize = 12.sp,
                 color = if (isSelected) Color(0xCCFFFFFF) else MolinaTheme.Muted,

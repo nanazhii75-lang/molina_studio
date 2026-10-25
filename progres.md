@@ -254,3 +254,8 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 ## 2026-10-25 - Cinema UI v5 (dok menu setting + playlist)
 - [x] feat(player-ui): menu setting jadi strip ikon vertikal (ScrollView) didok di pojok kanan-bawah (lebar 72dp); playlist didok ke tepi kanan (lebar maks. 380dp, tengah vertikal); helper AlertDialog.dockTo di MPVActivity
 - [ ] BELUM dikompilasi (menunggu CI) dan belum diuji di perangkat (landscape dan portrait): posisi tidak tertutup bar navigasi/cutout, strip tidak terpotong, scroll saat banyak item, menu Advanced masih di tengah (belum didok)
+
+## 2026-10-25 - Cinema UI v6 (umur unggahan di hasil pencarian)
+- [x] feat(search): StreamSearchItem + uploadedAtMs/uploadedText; NewPipe mengisi dari uploadDate (+ teks mentah), yt-dlp dari timestamp/upload_date; RelativeTime.label membuat teks Indonesia ('3 hari lalu', '2 tahun lalu'; teks 'N days ago' diterjemahkan); tampil di baris meta hasil pencarian Home dan player
+- [ ] BELUM dikompilasi (menunggu CI) dan belum diuji: DateWrapper.offsetDateTime() pada NewPipeExtractor v0.26.5 (jika gagal kompilasi, ganti ke date()/teks mentah), YouTube hanya memberi umur perkiraan sehingga bulan/tahun kasar; siaran langsung tanpa label
+- [ ] ide berikutnya: urutkan Terbaru (sort) pada dialog hasil, penanda 'BARU' untuk < 7 hari

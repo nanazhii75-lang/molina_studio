@@ -21,14 +21,16 @@ object YtdlpSearch {
         val page = (txt(o["webpage_url"]) ?: if (o["_type"] == "url") txt(o["url"]) else null)
             ?.takeIf { it.startsWith("https://") } ?: return null
         val secs = (o["release_timestamp"] as? Number)?.toLong() ?: (o["timestamp"] as? Number)?.toLong()
+        val at = secs?.times(1000) ?: day(txt(o["upload_date"]))
         val item = StreamSearchItem(
             pageUrl = page,
             title = title,
             uploader = txt(o["channel"]) ?: txt(o["uploader"]),
             durationSec = (o["duration"] as? Number)?.toLong()?.takeIf { it > 0 },
             thumbnailUrl = thumb(o["thumbnails"]),
+            uploadedAtMs = at,
         )
-        return Hit(item, id, secs?.times(1000) ?: day(txt(o["upload_date"])))
+        return Hit(item, id, at)
     }
 
     private fun thumb(a: Any?): String? =
