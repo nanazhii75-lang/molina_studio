@@ -524,3 +524,9 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: hanya :app (CinemaHome.kt + MolinaFrameDialog.kt baru). Gradle, Manifest, JNI mpv tidak disentuh
 - [ ] BELUM dikompilasi (CI). Risiko: OutlinedTextFieldDefaults.colors (Material3 BOM 2024.12.01), Modifier.border(Dp, Brush, Shape)
 - [ ] uji perangkat: Cinema Home > Tautan, portrait dan landscape, keyboard muncul (dialog tidak tertutup), tombol Batal/Buka
+
+## 2026-10-25 - Dialog Hasil pencarian berbingkai [CINEMA-RESULTS-FRAME]
+- [x] style(cinema): SearchResultsDialog diseragamkan dengan MolinaFrameDialog (margin tepi 24dp, lebar maks 480dp, sudut 20dp, bingkai tipis bergradasi emas); kolom Cari bergaya Molina. Daftar channel dan palet biru tidak diubah
+- [x] Dampak: hanya app/.../cinema/CinemaResults.kt. Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi (CI). Risiko: OutlinedTextFieldDefaults.colors (Material3 BOM 2024.12.01)
+- [ ] uji perangkat: Cinema Home > cari judul > daftar hasil, portrait dan landscape, tombol Cari/Prev/Next

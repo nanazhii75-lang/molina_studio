@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -23,6 +24,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -131,9 +133,17 @@ internal fun SearchResultsDialog(
     }
 
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        // [CINEMA-RESULTS-FRAME] margin tepi 24dp, lebar maks 480dp, bingkai tipis bergradasi emas
+        val frame = RoundedCornerShape(20.dp)
         Surface(
-            Modifier.fillMaxWidth().padding(horizontal = 16.dp).heightIn(max = 640.dp),
-            shape = RoundedCornerShape(28.dp),
+            Modifier.widthIn(max = 480.dp).fillMaxWidth().padding(horizontal = 24.dp)
+                .heightIn(max = 640.dp)
+                .border(
+                    1.dp,
+                    Brush.verticalGradient(listOf(MolinaTheme.Gold.copy(alpha = 0.6f), MolinaTheme.CardLine)),
+                    frame,
+                ),
+            shape = frame,
             color = DialogBg,
         ) {
             Column(Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 8.dp)) {
@@ -154,6 +164,16 @@ internal fun SearchResultsDialog(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp)
                         .focusRequester(focus),
                     singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = MolinaTheme.OnBackground,
+                        unfocusedTextColor = MolinaTheme.OnBackground,
+                        focusedBorderColor = MolinaTheme.Gold,
+                        unfocusedBorderColor = MolinaTheme.CardLine,
+                        cursorColor = MolinaTheme.Gold,
+                        focusedPlaceholderColor = MolinaTheme.Muted,
+                        unfocusedPlaceholderColor = MolinaTheme.Muted,
+                    ),
                     placeholder = { Text("Cari nama atau ketik nomor channel", fontSize = 14.sp) },
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = { pickFromQuery() }),
