@@ -34,7 +34,14 @@ object CodeColors {
 
     // Editor
     val ActiveLine = Color(0xFF38280F)
-    val LineNumber = Color(0xFF6E6E6E)
+    // Nomor baris bernuansa Claude (terakota): redup untuk baris biasa, terang untuk baris kursor,
+    // putih-persik + latar terakota sesaat saat Pergi ke baris / lompat hasil Cari.
+    val ClaudeOrange = Color(0xFFD97757)
+    val LineNumber = Color(0xFF8A4F3C)
+    val LineNumberCurrent = Color(0xFFF0916F)
+    val LineNumberFlash = Color(0xFFFFD9C7)
+    val LineNumberPanelBg = Color(0xFF3A2218)   // panel nomor baris saat scroll cepat
+    val ActiveLineFlash = Color(0xFF5A2E1F)
     val TextPrimary = Color(0xFFE6E6E6)
     val TextSecondary = Color(0xFF9AA0A6)
     val ButtonBrown = Color(0xFF8F5A2C)

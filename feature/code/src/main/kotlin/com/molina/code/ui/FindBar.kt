@@ -74,6 +74,7 @@ internal fun FindBar(session: CodeSession, tab: EditorTab) {
         if (!s.hasQuery()) return
         try {
             if (next) s.gotoNext() else s.gotoPrevious()
+            ed?.flashCurrentLine(700L)
         } catch (e: IllegalStateException) {
             // pencarian dihentikan di tengah jalan; abaikan
         }
@@ -338,11 +339,13 @@ internal fun GotoLineDialog(tab: EditorTab, onDismiss: () -> Unit) {
     val shape = RoundedCornerShape(CodeDimens.DialogCorner)
 
     fun go() {
-        val n = text.toIntOrNull()
+        val parts = text.split(':', ',', '.', ' ').filter { it.isNotEmpty() }
+        val n = parts.getOrNull(0)?.toIntOrNull()
+        val col = parts.getOrNull(1)?.toIntOrNull() ?: 0
         if (ed == null || n == null || n < 1 || n > total) {
             Toast.makeText(ctx, "Masukkan baris 1-$total", Toast.LENGTH_SHORT).show()
         } else {
-            ed.jumpToLine(n - 1)
+            ed.jumpToLineHighlighted(n - 1, col)
             onDismiss()
         }
     }
@@ -364,7 +367,9 @@ internal fun GotoLineDialog(tab: EditorTab, onDismiss: () -> Unit) {
             Spacer(Modifier.height(16.dp))
             BasicTextField(
                 value = text,
-                onValueChange = { text = it.filter(Char::isDigit).take(9) },
+                onValueChange = { v ->
+                    text = v.filter { c -> c.isDigit() || c == ':' || c == ',' || c == '.' || c == ' ' }.take(18)
+                },
                 modifier = Modifier.fillMaxWidth().focusRequester(focus),
                 singleLine = true,
                 textStyle = TextStyle(color = CodeColors.TextPrimary, fontSize = CodeDimens.FindTextSize),
@@ -375,7 +380,8 @@ internal fun GotoLineDialog(tab: EditorTab, onDismiss: () -> Unit) {
                     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
                         if (text.isEmpty()) {
                             BasicText(
-                                text = "Baris (1-$total)",
+                                text = "Baris[:kolom] 1-$total (kini ${(ed?.cursor?.leftLine ?: 0) + 1})",
+                            maxLines = 1,
                                 style = TextStyle(color = CodeColors.IconDim, fontSize = CodeDimens.FindTextSize)
                             )
                         }

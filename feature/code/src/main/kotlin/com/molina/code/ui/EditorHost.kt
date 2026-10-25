@@ -13,6 +13,7 @@ import io.github.rosemoe.sora.event.PublishSearchResultEvent
 import io.github.rosemoe.sora.event.SelectionChangeEvent
 import io.github.rosemoe.sora.widget.CodeEditor
 import io.github.rosemoe.sora.widget.schemes.EditorColorScheme
+import java.util.WeakHashMap
 
 /**
  * Menampilkan editor milik tab aktif. Wadah FrameLayout dipakai agar pergantian tab hanya
@@ -78,6 +79,9 @@ private fun applyMolinaColors(s: EditorColorScheme) {
     s.setColor(EditorColorScheme.WHOLE_BACKGROUND, CodeColors.EditorBg.toArgb())
     s.setColor(EditorColorScheme.LINE_NUMBER_BACKGROUND, CodeColors.GutterBg.toArgb())
     s.setColor(EditorColorScheme.LINE_NUMBER, CodeColors.LineNumber.toArgb())
+    s.setColor(EditorColorScheme.LINE_NUMBER_CURRENT, CodeColors.LineNumberCurrent.toArgb())
+    s.setColor(EditorColorScheme.LINE_NUMBER_PANEL, CodeColors.LineNumberPanelBg.toArgb())
+    s.setColor(EditorColorScheme.LINE_NUMBER_PANEL_TEXT, CodeColors.LineNumberFlash.toArgb())
     s.setColor(EditorColorScheme.LINE_DIVIDER, CodeColors.Hairline.toArgb())
     s.setColor(EditorColorScheme.CURRENT_LINE, CodeColors.ActiveLine.toArgb())
     s.setColor(EditorColorScheme.TEXT_NORMAL, CodeColors.TextPrimary.toArgb())
@@ -85,4 +89,37 @@ private fun applyMolinaColors(s: EditorColorScheme) {
     s.setColor(EditorColorScheme.SELECTION_HANDLE, CodeColors.Gold.toArgb())
     s.setColor(EditorColorScheme.SELECTED_TEXT_BACKGROUND, CodeColors.EditorSelection.toArgb())
     s.setColor(EditorColorScheme.MATCHED_TEXT_BACKGROUND, CodeColors.SearchMatch.toArgb())
+}
+
+private const val FLASH_MS = 1400L
+private val flashRestore = WeakHashMap<CodeEditor, Runnable>()
+
+/**
+ * Pindah ke [line] (basis 0) dan, bila [column] > 0 (basis 1), ke kolom itu; lalu sorot nomor baris
+ * dan latar baris tujuan sesaat. Kolom yang melebihi panjang baris dijepit ke ujung baris.
+ */
+internal fun CodeEditor.jumpToLineHighlighted(line: Int, column: Int = 0) {
+    jumpToLine(line)
+    if (column > 0) {
+        val maxCol = text.getColumnCount(line)
+        setSelection(line, minOf(column - 1, maxCol))
+    }
+    flashCurrentLine(FLASH_MS)
+}
+
+/** Nyalakan nomor dan latar baris kursor (putih-persik di atas terakota) selama [durationMs], lalu pulihkan. */
+internal fun CodeEditor.flashCurrentLine(durationMs: Long = FLASH_MS) {
+    val scheme = colorScheme
+    scheme.setColor(EditorColorScheme.LINE_NUMBER_CURRENT, CodeColors.LineNumberFlash.toArgb())
+    scheme.setColor(EditorColorScheme.CURRENT_LINE, CodeColors.ActiveLineFlash.toArgb())
+    invalidate()
+    flashRestore.remove(this)?.let { removeCallbacks(it) }
+    val restore = Runnable {
+        scheme.setColor(EditorColorScheme.LINE_NUMBER_CURRENT, CodeColors.LineNumberCurrent.toArgb())
+        scheme.setColor(EditorColorScheme.CURRENT_LINE, CodeColors.ActiveLine.toArgb())
+        invalidate()
+        flashRestore.remove(this)
+    }
+    flashRestore[this] = restore
+    postDelayed(restore, durationMs)
 }
