@@ -361,3 +361,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi (menunggu CI); risiko sangat rendah (nilai literal)
 - [ ] uji perangkat: toolbar/tab bar/header menyatu dengan nav hitam; ikon champagne terbaca; ikon dim/disabled masih dapat dibedakan; garis hairline tidak terlalu terang
 - [ ] terkait: penyatuan tiga emas (#E6B450, #FFB300, #E9B949) masih menunggu keputusan setelah melihat tampilan
+
+## 2026-10-25 - Toolbar No. 8: pilih semua + salin [CODE-TOMBOL-SALIN-SEMUA]
+- [x] Koreksi pemilik: tombol Tab di toolbar = pilih semua lalu salin otomatis (bukan manajemen tab)
+- [x] feat(code): ikon SelectAll (kotak putus-putus + kotak penuh), aksi selectAll()+copyText()+Toast, nonaktif saat dokumen kosong; badge jumlah tab dan CodeSession.selectNext() dihapus
+- [x] docs: blueprint-code-editor.md bagian 26 mencatat koreksi
+- [x] Dampak: hanya :feature:code (ToolbarIcons, EditorToolbar, CodeScreen, CodeSession). Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi (menunggu CI). Risiko: PathEffect.dashPathEffect pada Stroke di dalam scale(); selectAll/copyText Rosemoe (sudah dicocokkan ke source 0.23.6)
+- [ ] uji perangkat: tombol redup saat dokumen kosong; ketik lalu tekan = Toast + seluruh teks terseleksi; Tempel di tab lain menempel isi penuh; ikon putus-putus terlihat jelas pada 22dp

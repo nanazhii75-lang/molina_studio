@@ -415,3 +415,11 @@ hr { border:0; border-top:1px solid #3A2F22; }
 | molina_icon_disabled | #5A4E3C | #4D4C48 |
 
 - Aksen hangat (champagne #CDBFA3, emas #FFB300) tetap sebagai satu-satunya warna hangat di atas dasar dingin.
+
+## 26. Koreksi Toolbar No. 8: Pilih Semua + Salin [BLUEPRINT-TOMBOL-SALIN-SEMUA]
+
+- Keputusan pemilik: tombol No. 8 di toolbar BUKAN manajemen tab, melainkan pilih semua lalu salin otomatis.
+- Menggantikan baris No. 8 di bagian 4 dan 13.3, serta butir badge jumlah tab di bagian 13.4 (badge dihapus; pindah tab lewat tab bar).
+- Ikon: kotak putus-putus (pilihan) + kotak penuh (salinan). Warna icon_default; icon_disabled bila dokumen kosong.
+- Perilaku: dokumen tidak kosong -> pilih semua, salin ke clipboard, tampilkan Toast "Semua teks disalin". Dokumen kosong -> nonaktif, clipboard tidak ditimpa.
+- Efek samping: seleksi tetap aktif setelah menyalin (mengikuti perilaku pilih-semua editor).
