@@ -44,8 +44,8 @@ import androidx.compose.ui.graphics.Color
 private enum class Tab(val label: String, val glyph: String, val color: Color) {
     Mpv("mpv", "\u25B6", Color(0xFFB388FF)),          // ungu: bioskop
     Terminal("Terminal", ">_", Color(0xFF69F0AE)),      // hijau: terminal
-    Code("Code", "< >", Color(0xFF40C4FF)),             // biru: editor
-    Settings("Settings", "\u2699", Color(0xFFFFAB40))  // oranye: pengaturan
+    Code("Code", "< >", Color(0xFFFFB300)),             // emas: editor
+    Settings("Settings", "\u2699", Color(0xFFCDBFA3))  // champagne: pengaturan
 }
 
 /** True saat keyboard layar tampil. Dipakai agar nav bawah tidak makan ruang saat mengetik. */

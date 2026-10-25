@@ -32,9 +32,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import io.github.rosemoe.sora.widget.SelectionMovement
 
 /**
- * Layar tab Code (F2): header path, tab bar, editor. Toolbar (F3), panel direktori (F4), dan
+ * Layar tab Code (F2, F3): header path, tab bar, editor, toolbar. Panel direktori (F4) dan
  * menu titik tiga (F3b) belum ada. Semua warna/ukuran dari [CodeColors] dan [CodeDimens].
  */
 @Composable
@@ -47,6 +48,19 @@ fun CodeScreen(session: CodeSession, modifier: Modifier = Modifier) {
             if (tab.dirty) pendingClose = tab else session.close(tab.id)
         }
         EditorHost(session, Modifier.weight(1f).fillMaxWidth())
+        session.active?.let { tab ->
+            EditorToolbar(
+                tab = tab,
+                tabCount = session.tabs.size,
+                onPaste = { tab.editor?.pasteText() },
+                onUndo = { tab.editor?.undo() },
+                onRedo = { tab.editor?.redo() },
+                onLeft = { tab.editor?.moveSelection(SelectionMovement.LEFT) },
+                onRight = { tab.editor?.moveSelection(SelectionMovement.RIGHT) },
+                onTabs = { session.selectNext() },
+                onClose = { if (tab.dirty) pendingClose = tab else session.close(tab.id) }
+            )
+        }
     }
 
     pendingClose?.let { tab ->

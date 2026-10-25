@@ -24,6 +24,7 @@ object CodeDimens {
     // Toolbar: 10 ikon rata lebar (36dp), area sentuh setinggi 48dp
     val ToolbarHeight = 48.dp
     val ToolbarItemWidth = 36.dp
+    val ToolbarIconSize = 22.dp
     val ToolbarGroupDividerHeight = 16.dp
     val Hairline = 1.dp
     val RailHeight = 1.dp

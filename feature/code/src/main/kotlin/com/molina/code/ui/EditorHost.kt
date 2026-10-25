@@ -47,7 +47,11 @@ internal fun EditorTab.editorOrCreate(context: Context): CodeEditor {
     ed.setTextSize(CodeDimens.EditorTextSize.value)
     ed.setWordwrap(true) // blueprint v2 bagian 12: word wrap default AKTIF
     applyMolinaColors(ed.colorScheme)
-    ed.subscribeEvent(ContentChangeEvent::class.java) { _, _ -> dirty = true }
+    ed.subscribeEvent(ContentChangeEvent::class.java) { _, _ ->
+        dirty = true
+        // post: riwayat undo baru final setelah event selesai
+        ed.post { revision++ }
+    }
     editor = ed
     return ed
 }

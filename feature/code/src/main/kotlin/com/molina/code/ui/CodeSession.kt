@@ -19,6 +19,10 @@ class EditorTab internal constructor(val id: Int, initialTitle: String) {
     var dirty by mutableStateOf(false)
         internal set
 
+    /** Naik setiap isi berubah (setelah event selesai). Memicu hitung ulang state Undo/Redo. */
+    var revision by mutableIntStateOf(0)
+        internal set
+
     internal var editor: CodeEditor? = null
 
     internal fun disposeEditor() {
@@ -59,6 +63,13 @@ class CodeSession(val workDir: String) {
 
     fun select(id: Int) {
         if (tabs.any { it.id == id }) activeId = id
+    }
+
+    /** Pindah ke tab berikutnya, melingkar. Dipakai tombol Tab di toolbar. */
+    fun selectNext() {
+        if (tabs.size < 2) return
+        val i = tabs.indexOfFirst { it.id == activeId }
+        activeId = tabs[(i + 1) % tabs.size].id
     }
 
     /** Menutup tab. Selalu menyisakan satu tab kosong. Konfirmasi tab dirty ada di layar. */
