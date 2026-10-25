@@ -214,7 +214,7 @@ Opsi tata letak toolbar:
 | 4 | Aksi file | nonaktif |
 | 5 | Cari | aktif |
 | 6 | Bagikan | aktif |
-| 7 | Kirim ke Library | nonaktif |
+| 7 | Kirim ke Library -> diganti nama "Script execution" (bagian 29) | nonaktif |
 | 8 | Ekspor | nonaktif |
 | 9 | Konversi berkas... | aktif |
 | 10 | Pergi ke baris | aktif |
@@ -241,7 +241,7 @@ Opsi tata letak toolbar:
 |---|---|
 | File | Baru, Buka, Muat ulang, Aksi file |
 | Cari dan Navigasi | Cari, Pergi ke baris |
-| Bagikan dan Ekspor | Bagikan, Kirim ke Library, Ekspor, Konversi berkas... |
+| Bagikan dan Ekspor | Bagikan, Script execution (dulu "Kirim ke Library", bagian 29), Ekspor, Konversi berkas... |
 | Tampilan dan Teks | Syntax, Enkode, Gaya Visual, Pembungkus kata, Hanya baca |
 | Info dan Aksi | Statistik, Lakukan |
 
@@ -286,7 +286,7 @@ Tombol dialog: BATAL dan TERAPKAN.
 - [ ] F3d Kursor, seleksi, titik dirty berwarna gold
 
 ## 18. Pertanyaan Terbuka Tambahan
-7. "Library" pada "Kirim ke Library" itu apa (library media mpv atau library snippet)?
+7. [TERJAWAB, bagian 29] "Library" = daftar entri "Pintasan skrip" di Settings; item menu diganti nama "Script execution".
 8. "Lakukan" melakukan apa, dan apa bedanya dengan tombol Play di toolbar?
 9. "Blok" pada opsi pencarian: kata utuh, atau pencarian di dalam blok seleksi?
 10. Toolbar: Opsi A (flat + rail) atau Opsi B (dock melayang)? Default sementara: A.
@@ -441,3 +441,35 @@ hr { border:0; border-top:1px solid #3A2F22; }
 - Pergi ke baris: dialog angka 1..jumlah baris. Menu titik tiga: Cari dan Pergi ke baris aktif; tombol Cari toolbar aktif.
 - Titik tiga di header kini ikon vektor (ToolbarIcon.More), bukan karakter teks.
 - Autosave draf digeser ke F3e (bersama tombol Simpan).
+
+## 29. Klarifikasi: "Kirim ke Library" Jadi "Script execution", Pintasan Skrip di Settings [BLUEPRINT-PINTASAN-SKRIP]
+
+Tanggal: 2026-10-25. Sumber: keterangan pemilik + 1 screenshot desain lama (dialog "Ubah entri" di layar Library).
+
+### 29.1 Keputusan pemilik
+- Item menu titik tiga No. 7 "Kirim ke Library" adalah warisan desain lama. Nanti diganti nama menjadi **"Script execution"** (label persis seperti ditulis pemilik).
+- Lokasi fitur "Library" ada di **Settings**, dengan nama **"Pintasan skrip"**. Dikerjakan di tahap setelah Code.
+- Jawaban pertanyaan terbuka 7: "Library" BUKAN library media mpv dan BUKAN snippet editor. Ia adalah daftar entri (tautan, perintah, atau skrip) yang kini bernama Pintasan skrip.
+- Sampai fase Settings selesai, item menu tetap redup (nonaktif). Tidak ada perubahan kode sekarang; nama di kode ("Kirim ke Library") diganti saat fase itu.
+
+### 29.2 Inventaris dialog "Ubah entri" (desain lama)
+- Judul "Ubah entri". Latar dialog abu gelap, sudut besar, aksen kuning/emas.
+- Field "Nama": outline, border emas saat fokus. Contoh isi: "Konversi dokumen (universal)".
+- Field "Isi (tautan, perintah, atau skrip)": font monospace, multi-baris. Contoh isi: skrip berkomentar "# Konversi dokumen universal molina-suite...". Penghitung "96 / 3000 baris" di bawahnya (batas 3000 baris per entri).
+- Tombol outline pil "Edit di Editor" (teks emas), tepat di bawah penghitung.
+- Checkbox emas "Jalankan di dalam Debian (otomatis lewat proot bila perlu)".
+- Field "Catatan (opsional)".
+- Aksi teks di bawah: "Hapus" (kiri), "Batal", "Simpan" (emas).
+
+### 29.3 Pemahaman sementara hubungan dengan Code (BELUM dikonfirmasi pemilik)
+- "Edit di Editor" membuka isi entri di editor Code (tab baru), dan menyimpan dari editor memperbarui entri itu.
+- Menu "Script execution" di Code mengirim isi dokumen aktif ke Pintasan skrip sebagai entri (nama awal = judul tab).
+- Opsi "Jalankan di dalam Debian" memakai lingkungan PRoot Debian milik Molina Terminal.
+
+### 29.4 Pertanyaan terbuka baru
+- P-SKRIP-1: "Script execution" hanya mengirim dokumen sebagai entri Pintasan skrip, atau juga langsung menjalankannya?
+- P-SKRIP-2: Alur "Edit di Editor": buka sebagai tab Code baru, lalu bagaimana simpan kembali ke entri (otomatis atau lewat tombol Simpan)?
+- P-SKRIP-3: Beda "Script execution" dengan tombol Play toolbar (pertanyaan terbuka 5) dan item "Lakukan" (pertanyaan terbuka 8)?
+
+### 29.5 Urutan fase
+- F3e Simpan + autosave draf -> F4 panel direktori -> F5 integrasi nav -> fase Settings (Pintasan skrip + dialog "Ubah entri") -> item menu "Script execution" diaktifkan.

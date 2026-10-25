@@ -389,3 +389,9 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] uji perangkat: ketik kata cari lalu hitung n/total muncul dan sorotan emas; Enter lompat ke hasil berikutnya; regex salah = merah 'Regex salah'; GANTI/SEMUA mengubah teks; Pergi ke baris 1 dan baris terakhir; find bar tidak tertutup keyboard; pindah tab menghentikan sorotan tab lama
 - [ ] keputusan pemilik: arti 'Blok' (kata utuh atau dalam seleksi); sementara kata utuh
 - [ ] berikutnya: F3e Simpan + autosave draf, lalu F4 panel direktori
+
+## 2026-10-25 - Klarifikasi Pintasan skrip (dokumen saja) [DOCS-PINTASAN-SKRIP]
+- [x] docs: blueprint-code-editor.md dikoreksi: "Kirim ke Library" -> "Script execution"; Library = Pintasan skrip di Settings (tahap setelah Code); pertanyaan terbuka 7 terjawab
+- [x] docs: inventaris dialog "Ubah entri" dari screenshot desain lama dicatat di blueprint
+- [x] Dampak: hanya dokumen. Kode, Gradle, Manifest, JNI mpv tidak disentuh; item menu tetap redup
+- [ ] menunggu konfirmasi pemilik: P-SKRIP-1 sampai P-SKRIP-3 di blueprint (arti Script execution, alur Edit di Editor, beda dengan Play dan Lakukan)
