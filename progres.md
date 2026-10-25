@@ -316,3 +316,10 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 ## 2026-10-25 - Keputusan: warna nav bawah [CODE-NAV-WARNA-DITUNDA]
 - [x] Pemilik menyetujui saran: tab Code emas #FFB300, Settings champagne #CDBFA3 di nav bawah; dikerjakan nanti (setelah F2 hijau, sebelum atau bersama F3)
 - [ ] terkait: putuskan penyatuan tiga emas (merek #E6B450, editor #FFB300, gold_soft #E9B949) setelah melihat tampilannya di perangkat
+
+## 2026-10-25 - Code Editor F2: fix koordinat Rosemoe [CODE-F2-FIX-KOORDINAT]
+- [x] CI merah di :app:checkDebugAarMetadata: io.github.Rosemoe.sora-editor:editor:0.24.6 tidak ditemukan
+- [x] Akar masalah: grup salah. Source resmi tag 0.24.6 memakai group io.github.rosemoe, artifact editor. Diperbaiki ke io.github.rosemoe:editor:0.24.6 (feature/code/build.gradle.kts, THIRD_PARTY_NOTICES.md)
+- [x] Nama API F2 dicocokkan dengan source 0.24.6: release, setWordwrap, subscribeEvent, ContentChangeEvent, 9 konstanta EditorColorScheme semuanya ada
+- [x] Dampak: hanya Gradle dependency dan notices. Manifest dan JNI mpv tidak disentuh
+- [ ] menunggu CI. Risiko tersisa: AAR dibangun compileSdk 36/AGP 9.1 vs proyek 35/8.7.3; kotlin-stdlib 2.3.10 runtime vs compiler 2.0.21; keberadaan artefak di Maven Central belum terverifikasi langsung
