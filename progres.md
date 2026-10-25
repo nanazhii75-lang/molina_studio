@@ -424,3 +424,9 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] F3e (c253d45) dan F4 (dc7667d) tidak memicu CI: dua commit (feat lalu docs [skip ci]) dikirim dalam satu push, sehingga seluruh push dilewati. Run terakhir tetap #112 (F3c).
 - [x] Aturan: push commit kode terpisah dari commit docs [skip ci].
 - [ ] jalankan manual workflow Build Molina Studio (workflow_dispatch) di main; catat hasil untuk F3e dan F4.
+
+## 2026-10-25 - Indikator hijau/merah [CODE-F4C-INDIKATOR]
+- [x] feat(code): titik tab dan status bar selalu tampil: hijau = sama dengan isi awal, merah = ada perubahan; undo ke isi awal kembali hijau.
+- [x] perbaikan sebelumnya: changeRoot (6519b08) mengatasi bentrok JVM setRoot.
+- [ ] CI commit indikator: ISI SETELAH CEK TAB ACTIONS
+- [ ] uji perangkat: buka berkas (hijau), ubah 1 karakter (merah), undo (hijau), redo (merah)
