@@ -259,3 +259,22 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] feat(search): StreamSearchItem + uploadedAtMs/uploadedText; NewPipe mengisi dari uploadDate (+ teks mentah), yt-dlp dari timestamp/upload_date; RelativeTime.label membuat teks Indonesia ('3 hari lalu', '2 tahun lalu'; teks 'N days ago' diterjemahkan); tampil di baris meta hasil pencarian Home dan player
 - [ ] BELUM dikompilasi (menunggu CI) dan belum diuji: DateWrapper.offsetDateTime() pada NewPipeExtractor v0.26.5 (jika gagal kompilasi, ganti ke date()/teks mentah), YouTube hanya memberi umur perkiraan sehingga bulan/tahun kasar; siaran langsung tanpa label
 - [ ] ide berikutnya: urutkan Terbaru (sort) pada dialog hasil, penanda 'BARU' untuk < 7 hari
+
+## 2026-10-25 - Code Editor: Blueprint UI v1 [BLUEPRINT-CODE-EDITOR-V1]
+- [x] Desain Code Editor (tema Molina Cinema) dicatat di `docs/blueprint-code-editor.md`
+- [x] Keputusan: panel direktori gaya Windows 7; tombol Buka Folder/Buka Berkas diperkecil
+- [ ] F1 Tokens dan tema -> F6 Uji CI (lihat checklist di blueprint)
+
+## 2026-10-25 - Code Editor: Blueprint v2 (palet toolbar, menu, pencarian) [BLUEPRINT-CODE-EDITOR-V2]
+- [x] Palet toolbar khas Molina Cinema (token v2, aturan ikon, opsi A/B)
+- [x] Inventaris menu titik tiga + usulan pengelompokan
+- [x] Spesifikasi find bar dan dialog Opsi pencarian
+- [x] Koreksi: word wrap default aktif
+- [ ] Menunggu keputusan toolbar A/B dan jawaban pertanyaan terbuka 7-11
+
+## 2026-10-25 - Code Editor: Blueprint v3 (Simpan sebagai, UTF-8 lock, Tinjauan gelap) [BLUEPRINT-CODE-EDITOR-V3]
+- [x] Dialog Simpan sebagai: Enkode terkunci UTF-8 + styling Molina
+- [x] Pemilih berkas: ikon folder gold_soft, FAB kapsul cokelat
+- [x] Layar Tinjauan: hitam pekat, CSS Markdown, cegah kilatan putih
+- [x] Temuan: file tersimpan di root /storage/emulated/0/, usulan default ke folder kerja
+- [ ] Menunggu jawaban pertanyaan terbuka 12-16
