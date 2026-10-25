@@ -426,3 +426,8 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - Patch awal terpotong saat transfer (SyntaxError baris 953); diperbaiki dengan molina_f4_apply.py (verifikasi sha256 per payload).
 - Perubahan: DirectoryPanel/State/Dialogs/Icons baru; CodeScreen, FileStore, EditorHost, OverflowMenu, SaveAsDialog, CodeSession, CodeColors, CodeDimens diperbarui.
 - Build via GitHub Actions CI; belum diverifikasi di perangkat.
+
+## F4 Panel Direktori (tertunda)
+- Script molina_f4_direktori.py gagal dijalankan: file terpotong saat transfer (SyntaxError baris 953).
+- Repo bersih, tidak ada perubahan ter-commit.
+- Tindak lanjut: kirim ulang patch terpecah dengan verifikasi sha256.
