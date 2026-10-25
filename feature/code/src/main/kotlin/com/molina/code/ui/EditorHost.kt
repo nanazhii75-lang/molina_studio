@@ -27,6 +27,8 @@ internal fun EditorHost(session: CodeSession, modifier: Modifier = Modifier) {
         factory = { ctx -> FrameLayout(ctx).apply { setBackgroundColor(CodeColors.EditorBg.toArgb()) } },
         update = { container ->
             val editor = tab.editorOrCreate(container.context)
+            // membaca nama berkas di sini: ganti nama / Simpan sebagai ikut menyegarkan highlight
+            syncSyntax(editor, tab.file?.name ?: tab.title)
             if (container.childCount != 1 || container.getChildAt(0) !== editor) {
                 container.removeAllViews()
                 (editor.parent as? ViewGroup)?.removeView(editor)
@@ -76,6 +78,7 @@ internal fun EditorTab.editorOrCreate(context: Context): CodeEditor {
 }
 
 private fun applyMolinaColors(s: EditorColorScheme) {
+    ObsidianClaude.apply(s)
     s.setColor(EditorColorScheme.WHOLE_BACKGROUND, CodeColors.EditorBg.toArgb())
     s.setColor(EditorColorScheme.LINE_NUMBER_BACKGROUND, CodeColors.GutterBg.toArgb())
     s.setColor(EditorColorScheme.LINE_NUMBER, CodeColors.LineNumber.toArgb())
@@ -122,4 +125,14 @@ internal fun CodeEditor.flashCurrentLine(durationMs: Long = FLASH_MS) {
     }
     flashRestore[this] = restore
     postDelayed(restore, durationMs)
+}
+
+private val appliedSpec = java.util.WeakHashMap<CodeEditor, SyntaxSpec?>()
+
+/** Pasang bahasa highlight sesuai nama berkas (default tema Obsidian Claude); hanya bila berubah. */
+internal fun syncSyntax(ed: CodeEditor, fileName: String?) {
+    val spec = SyntaxLanguages.specFor(fileName)
+    if (appliedSpec.containsKey(ed) && appliedSpec[ed] === spec) return
+    appliedSpec[ed] = spec
+    ed.setEditorLanguage(if (spec == null) null else MolinaLanguage(spec))
 }
