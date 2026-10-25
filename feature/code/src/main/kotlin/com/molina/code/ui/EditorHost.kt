@@ -9,6 +9,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.viewinterop.AndroidView
 import io.github.rosemoe.sora.event.ContentChangeEvent
+import io.github.rosemoe.sora.event.PublishSearchResultEvent
+import io.github.rosemoe.sora.event.SelectionChangeEvent
 import io.github.rosemoe.sora.widget.CodeEditor
 import io.github.rosemoe.sora.widget.schemes.EditorColorScheme
 
@@ -53,6 +55,9 @@ internal fun EditorTab.editorOrCreate(context: Context): CodeEditor {
         // post: riwayat undo baru final setelah event selesai
         ed.post { revision++ }
     }
+    // Penghitung find bar: hasil pencarian selesai atau kursor pindah (indeks hasil aktif)
+    ed.subscribeEvent(PublishSearchResultEvent::class.java) { _, _ -> ed.post { findRevision++ } }
+    ed.subscribeEvent(SelectionChangeEvent::class.java) { _, _ -> ed.post { findRevision++ } }
     editor = ed
     return ed
 }
@@ -67,4 +72,5 @@ private fun applyMolinaColors(s: EditorColorScheme) {
     s.setColor(EditorColorScheme.SELECTION_INSERT, CodeColors.Caret.toArgb())
     s.setColor(EditorColorScheme.SELECTION_HANDLE, CodeColors.Gold.toArgb())
     s.setColor(EditorColorScheme.SELECTED_TEXT_BACKGROUND, CodeColors.EditorSelection.toArgb())
+    s.setColor(EditorColorScheme.MATCHED_TEXT_BACKGROUND, CodeColors.SearchMatch.toArgb())
 }

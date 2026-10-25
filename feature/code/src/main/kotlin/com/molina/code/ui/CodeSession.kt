@@ -29,7 +29,12 @@ class EditorTab internal constructor(val id: Int, initialTitle: String) {
     /** Hanya baca per tab. Diubah dari menu titik tiga. */
     var readOnly by mutableStateOf(false)
 
-    internal var editor: CodeEditor? = null
+    /** Naik saat hasil pencarian atau seleksi berubah; memicu hitung ulang penghitung find bar. */
+    var findRevision by mutableIntStateOf(0)
+        internal set
+
+    /** State agar find bar dan toolbar ikut diperbarui begitu editor tab selesai dibuat. */
+    internal var editor by mutableStateOf<CodeEditor?>(null)
 
     internal fun disposeEditor() {
         editor?.release()
@@ -44,6 +49,11 @@ class EditorTab internal constructor(val id: Int, initialTitle: String) {
  */
 class CodeSession(val workDir: String) {
     val tabs = mutableStateListOf<EditorTab>()
+
+    val find = FindState()
+
+    /** Dialog Pergi ke baris terbuka. */
+    var gotoOpen by mutableStateOf(false)
 
     var activeId by mutableIntStateOf(-1)
         private set
@@ -73,6 +83,20 @@ class CodeSession(val workDir: String) {
             if (t !in used) return t
             n++
         }
+    }
+
+    /** Buka find bar; seleksi satu baris pendek (maks 64 karakter) menjadi kata cari awal. */
+    fun openFind() {
+        val ed = active?.editor
+        if (ed != null) {
+            val c = ed.cursor
+            if (c.isSelected && c.right - c.left in 1..64) {
+                val sel = ed.text.subSequence(c.left, c.right).toString()
+                if ('\n' !in sel) find.query = sel
+            }
+        }
+        find.open = true
+        find.focusTick++
     }
 
     fun select(id: Int) {

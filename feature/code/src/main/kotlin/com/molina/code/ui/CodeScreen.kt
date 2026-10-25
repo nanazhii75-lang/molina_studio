@@ -1,5 +1,6 @@
 package com.molina.code.ui
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -58,6 +59,9 @@ fun CodeScreen(session: CodeSession, modifier: Modifier = Modifier) {
             if (tab.dirty) pendingClose = tab else session.close(tab.id)
         }
         EditorHost(session, Modifier.weight(1f).fillMaxWidth())
+        if (session.find.open) {
+            session.active?.let { FindBar(session, it) }
+        }
         session.active?.let { tab ->
             EditorToolbar(
                 tab = tab,
@@ -75,9 +79,14 @@ fun CodeScreen(session: CodeSession, modifier: Modifier = Modifier) {
                         }
                     }
                 },
+                onFind = { session.openFind() },
                 onClose = { if (tab.dirty) pendingClose = tab else session.close(tab.id) }
             )
         }
+    }
+
+    if (session.gotoOpen) {
+        session.active?.let { GotoLineDialog(it) { session.gotoOpen = false } }
     }
 
     pendingClose?.let { tab ->
@@ -123,10 +132,9 @@ private fun PathHeader(session: CodeSession) {
                 .clickable { menuOpen = true },
             contentAlignment = Alignment.Center
         ) {
-            BasicText(
-                text = "\u22EE",
-                style = TextStyle(color = CodeColors.IconDefault, fontSize = 20.sp)
-            )
+            Canvas(Modifier.size(CodeDimens.ToolbarIconSize)) {
+                drawToolbarIcon(ToolbarIcon.More, CodeColors.IconDefault, false)
+            }
             if (menuOpen) OverflowMenu(session) { menuOpen = false }
         }
     }

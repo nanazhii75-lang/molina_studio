@@ -73,8 +73,8 @@ internal fun OverflowMenu(session: CodeSession, onDismiss: () -> Unit) {
             MenuEntry("Aksi file")
         ),
         listOf(
-            MenuEntry("Cari"),
-            MenuEntry("Pergi ke baris")
+            MenuEntry("Cari", enabled = tab != null) { session.openFind(); onDismiss() },
+            MenuEntry("Pergi ke baris", enabled = tab != null) { session.gotoOpen = true; onDismiss() }
         ),
         listOf(
             MenuEntry("Bagikan", enabled = hasText) {
@@ -185,7 +185,7 @@ private fun MenuRow(e: MenuEntry) {
 
 /** Kotak centang: terisi emas dengan centang hitam bila aktif; border champagne 50% bila tidak. */
 @Composable
-private fun CheckMark(on: Boolean) {
+internal fun CheckMark(on: Boolean) {
     val shape = RoundedCornerShape(3.dp)
     Box(
         Modifier

@@ -61,6 +61,12 @@ object CodeDimens {
     val MenuTextSize = 15.sp
     val MenuIconSize = 18.dp
 
+    // Find bar
+    val FindRowHeight = 44.dp
+    val FindButtonWidth = 36.dp
+    val FindTextSize = 14.sp
+    val FindUnderline = 1.5.dp
+
     // Dialog
     val DialogCorner = 12.dp
     val DialogTitleSize = 18.sp

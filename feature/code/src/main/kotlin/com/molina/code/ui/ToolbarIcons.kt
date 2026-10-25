@@ -11,7 +11,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale
 
 /** Ikon toolbar. Digambar dengan Canvas pada kisi 24x24 agar tanpa dependency ikon tambahan. */
-internal enum class ToolbarIcon { Save, Paste, Undo, Redo, Find, Left, Right, SelectAll, Play, Close }
+internal enum class ToolbarIcon { Save, Paste, Undo, Redo, Find, Left, Right, SelectAll, Play, Close, More }
 
 private val IconStroke = Stroke(width = 2f, cap = StrokeCap.Round, join = StrokeJoin.Round)
 
@@ -121,6 +121,11 @@ internal fun DrawScope.drawToolbarIcon(kind: ToolbarIcon, color: Color, dot: Boo
             ToolbarIcon.Close -> {
                 drawLine(color, Offset(6f, 6f), Offset(18f, 18f), strokeWidth = 2f, cap = StrokeCap.Round)
                 drawLine(color, Offset(18f, 6f), Offset(6f, 18f), strokeWidth = 2f, cap = StrokeCap.Round)
+            }
+            ToolbarIcon.More -> {
+                drawCircle(color, radius = 1.9f, center = Offset(12f, 5f))
+                drawCircle(color, radius = 1.9f, center = Offset(12f, 12f))
+                drawCircle(color, radius = 1.9f, center = Offset(12f, 19f))
             }
         }
     }

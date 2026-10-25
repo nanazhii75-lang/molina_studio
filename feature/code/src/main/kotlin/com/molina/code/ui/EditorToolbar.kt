@@ -35,7 +35,7 @@ import androidx.compose.ui.unit.dp
 /**
  * Toolbar editor (F3, Opsi A): flat penuh lebar di Surface2 + rail emas. Grup:
  * [Simpan] | [Tempel Undo Redo] | [Cari Kiri Kanan] | [PilihSemuaSalin Play] | [Tutup].
- * Simpan, Cari, dan Play sudah tampil tetapi aksinya menyusul (F3e, F3c, fase Play).
+ * Simpan dan Play sudah tampil tetapi aksinya menyusul (F3e, fase Play).
  */
 @Composable
 internal fun EditorToolbar(
@@ -46,6 +46,7 @@ internal fun EditorToolbar(
     onLeft: () -> Unit,
     onRight: () -> Unit,
     onSelectAllCopy: () -> Unit,
+    onFind: () -> Unit,
     onClose: () -> Unit
 ) {
     // Membaca revision memicu hitung ulang Undo/Redo setiap isi berubah.
@@ -104,8 +105,7 @@ internal fun EditorToolbar(
                 enabled = canRedo, onClick = onRedo
             )
             GroupDivider()
-            // Cari: find bar menyusul di F3c
-            ToolbarButton(ToolbarIcon.Find, CodeColors.IconDisabled, enabled = false, onClick = {})
+            ToolbarButton(ToolbarIcon.Find, CodeColors.IconDefault, enabled = true, onClick = onFind)
             ToolbarButton(ToolbarIcon.Left, CodeColors.IconDefault, enabled = true, onClick = onLeft)
             ToolbarButton(ToolbarIcon.Right, CodeColors.IconDefault, enabled = true, onClick = onRight)
             GroupDivider()
