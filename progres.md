@@ -571,3 +571,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: app/.../settings/Win7SettingsUi.kt dan SettingsScreen.kt. Gradle, Manifest, JNI mpv tidak disentuh
 - [ ] BELUM dikompilasi (CI). Risiko: rendah (focusProperties, onFocusChanged, pointerInput)
 - [ ] uji perangkat: buka Settings tanpa keyboard; ketuk kolom cari lalu ketik; klik menu menutup keyboard; Back dan pindah tab
+
+## 2026-10-26 - Settings: menu Script execution, Paket, dan pintasan Debian apt [SETTINGS-SCRIPTS-PAKET-APT]
+- [x] feat(settings): Home Settings kini memuat ubin Sistem, Script execution, dan Paket
+- [x] feat(settings): Script execution dan Paket berisi placeholder "Segera hadir"; yt-dlp dipindah dari Sistem ke Paket (jalur Settings > Paket > Mesin cadangan)
+- [x] feat(settings): Sistem memuat pintasan Debian apt update dan apt upgrade -y (dialog konfirmasi + keluaran langsung lewat ProotScriptExecutor, timeout 10/40 menit)
+- [x] Dampak: :app saja (SettingsScreen.kt, DebianAptUi.kt, PackageScriptUi.kt). Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi (CI). Risiko: Canvas drawRoundRect, RunRequest named args, delegasi state di lambda
+- [ ] uji perangkat: 3 ubin di Home; yt-dlp via Paket; apt update/upgrade (internet aktif, Debian terpasang/belum); Berhenti; Salin; pencarian apt/paket/script
+- [ ] lanjut: isi Script execution (pintasan script), isi Paket (status, pasang/hapus), generalisasi RunDialog

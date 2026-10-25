@@ -54,12 +54,13 @@ object SettingsNav {
 }
 
 private enum class Page {
-    Home, System, Terminal, Debugging, TerminalIO, TerminalView, Tampilan, CrashReports, About, Log, Stream, Network
+    Home, System, Terminal, Debugging, TerminalIO, TerminalView, Tampilan, CrashReports, About, Log, Stream, Network, Scripts, Packages
 }
 
 private fun parentOf(p: Page): Page? = when (p) {
     Page.Home -> null
-    Page.System -> Page.Home
+    Page.System, Page.Scripts, Page.Packages -> Page.Home
+    Page.Stream -> Page.Packages
     Page.Debugging, Page.TerminalIO, Page.TerminalView, Page.Tampilan -> Page.Terminal
     Page.CrashReports -> Page.Debugging
     else -> Page.System
@@ -78,6 +79,8 @@ private fun titleOf(p: Page): String = when (p) {
     Page.Log -> "Log"
     Page.Stream -> "Mesin cadangan (yt-dlp)"
     Page.Network -> "Keamanan dan privasi"
+    Page.Scripts -> "Script execution"
+    Page.Packages -> "Paket"
 }
 
 private fun trailOf(p: Page): List<Page> = generateSequence(p) { parentOf(it) }.toList().reversed()
@@ -99,6 +102,10 @@ private val INDEX = listOf(
     Hit("Mesin cadangan (yt-dlp)", "TikTok, Facebook, dll. lewat Debian (default mati)", Page.Stream),
     Hit("Keamanan dan privasi", "Kebijakan URL, jaringan lokal (LAN), layar privat", Page.Network),
     Hit("Molina Shield", "Filter lalu lintas pemutar", Page.Network),
+    Hit("Script execution", "Pintasan script (segera hadir)", Page.Scripts),
+    Hit("Paket", "Unduh, perbarui, hapus paket; yt-dlp", Page.Packages),
+    Hit("apt update", "Perbarui daftar paket Debian", Page.System),
+    Hit("apt upgrade", "Tingkatkan paket Debian (apt upgrade -y)", Page.System),
     Hit("About", "Versi dan lisensi", Page.About)
 )
 
@@ -116,6 +123,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     val focus = LocalFocusManager.current
     // Lepas fokus (dan tutup keyboard) setiap kali halaman Settings berganti.
     LaunchedEffect(page) { focus.clearFocus() }
+    var apt by remember { mutableStateOf<AptJob?>(null) }
     fun open(p: Page) { query = ""; page = p }
     BackHandler(enabled = query.isNotBlank() || page != Page.Home) {
         if (query.isNotBlank()) query = "" else page = parentOf(page) ?: Page.Home
@@ -141,6 +149,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
         actions = { RefreshIconButton { showRefresh = true } }
     ) {
         if (showRefresh) SystemRefreshDialog { showRefresh = false }
+        apt?.let { job -> DebianAptDialog(job) { apt = null } }
         when {
             searching -> SearchResults(query) { open(it) }
             page == Page.Log -> LogScreen(Modifier.fillMaxSize())
@@ -154,13 +163,27 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                             links = emptyList(),
                             onOpen = { open(Page.System) }
                         )
+                        W7CategoryTile(
+                            icon = { W7IconScriptBig(52.dp) },
+                            title = "Script execution",
+                            links = emptyList(),
+                            onOpen = { open(Page.Scripts) }
+                        )
+                        W7CategoryTile(
+                            icon = { W7IconPackageBig(52.dp) },
+                            title = "Paket",
+                            links = emptyList(),
+                            onOpen = { open(Page.Packages) }
+                        )
                     }
                     Page.System -> {
                         W7Link({ W7IconTerminal() }, "Terminal", "Molina Terminal: debugging, I/O, tampilan") { open(Page.Terminal) }
                         W7Link({ W7IconLog() }, "Log", "Log aktivitas mpv, Terminal, dan sistem") { open(Page.Log) }
-                        W7Link({ W7IconYtdlp() }, "Mesin cadangan (yt-dlp)", "TikTok, Facebook, dll. lewat Debian (default mati)") { open(Page.Stream) }
                         W7Link({ W7IconShield() }, "Keamanan dan privasi", "Kebijakan URL, jaringan lokal (LAN), layar privat") { open(Page.Network) }
                         W7Link({ W7IconInfo() }, "About", "Versi dan lisensi") { open(Page.About) }
+                        Category("Debian")
+                        W7Link({ W7IconApt("upd") }, "Perbarui daftar paket", "apt update") { apt = AptJob.Update }
+                        W7Link({ W7IconApt("upg") }, "Tingkatkan paket", "apt upgrade -y") { apt = AptJob.Upgrade }
                         Spacer(Modifier.height(12.dp))
                         W7SystemSummary()
                     }
@@ -182,6 +205,8 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                     Page.Log -> {}
                     Page.Stream -> StreamEnginePage()
                     Page.Network -> NetworkSecurityPage()
+                    Page.Scripts -> ScriptsPage()
+                    Page.Packages -> PackagesPage(onOpenYtdlp = { open(Page.Stream) })
                 }
             }
         }
