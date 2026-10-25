@@ -465,3 +465,23 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] uji perangkat: buka .kt, .py, .json, .xml, .md (warna sesuai tema); ketik cepat di berkas besar; Simpan sebagai x.kt dari tab Baru (warna muncul); komentar/string multi-baris; berkas > 400 ribu karakter tetap lancar
 - [ ] Code→Action→Live Preview: desain PreviewProvider native (Markdown/JSON/output skrip), WebView opsional untuk HTML
 - [2026-10-25] design(mpv): MolinaLinkSheet v2 - border hairline 0,75dp (sheet + field), BasicTextField kustom, tombol Tempel/Hapus, chip riwayat, label Putar/Cari - status: file dibuat, menunggu integrasi pemanggil
+
+## 2026-10-25 - Pemilih file lokal ala Windows 7 [CINEMA-WIN7-OPEN]
+- [x] feat(cinema): Win7Aero.kt (token Aero, ikon Canvas, tombol) dan Win7OpenDialog.kt (bilah alamat breadcrumb, panel Favorit/Komputer, kolom Nama/Diubah/Ukuran, Nama file + filter, izin READ_EXTERNAL_STORAGE)
+- [x] CinemaHome: tombol File membuka Win7OpenDialog (menggantikan OpenDocument bawaan Android); CinemaActions.playPath memakai extra filepath
+- [x] Dampak: hanya modul :app (Compose). Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi (CI). Risiko: API Compose/Material3 pada BOM 2024.12.01
+- [ ] uji perangkat Android 8.0: izin storage, buka folder, pilih file lalu ketuk lagi/Buka, urut kolom, kartu SD, Back naik folder
+
+## 2026-10-25 - Pemilih file lama mpv diseragamkan ke Windows 7 [MPV-WIN7-THEME]
+- [x] style(mpv): primary ungu #722b72 menjadi biru Aero (#B9D1EA, aksen #3C7FB1); FilePickerTheme terang (Theme.AppCompat.Light); ikon folder kuning (win7_folder)
+- [x] Dampak: hanya resource :feature:mpv (colors.xml, styles.xml, 2 layout nnf). Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi (CI). Uji: layar pemilih file lama (ActionBar biru muda, teks gelap, folder kuning)
+
+## 2026-10-25 - Settings ala Panel Kontrol Windows 7 + submenu Sistem [SETTINGS-WIN7-SYSTEM]
+- [x] feat(settings): beranda = ubin Sistem + ringkasan perangkat (versi, Android/API, perangkat, ABI, RAM); halaman Sistem memuat Terminal, Log, Mesin cadangan (yt-dlp), Keamanan dan privasi, About
+- [x] feat(settings): jendela Win7 (tombol kembali bulat, breadcrumb, kotak Cari setelan dengan indeks 14 entri, tombol Segarkan Sistem di bilah perintah); halaman lama otomatis terang lewat Win7Scheme
+- [x] Log dan Tampilan Molina tetap tema gelap (log dan pratinjau warna prompt terminal dirancang untuk latar gelap)
+- [x] Dampak: hanya modul :app (settings). Gradle, Manifest, JNI mpv tidak disentuh. Bergantung pada Win7/Win7BackOrb (Win7Aero.kt)
+- [ ] BELUM dikompilasi (CI). Risiko: parameter lightColorScheme surfaceContainer* pada Material3 BOM 2024.12.01
+- [ ] uji perangkat: Home > Sistem > Terminal > Debugging, tombol kembali/Back, breadcrumb, cari 'log' dan 'font', dialog Segarkan Sistem (terang), Switch/Radio/Slider terbaca
