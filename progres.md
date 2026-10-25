@@ -530,3 +530,14 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: hanya app/.../cinema/CinemaResults.kt. Gradle, Manifest, JNI mpv tidak disentuh
 - [ ] BELUM dikompilasi (CI). Risiko: OutlinedTextFieldDefaults.colors (Material3 BOM 2024.12.01)
 - [ ] uji perangkat: Cinema Home > cari judul > daftar hasil, portrait dan landscape, tombol Cari/Prev/Next
+
+## 2026-10-25 - Code -> Action -> Live Preview native (tanpa WebView) [CODE-PLAY-PREVIEW]
+- [x] feat(code): tombol Play aktif. Markdown/JSON: panel pratinjau langsung di bawah editor (debounce 300 ms, render native Compose: LazyColumn, tabel, tautan, kutipan, daftar tugas). JSON: cetak rapi berwarna + galat baris:kolom, ketuk untuk lompat ke posisi galat
+- [x] feat(code): .sh/.py dijalankan dari isi editor (tanpa harus Simpan) di Debian PRoot lewat antarmuka ScriptExecutor; keluaran mengalir ke panel Keluaran (stderr merah, ringkasan exit/waktu, Berhenti/Bersihkan)
+- [x] feat(app): ProotScriptExecutor (berkas sementara di rootfs /tmp/molina-run, bind storage sama dengan Terminal, timeout 60 dtk, batas 1 jt karakter, pohon proses dimatikan saat Berhenti/lewat waktu). TerminalSessions.WORKSPACE_DIR jadi internal
+- [x] Modul murni Kotlin baru (com.molina.code.preview): PreviewKinds, RunPlans, GuestPaths, OutputBuffer, Markdown parser, JsonPreview
+- [x] Diuji di JVM (kotlinc 2.1.21): 4.630 uji lulus (scripts/code-tests/run.sh). Gerbang telemetri lulus
+- [x] Dampak: :feature:code (+kotlinx-coroutines-core 1.9.0), :app (ProotScriptExecutor, MainActivity, TerminalSessions). Manifest dan JNI mpv tidak disentuh
+- [ ] CI commit Play/preview: ISI SETELAH CEK TAB ACTIONS. Risiko: ClickableText, LazyColumn items(count), IntrinsicSize, withFrameNanos
+- [ ] uji perangkat: Play di .md/.json (valid dan rusak, lompat ke galat), .sh, .py (print + sleep, keluaran live), Berhenti, timeout, Debian belum terpasang, python3 belum ada, pindah tab saat berjalan
+- [ ] lanjut: Refreshers id "code", pratinjau HTML native, sinkron scroll editor-pratinjau, item menu "Script execution"
