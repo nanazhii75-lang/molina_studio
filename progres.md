@@ -352,3 +352,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi (menunggu CI). Risiko rendah (nilai warna dan satu lambda listOf)
 - [ ] temuan: latar nav sebenarnya #0A0A0F (MolinaTheme.Background), bukan #2A2218 seperti asumsi blueprint, sehingga toolbar cokelat hangat Code duduk di atas nav hitam dingin; menunggu keputusan pemilik
 - [ ] terkait: putuskan penyatuan tiga emas (#E6B450, #FFB300, #E9B949) setelah melihat tampilan
+
+## 2026-10-25 - Keputusan Opsi B: permukaan Code ikut nav hitam [CODE-OPSI-B]
+- [x] Pemilik memilih Opsi B agar Terminal dan nav tidak berubah
+- [x] style(code): 10 token CodeColors diganti ke keluarga hitam dingin (Surface1 #14161B = CardBg app, Hairline #2A2D35 = CardLine app, SurfaceNav #0A0A0F nilai aktual, dst); emas, champagne, danger, kapsul, baris aktif tetap
+- [x] docs: blueprint-code-editor.md bagian 25 mencatat keputusan dan tabel nilai lama/baru
+- [x] Dampak: hanya CodeColors.kt (nilai warna). Gradle, Manifest, JNI mpv, MainActivity, Terminal tidak disentuh
+- [ ] BELUM dikompilasi (menunggu CI); risiko sangat rendah (nilai literal)
+- [ ] uji perangkat: toolbar/tab bar/header menyatu dengan nav hitam; ikon champagne terbaca; ikon dim/disabled masih dapat dibedakan; garis hairline tidak terlalu terang
+- [ ] terkait: penyatuan tiga emas (#E6B450, #FFB300, #E9B949) masih menunggu keputusan setelah melihat tampilan

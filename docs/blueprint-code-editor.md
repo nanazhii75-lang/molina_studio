@@ -395,3 +395,23 @@ hr { border:0; border-top:1px solid #3A2F22; }
 14. Toggle terang di Tinjauan: dipertahankan (varian krem hangat) atau dihapus (hitam saja)?
 15. Tinjauan memakai WebView atau komponen render Markdown native?
 16. Folder simpan default: ikut folder kerja terbuka, atau tetap root /storage/emulated/0/?
+
+## 25. Keputusan: Permukaan Code Mengikuti Nav Hitam (Opsi B) [BLUEPRINT-OPSI-B]
+
+- Temuan: latar nav aktual adalah #0A0A0F (MolinaTheme.Background), bukan #2A2218 seperti asumsi bagian 13.2.
+- Keputusan pemilik: Opsi B. Nav dan layar lain (termasuk Terminal) TIDAK diubah; permukaan Code disesuaikan ke keluarga hitam dingin app.
+- Menggantikan nilai bagian 13.2 (hanya permukaan dan abu ikon; emas, champagne, danger, kapsul, baris aktif tetap):
+
+| Token | Hex lama | Hex baru |
+|---|---|---|
+| molina_surface_1 | #1C1814 | #14161B (= CardBg app) |
+| molina_surface_2 | #231D17 | #181B21 |
+| molina_surface_drawer | #1F1B17 | #101218 |
+| molina_surface_menu | #1A1511 | #12151A |
+| dialog | #1F1A15 | #171A20 |
+| molina_surface_nav | #2A2218 | #0A0A0F (nilai aktual) |
+| molina_hairline | #3A2F22 | #2A2D35 (= CardLine app) |
+| molina_icon_dim | #7A6C55 | #7D7A72 |
+| molina_icon_disabled | #5A4E3C | #4D4C48 |
+
+- Aksen hangat (champagne #CDBFA3, emas #FFB300) tetap sebagai satu-satunya warna hangat di atas dasar dingin.
