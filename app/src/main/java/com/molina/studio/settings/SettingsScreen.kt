@@ -53,18 +53,20 @@ object SettingsNav {
 }
 
 private enum class Page {
-    Home, Terminal, Debugging, TerminalIO, TerminalView, Tampilan, CrashReports, About, Log, Stream, Network
+    Home, System, Terminal, Debugging, TerminalIO, TerminalView, Tampilan, CrashReports, About, Log, Stream, Network
 }
 
 private fun parentOf(p: Page): Page? = when (p) {
     Page.Home -> null
+    Page.System -> Page.Home
     Page.Debugging, Page.TerminalIO, Page.TerminalView, Page.Tampilan -> Page.Terminal
     Page.CrashReports -> Page.Debugging
-    else -> Page.Home
+    else -> Page.System
 }
 
 private fun titleOf(p: Page): String = when (p) {
     Page.Home -> "Settings"
+    Page.System -> "Sistem"
     Page.Terminal -> "Molina Terminal"
     Page.Debugging -> "Debugging"
     Page.TerminalIO -> "Terminal I/O"
@@ -77,70 +79,124 @@ private fun titleOf(p: Page): String = when (p) {
     Page.Network -> "Keamanan dan privasi"
 }
 
+private fun trailOf(p: Page): List<Page> = generateSequence(p) { parentOf(it) }.toList().reversed()
+
+private class Hit(val title: String, val summary: String, val page: Page)
+
+/** Indeks pencarian Settings: judul, keterangan singkat, dan halaman tujuan. */
+private val INDEX = listOf(
+    Hit("Terminal", "Molina Terminal: debugging, I/O, tampilan", Page.Terminal),
+    Hit("Debugging", "Log level, key logging, notifikasi crash", Page.Debugging),
+    Hit("Log Level", "Off, Normal, Debug, Verbose", Page.Debugging),
+    Hit("Crash Reporter", "Lihat, salin, atau hapus laporan crash", Page.CrashReports),
+    Hit("Logcat Reporter", "Salurkan logcat aplikasi ke halaman Log", Page.Debugging),
+    Hit("Terminal I/O", "Keyboard dan penyimpanan", Page.TerminalIO),
+    Hit("Akses penyimpanan penuh", "Seluruh /sdcard terlihat di dalam Debian", Page.TerminalIO),
+    Hit("Terminal View", "Terminal Margin Adjustment", Page.TerminalView),
+    Hit("Tampilan Molina", "Ukuran font dan tema warna prompt", Page.Tampilan),
+    Hit("Log", "Log aktivitas mpv, Terminal, dan sistem", Page.Log),
+    Hit("Mesin cadangan (yt-dlp)", "TikTok, Facebook, dll. lewat Debian (default mati)", Page.Stream),
+    Hit("Keamanan dan privasi", "Kebijakan URL, jaringan lokal (LAN), layar privat", Page.Network),
+    Hit("Molina Shield", "Filter lalu lintas pemutar", Page.Network),
+    Hit("About", "Versi dan lisensi", Page.About)
+)
+
 /**
- * Settings Hub. Halaman Terminal meniru struktur Settings Termux (Debugging, Terminal I/O,
- * Terminal View, About) dan menambah "Tampilan Molina" (font, tema prompt), Crash Reporter,
- * serta Logcat Reporter. Menu Donate dan aplikasi pendamping Termux sengaja tidak ada.
+ * Settings Hub bergaya Panel Kontrol Windows 7. Beranda berisi ubin "Sistem" dan ringkasan perangkat;
+ * halaman Sistem memuat Terminal, Log, Mesin cadangan, Keamanan, dan About. Halaman Terminal meniru
+ * struktur Settings Termux (Debugging, Terminal I/O, Terminal View) dan menambah "Tampilan Molina",
+ * Crash Reporter, serta Logcat Reporter. Menu Donate dan aplikasi pendamping Termux sengaja tidak ada.
  */
 @Composable
 fun SettingsScreen(modifier: Modifier = Modifier) {
     var page by rememberSaveable { mutableStateOf(Page.Home) }
+    var query by rememberSaveable { mutableStateOf("") }
     var showRefresh by remember { mutableStateOf(false) }
-    BackHandler(enabled = page != Page.Home) { page = parentOf(page) ?: Page.Home }
+    fun open(p: Page) { query = ""; page = p }
+    BackHandler(enabled = query.isNotBlank() || page != Page.Home) {
+        if (query.isNotBlank()) query = "" else page = parentOf(page) ?: Page.Home
+    }
     LaunchedEffect(SettingsNav.openTerminal) {
         if (SettingsNav.openTerminal) {
-            page = Page.Terminal
+            open(Page.Terminal)
             SettingsNav.openTerminal = false
         }
     }
 
-    if (page == Page.Log) {
-        Column(modifier) {
-            TextButton(onClick = { page = Page.Home }) { Text("\u2190 Settings") }
-            LogScreen(Modifier.fillMaxSize())
-        }
-        return
-    }
-
-    Column(modifier.verticalScroll(rememberScrollState()).padding(16.dp)) {
-        val up = parentOf(page)
-        if (up != null) {
-            TextButton(onClick = { page = up }) { Text("\u2190 ${titleOf(up)}") }
-        }
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                titleOf(page), style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f)
-            )
-            if (page == Page.Home) RefreshIconButton { showRefresh = true }
-        }
+    val trail = trailOf(page)
+    val searching = query.isNotBlank()
+    Win7SettingsWindow(
+        modifier = modifier,
+        crumbs = trail.map { titleOf(it) },
+        canUp = page != Page.Home,
+        onUp = { open(parentOf(page) ?: Page.Home) },
+        onCrumb = { i -> open(trail[i]) },
+        query = query,
+        onQuery = { query = it },
+        dark = !searching && (page == Page.Log || page == Page.Tampilan),
+        actions = { RefreshIconButton { showRefresh = true } }
+    ) {
         if (showRefresh) SystemRefreshDialog { showRefresh = false }
-        when (page) {
-            Page.Home -> {
-                SettingsItem("Terminal", "Molina Terminal: debugging, I/O, tampilan") { page = Page.Terminal }
-                SettingsItem("Log", "Log aktivitas mpv, Terminal, dan sistem") { page = Page.Log }
-                SettingsItem("Mesin cadangan (yt-dlp)", "TikTok, Facebook, dll. lewat Debian (default mati)") { page = Page.Stream }
-                SettingsItem("Keamanan dan privasi", "Kebijakan URL, jaringan lokal (LAN), layar privat") { page = Page.Network }
-                SettingsItem("About", "Versi dan lisensi") { page = Page.About }
+        when {
+            searching -> SearchResults(query) { open(it) }
+            page == Page.Log -> LogScreen(Modifier.fillMaxSize())
+            else -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
+                W7Heading(if (page == Page.Home) "Sesuaikan setelan Molina" else titleOf(page))
+                when (page) {
+                    Page.Home -> {
+                        W7CategoryTile(
+                            icon = { W7IconMonitor(52.dp) },
+                            title = "Sistem",
+                            links = listOf(
+                                "Terminal" to { open(Page.Terminal) },
+                                "Log" to { open(Page.Log) },
+                                "Keamanan dan privasi" to { open(Page.Network) }
+                            ),
+                            onOpen = { open(Page.System) }
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        W7SystemSummary()
+                    }
+                    Page.System -> {
+                        W7Link({ W7IconTerminal() }, "Terminal", "Molina Terminal: debugging, I/O, tampilan") { open(Page.Terminal) }
+                        W7Link({ W7IconLog() }, "Log", "Log aktivitas mpv, Terminal, dan sistem") { open(Page.Log) }
+                        W7Link({ W7IconYtdlp() }, "Mesin cadangan (yt-dlp)", "TikTok, Facebook, dll. lewat Debian (default mati)") { open(Page.Stream) }
+                        W7Link({ W7IconShield() }, "Keamanan dan privasi", "Kebijakan URL, jaringan lokal (LAN), layar privat") { open(Page.Network) }
+                        W7Link({ W7IconInfo() }, "About", "Versi dan lisensi") { open(Page.About) }
+                    }
+                    Page.Terminal -> {
+                        SettingsItem("Debugging", "Preferences for debugging") { page = Page.Debugging }
+                        SettingsItem("Terminal I/O", "Preferences for terminal I/O") { page = Page.TerminalIO }
+                        SettingsItem("Terminal View", "Preferences for terminal view") { page = Page.TerminalView }
+                        SettingsItem("Tampilan Molina", "Ukuran font dan tema warna prompt") { page = Page.Tampilan }
+                    }
+                    Page.Debugging -> DebuggingPage(
+                        onOpenCrash = { page = Page.CrashReports },
+                        onOpenLog = { page = Page.Log }
+                    )
+                    Page.TerminalIO -> TerminalIoPage()
+                    Page.TerminalView -> TerminalViewPage()
+                    Page.Tampilan -> TampilanPage()
+                    Page.CrashReports -> CrashReportsPage()
+                    Page.About -> AboutPage()
+                    Page.Log -> {}
+                    Page.Stream -> StreamEnginePage()
+                    Page.Network -> NetworkSecurityPage()
+                }
             }
-            Page.Terminal -> {
-                SettingsItem("Debugging", "Preferences for debugging") { page = Page.Debugging }
-                SettingsItem("Terminal I/O", "Preferences for terminal I/O") { page = Page.TerminalIO }
-                SettingsItem("Terminal View", "Preferences for terminal view") { page = Page.TerminalView }
-                SettingsItem("Tampilan Molina", "Ukuran font dan tema warna prompt") { page = Page.Tampilan }
-            }
-            Page.Debugging -> DebuggingPage(
-                onOpenCrash = { page = Page.CrashReports },
-                onOpenLog = { page = Page.Log }
-            )
-            Page.TerminalIO -> TerminalIoPage()
-            Page.TerminalView -> TerminalViewPage()
-            Page.Tampilan -> TampilanPage()
-            Page.CrashReports -> CrashReportsPage()
-            Page.About -> AboutPage()
-            Page.Log -> {}
-            Page.Stream -> StreamEnginePage()
-            Page.Network -> NetworkSecurityPage()
+        }
+    }
+}
+
+@Composable
+private fun SearchResults(query: String, onOpen: (Page) -> Unit) {
+    val q = query.trim()
+    val hits = INDEX.filter { it.title.contains(q, ignoreCase = true) || it.summary.contains(q, ignoreCase = true) }
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
+        W7Heading(if (hits.isEmpty()) "Tidak ada hasil untuk \"$q\"" else "Hasil pencarian: ${hits.size}")
+        hits.forEach { h ->
+            val path = trailOf(h.page).joinToString(" \u203A ") { titleOf(it) }
+            W7Link({ W7IconHit() }, h.title, h.summary + "\n" + path) { onOpen(h.page) }
         }
     }
 }
