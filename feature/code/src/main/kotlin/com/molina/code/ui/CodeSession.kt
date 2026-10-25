@@ -8,6 +8,9 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.molina.code.preview.PreviewKind
+import com.molina.code.preview.RunPlans
+import com.molina.code.run.ScriptExecutor
 import io.github.rosemoe.sora.widget.CodeEditor
 import java.io.File
 import java.util.concurrent.ExecutorService
@@ -218,6 +221,17 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
 
     /** Panel direktori (F4). Folder utama awal = folder kerja. */
     internal val dir = DirectoryState(this, File(workDir))
+
+    /** Panel pratinjau langsung / keluaran skrip di bawah editor (tombol Play). */
+    internal val preview = PreviewController()
+
+    /** Status eksekusi skrip untuk panel Keluaran. */
+    internal val run = RunController(mainHandler)
+
+    /** Dipasang :app (Debian PRoot). Null = tombol Play untuk skrip memberi tahu bahwa belum tersedia. */
+    var scriptExecutor: ScriptExecutor?
+        get() = run.executor
+        set(value) { run.executor = value }
 
     val active: EditorTab?
         get() = tabs.firstOrNull { it.id == activeId }
@@ -567,7 +581,54 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
         }
     }
 
+    /**
+     * Tombol Play. Skrip berjalan: hentikan. Markdown/JSON: buka/tutup pratinjau langsung.
+     * .sh/.py: jalankan isi editor sekarang (tidak perlu disimpan) di Debian PRoot.
+     */
+    internal fun playActive() {
+        if (run.running) {
+            run.stop()
+            return
+        }
+        val tab = active ?: return
+        if (tab.loading) return
+        when (tab.previewKind()) {
+            PreviewKind.MARKDOWN, PreviewKind.JSON -> {
+                if (preview.open && preview.mode == PaneMode.Preview) {
+                    preview.open = false
+                } else {
+                    preview.invalidate()
+                    preview.mode = PaneMode.Preview
+                    preview.open = true
+                }
+            }
+            PreviewKind.SCRIPT -> runScript(tab)
+            PreviewKind.NONE -> toast("Play mendukung berkas .sh, .py, .md, dan .json")
+        }
+    }
+
+    private fun runScript(tab: EditorTab) {
+        val text = tab.currentTextOrNull(MAX_RUN_CHARS)
+        if (text == null) {
+            toast("Skrip terlalu besar untuk dijalankan")
+            return
+        }
+        val plan = RunPlans.of(tab.file?.name, tab.firstLineOrNull())
+        if (plan == null) {
+            toast("Interpreter skrip tidak dikenal")
+            return
+        }
+        if (run.executor == null) {
+            toast("Eksekutor skrip belum terpasang")
+            return
+        }
+        preview.mode = PaneMode.Output
+        preview.open = true
+        run.start(tab.title, text, plan, tab.file?.parentFile?.path)
+    }
+
     fun releaseAll() {
+        run.release()
         mainHandler.removeCallbacks(draftTask)
         tabs.forEach { it.disposeEditor() }
         io.shutdown()
@@ -577,5 +638,6 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
         const val UNTITLED = "Baru"
         private const val DRAFT_DELAY_MS = 1500L
         private const val MAX_DRAFT_CHARS = 2_000_000
+        private const val MAX_RUN_CHARS = 500_000
     }
 }

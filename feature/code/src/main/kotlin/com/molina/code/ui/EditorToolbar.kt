@@ -32,10 +32,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 
+/** Keadaan tombol Play: mati, siap, pratinjau sedang terbuka (emas), atau skrip berjalan (Stop). */
+internal enum class PlayState { Off, Ready, On, Running }
+
 /**
  * Toolbar editor (F3, Opsi A): flat penuh lebar di Surface2 + rail emas. Grup:
  * [Simpan] | [Tempel Undo Redo] | [Cari Kiri Kanan] | [PilihSemuaSalin Play] | [Tutup].
- * Simpan aktif sejak F3e (aktif saat ada perubahan). Play tampil tetapi aksinya menyusul (fase Play).
+ * Simpan aktif sejak F3e (aktif saat ada perubahan). Play: pratinjau Markdown/JSON atau jalankan .sh/.py.
  */
 @Composable
 internal fun EditorToolbar(
@@ -48,6 +51,8 @@ internal fun EditorToolbar(
     onRight: () -> Unit,
     onSelectAllCopy: () -> Unit,
     onFind: () -> Unit,
+    play: PlayState,
+    onPlay: () -> Unit,
     onClose: () -> Unit
 ) {
     // Membaca revision memicu hitung ulang Undo/Redo setiap isi berubah.
@@ -116,8 +121,17 @@ internal fun EditorToolbar(
                 if (hasText) CodeColors.IconDefault else CodeColors.IconDisabled,
                 enabled = hasText, onClick = onSelectAllCopy
             )
-            // Play: file belum bisa dijalankan
-            ToolbarButton(ToolbarIcon.Play, CodeColors.IconDisabled, enabled = false, onClick = {})
+            // Play: pratinjau langsung (Markdown/JSON) atau jalankan skrip (.sh/.py); Stop saat berjalan
+            ToolbarButton(
+                if (play == PlayState.Running) ToolbarIcon.Stop else ToolbarIcon.Play,
+                when (play) {
+                    PlayState.Off -> CodeColors.IconDisabled
+                    PlayState.Ready -> CodeColors.IconDefault
+                    PlayState.On -> CodeColors.Gold
+                    PlayState.Running -> CodeColors.Danger
+                },
+                enabled = play != PlayState.Off, onClick = onPlay
+            )
             GroupDivider()
             ToolbarButton(ToolbarIcon.Close, CodeColors.Danger, enabled = true, onClick = onClose)
         }

@@ -24,7 +24,7 @@ object TerminalSessions {
     const val MAX_SESSIONS = 5
 
     /** Nama folder kerja Molina di storage bersama (satu-satunya yang di-bind secara default). */
-    private const val WORKSPACE_DIR = "molina-studio"
+    internal const val WORKSPACE_DIR = "molina-studio"
 
     /** true: bila sesi terakhir berakhir, matikan semua proses lalu tutup aplikasi. */
     private const val EXIT_APP_ON_SESSION_END = true

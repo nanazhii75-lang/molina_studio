@@ -44,7 +44,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
+import com.molina.code.preview.PreviewKind
 import io.github.rosemoe.sora.widget.SelectionMovement
+import kotlinx.coroutines.delay
 
 /**
  * Layar tab Code (F2, F3, F4): header path, tab bar, editor, toolbar, dan panel direktori.
@@ -56,6 +58,20 @@ fun CodeScreen(session: CodeSession, modifier: Modifier = Modifier) {
     val ctx = LocalContext.current
     SideEffect { session.toast = { msg -> Toast.makeText(ctx, msg, Toast.LENGTH_SHORT).show() } }
 
+    // Pratinjau langsung: bangun ulang setelah mengetik berhenti sejenak (debounce). Pindah tab
+    // atau membuka panel langsung dibangun tanpa jeda.
+    val liveTab = session.active
+    LaunchedEffect(
+        liveTab?.id, liveTab?.revision, liveTab?.file,
+        session.preview.open, session.preview.mode
+    ) {
+        val tab = liveTab ?: return@LaunchedEffect
+        val pv = session.preview
+        if (!pv.open || pv.mode != PaneMode.Preview) return@LaunchedEffect
+        if (pv.shownTabId == tab.id) delay(PreviewController.DEBOUNCE_MS)
+        pv.refresh(tab)
+    }
+
     Box(modifier.fillMaxWidth()) {
         Column(Modifier.fillMaxSize().background(CodeColors.EditorBg)) {
             PathHeader(session)
@@ -63,10 +79,28 @@ fun CodeScreen(session: CodeSession, modifier: Modifier = Modifier) {
                 if (tab.dirty) pendingClose = tab else session.close(tab.id)
             }
             EditorHost(session, Modifier.weight(1f).fillMaxWidth())
+            if (session.preview.open) {
+                Hairline()
+                PreviewPane(
+                    session,
+                    onJump = { line, col -> session.active?.editor?.jumpToLineHighlighted(line - 1, col) },
+                    modifier = Modifier.weight(1f).fillMaxWidth()
+                )
+            }
             if (session.find.open) {
                 session.active?.let { FindBar(session, it) }
             }
             session.active?.let { tab ->
+                // Membaca revision: jenis berkas bisa berubah saat shebang diketik.
+                val kind = if (tab.revision >= 0) tab.previewKind() else PreviewKind.NONE
+                val previewing = (kind == PreviewKind.MARKDOWN || kind == PreviewKind.JSON) &&
+                    session.preview.open && session.preview.mode == PaneMode.Preview
+                val play = when {
+                    session.run.running -> PlayState.Running
+                    kind == PreviewKind.NONE -> PlayState.Off
+                    previewing -> PlayState.On
+                    else -> PlayState.Ready
+                }
                 EditorToolbar(
                     tab = tab,
                     onSave = { session.save(tab) },
@@ -85,6 +119,8 @@ fun CodeScreen(session: CodeSession, modifier: Modifier = Modifier) {
                         }
                     },
                     onFind = { session.openFind() },
+                    play = play,
+                    onPlay = { session.playActive() },
                     onClose = { if (tab.dirty) pendingClose = tab else session.close(tab.id) }
                 )
             }

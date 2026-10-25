@@ -74,6 +74,23 @@ object CodeColors {
     val PreviewCodeBg = Color(0xFF121212)
     val PreviewQuoteBg = Color(0xFF0D0B09)
 
+    // Pratinjau native (blueprint bagian 21.3 dan 22) dan panel Keluaran skrip
+    val PreviewHairline = Color(0xFF3A2F22)
+    val PreviewHeading = GoldSoft
+    val PreviewInlineCode = GoldSoft
+    val PreviewInlineCodeBg = Color(0xFF1C1814)
+    val PreviewQuoteText = IconDefault
+    val PreviewQuoteBar = Gold.copy(alpha = 0.60f)
+    val PreviewTableHeadBg = Color(0xFF1C1814)
+    val JsonKey = Color(0xFFE3A987)
+    val JsonString = Color(0xFF9DBE8A)
+    val JsonNumber = Color(0xFFE5C07B)
+    val JsonLiteral = Color(0xFFD97757)
+    val JsonPunct = Color(0xFFC9B8A8)
+    val OutputText = TextPrimary
+    val OutputError = Danger
+    val OutputOk = Clean
+
     // Alfa state
     const val DisabledAlpha = 0.38f
     const val HiddenFileAlpha = 0.60f

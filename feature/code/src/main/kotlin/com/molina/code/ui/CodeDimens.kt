@@ -79,6 +79,15 @@ object CodeDimens {
     val DialogTitleSize = 18.sp
     val SuggestionRowHeight = 40.dp
 
+    // Panel pratinjau / keluaran (di bawah editor, terbuka lewat tombol Play)
+    val PaneHeaderHeight = 36.dp
+    val PaneLabelSize = 12.sp
+    val PaneActionWidth = 52.dp
+    val PanePadding = 14.dp
+    val PaneBodySize = 14.sp
+    val PaneMonoSize = 12.sp
+    val PaneTableCellWidth = 128.dp
+
     // Tinjauan
     val PreviewTitleSize = 18.sp
     val PreviewSubtitleSize = 12.sp

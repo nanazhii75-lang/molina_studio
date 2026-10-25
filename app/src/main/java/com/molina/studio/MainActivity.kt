@@ -135,7 +135,10 @@ class MainActivity : ComponentActivity() {
                     com.molina.code.ui.CodeSession(
                         AppPaths.get(this@MainActivity).workspace.path,
                         java.io.File(filesDir, "code-drafts")
-                    ).also { codeSessionRef = it }
+                    ).also {
+                        codeSessionRef = it
+                        it.scriptExecutor = com.molina.studio.code.ProotScriptExecutor(applicationContext)
+                    }
                 }
                 DisposableEffect(codeSession) { onDispose { codeSession.releaseAll() } }
                 val keyboardVisible = rememberKeyboardVisible()
