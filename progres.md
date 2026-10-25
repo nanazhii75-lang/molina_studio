@@ -507,3 +507,8 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: LogScreen.kt, Win7Aero.kt, Win7OpenDialog.kt. Gradle, Manifest, JNI mpv tidak disentuh. Berbagi berkas sebagai lampiran (FileProvider) belum dibuat karena perlu perubahan Manifest
 - [ ] BELUM dikompilasi (CI). Risiko: BasicTextField.decorationBox, FocusRequester.requestFocus (dibungkus runCatching)
 - [ ] uji perangkat: Cari "playlist" (sorotan emas), Cari + filter level, Simpan ke berkas lalu cek folder export, dialog Buka Cinema (latar, kolom, baris terpilih, daftar jenis berkas)
+
+## 2026-10-25 - Investigasi artefak tampilan MainActivity [UI-GLITCH-INVESTIGASI]
+- [x] Commit 902fcc7 (Win7 dialog + tema picker) dan bbcb03a (tema gelap) ditinjau: hanya resource tema dan Compose :app, tidak menyentuh MPVView/MPVActivity/JNI
+- [ ] Penyebab teks bertumpuk belum terbukti; langkah reproduksi menunggu dari pengguna
+- [ ] Uji bisect via CI dari 902fcc7^ dan/atau hardwareAccelerated=false pada MainActivity
