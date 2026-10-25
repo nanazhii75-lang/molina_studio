@@ -417,3 +417,7 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 ## Housekeeping
 - Script patch sekali pakai (F2, F3e, F4, UI v2-v6, shield, cinema) dihapus dari repo; riwayat tetap ada di git.
 - .gitignore: __pycache__/ dan molina_*.py.
+
+## Status build F4
+- CI commit dc7667d: (isi: hijau/merah setelah dicek di Actions).
+- Berikutnya: uji di perangkat (buka folder, muat ulang, tab duplikat, dirty baseline, BOM/line ending).
