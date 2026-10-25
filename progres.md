@@ -413,3 +413,7 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - Patch awal terpotong saat transfer (SyntaxError baris 953); diperbaiki dengan molina_f4_apply.py (verifikasi sha256 per payload).
 - Perubahan: DirectoryPanel/State/Dialogs/Icons baru; CodeScreen, FileStore, EditorHost, OverflowMenu, SaveAsDialog, CodeSession, CodeColors, CodeDimens diperbarui.
 - Build via GitHub Actions CI; belum diverifikasi di perangkat.
+
+## Housekeeping
+- Script patch sekali pakai (F2, F3e, F4, UI v2-v6, shield, cinema) dihapus dari repo; riwayat tetap ada di git.
+- .gitignore: __pycache__/ dan molina_*.py.
