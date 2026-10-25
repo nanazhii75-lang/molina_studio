@@ -36,7 +36,7 @@ private fun searchError(e: StreamError): String = when (e) {
     else -> "Pencarian gagal."
 }
 
-private fun duration(sec: Long): String {
+internal fun duration(sec: Long): String {
     val h = sec / 3600
     val m = (sec % 3600) / 60
     val s = sec % 60
@@ -129,27 +129,13 @@ fun CinemaHome(modifier: Modifier = Modifier) {
         },
         dismissButton = { TextButton({ dialog = false }) { Text("Batal") } }
     )
-    if (showResults) AlertDialog(
-        onDismissRequest = { showResults = false },
-        title = { Text("Hasil pencarian (${results.size})") },
-        text = {
-            LazyColumn(Modifier.heightIn(max = 380.dp)) {
-                items(results) { r ->
-                    Column(
-                        Modifier.fillMaxWidth().clickable {
-                            showResults = false
-                            val d = CinemaActions.classify(r.pageUrl)
-                            info = if (d is CinemaActions.Input.Direct && CinemaActions.playResults(ctx, results, r)) "" else FAIL
-                        }.padding(vertical = 10.dp)
-                    ) {
-                        Text(r.title, maxLines = 2, overflow = TextOverflow.Ellipsis, fontSize = 15.sp)
-                        val meta = listOfNotNull(r.uploader, r.durationSec?.let { duration(it) }).joinToString(" \u00B7 ")
-                        if (meta.isNotEmpty()) Text(meta, color = MolinaTheme.Muted, fontSize = 12.sp)
-                    }
-                    HorizontalDivider(color = MolinaTheme.CardLine)
-                }
-            }
-        },
-        confirmButton = { TextButton({ showResults = false }) { Text("Tutup") } }
+    if (showResults) SearchResultsDialog(
+        results = results,
+        onDismiss = { showResults = false },
+        onPick = { r ->
+            showResults = false
+            val d = CinemaActions.classify(r.pageUrl)
+            info = if (d is CinemaActions.Input.Direct && CinemaActions.playResults(ctx, results, r)) "" else FAIL
+        }
     )
 }

@@ -239,3 +239,8 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] feat(player-ui): playlist: tombol Cari (saring nama; ketik angka = lompat ke nomor channel, Enter = putar), penghitung 003/012 dan jam HH:mm di header; nomor channel tetap saat disaring
 - [ ] BELUM dikompilasi (menunggu CI) dan belum diuji di perangkat: keyboard + resize dialog, filter, lompat nomor, Enter memutar, ikon menu terbaca, audio-only toggle
 - [ ] belum dikerjakan: nama grup (header Semua/kiri-kanan) karena entri playlist belum membawa group-title M3U
+
+## 2026-10-25 - Cinema UI v3 (hasil pencarian Home ala playlist TV)
+- [x] feat(home-ui): dialog Hasil pencarian (Compose) diganti SearchResultsDialog di CinemaResults.kt: baris bernomor 001.., baris terpilih kotak biru (tekan = sorot lalu putar), penghitung 003/050 + jam, Cari (teks = saring, angka = lompat, Enter = putar), Info, Tutup; logika putar tetap CinemaActions.playResults
+- [ ] BELUM dikompilasi (menunggu CI) dan belum diuji di perangkat: keyboard saat Cari, jumlah baris 50, scroll, ketuk baris memutar + antrean berlanjut
+- [ ] dialog hasil pencarian di dalam player (MPVActivity, ArrayAdapter 'Search results') belum diseragamkan
