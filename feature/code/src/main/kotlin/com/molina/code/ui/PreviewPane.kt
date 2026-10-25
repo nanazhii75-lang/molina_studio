@@ -56,33 +56,17 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.unit.sp
 
 /**
- * Panel bawah editor (tombol Play): pratinjau native Markdown/JSON yang ikut berubah saat mengetik,
- * atau keluaran skrip. Semua digambar dengan Compose (tanpa WebView). [onJump] melompat ke
- * (baris basis 1, kolom basis 1) di editor aktif, dipakai oleh galat JSON.
- */
-@Composable
-internal fun PreviewPane(session: CodeSession, onJump: (Int, Int) -> Unit, modifier: Modifier = Modifier) {
-    val preview = session.preview
-    Column(modifier.fillMaxWidth().background(CodeColors.PreviewBg)) {
-        PaneHeader(session)
-        Box(Modifier.fillMaxWidth().height(CodeDimens.Hairline).background(CodeColors.Hairline))
-        Box(Modifier.weight(1f).fillMaxWidth()) {
-            when (preview.mode) {
-                PaneMode.Output -> OutputBody(session.run)
-                PaneMode.Preview -> PreviewBody(preview.content, onJump)
-            }
-        }
-    }
-}
-
-/**
- * Halaman Tinjauan penuh (blueprint bagian 21): appbar hitam dengan tombol kembali, judul
- * "Tinjauan", subjudul path berkas, lalu isi pratinjau native. Tombol Back sistem menutupnya.
- * Isi dibangun ulang otomatis bila berkas berubah (lihat efek di CodeScreen).
+ * Halaman penuh (blueprint bagian 21): appbar hitam dengan tombol kembali, judul, subjudul path
+ * berkas, lalu isi. Mode Preview = "Tinjauan" (Markdown/JSON/HTML, native Compose). Mode Output =
+ * "Keluaran" skrip .sh/.py dengan status, BERHENTI/ULANGI, dan BAGIKAN keluaran. Tombol Back
+ * sistem menutupnya; skrip yang sedang berjalan tetap berjalan dan bisa dihentikan lewat Play.
+ * [onJump] melompat ke (baris, kolom) basis 1 di editor aktif, dipakai oleh galat JSON.
  */
 @Composable
 internal fun PreviewPage(session: CodeSession, onJump: (Int, Int) -> Unit, modifier: Modifier = Modifier) {
     val preview = session.preview
+    val run = session.run
+    val output = preview.mode == PaneMode.Output
     val tab = session.active
     val ctx = LocalContext.current
     BackHandler { preview.open = false }
@@ -109,77 +93,81 @@ internal fun PreviewPage(session: CodeSession, onJump: (Int, Int) -> Unit, modif
                     drawLine(c, Offset(11f * k, 19f * k), Offset(4f * k, 12f * k), strokeWidth = w, cap = StrokeCap.Round)
                 }
             }
-            Column(Modifier.weight(1f).padding(end = 16.dp)) {
+            Column(Modifier.weight(1f).padding(end = 8.dp)) {
                 BasicText(
-                    text = "Tinjauan",
+                    text = if (output) "Keluaran" else "Tinjauan",
                     maxLines = 1,
                     style = TextStyle(color = CodeColors.IconDefault, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 )
+                val where = tab?.file?.path ?: tab?.title.orEmpty()
                 BasicText(
-                    text = tab?.file?.path ?: tab?.title.orEmpty(),
+                    text = if (output && run.interpreter.isNotEmpty()) "$where \u00B7 ${run.interpreter}" else where,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     style = TextStyle(color = CodeColors.SecondaryChampagne, fontSize = CodeDimens.PreviewSubtitleSize)
                 )
             }
-            PaneAction("BAGIKAN", CodeColors.Gold) {
-                val text = tab?.currentTextOrNull(200_000)
-                if (text == null) session.toast("Teks terlalu besar untuk dibagikan") else shareText(ctx, text)
+            if (output) {
+                if (run.running) {
+                    PaneAction("BERHENTI", CodeColors.Danger) { run.stop() }
+                } else {
+                    PaneAction("ULANGI", CodeColors.Gold) { session.playActive() }
+                }
+                PaneAction("BAGIKAN", CodeColors.IconDefault) {
+                    val out = PreviewRender.output(run.lines).text
+                    when {
+                        out.isBlank() -> session.toast("Belum ada keluaran untuk dibagikan")
+                        out.length > MAX_SHARE_OUTPUT -> session.toast("Keluaran terlalu besar untuk dibagikan")
+                        else -> shareText(ctx, out)
+                    }
+                }
+            } else {
+                PaneAction("BAGIKAN", CodeColors.Gold) {
+                    val text = tab?.currentTextOrNull(200_000)
+                    if (text == null) session.toast("Teks terlalu besar untuk dibagikan") else shareText(ctx, text)
+                }
             }
         }
         Box(Modifier.fillMaxWidth().height(CodeDimens.Hairline).background(CodeColors.Hairline))
-        Box(Modifier.weight(1f).fillMaxWidth()) { PreviewBody(preview.content, onJump, preview::takeAnchor) }
+        if (output) RunStatusBar(run)
+        Box(Modifier.weight(1f).fillMaxWidth()) {
+            if (output) OutputBody(run) else PreviewBody(preview.content, onJump, preview::takeAnchor)
+        }
     }
 }
 
+private const val MAX_SHARE_OUTPUT = 200_000
+
+/** Baris status eksekusi di bawah appbar Keluaran: titik berwarna + ringkasan (Selesai, Gagal, Waktu habis, ...). */
 @Composable
-private fun PaneHeader(session: CodeSession) {
-    val preview = session.preview
-    val run = session.run
-    val output = preview.mode == PaneMode.Output
-    val label = when {
-        output -> "Keluaran \u00B7 ${run.interpreter}"
-        preview.label.isNotEmpty() -> "Pratinjau \u00B7 ${preview.label}"
-        else -> "Pratinjau"
+private fun RunStatusBar(run: RunController) {
+    if (run.status == RunStatus.Idle) return
+    val text = when {
+        run.summary.isNotEmpty() -> run.summary
+        run.running -> "Menjalankan\u2026"
+        else -> ""
+    }
+    val dot = when (run.status) {
+        RunStatus.Running -> CodeColors.Gold
+        RunStatus.Done -> CodeColors.OutputOk
+        RunStatus.Failed, RunStatus.TimedOut -> CodeColors.Danger
+        else -> CodeColors.IconDim
     }
     Row(
-        Modifier.fillMaxWidth().height(CodeDimens.PaneHeaderHeight).background(CodeColors.Surface1),
+        Modifier.fillMaxWidth().height(CodeDimens.PaneHeaderHeight).background(CodeColors.Surface1).padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        Box(Modifier.size(CodeDimens.DirtyDot).background(dot, CircleShape))
+        Spacer(Modifier.width(8.dp))
         BasicText(
-            text = label,
-            modifier = Modifier.padding(start = 12.dp),
+            text = text,
+            modifier = Modifier.weight(1f),
             maxLines = 1,
-            style = TextStyle(color = CodeColors.GoldSoft, fontSize = CodeDimens.PaneLabelSize)
+            overflow = TextOverflow.Ellipsis,
+            style = TextStyle(color = CodeColors.TextSecondary, fontSize = CodeDimens.StatusTextSize)
         )
-        if (output && run.summary.isNotEmpty()) {
-            val dot = when (run.status) {
-                RunStatus.Running -> CodeColors.Gold
-                RunStatus.Done -> CodeColors.OutputOk
-                RunStatus.Failed, RunStatus.TimedOut -> CodeColors.Danger
-                else -> CodeColors.IconDim
-            }
-            Spacer(Modifier.width(10.dp))
-            Box(Modifier.size(CodeDimens.DirtyDot).background(dot, CircleShape))
-            Spacer(Modifier.width(5.dp))
-            BasicText(
-                text = run.summary,
-                modifier = Modifier.weight(1f, fill = false),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                style = TextStyle(color = CodeColors.TextSecondary, fontSize = CodeDimens.StatusTextSize)
-            )
-        }
-        Spacer(Modifier.weight(1f))
-        if (output) {
-            if (run.running) {
-                PaneAction("BERHENTI", CodeColors.Danger) { run.stop() }
-            } else {
-                PaneAction("BERSIHKAN", CodeColors.IconDefault) { run.clear() }
-            }
-        }
-        PaneAction("\u2715", CodeColors.IconDefault) { preview.open = false }
     }
+    Box(Modifier.fillMaxWidth().height(CodeDimens.Hairline).background(CodeColors.Hairline))
 }
 
 @Composable

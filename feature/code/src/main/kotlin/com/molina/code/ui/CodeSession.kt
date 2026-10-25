@@ -11,6 +11,8 @@ import androidx.compose.runtime.setValue
 import com.molina.code.preview.PreviewKind
 import com.molina.code.preview.RunPlans
 import com.molina.code.run.ScriptExecutor
+import com.molina.code.run.ScriptShare
+import com.molina.code.run.ScriptSink
 import io.github.rosemoe.sora.widget.CodeEditor
 import java.io.File
 import java.util.concurrent.ExecutorService
@@ -225,9 +227,9 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
     /** Panel pratinjau langsung / keluaran skrip di bawah editor (tombol Play). */
     internal val preview = PreviewController()
 
-    /** True saat halaman Tinjauan penuh (Markdown/JSON) terbuka; :app menyembunyikan bottom nav. */
+    /** True saat halaman penuh terbuka (Tinjauan Markdown/JSON/HTML atau Keluaran skrip); :app menyembunyikan bottom nav. */
     val previewFullScreen: Boolean
-        get() = preview.open && preview.mode == PaneMode.Preview
+        get() = preview.open
 
     /** Opsi Settings "Pakai WebView untuk HTML"; dipasang :app. */
     var htmlWebView: Boolean
@@ -241,6 +243,9 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
     var scriptExecutor: ScriptExecutor?
         get() = run.executor
         set(value) { run.executor = value }
+
+    /** Dipasang :app. Null = menu \"Kirim ke Script Execution\" redup. */
+    var scriptSink: ScriptSink? = null
 
     val active: EditorTab?
         get() = tabs.firstOrNull { it.id == activeId }
@@ -615,6 +620,18 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
             PreviewKind.SCRIPT -> runScript(tab)
             PreviewKind.NONE -> toast("Play mendukung berkas .sh, .py, .md, .json, dan .html")
         }
+    }
+
+    /** Menu titik tiga: kirim isi tab aktif ke Script Execution (Settings). Berkas sama = entri diperbarui. */
+    internal fun sendToScripts() {
+        val sink = scriptSink ?: run { toast("Script Execution belum tersedia"); return }
+        val tab = active ?: return
+        if (tab.loading) return
+        val text = tab.currentTextOrNull(MAX_RUN_CHARS) ?: run { toast("Skrip terlalu besar untuk dikirim"); return }
+        if (text.isBlank()) { toast("Editor kosong, tidak ada yang dikirim"); return }
+        val title = tab.file?.name ?: tab.title
+        val key = tab.file?.path ?: "tab:${tab.title}"
+        toast(sink.send(ScriptShare(title, key, text)))
     }
 
     private fun runScript(tab: EditorTab) {

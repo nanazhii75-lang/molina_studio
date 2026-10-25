@@ -79,14 +79,6 @@ fun CodeScreen(session: CodeSession, modifier: Modifier = Modifier) {
                 if (tab.dirty) pendingClose = tab else session.close(tab.id)
             }
             EditorHost(session, Modifier.weight(1f).fillMaxWidth())
-            if (session.preview.open && session.preview.mode == PaneMode.Output) {
-                Hairline()
-                PreviewPane(
-                    session,
-                    onJump = { line, col -> session.active?.editor?.jumpToLineHighlighted(line - 1, col) },
-                    modifier = Modifier.weight(1f).fillMaxWidth()
-                )
-            }
             if (session.find.open) {
                 session.active?.let { FindBar(session, it) }
             }
@@ -135,7 +127,7 @@ fun CodeScreen(session: CodeSession, modifier: Modifier = Modifier) {
                 .padding(top = CodeDimens.HeaderHeight + CodeDimens.TabBarHeight, bottom = CodeDimens.ToolbarHeight)
         )
         DirectoryPanel(session)
-        // Halaman Tinjauan penuh (Markdown/JSON), menutupi editor sampai ditutup.
+        // Halaman penuh: Tinjauan (Markdown/JSON/HTML) atau Keluaran skrip (.sh/.py), menutupi editor sampai ditutup.
         if (session.previewFullScreen) {
             PreviewPage(
                 session,

@@ -100,7 +100,10 @@ internal fun OverflowMenu(session: CodeSession, onDismiss: () -> Unit) {
                 }
                 onDismiss()
             },
-            MenuEntry("Kirim ke Library"),
+            MenuEntry("Kirim ke Script Execution", enabled = hasText && session.scriptSink != null) {
+                session.sendToScripts()
+                onDismiss()
+            },
             MenuEntry("Ekspor"),
             MenuEntry("Konversi berkas...")
         ),

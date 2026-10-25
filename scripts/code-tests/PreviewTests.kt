@@ -13,6 +13,8 @@ fun <T> eq(name: String, a: T, b: T) = check(name, a == b) { "diharapkan=$b hasi
 
 fun spansText(s: List<MdSpan>) = s.joinToString("") { it.text }
 
+val rnd0 = Random(7)
+
 fun main() {
     // --- PreviewKinds / RunPlans
     eq("md", PreviewKinds.of("a.md"), PreviewKind.MARKDOWN)
@@ -451,6 +453,46 @@ Penutup.
             val s = String(CharArray(rnd.nextInt(0, 30)) { alphabet[rnd.nextInt(alphabet.size)] })
             try { JsonPreview.render(s) } catch (e: Throwable) { check("json fuzz no throw", false) { "$e: $s" } }
         }
+    }
+
+    // --- ScriptLaunch (Script Execution)
+    eq("lines empty", ScriptLaunch.countLines(""), 0)
+    eq("lines one", ScriptLaunch.countLines("a"), 1)
+    eq("lines trailing lf", ScriptLaunch.countLines("a\nb\n"), 2)
+    eq("lines no trailing", ScriptLaunch.countLines("a\nb"), 2)
+    eq("lines crlf", ScriptLaunch.countLines("a\r\nb\r\n"), 2)
+    eq("lines cr only", ScriptLaunch.countLines("a\rb\rc"), 3)
+    eq("lines blank lines", ScriptLaunch.countLines("\n\n"), 2)
+    eq("lines 3000 ok", ScriptLaunch.countLines("x\n".repeat(3000)), 3000)
+    check("lines 3001 over", ScriptLaunch.countLines("x\n".repeat(3001)) > ScriptLaunch.MAX_LINES)
+    eq("eol crlf", ScriptLaunch.normalizeEol("a\r\nb\rc\n"), "a\nb\nc\n")
+    eq("eol same instance", ScriptLaunch.normalizeEol("a\nb"), "a\nb")
+    eq("plan title py", ScriptLaunch.planFor("x.py", "print(1)").interpreter, "/usr/bin/python3")
+    eq("plan title sh", ScriptLaunch.planFor("x.sh", "echo").interpreter, "/bin/bash")
+    eq("plan default bash", ScriptLaunch.planFor("Baru", "echo hi").interpreter, "/bin/bash")
+    eq("plan shebang python", ScriptLaunch.planFor("Baru", "#!/usr/bin/env python3\nprint(1)").interpreter, "/usr/bin/python3")
+    eq("plan shebang crlf", ScriptLaunch.planFor("Baru", "#!/bin/sh\r\necho").interpreter, "/bin/sh")
+    val bashPlan = RunPlans.of("a.sh", null)!!
+    val pyPlan = RunPlans.of("a.py", null)!!
+    eq("fname basic", ScriptLaunch.fileName("ab12", "Backup Harian.sh", bashPlan), "backup-harian-ab12.sh")
+    eq("fname py ext", ScriptLaunch.fileName("ab12", "tool.py", pyPlan), "tool-ab12.py")
+    eq("fname empty", ScriptLaunch.fileName("ab12", "   ", bashPlan), "skrip-ab12.sh")
+    eq("fname symbols", ScriptLaunch.fileName("ab12", "../../etc/passwd", bashPlan), "etc-passwd-ab12.sh")
+    eq("fname unicode", ScriptLaunch.fileName("ab12", "\u00e9\u00e8\u4e2d", bashPlan), "skrip-ab12.sh")
+    eq("fname long", ScriptLaunch.fileName("ab12", "a".repeat(100), bashPlan).length, 40 + "-ab12.sh".length)
+    check("fname no slash", '/' !in ScriptLaunch.fileName("a/b", "x/y", bashPlan))
+    eq("fname id sanitized", ScriptLaunch.fileName("a/b;c", "x", bashPlan), "x-abc.sh")
+    eq("quote plain", ScriptLaunch.shellQuote("/root/a.sh"), "'/root/a.sh'")
+    eq("quote apostrophe", ScriptLaunch.shellQuote("a'b"), "'a'\\''b'")
+    eq("cmd no shebang", ScriptLaunch.terminalCommand("/root/x.sh", bashPlan, "echo hi"), "chmod +x '/root/x.sh' && /bin/bash '/root/x.sh'")
+    eq("cmd shebang", ScriptLaunch.terminalCommand("/root/x.sh", bashPlan, "#!/bin/bash\necho"), "chmod +x '/root/x.sh' && '/root/x.sh'")
+    eq("cmd python", ScriptLaunch.terminalCommand("/root/x.py", pyPlan, "print(1)"), "chmod +x '/root/x.py' && /usr/bin/python3 '/root/x.py'")
+    check("cmd single line", '\n' !in ScriptLaunch.terminalCommand("/root/x.sh", bashPlan, "echo\nhi"))
+    repeat(2000) { // fuzz: nama berkas selalu aman
+        val alphabet = "abcXYZ019 ./\\;'\"\$`|&\n\t-_\u00e9".toList()
+        val t = String(CharArray(rnd0.nextInt(0, 60)) { alphabet[rnd0.nextInt(alphabet.size)] })
+        val f = ScriptLaunch.fileName("id1", t, bashPlan)
+        check("fname fuzz safe", f.all { it in 'a'..'z' || it in '0'..'9' || it in "._-A" } && f.endsWith("-id1.sh") && f.length <= 60) { "$t -> $f" }
     }
 
     println("Selesai: ${total - failed}/$total lulus" + if (failed > 0) ", $failed GAGAL" else "")
