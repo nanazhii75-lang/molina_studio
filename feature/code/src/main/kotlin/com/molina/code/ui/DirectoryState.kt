@@ -12,7 +12,7 @@ internal class DirRow(val entry: DirEntry, val depth: Int, val expanded: Boolean
 
 /** Dialog aksi berkas yang dirender oleh [FileDialogs]. */
 internal sealed class FileDialog {
-    class Menu(val file: File) : FileDialog()
+    class Menu(val file: File, val fromTree: Boolean = false) : FileDialog()
     class Rename(val file: File) : FileDialog()
     class Delete(val file: File) : FileDialog()
     class NewFile(val parent: File) : FileDialog()

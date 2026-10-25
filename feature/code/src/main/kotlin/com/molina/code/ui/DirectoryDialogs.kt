@@ -45,6 +45,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupPositionProvider
+import androidx.compose.ui.window.PopupProperties
 import java.io.File
 
 internal enum class PickMode { Folder, File }
@@ -57,7 +69,12 @@ internal class PickerRequest(
     val onPick: (File) -> Unit
 )
 
-internal class ActionItem(val label: String, val danger: Boolean = false, val onClick: () -> Unit)
+internal class ActionItem(
+    val label: String,
+    val danger: Boolean = false,
+    val separatorBefore: Boolean = false,
+    val onClick: () -> Unit
+)
 
 /** Semua dialog F4 dalam satu tempat: menu aksi berkas, ganti nama, hapus, baru, konfirmasi muat ulang, pemilih. */
 @Composable
@@ -67,38 +84,8 @@ internal fun FileDialogs(session: CodeSession) {
     when (val d = session.fileDialog) {
         null -> Unit
         is FileDialog.Menu -> {
-            val f = d.file
-            val isDir = f.isDirectory
-            val items = buildList {
-                if (isDir) {
-                    add(ActionItem("Jadikan folder utama") {
-                        session.fileDialog = null
-                        dir.changeRoot(f)
-                    })
-                } else {
-                    add(ActionItem("Buka") {
-                        session.fileDialog = null
-                        session.openFile(f)
-                    })
-                }
-                add(ActionItem("Ganti nama") { session.fileDialog = FileDialog.Rename(f) })
-                add(ActionItem("Hapus", danger = true) { session.fileDialog = FileDialog.Delete(f) })
-                add(ActionItem("Salin path") {
-                    copyToClipboard(ctx, f.path)
-                    session.toast("Path disalin")
-                    session.fileDialog = null
-                })
-                if (!dir.open) {
-                    add(ActionItem("Tampilkan di panel") {
-                        session.fileDialog = null
-                        dir.reveal(f)
-                    })
-                }
-                val target = if (isDir) f else (f.parentFile ?: f)
-                add(ActionItem("File baru di sini") { session.fileDialog = FileDialog.NewFile(target) })
-                add(ActionItem("Folder baru di sini") { session.fileDialog = FileDialog.NewFolder(target) })
-            }
-            ActionListDialog(f.name, items) { session.fileDialog = null }
+            // Dari titik tiga baris tree: dropdown dirender di TreeRow. Dari "Aksi file": popup kanan atas.
+            if (!d.fromTree) HeaderActionMenu(session, d.file)
         }
         is FileDialog.Rename -> NameDialog(
             title = "Ganti nama",
@@ -225,36 +212,144 @@ internal fun ConfirmDialog(
     }
 }
 
-/** Daftar aksi (menu konteks tree dan "Aksi file"). */
+internal fun buildFileActions(session: CodeSession, ctx: Context, f: File): List<ActionItem> {
+    val dir = session.dir
+    val isDir = f.isDirectory
+    return buildList {
+        if (isDir) {
+            add(ActionItem("Jadikan folder utama") {
+                session.fileDialog = null
+                dir.changeRoot(f)
+            })
+        } else {
+            add(ActionItem("Buka") {
+                session.fileDialog = null
+                session.openFile(f)
+            })
+        }
+        val target = if (isDir) f else (f.parentFile ?: f)
+        add(ActionItem("File baru di sini") { session.fileDialog = FileDialog.NewFile(target) })
+        add(ActionItem("Folder baru di sini") { session.fileDialog = FileDialog.NewFolder(target) })
+        add(ActionItem("Ganti nama") { session.fileDialog = FileDialog.Rename(f) })
+        add(ActionItem("Salin nama") {
+            copyToClipboard(ctx, f.name)
+            session.toast("Nama disalin")
+            session.fileDialog = null
+        })
+        add(ActionItem("Salin path") {
+            copyToClipboard(ctx, f.path)
+            session.toast("Path disalin")
+            session.fileDialog = null
+        })
+        if (!dir.open) {
+            add(ActionItem("Tampilkan di panel") {
+                session.fileDialog = null
+                dir.reveal(f)
+            })
+        }
+        add(ActionItem("Hapus", danger = true, separatorBefore = true) { session.fileDialog = FileDialog.Delete(f) })
+    }
+}
+
+/** Menempatkan dropdown tepat di bawah jangkar (rata kanan), membalik ke atas bila tak muat, dan dijepit ke layar. */
+private class AnchoredMenuPositionProvider(private val gapPx: Int, private val marginPx: Int) : PopupPositionProvider {
+    override fun calculatePosition(
+        anchorBounds: IntRect,
+        windowSize: IntSize,
+        layoutDirection: LayoutDirection,
+        popupContentSize: IntSize
+    ): IntOffset {
+        val maxX = maxOf(marginPx, windowSize.width - popupContentSize.width - marginPx)
+        val x = (anchorBounds.right - popupContentSize.width).coerceIn(marginPx, maxX)
+        val below = anchorBounds.bottom + gapPx
+        val fitsBelow = below + popupContentSize.height + marginPx <= windowSize.height
+        val y = if (fitsBelow) below
+        else (anchorBounds.top - gapPx - popupContentSize.height).coerceAtLeast(marginPx)
+        return IntOffset(x, y)
+    }
+}
+
+/** Dropdown ringkas yang menempel di titik tiga baris tree. Dipanggil di dalam kotak titik tiga. */
 @Composable
-private fun ActionListDialog(title: String, items: List<ActionItem>, onDismiss: () -> Unit) {
-    Dialog(onDismissRequest = onDismiss) {
-        DialogCard(Modifier.widthIn(max = 320.dp)) {
-            BasicText(
-                text = title,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                style = TextStyle(color = CodeColors.Gold, fontSize = CodeDimens.DialogTitleSize)
-            )
-            Spacer(Modifier.height(8.dp))
-            items.forEach { item ->
+internal fun TreeActionMenu(session: CodeSession, file: File) {
+    val ctx = LocalContext.current
+    val density = LocalDensity.current
+    val provider = remember(density) {
+        AnchoredMenuPositionProvider(with(density) { 2.dp.roundToPx() }, with(density) { 8.dp.roundToPx() })
+    }
+    Popup(
+        popupPositionProvider = provider,
+        onDismissRequest = { session.fileDialog = null },
+        properties = PopupProperties(focusable = true)
+    ) {
+        CompactActionMenu(file.name, buildFileActions(session, ctx, file))
+    }
+}
+
+/** Dropdown ringkas kanan atas untuk "Aksi file" dari menu titik tiga header. */
+@Composable
+private fun HeaderActionMenu(session: CodeSession, file: File) {
+    val ctx = LocalContext.current
+    val offsetY = with(LocalDensity.current) { CodeDimens.HeaderHeight.roundToPx() }
+    Popup(
+        alignment = Alignment.TopEnd,
+        offset = IntOffset(0, offsetY),
+        onDismissRequest = { session.fileDialog = null },
+        properties = PopupProperties(focusable = true)
+    ) {
+        Box(Modifier.padding(8.dp)) {
+            CompactActionMenu(file.name, buildFileActions(session, ctx, file))
+        }
+    }
+}
+
+/** Isi dropdown: nama berkas kecil di atas, baris 40dp, "Hapus" dipisah hairline, tinggi maks 72% layar. */
+@Composable
+private fun CompactActionMenu(title: String, items: List<ActionItem>) {
+    val shape = RoundedCornerShape(CodeDimens.MenuCorner)
+    val maxHeight = (LocalConfiguration.current.screenHeightDp * CodeDimens.MenuMaxHeightFraction).dp
+    Column(
+        Modifier
+            .shadow(CodeDimens.MenuElevation, shape)
+            .clip(shape)
+            .background(CodeColors.SurfaceMenu)
+            .border(CodeDimens.Hairline, CodeColors.Hairline, shape)
+            .widthIn(min = 180.dp, max = CodeDimens.MenuMaxWidth)
+            .heightIn(max = maxHeight)
+            .verticalScroll(rememberScrollState())
+    ) {
+        BasicText(
+            text = title,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 6.dp),
+            style = TextStyle(color = CodeColors.SecondaryChampagne, fontSize = 12.sp)
+        )
+        items.forEach { item ->
+            if (item.separatorBefore) {
                 Box(
-                    Modifier
-                        .fillMaxWidth()
-                        .height(CodeDimens.MenuRowHeight)
-                        .clickable(onClick = item.onClick),
-                    contentAlignment = Alignment.CenterStart
-                ) {
-                    BasicText(
-                        text = item.label,
-                        style = TextStyle(
-                            color = if (item.danger) CodeColors.Danger else CodeColors.IconDefault,
-                            fontSize = CodeDimens.MenuTextSize
-                        )
+                    Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                        .height(CodeDimens.Hairline).background(CodeColors.Hairline)
+                )
+            }
+            Box(
+                Modifier.fillMaxWidth().height(40.dp)
+                    .clickable(onClick = item.onClick)
+                    .padding(horizontal = 16.dp),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                BasicText(
+                    text = item.label,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = TextStyle(
+                        color = if (item.danger) CodeColors.Danger else CodeColors.IconDefault,
+                        fontSize = 14.sp
                     )
-                }
+                )
             }
         }
+        Spacer(Modifier.height(4.dp))
     }
 }
 

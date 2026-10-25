@@ -96,12 +96,16 @@ internal fun DirectoryPanel(session: CodeSession, modifier: Modifier = Modifier)
                         val path = row.entry.file.path
                         TreeRow(
                             row = row,
+                            session = session,
                             selected = path == dir.selected || path == activePath,
                             onTap = {
                                 dir.selected = path
                                 if (row.entry.isDir) dir.toggle(row.entry.file) else session.openFile(row.entry.file)
                             },
-                            onMenu = { session.fileDialog = FileDialog.Menu(row.entry.file) }
+                            onMenu = {
+                                dir.selected = path
+                                session.fileDialog = FileDialog.Menu(row.entry.file, fromTree = true)
+                            }
                         )
                     }
                 }
@@ -151,7 +155,7 @@ private fun DrawerHeader(session: CodeSession) {
 
 /** Satu baris tree 32dp: indent, expander (folder), ikon, nama. Titik tiga di kanan = menu konteks. */
 @Composable
-private fun TreeRow(row: DirRow, selected: Boolean, onTap: () -> Unit, onMenu: () -> Unit) {
+private fun TreeRow(row: DirRow, session: CodeSession, selected: Boolean, onTap: () -> Unit, onMenu: () -> Unit) {
     val tap by rememberUpdatedState(onTap)
     val menu by rememberUpdatedState(onMenu)
     val shape = RoundedCornerShape(CodeDimens.TreeSelectCorner)
@@ -209,6 +213,11 @@ private fun TreeRow(row: DirRow, selected: Boolean, onTap: () -> Unit, onMenu: (
             contentAlignment = Alignment.Center
         ) {
             Canvas(Modifier.size(CodeDimens.TreeMenuDots)) { drawMoreDots(CodeColors.IconDim) }
+            // Dropdown ringkas menempel di titik tiga baris ini (bukan dialog layar penuh)
+            val d = session.fileDialog
+            if (d is FileDialog.Menu && d.fromTree && d.file.path == entry.file.path) {
+                TreeActionMenu(session, d.file)
+            }
         }
     }
 }
