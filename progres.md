@@ -512,3 +512,9 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Commit 902fcc7 (Win7 dialog + tema picker) dan bbcb03a (tema gelap) ditinjau: hanya resource tema dan Compose :app, tidak menyentuh MPVView/MPVActivity/JNI
 - [ ] Penyebab teks bertumpuk belum terbukti; langkah reproduksi menunggu dari pengguna
 - [ ] Uji bisect via CI dari 902fcc7^ dan/atau hardwareAccelerated=false pada MainActivity
+
+## 2026-10-25 - Workaround glitch gambar FilePickerActivity [MPV-PICKER-SW]
+- [x] fix(mpv): FilePickerActivity hardwareAccelerated=false (pola korupsi 128px + sisa gambar app lain di Android 8); kode layar = upstream, bukan dari tema
+- [x] Dampak: AndroidManifest :feature:mpv saja. Gradle, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi (CI). Uji: player > tombol subtitle > Open external subtitle, portrait dan landscape
+- [ ] Fallback bila masih glitch: windowTranslucentNavigation di FilePickerThemeSpecial

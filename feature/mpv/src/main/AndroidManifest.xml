@@ -188,8 +188,10 @@
             android:theme="@style/FilePickerTheme"
             android:exported="false" />
 
+        <!-- [MPV-PICKER-SW] render perangkat lunak: hindari korupsi gambar GPU (teks bertumpuk) di Android 8 -->
         <activity
             android:name=".FilePickerActivity"
+            android:hardwareAccelerated="false"
             android:configChanges="orientation|screenSize"
             android:screenOrientation="behind"
             android:theme="@style/FilePickerThemeSpecial"
