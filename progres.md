@@ -378,3 +378,14 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: hanya :feature:code (CodeSession, EditorHost, CodeScreen, OverflowMenu baru). Gradle, Manifest, JNI mpv tidak disentuh
 - [ ] BELUM dikompilasi (menunggu CI). Risiko: CodeEditor.setEditable(Boolean) dan Content.lineCount pada Rosemoe 0.23.6; import onSizeChanged/positionInParent; Popup di dalam Box anchor
 - [ ] uji perangkat: tutup tab terakhir = kembali "Baru" (bukan Baru 2); buka 8+ tab lalu tab aktif tergulir ke layar; titik tiga membuka menu di bawah header; Pembungkus kata dan Hanya baca bekerja per tab; Bagikan membuka chooser; item redup tidak bisa diketuk
+
+## 2026-10-25 - F3c find bar + Pergi ke baris [CODE-F3C-FIND]
+- [x] feat(code): FindBar.kt (find bar, dialog Opsi pencarian, dialog Pergi ke baris) dan FindState.kt; pencarian memakai EditorSearcher Rosemoe 0.23.6 (API dicocokkan ke sumber)
+- [x] feat(code): tombol Cari toolbar + item menu Cari/Pergi ke baris aktif; seleksi pendek jadi kata cari awal; sorotan hasil emas 35%
+- [x] refactor(code): EditorTab.editor jadi state Compose; ikon titik tiga vektor (ToolbarIcon.More)
+- [x] docs: blueprint-code-editor.md bagian 28
+- [x] Dampak: hanya :feature:code (FindBar, FindState, CodeSession, EditorHost, EditorToolbar, OverflowMenu, ToolbarIcons, CodeScreen, CodeDimens). Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi (menunggu CI). Risiko: smart cast pada fungsi lokal di composable, KeyboardActions onSearch/onGo/onDone, delegate pada EditorTab.editor
+- [ ] uji perangkat: ketik kata cari lalu hitung n/total muncul dan sorotan emas; Enter lompat ke hasil berikutnya; regex salah = merah 'Regex salah'; GANTI/SEMUA mengubah teks; Pergi ke baris 1 dan baris terakhir; find bar tidak tertutup keyboard; pindah tab menghentikan sorotan tab lama
+- [ ] keputusan pemilik: arti 'Blok' (kata utuh atau dalam seleksi); sementara kata utuh
+- [ ] berikutnya: F3e Simpan + autosave draf, lalu F4 panel direktori

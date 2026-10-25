@@ -432,3 +432,12 @@ hr { border:0; border-top:1px solid #3A2F22; }
 - Menu titik tiga mengikuti bagian 14 (5 grup, baris 44dp, maks 72% layar). Aktif: Baru, Bagikan, Pembungkus kata, Hanya baca, Statistik. Redup sampai fasenya jadi: Buka, Muat ulang, Aksi file (F4), Cari, Pergi ke baris (F3c), Kirim ke Library, Ekspor, Konversi, Syntax, Gaya Visual, Lakukan.
 - Enkode tampil sebagai baris read-only "Enkode: UTF-8 (terkunci)" (bagian 20.2).
 - Pembungkus kata dan Hanya baca disimpan per tab (EditorTab.wordWrap, EditorTab.readOnly).
+
+## 28. F3c: Find Bar, Opsi Pencarian, Pergi ke Baris [BLUEPRINT-F3C-FIND]
+
+- Find bar di atas toolbar: field Cari (garis bawah emas saat fokus), penghitung n/total, panah sebelumnya/berikutnya, OPSI, tutup. Baris Ganti (GANTI, SEMUA) muncul bila opsi Ganti teks ON.
+- Dialog Opsi pencarian: Huruf besar/kecil ON, Blok OFF, Regex OFF, Membungkus ON, Ganti teks OFF; berlaku saat TERAPKAN.
+- Keputusan sementara: "Blok" = pencarian kata utuh (pertanyaan terbuka 9 belum dijawab pemilik). Regex menang bila Blok dan Regex sama-sama ON.
+- Pergi ke baris: dialog angka 1..jumlah baris. Menu titik tiga: Cari dan Pergi ke baris aktif; tombol Cari toolbar aktif.
+- Titik tiga di header kini ikon vektor (ToolbarIcon.More), bukan karakter teks.
+- Autosave draf digeser ke F3e (bersama tombol Simpan).
