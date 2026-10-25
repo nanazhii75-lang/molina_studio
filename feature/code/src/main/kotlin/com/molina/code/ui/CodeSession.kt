@@ -229,6 +229,11 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
     val previewFullScreen: Boolean
         get() = preview.open && preview.mode == PaneMode.Preview
 
+    /** Opsi Settings "Pakai WebView untuk HTML"; dipasang :app. */
+    var htmlWebView: Boolean
+        get() = preview.htmlWebView
+        set(value) { preview.htmlWebView = value }
+
     /** Status eksekusi skrip untuk panel Keluaran. */
     internal val run = RunController(mainHandler)
 
@@ -597,7 +602,7 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
         val tab = active ?: return
         if (tab.loading) return
         when (tab.previewKind()) {
-            PreviewKind.MARKDOWN, PreviewKind.JSON -> {
+            PreviewKind.MARKDOWN, PreviewKind.JSON, PreviewKind.HTML -> {
                 if (preview.open && preview.mode == PaneMode.Preview) {
                     preview.open = false
                 } else {
@@ -608,7 +613,7 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
                 }
             }
             PreviewKind.SCRIPT -> runScript(tab)
-            PreviewKind.NONE -> toast("Play mendukung berkas .sh, .py, .md, dan .json")
+            PreviewKind.NONE -> toast("Play mendukung berkas .sh, .py, .md, .json, dan .html")
         }
     }
 

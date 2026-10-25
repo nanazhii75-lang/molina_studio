@@ -4,6 +4,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.activity.compose.BackHandler
+import android.annotation.SuppressLint
+import android.webkit.WebResourceRequest
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -48,6 +52,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.unit.sp
 
 /**
@@ -213,6 +218,7 @@ private fun PreviewBody(content: PreviewContent, onJump: (Int, Int) -> Unit, anc
         PreviewContent.Empty -> Unit
         is PreviewContent.Message -> CenterMessage(content.text)
         is PreviewContent.Markdown -> MarkdownBody(content.blocks, content.startLines, anchor)
+        is PreviewContent.Html -> WebViewBody(content.source)
         is PreviewContent.Json -> MonoBody(content.text)
         is PreviewContent.JsonError -> JsonErrorBody(content, onJump)
     }
@@ -465,4 +471,43 @@ private fun OutputBody(run: RunController) {
             )
         )
     }
+}
+
+// ------------------------------------------------------------------ WebView (opsional)
+
+/**
+ * Pratinjau HTML penuh lewat WebView, hanya bila opsi di Settings menyala. Dikunci rapat:
+ * tanpa JavaScript, tanpa jaringan, tanpa akses berkas/konten, tanpa DOM storage. Setiap perpindahan
+ * halaman dicegat; hanya tautan web/email yang diteruskan ke peramban lewat pengendali URI.
+ */
+@SuppressLint("SetJavaScriptEnabled")
+@Composable
+private fun WebViewBody(html: String) {
+    val uri = LocalUriHandler.current
+    AndroidView(
+        modifier = Modifier.fillMaxSize(),
+        factory = { ctx ->
+            WebView(ctx).apply {
+                settings.javaScriptEnabled = false
+                settings.allowFileAccess = false
+                settings.allowContentAccess = false
+                settings.domStorageEnabled = false
+                settings.blockNetworkLoads = true
+                setBackgroundColor(android.graphics.Color.WHITE)
+                webViewClient = object : WebViewClient() {
+                    override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+                        openLink(uri, request.url.toString())
+                        return true
+                    }
+                }
+            }
+        },
+        update = { wv ->
+            if (wv.tag != html) {
+                wv.tag = html
+                wv.loadDataWithBaseURL(null, html, "text/html", "utf-8", null)
+            }
+        },
+        onRelease = { wv -> wv.destroy() }
+    )
 }

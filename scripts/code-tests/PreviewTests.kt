@@ -253,6 +253,115 @@ Penutup.
         }
     }
 
+
+    // --- HTML
+    fun hb(html: String) = HtmlPreview.parse(html).blocks
+    fun htext(b: MdBlock): String = when (b) {
+        is MdBlock.Heading -> spansText(b.spans)
+        is MdBlock.Paragraph -> spansText(b.spans)
+        is MdBlock.Quote -> spansText(b.spans)
+        is MdBlock.Item -> spansText(b.spans)
+        is MdBlock.Code -> b.text
+        else -> ""
+    }
+    run {
+        val html = """<!DOCTYPE html>
+<html><head><title>Judul Halaman</title><style>p{color:red}</style><script>var x = "<p>bukan</p>";</script></head>
+<body>
+<h1>Selamat   Datang</h1>
+<p>Halo <b>dunia</b> dan <i>semua</i>, lihat <a href="https://contoh.id/a?x=1&amp;y=2">tautan ini</a>.<br>Baris baru &amp; &copy; &#65;&#x42;.</p>
+<ul><li>satu</li><li>dua<ul><li>anak</li></ul></li></ul>
+<ol><li>pertama</li><li>kedua</li></ol>
+<blockquote>kutipan <em>miring</em></blockquote>
+<hr>
+<pre>baris1
+  baris2 &lt;tag&gt;</pre>
+<table><thead><tr><th>Nama</th><th>Nilai</th></tr></thead>
+<tbody><tr><td>a</td><td>1</td></tr><tr><td>b</td><td><b>2</b></td></tr></tbody></table>
+<div>akhir <del>coret</del> <code>kode</code></div>
+</body></html>"""
+        val b = hb(html)
+        eq("html kinds", b.map { it::class.simpleName }, listOf(
+            "Heading", "Paragraph", "Item", "Item", "Item", "Item", "Item", "Quote", "Rule", "Code", "Table", "Paragraph"))
+        eq("html h1", htext(b[0]), "Selamat Datang")
+        eq("html h1 level", (b[0] as MdBlock.Heading).level, 1)
+        val p1 = b[1] as MdBlock.Paragraph
+        eq("html para text", spansText(p1.spans), "Halo dunia dan semua, lihat tautan ini.\nBaris baru & \u00A9 AB.")
+        check("html bold", p1.spans.any { it.text == "dunia" && it.flags == MdFlag.BOLD })
+        check("html italic", p1.spans.any { it.text == "semua" && it.flags == MdFlag.ITALIC })
+        check("html link", p1.spans.any { it.text == "tautan ini" && it.href == "https://contoh.id/a?x=1&y=2" && it.flags and MdFlag.LINK != 0 })
+        check("html script skipped", b.none { htext(it).contains("bukan") || htext(it).contains("color") || htext(it).contains("Judul Halaman") })
+        eq("html li 1", (b[2] as MdBlock.Item).depth to htext(b[2]), 0 to "satu")
+        eq("html li nested order", listOf(htext(b[3]), htext(b[4])), listOf("dua", "anak"))
+        eq("html li nested depth", (b[4] as MdBlock.Item).depth, 1)
+        eq("html ol markers", listOf((b[5] as MdBlock.Item).marker, (b[6] as MdBlock.Item).marker), listOf("1.", "2."))
+        eq("html quote", htext(b[7]), "kutipan miring")
+        eq("html pre", (b[9] as MdBlock.Code).text, "baris1\n  baris2 <tag>")
+        val t = b[10] as MdBlock.Table
+        eq("html table header", t.header.map { spansText(it) }, listOf("Nama", "Nilai"))
+        eq("html table rows", t.rows.map { r -> r.map { spansText(it) } }, listOf(listOf("a", "1"), listOf("b", "2")))
+        check("html table bold cell", t.rows[1][1].any { it.flags and MdFlag.BOLD != 0 })
+        val last = b[11] as MdBlock.Paragraph
+        check("html strike", last.spans.any { it.text == "coret" && it.flags and MdFlag.STRIKE != 0 })
+        check("html code", last.spans.any { it.text == "kode" && it.flags and MdFlag.CODE != 0 })
+        val d = HtmlPreview.parse(html)
+        eq("html lines aligned", d.startLines.size, d.blocks.size)
+        check("html lines monotone", d.startLines.zipWithNext().all { it.first <= it.second })
+        check("html h1 line", d.startLines[0] == 3) { d.startLines.toString() }
+    }
+    run { // toleransi dan kasus tepi
+        eq("html empty", hb("").size, 0)
+        eq("html plain text", htext(hb("hanya teks &lt;3")[0]), "hanya teks <3")
+        eq("html unclosed p", hb("<p>satu<p>dua").map { htext(it) }, listOf("satu", "dua"))
+        eq("html unclosed table", (hb("<table><tr><td>x") .firstOrNull() as? MdBlock.Table)?.header?.map { spansText(it) }, listOf("x"))
+        eq("html stray lt", htext(hb("a < b dan c")[0]), "a < b dan c")
+        eq("html unterminated tag", htext(hb("teks <b")[0]), "teks <b")
+        eq("html comment", hb("<!-- <p>x</p> --><p>y</p>").map { htext(it) }, listOf("y"))
+        eq("html unclosed comment", hb("<p>a</p><!-- x").map { htext(it) }, listOf("a"))
+        eq("html unclosed script", hb("<p>a</p><script>alert(1)").map { htext(it) }, listOf("a"))
+        eq("html entity unknown", htext(hb("<p>&zzz; &amp</p>")[0]), "&zzz; &amp")
+        eq("html entity numeric bad", htext(hb("<p>&#0; &#xD800; &#99999999;</p>")[0]), "&#0; &#xD800; &#99999999;")
+        eq("html img alt", htext(hb("<p>a <img src=x.png alt='Logo'> b</p>")[0]), "a [gambar: Logo] b")
+        eq("html quote attr gt", htext(hb("<p title=\"a>b\">teks</p>")[0]), "teks")
+        eq("html unbalanced quote", hb("<p title=\"x>teks</p><p>dua</p>").isNotEmpty(), true)
+        eq("html heading level", (hb("<h4>x</h4>")[0] as MdBlock.Heading).level, 4)
+        eq("html a no href", hb("<a>kosong</a>").map { htext(it) }, listOf("kosong"))
+        check("html nested table no crash", hb("<table><tr><td><table><tr><td>dalam</td></tr></table></td><td>y</td></tr></table>").isNotEmpty())
+        eq("html whitespace collapse", htext(hb("<p>  a \n\n  b\t\tc  </p>")[0]), "a b c")
+        eq("html adjacent inline space", htext(hb("<p><b>a</b> <i>b</i></p>")[0]), "a b")
+        eq("html entity nbsp spacing", htext(hb("<p>a&nbsp;b</p>")[0]), "a b")
+        check("html kind detect", PreviewKinds.of("index.html") == PreviewKind.HTML && PreviewKinds.of("a.HTM") == PreviewKind.HTML)
+    }
+    run { // fuzz + kecepatan HTML
+        val rnd = Random(21)
+        val parts = listOf("<p>", "</p>", "<b>", "</b>", "<a href=\"x\">", "</a>", "<ul>", "</ul>", "<li>", "</li>", "<table>", "</table>", "<tr>", "<td>", "</td>", "<th>", "</tr>",
+            "<h1>", "</h1>", "<pre>", "</pre>", "<script>", "</script>", "<!--", "-->", "<", ">", "&amp;", "&", "txt ", "\n", "<br>", "<hr>", "<img alt=x>", "<blockquote>", "</blockquote>", "\"", "'", "<ol>", "</ol>", "<style>", "</style>", "<code>", "</code>")
+        val t0 = System.nanoTime()
+        repeat(4000) {
+            val sb = StringBuilder()
+            repeat(rnd.nextInt(0, 50)) { sb.append(parts[rnd.nextInt(parts.size)]) }
+            try {
+                val d = HtmlPreview.parse(sb.toString())
+                check("html fuzz aligned", d.startLines.size == d.blocks.size && d.startLines.zipWithNext().all { it.first <= it.second }) { sb.toString() }
+            } catch (e: Throwable) { check("html fuzz no throw", false) { "$e: $sb" } }
+        }
+        check("html fuzz speed", (System.nanoTime() - t0) / 1_000_000 < 8000)
+        val big = "<html><body>" + "<h2>Judul</h2><p>Teks <b>tebal</b> <a href=\"https://x.id\">tautan</a></p><ul><li>a</li><li>b</li></ul><table><tr><td>1</td><td>2</td></tr></table>".repeat(4000) + "</body></html>"
+        val t1 = System.nanoTime()
+        val blocks = HtmlPreview.parse(big).blocks
+        val ms = (System.nanoTime() - t1) / 1_000_000
+        check("html big speed", ms < 4000 && blocks.size >= 16000) { "${ms}ms ${blocks.size}" }
+        val deepTags = "<div>".repeat(50000) + "x"
+        val t2 = System.nanoTime(); HtmlPreview.parse(deepTags)
+        check("html deep div speed", (System.nanoTime() - t2) / 1_000_000 < 3000)
+        val manyLt = "<a ".repeat(20000)
+        val t3 = System.nanoTime(); HtmlPreview.parse(manyLt)
+        check("html many unterminated speed", (System.nanoTime() - t3) / 1_000_000 < 4000)
+        val manyScripts = "<script>".repeat(20000)
+        val t4 = System.nanoTime(); HtmlPreview.parse(manyScripts)
+        check("html many scripts speed", (System.nanoTime() - t4) / 1_000_000 < 4000)
+    }
+
     // --- JSON
     run {
         val ok = JsonPreview.render("""{"a":1,"b":[true,null,"x\n"],"c":{},"d":[],"e":-1.5e+3}""")

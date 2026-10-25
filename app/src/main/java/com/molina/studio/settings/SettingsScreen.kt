@@ -54,7 +54,7 @@ object SettingsNav {
 }
 
 private enum class Page {
-    Home, System, Terminal, Debugging, TerminalIO, TerminalView, Tampilan, CrashReports, About, Log, Stream, Network, Scripts, Packages
+    Home, System, Terminal, Debugging, TerminalIO, TerminalView, Tampilan, CrashReports, About, Log, Stream, Network, Scripts, Packages, Code
 }
 
 private fun parentOf(p: Page): Page? = when (p) {
@@ -80,6 +80,7 @@ private fun titleOf(p: Page): String = when (p) {
     Page.Stream -> "Mesin cadangan (yt-dlp)"
     Page.Network -> "Keamanan dan privasi"
     Page.Scripts -> "Script execution"
+    Page.Code -> "Editor Code"
     Page.Packages -> "Paket"
 }
 
@@ -103,6 +104,8 @@ private val INDEX = listOf(
     Hit("Keamanan dan privasi", "Kebijakan URL, jaringan lokal (LAN), layar privat", Page.Network),
     Hit("Molina Shield", "Filter lalu lintas pemutar", Page.Network),
     Hit("Script execution", "Pintasan script (segera hadir)", Page.Scripts),
+    Hit("Editor Code", "Pratinjau HTML: renderer native atau WebView", Page.Code),
+    Hit("Pratinjau HTML", "WebView untuk halaman HTML (JavaScript dan jaringan mati)", Page.Code),
     Hit("Paket", "Unduh, perbarui, hapus paket; yt-dlp", Page.Packages),
     Hit("apt update", "Perbarui daftar paket Debian", Page.System),
     Hit("apt upgrade", "Tingkatkan paket Debian (apt upgrade -y)", Page.System),
@@ -178,6 +181,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                     }
                     Page.System -> {
                         W7Link({ W7IconTerminal() }, "Terminal", "Molina Terminal: debugging, I/O, tampilan") { open(Page.Terminal) }
+                        W7Link({ W7IconTerminal() }, "Editor Code", "Pratinjau HTML: renderer native atau WebView") { open(Page.Code) }
                         W7Link({ W7IconLog() }, "Log", "Log aktivitas mpv, Terminal, dan sistem") { open(Page.Log) }
                         W7Link({ W7IconShield() }, "Keamanan dan privasi", "Kebijakan URL, jaringan lokal (LAN), layar privat") { open(Page.Network) }
                         W7Link({ W7IconInfo() }, "About", "Versi dan lisensi") { open(Page.About) }
@@ -206,6 +210,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                     Page.Stream -> StreamEnginePage()
                     Page.Network -> NetworkSecurityPage()
                     Page.Scripts -> ScriptsPage()
+                    Page.Code -> CodeSettingsPage()
                     Page.Packages -> PackagesPage(onOpenYtdlp = { open(Page.Stream) })
                 }
             }

@@ -11,10 +11,12 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import com.molina.code.preview.HtmlPreview
 import com.molina.code.preview.JsonPretty
 import com.molina.code.preview.JsonPreview
 import com.molina.code.preview.JsonTok
 import com.molina.code.preview.MdBlock
+import com.molina.code.preview.MdDoc
 import com.molina.code.preview.MdFlag
 import com.molina.code.preview.MdSpan
 import com.molina.code.preview.Markdown
@@ -45,6 +47,9 @@ internal sealed class PreviewContent {
     object Empty : PreviewContent()
     class Message(val text: String) : PreviewContent()
     class Markdown(val blocks: List<MdUi>, val startLines: List<Int>) : PreviewContent()
+
+    /** HTML mentah untuk WebView (hanya bila opsi WebView di Settings menyala). */
+    class Html(val source: String) : PreviewContent()
     class Json(val text: AnnotatedString, val lineCount: Int) : PreviewContent()
     class JsonError(val message: String, val line: Int, val column: Int, val snippet: String) : PreviewContent()
 }
@@ -57,6 +62,9 @@ internal class PreviewController {
         private set
     var label by mutableStateOf("")
         private set
+
+    /** Opsi Settings: HTML dirender WebView, bukan renderer native. Diisi :app. */
+    var htmlWebView by mutableStateOf(false)
 
     /** Baris kursor editor saat Tinjauan dibuka (basis 0); dipakai sekali untuk menggulir ke bagian yang sama. -1 = tidak ada. */
     var anchorLine = -1
@@ -88,15 +96,20 @@ internal class PreviewController {
         label = when (kind) {
             PreviewKind.MARKDOWN -> "Markdown"
             PreviewKind.JSON -> "JSON"
+            PreviewKind.HTML -> "HTML"
             else -> ""
         }
-        if (kind != PreviewKind.MARKDOWN && kind != PreviewKind.JSON) {
+        if (kind != PreviewKind.MARKDOWN && kind != PreviewKind.JSON && kind != PreviewKind.HTML) {
             content = PreviewContent.Message("Tidak ada pratinjau untuk tipe berkas ini.")
             return
         }
         val text = tab.currentTextOrNull(MAX_PREVIEW_CHARS)
         if (text == null) {
             content = PreviewContent.Message("Berkas terlalu besar untuk pratinjau.")
+            return
+        }
+        if (kind == PreviewKind.HTML && htmlWebView) {
+            content = PreviewContent.Html(text)
             return
         }
         content = withContext(Dispatchers.Default) { PreviewRender.build(kind, text) }
@@ -121,13 +134,13 @@ internal fun EditorTab.firstLineOrNull(): String? {
 /** Pembangun isi pratinjau. Tidak menyentuh state Compose, aman di thread latar. */
 internal object PreviewRender {
     fun build(kind: PreviewKind, text: String): PreviewContent = when (kind) {
-        PreviewKind.MARKDOWN -> markdown(text)
+        PreviewKind.MARKDOWN -> markdown(Markdown.parseWithLines(text))
+        PreviewKind.HTML -> markdown(HtmlPreview.parse(text))
         PreviewKind.JSON -> json(text)
         else -> PreviewContent.Message("Tidak ada pratinjau untuk tipe berkas ini.")
     }
 
-    private fun markdown(text: String): PreviewContent {
-        val doc = Markdown.parseWithLines(text)
+    private fun markdown(doc: MdDoc): PreviewContent {
         return PreviewContent.Markdown(doc.blocks.map { b -> mdUi(b) }, doc.startLines)
     }
 

@@ -63,7 +63,7 @@ fun CodeScreen(session: CodeSession, modifier: Modifier = Modifier) {
     val liveTab = session.active
     LaunchedEffect(
         liveTab?.id, liveTab?.revision, liveTab?.file,
-        session.preview.open, session.preview.mode
+        session.preview.open, session.preview.mode, session.preview.htmlWebView
     ) {
         val tab = liveTab ?: return@LaunchedEffect
         val pv = session.preview
@@ -93,7 +93,7 @@ fun CodeScreen(session: CodeSession, modifier: Modifier = Modifier) {
             session.active?.let { tab ->
                 // Membaca revision: jenis berkas bisa berubah saat shebang diketik.
                 val kind = if (tab.revision >= 0) tab.previewKind() else PreviewKind.NONE
-                val previewing = (kind == PreviewKind.MARKDOWN || kind == PreviewKind.JSON) &&
+                val previewing = (kind == PreviewKind.MARKDOWN || kind == PreviewKind.JSON || kind == PreviewKind.HTML) &&
                     session.preview.open && session.preview.mode == PaneMode.Preview
                 val play = when {
                     session.run.running -> PlayState.Running
