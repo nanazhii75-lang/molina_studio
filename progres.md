@@ -463,3 +463,4 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: hanya :feature:code (file baru SyntaxLexer, SyntaxHighlight; EditorHost). Gradle, Manifest, JNI mpv tidak disentuh
 - [ ] BELUM dikompilasi (CI). Risiko tersisa: sisi Compose/Android (belum bisa dicek di luar CI)
 - [ ] uji perangkat: buka .kt, .py, .json, .xml, .md (warna sesuai tema); ketik cepat di berkas besar; Simpan sebagai x.kt dari tab Baru (warna muncul); komentar/string multi-baris; berkas > 400 ribu karakter tetap lancar
+- [ ] Code→Action→Live Preview: desain PreviewProvider native (Markdown/JSON/output skrip), WebView opsional untuk HTML
