@@ -244,3 +244,9 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] feat(home-ui): dialog Hasil pencarian (Compose) diganti SearchResultsDialog di CinemaResults.kt: baris bernomor 001.., baris terpilih kotak biru (tekan = sorot lalu putar), penghitung 003/050 + jam, Cari (teks = saring, angka = lompat, Enter = putar), Info, Tutup; logika putar tetap CinemaActions.playResults
 - [ ] BELUM dikompilasi (menunggu CI) dan belum diuji di perangkat: keyboard saat Cari, jumlah baris 50, scroll, ketuk baris memutar + antrean berlanjut
 - [ ] dialog hasil pencarian di dalam player (MPVActivity, ArrayAdapter 'Search results') belum diseragamkan
+
+## 2026-10-25 - Cinema UI v4 (Prev/Next hasil pencarian + pencarian player disamakan)
+- [x] feat(home-ui): SearchResultsDialog Home: tombol Prev/Next (geser sorotan satu halaman = 10 baris)
+- [x] feat(player-ui): hasil pencarian di player (MPVActivity.showSearchResults) kini memakai SearchResultsDialog (View) bergaya sama dengan Home: nomor, kotak biru, Prev/Next, Cari/lompat nomor, Info, Exit, jam + penghitung; mode Play (putar + antrean bergulir) dan Add to queue (daftar tetap terbuka) tidak berubah; user mencari dan memutar dari player tanpa kembali ke Home
+- [ ] BELUM dikompilasi (menunggu CI) dan belum diuji di perangkat: Prev/Next di Home dan player, Add to queue (daftar tetap terbuka, sorotan pindah), keyboard + resize, lompat nomor
+- [ ] dialog_search_item.xml (tata letak lama) kini tidak terpakai; hapus setelah CI hijau

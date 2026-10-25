@@ -1627,22 +1627,8 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
     private fun showSearchResults(items: List<StreamSearchItem>, append: Boolean) {
         val restore = pauseForDialog()
         var chosen = false
-        val adapter = object : ArrayAdapter<StreamSearchItem>(this, R.layout.dialog_search_item, R.id.search_title, items) {
-            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-                val row = super.getView(position, convertView, parent)
-                val item = items[position]
-                row.findViewById<TextView>(R.id.search_title).text = item.title
-                val meta = row.findViewById<TextView>(R.id.search_meta)
-                val line = searchMeta(item)
-                meta.text = line
-                meta.visibility = if (line.isEmpty()) View.GONE else View.VISIBLE
-                return row
-            }
-        }
-        val list = ListView(this)
-        list.adapter = adapter
         lateinit var dialog: AlertDialog
-        list.setOnItemClickListener { _, _, pos, _ ->
+        val impl = SearchResultsDialog(items, { searchMeta(it) }, onPick = { pos ->
             val picked = items[pos]
             if (append) {
                 PlaybackLog.onRequest(picked.pageUrl)
@@ -1654,16 +1640,15 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
                 dialog.dismiss()
                 playSearchResult(items, pos)
             }
+        }, onClose = { dialog.dismiss() })
+        val builder = AlertDialog.Builder(this, R.style.AppTheme_PlayerDialog)
+        builder.setView(impl.buildView(LayoutInflater.from(builder.context)))
+        builder.setOnDismissListener {
+            restore()
+            if (chosen) player.paused = false
         }
-        dialog = AlertDialog.Builder(this, R.style.AppTheme_PlayerDialog)
-            .setTitle(getString(R.string.search_results_title, items.size))
-            .setView(list)
-            .setNegativeButton(R.string.search_close) { d, _ -> d.dismiss() }
-            .setOnDismissListener {
-                restore()
-                if (chosen) player.paused = false
-            }
-            .create()
+        dialog = builder.create()
+        dialog.window?.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
         dialog.show()
     }
 

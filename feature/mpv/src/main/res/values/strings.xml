@@ -252,4 +252,7 @@
     <string name="tv_info_format" translatable="false">Channel %1$03d dari %2$03d  |  Shuffle: %3$s  |  Repeat: %4$s</string>
     <string name="tv_key_search" translatable="false">Cari</string>
     <string name="tv_search_hint" translatable="false">Cari nama atau ketik nomor channel</string>
+    <string name="tv_key_prev" translatable="false">Prev</string>
+    <string name="tv_key_next" translatable="false">Next</string>
+    <string name="tv_info_results" translatable="false">Hasil %1$03d dari %2$03d</string>
 </resources>

@@ -31,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,6 +56,7 @@ import com.molina.core.common.StreamSearchItem
 import com.molina.studio.R
 import com.molina.studio.ui.MolinaTheme
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -69,6 +71,9 @@ private val RowTop = Color(0xFF1C2430)
 private val RowBottom = Color(0xFF121821)
 private val RowLine = Color(0x26FFFFFF)
 private val Accent = Color(0xFF4DA3FF)
+
+/** Prev/Next memindahkan sorotan satu 'halaman' (seperti CH+/CH- cepat di remote TV). */
+private const val PAGE_SIZE = 10
 
 private class ResultEntry(val number: Int, val item: StreamSearchItem)
 
@@ -92,6 +97,7 @@ internal fun SearchResultsDialog(
     var clock by remember { mutableStateOf(clockNow()) }
     val listState = rememberLazyListState()
     val focus = remember { FocusRequester() }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         while (true) { clock = clockNow(); delay(15_000) }
@@ -109,6 +115,14 @@ internal fun SearchResultsDialog(
         }
     }
     LaunchedEffect(searchOpen) { if (searchOpen) focus.requestFocus() }
+
+    fun page(delta: Int) {
+        if (visible.isEmpty()) return
+        val cur = visible.indexOfFirst { it.number == selected }.coerceAtLeast(0)
+        val idx = (cur + delta).coerceIn(0, visible.lastIndex)
+        selected = visible[idx].number
+        scope.launch { listState.scrollToItem(idx) }
+    }
 
     fun pickFromQuery() {
         val t = if (numeric) visible.firstOrNull { it.number == q.toIntOrNull() } else visible.singleOrNull()
@@ -162,6 +176,8 @@ internal fun SearchResultsDialog(
                     Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
                     horizontalArrangement = Arrangement.SpaceEvenly,
                 ) {
+                    TvKey(R.drawable.ic_tv_page_prev, "Prev", Color.White, Modifier.weight(1f)) { page(-PAGE_SIZE) }
+                    TvKey(R.drawable.ic_tv_page_next, "Next", Color.White, Modifier.weight(1f)) { page(PAGE_SIZE) }
                     TvKey(R.drawable.ic_tv_search, "Cari",
                         if (searchOpen) Accent else Color.White, Modifier.weight(1f)) {
                         searchOpen = !searchOpen
