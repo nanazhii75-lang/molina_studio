@@ -454,3 +454,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: hanya :feature:code (FindState, FindBar, CodeColors). Gradle, Manifest, JNI mpv tidak disentuh
 - [ ] BELUM dikompilasi (CI). Risiko (belum dicocokkan ke source Rosemoe 0.23.6): Cursor.isSelected/leftLine/leftColumn/rightLine/rightColumn, CodeEditor.setSelectionRegion(4 Int)
 - [ ] uji perangkat: teks "Kt.KT,kt": cari Kt/KT/kt masing-masing 1/1; Sensitif OFF cari kt = 3/3; tutup find bar, kata tetap terblok terakota
+
+## 2026-10-25 - Highlight sintaks bawaan Obsidian Claude [CODE-SYNTAX-OBSIDIAN]
+- [x] feat(code): SyntaxLexer.kt (lexer murni Kotlin: kode C-like/Python/Shell/Config, JSON, XML/HTML, Markdown) dan SyntaxHighlight.kt (ObsidianClaude + MolinaLanguage di atas SimpleAnalyzeManager)
+- [x] EditorHost: ObsidianClaude.apply di applyMolinaColors; syncSyntax memasang bahasa dari nama berkas dan menyegarkan saat Simpan sebagai
+- [x] Diuji di JVM (kotlinc 2.1.21): contoh per bahasa dan 2.700 teks acak (posisi naik ketat, jumlah baris benar); adapter dicek tipe terhadap source Rosemoe 0.23.6 tanpa error
+- [x] Simbol Rosemoe yang sebelumnya belum dicocokkan kini terverifikasi di 0.23.6: LINE_NUMBER_CURRENT, LINE_NUMBER_PANEL(_TEXT), Cursor.leftLine/leftColumn/rightLine/rightColumn/isSelected, setSelectionRegion(4 Int), Content.getColumnCount
+- [x] Dampak: hanya :feature:code (file baru SyntaxLexer, SyntaxHighlight; EditorHost). Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi (CI). Risiko tersisa: sisi Compose/Android (belum bisa dicek di luar CI)
+- [ ] uji perangkat: buka .kt, .py, .json, .xml, .md (warna sesuai tema); ketik cepat di berkas besar; Simpan sebagai x.kt dari tab Baru (warna muncul); komentar/string multi-baris; berkas > 400 ribu karakter tetap lancar
