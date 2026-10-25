@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
     <style name="FilePickerTheme" parent="Theme.AppCompat">
-        <item name="android:windowBackground">#000000</item>
-        <item name="nnf_separator_color">@color/nnf_dark_separator_color</item>
+        <item name="nnf_separator_color">@color/primary</item>
 
         <!-- Set these to match your theme -->
         <item name="colorPrimary">@color/primary</item>
@@ -11,9 +10,8 @@
 
         <!-- Need to set this also to style create folder dialog -->
         <item name="alertDialogTheme">@style/FilePickerTheme.AlertDialog</item>
-        <item name="android:textColorPrimary">#FFFFFF</item>
-        <item name="android:textColorSecondary">#B3FFFFFF</item>
-        <item name="android:textColorLink">@color/accent</item>
+        <item name="android:textColorPrimary">@android:color/background_light</item>
+        <item name="android:textColorLink">@android:color/background_light</item>
     </style>
 
     <style name="FilePickerThemeSpecial" parent="FilePickerTheme">
@@ -22,14 +20,12 @@
     </style>
 
     <style name="FilePickerTheme.AlertDialog" parent="Theme.AppCompat.Dialog.Alert">
-        <item name="android:colorBackground">#0F0F0F</item>
-        <item name="android:colorBackgroundFloating">#0F0F0F</item>
         <item name="colorPrimary">@color/primary</item>
         <item name="colorPrimaryDark">@color/primary_dark</item>
     </style>
 
     <!-- theme for player UI -->
-    <style name="AppTheme" parent="Theme.AppCompat">
+    <style name="AppTheme" parent="Theme.AppCompat.Light">
         <item name="windowNoTitle">true</item>
         <item name="windowActionBar">false</item>
         <item name="android:windowTranslucentNavigation">true</item>
