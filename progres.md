@@ -293,3 +293,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Koreksi path: folder kerja/default simpan = /storage/emulated/0/molina-studio (bukan .../Molina)
 - [ ] Saran: Code=emas #FFB300, Settings=champagne #CDBFA3 di nav bawah (F5)
 - [ ] Berikutnya: F1 tokens + modul :feature:code (menyentuh settings.gradle.kts, app/build.gradle.kts, kemungkinan Manifest)
+
+## 2026-10-25 - Code Editor F1: modul dan token [CODE-F1-TOKENS]
+- [x] feat(code): modul :feature:code (Compose, minSdk 26) + CodeColors (token v2/v3) + CodeDimens; dipasang di settings.gradle.kts dan app/build.gradle.kts
+- [x] Manifest TIDAK diubah (READ/WRITE_EXTERNAL_STORAGE sudah ada); JNI mpv tidak disentuh; Rosemoe belum ditambahkan (F2)
+- [x] Kontras diukur (WCAG) di atas surface_2: champagne 9.19, gold 9.29, icon_dim 3.26, icon_disabled 2.06 (nonaktif), danger 4.26 (ikon, bukan teks)
+- [x] telemetry_gate lulus; script patch idempotent (dijalankan 2x tanpa perubahan)
+- [ ] BELUM dikompilasi (menunggu CI hijau)
+- [ ] catatan merek: tiga emas berbeda (merek #E6B450, editor #FFB300, gold_soft #E9B949); putuskan penyatuan di F5
