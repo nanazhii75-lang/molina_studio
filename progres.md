@@ -499,3 +499,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: hanya app/.../log/LogScreen.kt (LogBus/LogIpc tidak diubah). Gradle, Manifest, JNI mpv tidak disentuh
 - [ ] BELUM dikompilasi (CI). Risiko: DropdownMenuItem/AlertDialog Material3 BOM 2024.12.01, LevelFilter.entries (Kotlin 1.9+)
 - [ ] uji perangkat: ganti chip, level Galat saja, lipat/buka grup Cinema, tombol Ke terbaru saat scroll naik, Hapus + Batal, Salin/Bagikan hanya yang terfilter
+
+## 2026-10-25 - Cari di log, ekspor .txt, dialog Cinema hitam pekat [LOG-SEARCH-EXPORT]
+- [x] feat(log): tombol Cari membuka kolom cari (pesan/tag/sumber, tanpa beda huruf besar-kecil) dengan sorotan emas; grup Cinema dimatikan saat mencari
+- [x] feat(log): menu Simpan ke berkas (.txt) menulis <dataRoot>/export/molina-log-yyyyMMdd-HHmmss.txt (header: versi app, perangkat, filter, jumlah)
+- [x] style(cinema): token Win7 (Win7Aero.kt) dan Win7OpenDialog.kt diseragamkan ke palet hitam pekat + aksen biru; tambah token Input/BarTop/BarBottom
+- [x] Dampak: LogScreen.kt, Win7Aero.kt, Win7OpenDialog.kt. Gradle, Manifest, JNI mpv tidak disentuh. Berbagi berkas sebagai lampiran (FileProvider) belum dibuat karena perlu perubahan Manifest
+- [ ] BELUM dikompilasi (CI). Risiko: BasicTextField.decorationBox, FocusRequester.requestFocus (dibungkus runCatching)
+- [ ] uji perangkat: Cari "playlist" (sorotan emas), Cari + filter level, Simpan ke berkas lalu cek folder export, dialog Buka Cinema (latar, kolom, baris terpilih, daftar jenis berkas)

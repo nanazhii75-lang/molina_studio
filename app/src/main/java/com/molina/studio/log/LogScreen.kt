@@ -1,11 +1,13 @@
 package com.molina.studio.log
 
-// LOG-PRO-V2: chip sumber, dropdown level, menu aksi, baris berstruktur, grup mpv yang bisa dilipat.
+// LOG-PRO-V3 (cari + ekspor .txt) di atas LOG-PRO-V2: chip sumber, dropdown level, menu aksi, baris berstruktur, grup mpv yang bisa dilipat.
 
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.os.Handler
+import android.os.Looper
 import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -30,6 +32,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -49,6 +54,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.SpanStyle
@@ -59,7 +70,10 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.molina.core.common.LogLevel
+import com.molina.core.common.MolinaDir
+import com.molina.studio.AppPaths
 import com.molina.studio.ui.MolinaTheme
+import java.io.File
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -139,12 +153,21 @@ fun LogScreen(modifier: Modifier = Modifier) {
     var levelMenu by remember { mutableStateOf(false) }
     var actionMenu by remember { mutableStateOf(false) }
     var confirmClear by remember { mutableStateOf(false) }
+    var query by rememberSaveable { mutableStateOf("") }
+    var searchOpen by rememberSaveable { mutableStateOf(false) }
+    val searchFocus = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
     val level = LevelFilter.entries[levelIdx.coerceIn(0, LevelFilter.entries.lastIndex)]
+    val q = query.trim()
+    val filterDesc = "sumber=" + (SOURCES.firstOrNull { it.first == source }?.second ?: source) +
+        ", level=" + level.label + if (q.isEmpty()) "" else ", kata kunci=\"" + q + "\""
 
-    val shown = remember(entries, source, level) {
+    val shown = remember(entries, source, level, q) {
         entries.filter {
             (source.isEmpty() || matchesFilter(it.source, source)) &&
-                it.level.ordinal >= level.min.ordinal
+                it.level.ordinal >= level.min.ordinal &&
+                (q.isEmpty() || it.message.contains(q, ignoreCase = true) ||
+                    it.tag.contains(q, ignoreCase = true) || it.source.contains(q, ignoreCase = true))
         }
     }
     val counts = remember(entries) {
@@ -152,7 +175,9 @@ fun LogScreen(modifier: Modifier = Modifier) {
             key to if (key.isEmpty()) entries.size else entries.count { matchesFilter(it.source, key) }
         }
     }
-    val rows = remember(shown, source, openKeys) { buildRows(shown, source != "cinema", openKeys) }
+    val rows = remember(shown, source, openKeys, q) {
+        buildRows(shown, source != "cinema" && q.isEmpty(), openKeys)
+    }
 
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
@@ -166,6 +191,7 @@ fun LogScreen(modifier: Modifier = Modifier) {
         val lastVisible = info.visibleItemsInfo.lastOrNull()?.index ?: -1
         if (lastVisible >= info.totalItemsCount - 2) listState.scrollToItem(rows.lastIndex)
     }
+    LaunchedEffect(searchOpen) { if (searchOpen) runCatching { searchFocus.requestFocus() } }
     val atBottom by remember {
         derivedStateOf {
             val info = listState.layoutInfo
@@ -207,6 +233,8 @@ fun LogScreen(modifier: Modifier = Modifier) {
                     }
                 }
             }
+            Spacer(Modifier.width(8.dp))
+            LevelButton("Cari", caret = false, active = searchOpen || q.isNotEmpty()) { searchOpen = !searchOpen }
             Spacer(Modifier.weight(1f))
             Text("${shown.size} baris", fontSize = 11.sp, color = MolinaTheme.Muted)
             Box {
@@ -226,6 +254,10 @@ fun LogScreen(modifier: Modifier = Modifier) {
                         onClick = { actionMenu = false; shareLogs(ctx, shown) }
                     )
                     DropdownMenuItem(
+                        text = { Text("Simpan ke berkas (.txt)", fontSize = 13.sp) },
+                        onClick = { actionMenu = false; exportLogs(ctx, shown, filterDesc) }
+                    )
+                    DropdownMenuItem(
                         text = { Text("Kirim pesan uji", fontSize = 13.sp) },
                         onClick = { actionMenu = false; sendTest() }
                     )
@@ -234,6 +266,40 @@ fun LogScreen(modifier: Modifier = Modifier) {
                         onClick = { actionMenu = false; confirmClear = true }
                     )
                 }
+            }
+        }
+        if (searchOpen) {
+            val boxShape = RoundedCornerShape(8.dp)
+            Row(
+                Modifier.fillMaxWidth().padding(start = 12.dp, end = 4.dp, bottom = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                BasicTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    singleLine = true,
+                    textStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp),
+                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
+                    modifier = Modifier.weight(1f).heightIn(min = 38.dp).clip(boxShape)
+                        .border(1.dp, MolinaTheme.CardLine, boxShape)
+                        .focusRequester(searchFocus)
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    decorationBox = { inner ->
+                        Box(contentAlignment = Alignment.CenterStart) {
+                            if (query.isEmpty()) {
+                                Text("Cari pesan, tag, atau sumber\u2026", fontSize = 13.sp, color = MolinaTheme.Muted)
+                            }
+                            inner()
+                        }
+                    }
+                )
+                Box(
+                    Modifier.size(44.dp).clip(RoundedCornerShape(22.dp))
+                        .clickable { query = ""; searchOpen = false; focusManager.clearFocus() },
+                    contentAlignment = Alignment.Center
+                ) { Text("\u2715", fontSize = 14.sp, color = MolinaTheme.Muted) }
             }
         }
         Box(Modifier.fillMaxWidth().height(1.dp).background(MolinaTheme.CardLine))
@@ -251,14 +317,14 @@ fun LogScreen(modifier: Modifier = Modifier) {
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                     if (filtered) {
-                        TextButton(onClick = { source = ""; levelIdx = 0 }) { Text("Atur ulang filter") }
+                        TextButton(onClick = { source = ""; levelIdx = 0; query = "" }) { Text("Atur ulang filter") }
                     }
                 }
             } else {
                 LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
                     items(rows, key = { it.key }) { row ->
                         when (row) {
-                            is LogLine -> EntryRow(row.e, row.child) { copyText(ctx, format(row.e), "1 baris") }
+                            is LogLine -> EntryRow(row.e, row.child, q) { copyText(ctx, format(row.e), "1 baris") }
                             is GroupRow -> GroupHeader(row) {
                                 openKeys = if (row.key in openKeys) openKeys - row.key else openKeys + row.key
                             }
@@ -321,18 +387,21 @@ private fun SourceChip(label: String, count: Int, selected: Boolean, onClick: ()
 }
 
 @Composable
-private fun LevelButton(label: String, onClick: () -> Unit) {
+private fun LevelButton(label: String, caret: Boolean = true, active: Boolean = false, onClick: () -> Unit) {
     val shape = RoundedCornerShape(8.dp)
+    val accent = MaterialTheme.colorScheme.primary
     Row(
         Modifier.heightIn(min = 36.dp).clip(shape)
-            .border(1.dp, MolinaTheme.CardLine, shape)
+            .border(1.dp, if (active) accent else MolinaTheme.CardLine, shape)
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(label, fontSize = 12.sp)
-        Spacer(Modifier.width(6.dp))
-        Text("\u25BE", fontSize = 12.sp, color = MolinaTheme.Muted)
+        Text(label, fontSize = 12.sp, color = if (active) accent else MaterialTheme.colorScheme.onSurface)
+        if (caret) {
+            Spacer(Modifier.width(6.dp))
+            Text("\u25BE", fontSize = 12.sp, color = MolinaTheme.Muted)
+        }
     }
 }
 
@@ -353,7 +422,7 @@ private fun sourceColor(source: String): Color = when (source) {
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun EntryRow(e: LogEntry, child: Boolean, onCopy: () -> Unit) {
+private fun EntryRow(e: LogEntry, child: Boolean, query: String, onCopy: () -> Unit) {
     val body = when (e.level) {
         LogLevel.Error -> MolinaTheme.Bad
         LogLevel.Warn -> MolinaTheme.Warn
@@ -386,7 +455,7 @@ private fun EntryRow(e: LogEntry, child: Boolean, onCopy: () -> Unit) {
                     append(label)
                 }
                 append("  ")
-                withStyle(SpanStyle(color = body)) { append(e.message) }
+                appendHighlighted(e.message, query, body)
                 if (e.count > 1) {
                     withStyle(SpanStyle(color = MolinaTheme.Muted)) { append("  \u00D7${e.count}") }
                 }
@@ -482,4 +551,71 @@ private fun sendTest() {
         )
         if (!ok) LogBus.log("sistem", LogLevel.Error, "LogClient", "Gagal mengirim lewat socket")
     }, "molina-log-test").start()
+}
+
+/** Menambahkan [text] dengan sorotan emas pada setiap kemunculan [query] (tanpa membedakan huruf besar/kecil). */
+private fun androidx.compose.ui.text.AnnotatedString.Builder.appendHighlighted(
+    text: String, query: String, color: Color
+) {
+    if (query.isEmpty()) {
+        withStyle(SpanStyle(color = color)) { append(text) }
+        return
+    }
+    var from = 0
+    while (from < text.length) {
+        val at = text.indexOf(query, from, ignoreCase = true)
+        if (at < 0) {
+            withStyle(SpanStyle(color = color)) { append(text.substring(from)) }
+            return
+        }
+        if (at > from) withStyle(SpanStyle(color = color)) { append(text.substring(from, at)) }
+        withStyle(SpanStyle(color = Color.Black, background = MolinaTheme.Gold)) {
+            append(text.substring(at, at + query.length))
+        }
+        from = at + query.length
+    }
+}
+
+/** Ekspor log terfilter ke berkas bernama jelas di <dataRoot>/export (tanpa FileProvider/Manifest). */
+private fun exportLogs(ctx: Context, list: List<LogEntry>, filterDesc: String) {
+    if (list.isEmpty()) {
+        Toast.makeText(ctx, "Belum ada log", Toast.LENGTH_SHORT).show()
+        return
+    }
+    val app = ctx.applicationContext
+    Thread({
+        val msg = try {
+            val dir = AppPaths.get(app).dir(MolinaDir.Export)
+            if (!dir.isDirectory && !dir.mkdirs()) throw java.io.IOException("folder tidak bisa dibuat: ${dir.path}")
+            val stamp = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss")
+                .withZone(ZoneId.systemDefault()).format(Instant.now())
+            val file = File(dir, "molina-log-$stamp.txt")
+            file.writeText(buildReport(app, list, filterDesc), Charsets.UTF_8)
+            "Tersimpan: ${file.path}"
+        } catch (e: Exception) {
+            "Gagal menyimpan: ${e.message}"
+        }
+        Handler(Looper.getMainLooper()).post { Toast.makeText(app, msg, Toast.LENGTH_LONG).show() }
+    }, "molina-log-export").start()
+}
+
+private fun buildReport(ctx: Context, list: List<LogEntry>, filterDesc: String): String {
+    val version = try {
+        ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName ?: "?"
+    } catch (e: Exception) { "?" }
+    val now = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+        .withZone(ZoneId.systemDefault()).format(Instant.now())
+    val sb = StringBuilder()
+    sb.append("Molina Log\n")
+    sb.append("Dibuat    : ").append(now).append('\n')
+    sb.append("Versi app : ").append(version).append('\n')
+    sb.append("Perangkat : ").append(android.os.Build.MANUFACTURER).append(' ').append(android.os.Build.MODEL)
+        .append(", Android ").append(android.os.Build.VERSION.RELEASE)
+        .append(" (API ").append(android.os.Build.VERSION.SDK_INT).append("), ")
+        .append(android.os.Build.SUPPORTED_ABIS.firstOrNull() ?: "?").append('\n')
+    sb.append("Filter    : ").append(filterDesc).append('\n')
+    sb.append("Jumlah    : ").append(list.size).append(" baris\n")
+    sb.append("----------------------------------------\n")
+    list.forEach { sb.append(format(it)).append('\n') }
+    return sb.toString()
 }

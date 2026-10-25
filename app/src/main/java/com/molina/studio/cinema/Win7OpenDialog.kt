@@ -169,7 +169,7 @@ fun Win7OpenDialog(onDismiss: () -> Unit, onPick: (File) -> Unit) {
                 Row(Modifier.weight(1f).padding(top = 5.dp, start = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                     Win7Folder(16.dp)
                     Spacer(Modifier.width(6.dp))
-                    Text("Buka", color = Color.Black, fontSize = 13.sp)
+                    Text("Buka", color = Win7.Ink, fontSize = 13.sp)
                 }
                 Win7Close(onDismiss)
             }
@@ -178,7 +178,7 @@ fun Win7OpenDialog(onDismiss: () -> Unit, onPick: (File) -> Unit) {
                     Win7BackOrb(canUp) { goUp() }
                     Spacer(Modifier.width(6.dp))
                     Row(
-                        Modifier.weight(1f).height(26.dp).background(Color.White)
+                        Modifier.weight(1f).height(26.dp).background(Win7.Input)
                             .border(1.dp, Win7.Field).padding(horizontal = 6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -197,7 +197,7 @@ fun Win7OpenDialog(onDismiss: () -> Unit, onPick: (File) -> Unit) {
                 }
                 Row(
                     Modifier.fillMaxWidth().height(30.dp)
-                        .background(Brush.verticalGradient(listOf(Color.White, Color(0xFFE3EAF3)))),
+                        .background(Brush.verticalGradient(listOf(Win7.BarTop, Win7.BarBottom))),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     W7Cmd("Naik", canUp) { goUp() }
@@ -231,7 +231,7 @@ fun Win7OpenDialog(onDismiss: () -> Unit, onPick: (File) -> Unit) {
                             cursorBrush = SolidColor(Win7.Ink),
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                             keyboardActions = KeyboardActions(onDone = { confirm() }),
-                            modifier = Modifier.weight(1f).height(26.dp).background(Color.White)
+                            modifier = Modifier.weight(1f).height(26.dp).background(Win7.Input)
                                 .border(1.dp, Win7.Field).padding(horizontal = 6.dp),
                             decorationBox = { inner -> Box(Modifier.fillMaxSize(), Alignment.CenterStart) { inner() } }
                         )
@@ -241,7 +241,7 @@ fun Win7OpenDialog(onDismiss: () -> Unit, onPick: (File) -> Unit) {
                         Spacer(Modifier.width(66.dp))
                         Row(
                             Modifier.weight(1f).height(26.dp)
-                                .background(Brush.verticalGradient(listOf(Color.White, Color(0xFFE9EDF2))))
+                                .background(Brush.verticalGradient(listOf(Win7.BarTop, Win7.BarBottom)))
                                 .border(1.dp, Win7.Field).clickable { comboOpen = !comboOpen }
                                 .padding(start = 6.dp),
                             verticalAlignment = Alignment.CenterVertically
@@ -251,13 +251,13 @@ fun Win7OpenDialog(onDismiss: () -> Unit, onPick: (File) -> Unit) {
                         }
                     }
                     if (comboOpen) Column(
-                        Modifier.padding(start = 66.dp).fillMaxWidth().background(Color.White).border(1.dp, Win7.Field)
+                        Modifier.padding(start = 66.dp).fillMaxWidth().background(Win7.Input).border(1.dp, Win7.Field)
                     ) {
                         W7Kind.values().forEach { k ->
                             Text(
                                 k.label, color = Win7.Ink, fontSize = 12.sp,
                                 modifier = Modifier.fillMaxWidth()
-                                    .background(if (k == kind) Win7.SelFill else Color.White)
+                                    .background(if (k == kind) Win7.SelFill else Win7.Input)
                                     .clickable { kind = k; comboOpen = false; selected = null }
                                     .padding(horizontal = 8.dp, vertical = 6.dp)
                             )
@@ -265,7 +265,7 @@ fun Win7OpenDialog(onDismiss: () -> Unit, onPick: (File) -> Unit) {
                     }
                     Spacer(Modifier.height(8.dp))
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text(message, color = Color(0xFFB3261E), fontSize = 11.sp, modifier = Modifier.weight(1f).padding(end = 8.dp))
+                        Text(message, color = Color(0xFFFF8A80), fontSize = 11.sp, modifier = Modifier.weight(1f).padding(end = 8.dp))
                         Win7Button("Buka", isDefault = true, enabled = fileName.isNotBlank(), onClick = { confirm() })
                         Spacer(Modifier.width(8.dp))
                         Win7Button("Batal", onClick = onDismiss)
@@ -330,12 +330,12 @@ private fun W7FileArea(
     onOpen: (W7Entry) -> Unit,
     onAsk: () -> Unit
 ) {
-    BoxWithConstraints(modifier.background(Color.White)) {
+    BoxWithConstraints(modifier.background(Win7.Input)) {
         val wide = maxWidth >= 380.dp
         Column(Modifier.fillMaxSize()) {
             Row(
                 Modifier.fillMaxWidth().height(24.dp)
-                    .background(Brush.verticalGradient(listOf(Color.White, Color(0xFFF1F4F9)))),
+                    .background(Brush.verticalGradient(listOf(Win7.BarTop, Win7.BarBottom))),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 W7HeadCell("Nama", W7Sort.NAME, key, asc, Modifier.weight(1f), onSort)
@@ -385,7 +385,7 @@ private fun W7EntryRow(e: W7Entry, selected: Boolean, wide: Boolean, onOpen: (W7
         Modifier.fillMaxWidth().padding(horizontal = 2.dp, vertical = 1.dp)
             .then(
                 if (selected) Modifier
-                    .background(Brush.verticalGradient(listOf(Color(0xFFE9F5FD), Color(0xFFC7E4F8))), shape)
+                    .background(Brush.verticalGradient(listOf(Color(0xFF16324D), Color(0xFF0F2438))), shape)
                     .border(1.dp, Win7.SelLine, shape)
                 else Modifier
             )
