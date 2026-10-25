@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -105,26 +106,40 @@ fun CinemaHome(modifier: Modifier = Modifier) {
             }
         }
     }
-    if (dialog) AlertDialog(
-        onDismissRequest = { dialog = false },
-        title = { Text("Tautan atau judul") },
-        text = {
-            OutlinedTextField(input, { input = it }, singleLine = true,
-                placeholder = { Text("Tempel URL atau ketik judul video") })
-        },
-        confirmButton = {
-            TextButton({
-                dialog = false
-                when (val r = CinemaActions.classify(input)) {
-                    is CinemaActions.Input.Direct -> info = if (CinemaActions.play(ctx, r.uri)) "" else FAIL
-                    CinemaActions.Input.Query -> search(input.trim())
-                    CinemaActions.Input.Invalid -> info = "Tautan tidak didukung. Pakai http, https, rtsp, atau rtmp."
-                    CinemaActions.Input.Empty -> Unit
-                }
-            }) { Text("Buka") }
-        },
-        dismissButton = { TextButton({ dialog = false }) { Text("Batal") } }
-    )
+    if (dialog) MolinaFrameDialog(
+        title = "Tautan atau judul",
+        confirmLabel = "Buka",
+        dismissLabel = "Batal",
+        onDismiss = { dialog = false },
+        onConfirm = {
+            dialog = false
+            when (val r = CinemaActions.classify(input)) {
+                is CinemaActions.Input.Direct -> info = if (CinemaActions.play(ctx, r.uri)) "" else FAIL
+                CinemaActions.Input.Query -> search(input.trim())
+                CinemaActions.Input.Invalid -> info = "Tautan tidak didukung. Pakai http, https, rtsp, atau rtmp."
+                CinemaActions.Input.Empty -> Unit
+            }
+        }
+    ) {
+        OutlinedTextField(
+            input, { input = it },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            shape = RoundedCornerShape(12.dp),
+            placeholder = { Text("Tempel URL atau ketik judul video") },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = MolinaTheme.OnBackground,
+                unfocusedTextColor = MolinaTheme.OnBackground,
+                focusedBorderColor = MolinaTheme.Gold,
+                unfocusedBorderColor = MolinaTheme.CardLine,
+                cursorColor = MolinaTheme.Gold,
+                focusedPlaceholderColor = MolinaTheme.Muted,
+                unfocusedPlaceholderColor = MolinaTheme.Muted,
+                focusedContainerColor = MolinaTheme.Background,
+                unfocusedContainerColor = MolinaTheme.Background
+            )
+        )
+    }
     if (openLocal) Win7OpenDialog(
         onDismiss = { openLocal = false },
         onPick = { f ->

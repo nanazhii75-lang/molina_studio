@@ -518,3 +518,9 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: AndroidManifest :feature:mpv saja. Gradle, JNI mpv tidak disentuh
 - [ ] BELUM dikompilasi (CI). Uji: player > tombol subtitle > Open external subtitle, portrait dan landscape
 - [ ] Fallback bila masih glitch: windowTranslucentNavigation di FilePickerThemeSpecial
+
+## 2026-10-25 - Dialog Tautan atau judul berbingkai [CINEMA-LINK-FRAME]
+- [x] style(cinema): AlertDialog bawaan diganti MolinaFrameDialog (margin tepi 40dp, lebar maks 380dp, sudut 20dp, bingkai tipis bergradasi emas, garis aksen judul, tombol sejajar kanan); kolom isian bergaya Molina
+- [x] Dampak: hanya :app (CinemaHome.kt + MolinaFrameDialog.kt baru). Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi (CI). Risiko: OutlinedTextFieldDefaults.colors (Material3 BOM 2024.12.01), Modifier.border(Dp, Brush, Shape)
+- [ ] uji perangkat: Cinema Home > Tautan, portrait dan landscape, keyboard muncul (dialog tidak tertutup), tombol Batal/Buka
