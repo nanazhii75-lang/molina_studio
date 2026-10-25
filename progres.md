@@ -421,3 +421,8 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 ## Status build F4
 - CI commit dc7667d: (isi: hijau/merah setelah dicek di Actions).
 - Berikutnya: uji di perangkat (buka folder, muat ulang, tab duplikat, dirty baseline, BOM/line ending).
+
+## F4 Panel Direktori
+- Patch awal terpotong saat transfer (SyntaxError baris 953); diperbaiki dengan molina_f4_apply.py (verifikasi sha256 per payload).
+- Perubahan: DirectoryPanel/State/Dialogs/Icons baru; CodeScreen, FileStore, EditorHost, OverflowMenu, SaveAsDialog, CodeSession, CodeColors, CodeDimens diperbarui.
+- Build via GitHub Actions CI; belum diverifikasi di perangkat.
