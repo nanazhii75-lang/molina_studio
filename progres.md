@@ -548,3 +548,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: :feature:code (+androidx.activity:activity-compose:1.9.3, versi sama dengan :app), :app (MainActivity: sembunyikan bottom nav). Manifest dan JNI mpv tidak disentuh
 - [ ] CI commit Tinjauan penuh: ISI SETELAH CEK TAB ACTIONS. Risiko: BackHandler, clickable(indication = null)
 - [ ] uji perangkat: Play di .md -> halaman penuh; Back; ubah isi lalu Play lagi; JSON rusak -> lompat ke galat; bottom nav kembali muncul
+
+## 2026-10-25 - Tinjauan: scroll tersinkron, Bagikan, Penyegaran skrip [CODE-PREVIEW-SYNC]
+- [x] feat(code): Tinjauan Markdown menggulir ke blok tempat kursor editor berada (sekali saat dibuka); MdDoc/parseWithLines memetakan blok ke baris sumber
+- [x] feat(code): tombol BAGIKAN di appbar Tinjauan (maks 200 rb karakter)
+- [x] feat(app): CodeRefreshable (id "code") mendaftar ke Penyegaran sistem; ProotScriptExecutor.cancelActive/isRunning
+- [x] Diuji di JVM: 6.634 uji lulus. Gerbang telemetri lulus. Manifest dan JNI mpv tidak disentuh
+- [ ] CI commit scroll/Bagikan/Penyegaran: ISI SETELAH CEK TAB ACTIONS
+- [ ] uji perangkat: kursor di tengah dokumen .md lalu Play (terbuka di bagian itu); BAGIKAN; skrip `sleep 100` lalu Penyegaran sistem (berhenti, ringkasan "Dihentikan")
