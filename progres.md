@@ -580,3 +580,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi (CI). Risiko: Canvas drawRoundRect, RunRequest named args, delegasi state di lambda
 - [ ] uji perangkat: 3 ubin di Home; yt-dlp via Paket; apt update/upgrade (internet aktif, Debian terpasang/belum); Berhenti; Salin; pencarian apt/paket/script
 - [ ] lanjut: isi Script execution (pintasan script), isi Paket (status, pasang/hapus), generalisasi RunDialog
+
+## 2026-10-26 - Pratinjau HTML native + opsi WebView [CODE-HTML-PREVIEW]
+- [x] feat(code): Play pada .html/.htm/.xhtml membuka Tinjauan penuh; HtmlPreview (pure Kotlin) mengubah HTML ke model blok yang sama dengan Markdown (judul, paragraf, daftar bertingkat, tabel, kutipan, pre, tautan, inline). Script/style/head/svg dilewati, toleran HTML rusak
+- [x] feat(settings): halaman "Editor Code" (Sistem) dengan saklar "Pakai WebView untuk HTML" (CodePrefs, default mati). WebView: JS mati, jaringan diblokir, tanpa akses berkas/konten, navigasi dicegat
+- [x] Diuji di JVM: 10.682 uji lulus. Gerbang telemetri lulus. Manifest dan JNI mpv tidak disentuh
+- [ ] CI commit HTML: ISI SETELAH CEK TAB ACTIONS. Risiko: WebView/AndroidView(onRelease), pencarian Settings
+- [ ] uji perangkat: Play di .html (tabel, daftar, tautan); saklar WebView lalu Play lagi; tautan di WebView terbuka di peramban; Back menutup Tinjauan
+- [ ] lanjut: aktifkan isi halaman "Script execution" (Pintasan skrip)
