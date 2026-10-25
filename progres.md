@@ -395,3 +395,16 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] docs: inventaris dialog "Ubah entri" dari screenshot desain lama dicatat di blueprint
 - [x] Dampak: hanya dokumen. Kode, Gradle, Manifest, JNI mpv tidak disentuh; item menu tetap redup
 - [ ] menunggu konfirmasi pemilik: P-SKRIP-1 sampai P-SKRIP-3 di blueprint (arti Script execution, alur Edit di Editor, beda dengan Play dan Lakukan)
+
+## 2026-10-25 - F3e Simpan, Simpan sebagai, autosave draf [CODE-F3E-SIMPAN]
+- [x] feat(code): FileStore.kt (baca UTF-8 ketat, tulis atomik, validasi nama, DraftStore) dan SaveAsDialog.kt (nama + ekstensi bersaran, Enkode terkunci UTF-8 berikon gembok, konfirmasi TIMPA)
+- [x] feat(code): tombol Simpan toolbar aktif saat dirty; menu "Simpan sebagai"; dialog tutup tab dirty punya SIMPAN (simpan lalu tutup)
+- [x] feat(code): autosave draf di filesDir/code-drafts (debounce 1,5 dtk + flush sinkron di onStop); tab dan isi dipulihkan saat proses dimatikan atau layar diputar
+- [x] refactor(code): CodeSession(workDir, draftDir) memakai Handler + satu thread IO (tanpa dependency coroutines baru); EditorTab.file/loading/edits; setText tidak lagi menandai dirty
+- [x] keputusan pemilik: akses file path langsung /storage/emulated/0 (bukan SAF)
+- [x] docs: blueprint-code-editor.md bagian 30; pertanyaan terbuka 3 terjawab
+- [x] Dampak: :feature:code (CodeSession, EditorHost, EditorToolbar, OverflowMenu, CodeScreen, ToolbarIcons, FileStore baru, SaveAsDialog baru) dan :app (MainActivity: ref sesi, folder draf, flush di onStop). Gradle, Manifest (WRITE_EXTERNAL_STORAGE sudah ada), JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi (menunggu CI). Risiko: ContentChangeEvent.action/ACTION_SET_NEW_TEXT (sudah dicocokkan ke sumber 0.23.6), DialogProperties(usePlatformDefaultWidth), moveFocus Next, io.submit(Runnable)
+- [ ] uji perangkat: ketik di "Baru" lalu Simpan -> dialog, simpan sebagai x.txt -> judul tab jadi x.txt dan titik hilang; edit lagi + Simpan menimpa tanpa dialog; nama sudah ada -> TIMPA; nama kosong/"a/b" ditolak; matikan paksa app lalu buka lagi -> tab dan isi dirty kembali; putar layar -> tab tetap; tutup tab dirty -> SIMPAN menyimpan lalu menutup; izin storage ditolak -> toast gagal menyimpan
+- [ ] keputusan pemilik: BOM dan line ending (blueprint pertanyaan 13); sementara UTF-8 tanpa BOM, line ending apa adanya
+- [ ] berikutnya: F4 panel direktori (Buka, Muat ulang, pemilih folder untuk Simpan sebagai)

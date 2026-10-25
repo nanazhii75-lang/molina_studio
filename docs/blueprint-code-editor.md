@@ -130,7 +130,7 @@ Nilai diambil dari screenshot lama. Verifikasi saat membuat colors.xml, jangan h
 ## 11. Pertanyaan Terbuka
 1. UI saat ini berbasis View/XML atau Jetpack Compose?
 2. Komponen editor teks: custom EditText atau library (mis. sora-editor)?
-3. Akses file: SAF atau path langsung?
+3. [TERJAWAB, bagian 30] Akses file: path langsung /storage/emulated/0.
 4. Toolbar 10 ikon: muat sama rata (36dp) atau scroll horizontal?
 5. Tombol Play menjalankan apa (kirim ke Terminal Molina, atau berdasarkan ekstensi .py/.sh)?
 6. Konfirmasi nilai hex pada bagian 2.
@@ -383,7 +383,7 @@ hr { border:0; border-top:1px solid #3A2F22; }
 | molina_preview_light_text | #1C1814 | Teks mode terang (opsional) |
 
 ## 23. Checklist Tambahan
-- [ ] F3e Dialog Simpan sebagai: styling, Enkode terkunci UTF-8, saran ekstensi
+- [x] F3e Dialog Simpan sebagai: styling, Enkode terkunci UTF-8, saran ekstensi (belum dikompilasi, bagian 30)
 - [ ] F3f Pemilih berkas: appbar, ikon folder gold_soft, FAB
 - [ ] F3g Layar Tinjauan: tema hitam pekat, CSS Markdown, cegah kilatan putih, toggle
 - [ ] F3h Menu: item Enkode menjadi indikator read-only UTF-8
@@ -473,3 +473,33 @@ Tanggal: 2026-10-25. Sumber: keterangan pemilik + 1 screenshot desain lama (dial
 
 ### 29.5 Urutan fase
 - F3e Simpan + autosave draf -> F4 panel direktori -> F5 integrasi nav -> fase Settings (Pintasan skrip + dialog "Ubah entri") -> item menu "Script execution" diaktifkan.
+
+## 30. F3e: Simpan, Simpan sebagai, Autosave Draf [BLUEPRINT-F3E-SIMPAN]
+
+Tanggal: 2026-10-25. Keputusan pemilik: akses file lewat path langsung `/storage/emulated/0` (bukan SAF); pertanyaan terbuka 3 terjawab.
+
+### 30.1 Simpan
+- Tombol Simpan di toolbar aktif saat tab dirty. Tab yang sudah punya berkas ditulis langsung; tab "Baru" membuka dialog Simpan sebagai.
+- Menu titik tiga: item baru "Simpan sebagai" (di bawah "Baru") selalu membuka dialog untuk tab aktif.
+- Tulis atomik (berkas sementara `.nama.molina-tmp` lalu rename), UTF-8 tanpa BOM, di thread IO. Teks dipotret di thread utama; penanda dirty hanya dihapus bila tidak ada edit baru selama penulisan.
+- Setelah tersimpan: judul tab = nama berkas, toast "Tersimpan: nama". Galat I/O tampil sebagai toast "Gagal menyimpan: ...".
+- Line ending tidak diubah (isi disimpan apa adanya; teks baru memakai LF). Pertanyaan terbuka 13 tetap menunggu konfirmasi BOM/line ending.
+
+### 30.2 Dialog Simpan sebagai (bagian 20.3)
+- Folder awal: folder berkas tab, lalu folder simpan terakhir, lalu folder kerja (bagian 20.5). Ditampilkan read-only; pemilih folder menyusul bersama F4.
+- Nama + titik + ekstensi (default `txt`), saran ekstensi maks 5 berurut awalan, bagian cocok emas.
+- Enkode: baris read-only "UTF-8" + gembok; ketuk = toast "Molina selalu menyimpan dalam UTF-8".
+- Validasi: nama kosong, "." / "..", mengandung "/", terlalu panjang, atau bentrok dengan folder. Berkas sudah ada: tombol berubah jadi TIMPA dan pesan konfirmasi tampil.
+- Dialog tutup tab dirty kini punya tiga aksi: BATAL, BUANG, SIMPAN (simpan lalu tutup; bila Simpan sebagai dibatalkan, tab tetap terbuka).
+
+### 30.3 Autosave draf
+- Lokasi: `filesDir/code-drafts/` (privat aplikasi, tanpa izin storage). `session.json` = daftar tab; `d<id>.txt` = isi tab dirty.
+- Ditulis 1,5 detik setelah edit terakhir, dan sinkron (maks 2 detik) di `MainActivity.onStop`.
+- Dipulihkan saat `CodeSession` dibuat lagi (proses dimatikan, layar diputar). Tab bersih dibaca ulang dari berkasnya; tab dirty dari draf. Selama dibaca, tab dikunci (read-only).
+- Batas draf 2.000.000 karakter per tab; lebih dari itu tidak disimpan sebagai draf.
+- Berkas hilang atau bukan UTF-8 saat pemulihan: tab dibuang dengan toast "Gagal memuat ...".
+
+### 30.4 Keterbatasan yang diketahui
+- Dua tab bisa menunjuk berkas yang sama (belum ada pengecekan duplikat). Ditangani di F4 saat "Buka" ada.
+- Undo yang membawa teks kembali ke keadaan tersimpan tetap menandai dirty.
+- Pemilih folder, "Muat ulang", dan "Aksi file" belum ada (F4).
