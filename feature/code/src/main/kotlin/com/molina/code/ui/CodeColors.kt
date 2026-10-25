@@ -59,8 +59,8 @@ object CodeColors {
     val Ripple = Gold.copy(alpha = 0.16f)
     val SelectFill = Gold.copy(alpha = 0.18f)     // seleksi baris tree
     val SelectBorder = Gold.copy(alpha = 0.45f)
-    val EditorSelection = Gold.copy(alpha = 0.30f)
-    val SearchMatch = Gold.copy(alpha = 0.35f)
+    val EditorSelection = Color(0x80D97757)   // blok/hasil aktif: terakota Claude 50%
+    val SearchMatch = Color(0x47D97757)       // hasil lain: terakota Claude 28%
     val RailPeak = Gold.copy(alpha = 0.40f)       // puncak gradient rail emas toolbar
     val LabelChampagne = IconDefault.copy(alpha = 0.70f)
     val SecondaryChampagne = IconDefault.copy(alpha = 0.60f)

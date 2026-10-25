@@ -64,7 +64,7 @@ internal fun FindBar(session: CodeSession, tab: EditorTab) {
     LaunchedEffect(ed, find.query, find.matchCase, find.wholeWord, find.useRegex, find.wrapAround) {
         runSearch(ed, find)
     }
-    DisposableEffect(ed) { onDispose { stopSearch(ed) } }
+    DisposableEffect(ed) { onDispose { stopSearchKeepSelection(ed) } }
 
     val (counter, bad) = counterOf(ed, find, tab.findRevision)
     val canStep = ed != null && find.query.isNotEmpty() && !find.regexError
@@ -166,6 +166,22 @@ private fun runSearch(ed: CodeEditor?, find: FindState) {
         find.regexError = true
         if (s.hasQuery()) s.stopSearch()
     }
+}
+
+/**
+ * Menutup find bar menghentikan pencarian, tetapi kata hasil terakhir tetap terblok (warna Claude):
+ * rentang seleksi dicatat sebelum stopSearch lalu dipasang lagi sesudahnya.
+ */
+private fun stopSearchKeepSelection(ed: CodeEditor?) {
+    if (ed == null) return
+    val c = ed.cursor
+    val selected = c.isSelected
+    val ll = c.leftLine
+    val lc = c.leftColumn
+    val rl = c.rightLine
+    val rc = c.rightColumn
+    stopSearch(ed)
+    if (selected) runCatching { ed.setSelectionRegion(ll, lc, rl, rc) }
 }
 
 private fun stopSearch(ed: CodeEditor?) {
@@ -279,7 +295,7 @@ private fun FindOptionsDialog(find: FindState, onDismiss: () -> Unit) {
                 style = TextStyle(color = CodeColors.IconDefault, fontSize = CodeDimens.DialogTitleSize)
             )
             Spacer(Modifier.height(8.dp))
-            OptionRow("Huruf besar/kecil", matchCase) { matchCase = it }
+            OptionRow("Sensitif huruf besar/kecil", matchCase) { matchCase = it }
             OptionRow("Blok (kata utuh)", whole) { whole = it }
             OptionRow("Persamaan reguler", regex) { regex = it }
             OptionRow("Membungkus di sekitar", wrap) { wrap = it }
