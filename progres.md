@@ -485,3 +485,10 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: hanya modul :app (settings). Gradle, Manifest, JNI mpv tidak disentuh. Bergantung pada Win7/Win7BackOrb (Win7Aero.kt)
 - [ ] BELUM dikompilasi (CI). Risiko: parameter lightColorScheme surfaceContainer* pada Material3 BOM 2024.12.01
 - [ ] uji perangkat: Home > Sistem > Terminal > Debugging, tombol kembali/Back, breadcrumb, cari 'log' dan 'font', dialog Segarkan Sistem (terang), Switch/Radio/Slider terbaca
+
+## 2026-10-25 - Perbaikan tema putih -> hitam pekat mpv + Settings [FIX-DARK-THEME]
+- [x] fix(mpv): FilePickerTheme & AppTheme dari AppCompat.Light ke AppCompat gelap; windowBackground #000000; primary/primary_dark #000000, accent #4DA3FF; dialog alert gelap
+- [x] fix(settings): Win7Scheme jadi darkColorScheme; palet baru W7D (Aero Gelap) menggantikan Color.White dan token Win7 terang di Win7SettingsUi/SettingsScreen
+- [x] Dampak: resource :feature:mpv (styles, colors) dan :app (settings). Gradle, Manifest, JNI mpv tidak disentuh. Win7OpenDialog (Cinema) tidak diubah
+- [ ] BELUM dikompilasi (CI). Uji: Settings (beranda, Sistem, Log, dialog Segarkan), layar Open external subtitle, pemilih file lama, dialog Buat Folder
+- [ ] Log menunjukkan playlist-count=0 untuk .../playlist.m3u (kemungkinan gagal dibuka): investigasi terpisah

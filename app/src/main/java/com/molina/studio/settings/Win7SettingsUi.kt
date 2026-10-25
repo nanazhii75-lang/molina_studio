@@ -15,7 +15,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -43,18 +43,34 @@ import com.molina.studio.cinema.Win7
 import com.molina.studio.cinema.Win7BackOrb
 import com.molina.studio.ui.MolinaTheme
 
-private val W7LinkColor = Color(0xFF0066CC)
+private val W7LinkColor = Color(0xFF6CB4FF)
 
-/** Skema warna terang Windows 7: dipasang di dalam jendela Settings agar semua halaman lama ikut terang. */
-internal val Win7Scheme = lightColorScheme(
-    primary = Color(0xFF1F6FB5), onPrimary = Color.White,
-    primaryContainer = Color(0xFFD9EBF9), onPrimaryContainer = Color(0xFF1E395B),
+/** Palet Aero Gelap: hitam pekat (OLED) dengan aksen biru Aero. */
+internal object W7D {
+    val Bg = Color(0xFF000000)
+    val Card = Color(0xFF0B0B0F)
+    val BarTop = Color(0xFF14181E)
+    val BarBottom = Color(0xFF05070A)
+    val Field = Color(0xFF0F1318)
+    val Ink = Color(0xFFEAEFF5)
+    val TextDim = Color(0xFF9AA5B1)
+    val NavHeader = Color(0xFF8FC4EE)
+    val Hairline = Color(0xFF26303B)
+    val Line = Color(0xFF3A4654)
+    val SelFill = Color(0xFF12263A)
+    val SelLine = Color(0xFF3C7FB1)
+}
+
+/** Skema warna gelap Aero: dipasang di dalam jendela Settings agar semua halaman ikut hitam pekat. */
+internal val Win7Scheme = darkColorScheme(
+    primary = Color(0xFF6CB4FF), onPrimary = Color.Black,
+    primaryContainer = W7D.SelFill, onPrimaryContainer = Color(0xFFD9EBF9),
     secondary = Color(0xFF3C7FB1), onSecondary = Color.White,
-    background = Color.White, onBackground = Win7.Ink,
-    surface = Color.White, onSurface = Win7.Ink,
-    surfaceVariant = Color(0xFFE3EAF3), onSurfaceVariant = Win7.TextDim,
-    outline = Win7.Field, outlineVariant = Win7.Hairline,
-    surfaceContainerHigh = Color(0xFFF0F0F0), surfaceContainerHighest = Color(0xFFE6EBF2)
+    background = W7D.Bg, onBackground = W7D.Ink,
+    surface = W7D.Bg, onSurface = W7D.Ink,
+    surfaceVariant = Color(0xFF14181E), onSurfaceVariant = W7D.TextDim,
+    outline = W7D.Line, outlineVariant = W7D.Hairline,
+    surfaceContainerHigh = Color(0xFF0F1318), surfaceContainerHighest = Color(0xFF171C23)
 )
 
 /**
@@ -78,7 +94,7 @@ internal fun Win7SettingsWindow(
     val typo = MaterialTheme.typography
     val shapes = MaterialTheme.shapes
     MaterialTheme(colorScheme = Win7Scheme, typography = typo, shapes = shapes) {
-        Surface(modifier, color = Color.White, contentColor = Win7.Ink) {
+        Surface(modifier, color = W7D.Bg, contentColor = W7D.Ink) {
             Column(Modifier.fillMaxSize()) {
                 W7Header(crumbs, canUp, onUp, onCrumb, query, onQuery, actions)
                 Box(Modifier.weight(1f).fillMaxWidth()) {
@@ -110,23 +126,23 @@ private fun W7Header(
     val focus = LocalFocusManager.current
     Column(
         Modifier.fillMaxWidth()
-            .background(Brush.verticalGradient(listOf(Color.White, Color(0xFFE3EAF3))))
+            .background(Brush.verticalGradient(listOf(W7D.BarTop, W7D.BarBottom)))
     ) {
         Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
             Win7BackOrb(canUp, onUp)
             Spacer(Modifier.width(8.dp))
             Row(
-                Modifier.weight(1f).height(28.dp).background(Color.White)
-                    .border(1.dp, Win7.Field).padding(horizontal = 8.dp),
+                Modifier.weight(1f).height(28.dp).background(W7D.Field)
+                    .border(1.dp, W7D.Field).padding(horizontal = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 val from = if (crumbs.size > 2) crumbs.size - 2 else 0
-                if (from > 0) Text("\u2026 \u203A ", color = Win7.TextDim, fontSize = 13.sp)
+                if (from > 0) Text("\u2026 \u203A ", color = W7D.TextDim, fontSize = 13.sp)
                 for (i in from until crumbs.size) {
-                    if (i > from) Text(" \u203A ", color = Win7.TextDim, fontSize = 13.sp)
+                    if (i > from) Text(" \u203A ", color = W7D.TextDim, fontSize = 13.sp)
                     Text(
                         crumbs[i],
-                        color = if (i == crumbs.lastIndex) Win7.Ink else Win7.NavHeader,
+                        color = if (i == crumbs.lastIndex) W7D.Ink else W7D.NavHeader,
                         fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f, fill = false).clickable { onCrumb(i) }
                     )
@@ -138,21 +154,21 @@ private fun W7Header(
                 value = query,
                 onValueChange = onQuery,
                 singleLine = true,
-                textStyle = TextStyle(color = Win7.Ink, fontSize = 13.sp),
-                cursorBrush = SolidColor(Win7.Ink),
+                textStyle = TextStyle(color = W7D.Ink, fontSize = 13.sp),
+                cursorBrush = SolidColor(W7D.Ink),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(onSearch = { focus.clearFocus() }),
-                modifier = Modifier.weight(1f).height(30.dp).background(Color.White)
-                    .border(1.dp, Win7.Field).padding(horizontal = 8.dp),
+                modifier = Modifier.weight(1f).height(30.dp).background(W7D.Field)
+                    .border(1.dp, W7D.Field).padding(horizontal = 8.dp),
                 decorationBox = { inner ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(Modifier.weight(1f), Alignment.CenterStart) {
-                            if (query.isEmpty()) Text("Cari setelan", color = Win7.TextDim, fontSize = 13.sp)
+                            if (query.isEmpty()) Text("Cari setelan", color = W7D.TextDim, fontSize = 13.sp)
                             inner()
                         }
                         if (query.isNotEmpty()) {
                             Text(
-                                "\u00D7", color = Win7.TextDim, fontSize = 20.sp,
+                                "\u00D7", color = W7D.TextDim, fontSize = 20.sp,
                                 modifier = Modifier.clickable { onQuery("") }.padding(horizontal = 6.dp)
                             )
                         }
@@ -162,7 +178,7 @@ private fun W7Header(
             )
             actions()
         }
-        Box(Modifier.fillMaxWidth().height(1.dp).background(Win7.Hairline))
+        Box(Modifier.fillMaxWidth().height(1.dp).background(W7D.Hairline))
     }
 }
 
@@ -171,8 +187,8 @@ private fun W7Magnifier() {
     Canvas(Modifier.size(14.dp)) {
         val s = 1.6.dp.toPx()
         val w = size.width
-        drawCircle(Win7.NavHeader, radius = w * 0.32f, center = Offset(w * 0.38f, w * 0.38f), style = Stroke(s))
-        drawLine(Win7.NavHeader, Offset(w * 0.62f, w * 0.62f), Offset(w * 0.95f, w * 0.95f), s, StrokeCap.Round)
+        drawCircle(W7D.NavHeader, radius = w * 0.32f, center = Offset(w * 0.38f, w * 0.38f), style = Stroke(s))
+        drawLine(W7D.NavHeader, Offset(w * 0.62f, w * 0.62f), Offset(w * 0.95f, w * 0.95f), s, StrokeCap.Round)
     }
 }
 
@@ -196,7 +212,7 @@ internal fun W7Link(icon: @Composable () -> Unit, title: String, summary: String
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(title, color = W7LinkColor, fontSize = 15.sp)
-            Text(summary, color = Win7.TextDim, fontSize = 12.sp)
+            Text(summary, color = W7D.TextDim, fontSize = 12.sp)
         }
     }
 }
@@ -239,18 +255,18 @@ internal fun W7SystemSummary() {
         )
     }
     val shape = RoundedCornerShape(3.dp)
-    Column(Modifier.fillMaxWidth().clip(shape).border(1.dp, Win7.Hairline, shape).background(Color(0xFFF7FAFD))) {
+    Column(Modifier.fillMaxWidth().clip(shape).border(1.dp, W7D.Hairline, shape).background(W7D.Card)) {
         Text(
-            "Lihat informasi dasar tentang perangkat Anda", color = Win7.NavHeader, fontSize = 13.sp,
+            "Lihat informasi dasar tentang perangkat Anda", color = W7D.NavHeader, fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.fillMaxWidth()
-                .background(Brush.verticalGradient(listOf(Color.White, Color(0xFFE3EAF3))))
+                .background(Brush.verticalGradient(listOf(W7D.BarTop, W7D.BarBottom)))
                 .padding(horizontal = 10.dp, vertical = 7.dp)
         )
         rows.forEach { r ->
             Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 4.dp)) {
-                Text(r.first, color = Win7.TextDim, fontSize = 12.sp, modifier = Modifier.width(96.dp))
-                Text(r.second, color = Win7.Ink, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                Text(r.first, color = W7D.TextDim, fontSize = 12.sp, modifier = Modifier.width(96.dp))
+                Text(r.second, color = W7D.Ink, fontSize = 12.sp, modifier = Modifier.weight(1f))
             }
         }
         Spacer(Modifier.height(4.dp))

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <item name="primary" type="color">#B9D1EA</item>
-    <item name="primary_dark" type="color">#9FBFE3</item>
-    <item name="accent" type="color">#3C7FB1</item>
+    <item name="primary" type="color">#000000</item>
+    <item name="primary_dark" type="color">#000000</item>
+    <item name="accent" type="color">#4DA3FF</item>
 
     <!-- Win7 Aero: pemilih file lama diseragamkan dengan Win7OpenDialog -->
     <color name="win7_folder">#F3CF6E</color>
