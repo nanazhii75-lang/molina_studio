@@ -186,13 +186,16 @@ private fun StatusChip(tab: EditorTab) {
     val color: androidx.compose.ui.graphics.Color
     when {
         tab.loading -> { label = "Memuat"; color = CodeColors.IconDim }
-        tab.dirty -> { label = "Diubah"; color = CodeColors.Gold }
+        tab.dirty -> { label = "Diubah"; color = CodeColors.Danger }
         tab.file != null -> { label = "Tersimpan"; color = CodeColors.IconDim }
         else -> { label = "Baru"; color = CodeColors.IconDim }
     }
     Row(Modifier.padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-        if (tab.dirty && !tab.loading) {
-            Box(Modifier.size(CodeDimens.DirtyDot).background(CodeColors.Gold, CircleShape))
+        if (!tab.loading) {
+            Box(
+                Modifier.size(CodeDimens.DirtyDot)
+                    .background(if (tab.dirty) CodeColors.Danger else CodeColors.Clean, CircleShape)
+            )
             Spacer(Modifier.width(4.dp))
         }
         BasicText(
@@ -288,8 +291,11 @@ private fun TabItem(
             Modifier.fillMaxHeight().padding(start = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (tab.dirty) {
-                Box(Modifier.size(CodeDimens.DirtyDot).background(CodeColors.Gold, CircleShape))
+            if (!tab.loading) {
+                Box(
+                    Modifier.size(CodeDimens.DirtyDot)
+                        .background(if (tab.dirty) CodeColors.Danger else CodeColors.Clean, CircleShape)
+                )
                 Spacer(Modifier.width(6.dp))
             }
             BasicText(

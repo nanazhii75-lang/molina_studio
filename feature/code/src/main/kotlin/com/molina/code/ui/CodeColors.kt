@@ -29,6 +29,7 @@ object CodeColors {
     val GoldSoft = Color(0xFFE9B949)
     val FolderYellow = GoldSoft
     val Danger = Color(0xFFE5484D)
+    val Clean = Color(0xFF3FB950)               // indikator berkas sama dengan isi awal (hijau)
     val Capsule = Color(0xFF4E3B14)       // kapsul aktif, sama dengan bottom nav
 
     // Editor
