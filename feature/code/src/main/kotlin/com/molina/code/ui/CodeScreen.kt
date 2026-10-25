@@ -20,13 +20,20 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -37,8 +44,8 @@ import androidx.compose.ui.platform.LocalContext
 import io.github.rosemoe.sora.widget.SelectionMovement
 
 /**
- * Layar tab Code (F2, F3): header path, tab bar, editor, toolbar. Panel direktori (F4) dan
- * menu titik tiga (F3b) belum ada. Semua warna/ukuran dari [CodeColors] dan [CodeDimens].
+ * Layar tab Code (F2, F3): header path, tab bar, editor, toolbar. Panel direktori (F4) belum ada.
+ * Menu titik tiga ada di OverflowMenu.kt (F3b). Semua warna/ukuran dari [CodeColors] dan [CodeDimens].
  */
 @Composable
 fun CodeScreen(session: CodeSession, modifier: Modifier = Modifier) {
@@ -46,7 +53,7 @@ fun CodeScreen(session: CodeSession, modifier: Modifier = Modifier) {
     val ctx = LocalContext.current
 
     Column(modifier.fillMaxWidth().background(CodeColors.EditorBg)) {
-        PathHeader(session.workDir)
+        PathHeader(session)
         EditorTabBar(session) { tab ->
             if (tab.dirty) pendingClose = tab else session.close(tab.id)
         }
@@ -90,9 +97,10 @@ private fun Hairline() {
     Box(Modifier.fillMaxWidth().height(CodeDimens.Hairline).background(CodeColors.Hairline))
 }
 
-/** Header path folder kerja. Titik tiga baru visual; menunya dikerjakan di F3b. */
+/** Header path folder kerja + tombol titik tiga yang membuka [OverflowMenu] (F3b). */
 @Composable
-private fun PathHeader(path: String) {
+private fun PathHeader(session: CodeSession) {
+    var menuOpen by remember { mutableStateOf(false) }
     Row(
         Modifier
             .fillMaxWidth()
@@ -102,20 +110,24 @@ private fun PathHeader(path: String) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         BasicText(
-            text = path,
+            text = session.workDir,
             modifier = Modifier.weight(1f),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             style = TextStyle(color = CodeColors.TextSecondary, fontSize = CodeDimens.PathTextSize)
         )
         Box(
-            Modifier.width(CodeDimens.HeaderHeight).fillMaxHeight(),
+            Modifier
+                .width(CodeDimens.HeaderHeight)
+                .fillMaxHeight()
+                .clickable { menuOpen = true },
             contentAlignment = Alignment.Center
         ) {
             BasicText(
                 text = "\u22EE",
                 style = TextStyle(color = CodeColors.IconDefault, fontSize = 20.sp)
             )
+            if (menuOpen) OverflowMenu(session) { menuOpen = false }
         }
     }
     Hairline()
@@ -123,20 +135,40 @@ private fun PathHeader(path: String) {
 
 @Composable
 private fun EditorTabBar(session: CodeSession, onRequestClose: (EditorTab) -> Unit) {
+    val scroll = rememberScrollState()
+    var viewport by remember { mutableIntStateOf(0) }
+    // Posisi (kiri, lebar) tiap tab di dalam area scroll, untuk auto-scroll ke tab aktif.
+    val bounds = remember { mutableStateMapOf<Int, Pair<Int, Int>>() }
+    val activeBounds = bounds[session.activeId]
+
+    LaunchedEffect(session.activeId, activeBounds, viewport) {
+        val (left, width) = activeBounds ?: return@LaunchedEffect
+        val right = left + width
+        val target = when {
+            left < scroll.value -> left
+            right > scroll.value + viewport -> right - viewport
+            else -> return@LaunchedEffect
+        }
+        scroll.animateScrollTo(target.coerceAtLeast(0))
+    }
+
     Row(
         Modifier
             .fillMaxWidth()
             .height(CodeDimens.TabBarHeight)
             .background(CodeColors.Surface1)
-            .horizontalScroll(rememberScrollState())
+            .onSizeChanged { viewport = it.width }
+            .horizontalScroll(scroll)
     ) {
         session.tabs.forEach { tab ->
             key(tab.id) {
+                DisposableEffect(Unit) { onDispose { bounds.remove(tab.id) } }
                 TabItem(
                     tab = tab,
                     active = tab.id == session.activeId,
                     onSelect = { session.select(tab.id) },
-                    onClose = { onRequestClose(tab) }
+                    onClose = { onRequestClose(tab) },
+                    onBounds = { x, w -> bounds[tab.id] = x to w }
                 )
             }
         }
@@ -158,11 +190,18 @@ private fun EditorTabBar(session: CodeSession, onRequestClose: (EditorTab) -> Un
 
 /** Tab aktif: garis emas di ATAS, latar lebih gelap. Titik emas = belum disimpan. */
 @Composable
-private fun TabItem(tab: EditorTab, active: Boolean, onSelect: () -> Unit, onClose: () -> Unit) {
+private fun TabItem(
+    tab: EditorTab,
+    active: Boolean,
+    onSelect: () -> Unit,
+    onClose: () -> Unit,
+    onBounds: (Int, Int) -> Unit
+) {
     Box(
         Modifier
             .height(CodeDimens.TabBarHeight)
             .widthIn(min = CodeDimens.TabMinWidth, max = CodeDimens.TabMaxWidth)
+            .onGloballyPositioned { onBounds(it.positionInParent().x.toInt(), it.size.width) }
             .background(if (active) CodeColors.EditorBg else CodeColors.Surface1)
             .clickable(onClick = onSelect)
     ) {

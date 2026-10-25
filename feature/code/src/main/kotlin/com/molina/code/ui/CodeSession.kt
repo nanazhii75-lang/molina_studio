@@ -23,6 +23,12 @@ class EditorTab internal constructor(val id: Int, initialTitle: String) {
     var revision by mutableIntStateOf(0)
         internal set
 
+    /** Pembungkus kata per tab (default aktif, blueprint v2 bagian 12). Diubah dari menu titik tiga. */
+    var wordWrap by mutableStateOf(true)
+
+    /** Hanya baca per tab. Diubah dari menu titik tiga. */
+    var readOnly by mutableStateOf(false)
+
     internal var editor: CodeEditor? = null
 
     internal fun disposeEditor() {
@@ -43,7 +49,6 @@ class CodeSession(val workDir: String) {
         private set
 
     private var nextId = 1
-    private var untitledCount = 0
 
     val active: EditorTab?
         get() = tabs.firstOrNull { it.id == activeId }
@@ -53,12 +58,21 @@ class CodeSession(val workDir: String) {
     }
 
     fun newTab(): EditorTab {
-        untitledCount++
-        val title = if (untitledCount == 1) UNTITLED else "$UNTITLED $untitledCount"
-        val tab = EditorTab(nextId++, title)
+        val tab = EditorTab(nextId++, nextUntitledTitle())
         tabs.add(tab)
         activeId = tab.id
         return tab
+    }
+
+    /** Nomor terkecil yang belum dipakai tab lain, jadi menutup tab lalu membuka baru tidak menaikkan angka. */
+    private fun nextUntitledTitle(): String {
+        val used = tabs.map { it.title }.toSet()
+        var n = 1
+        while (true) {
+            val t = if (n == 1) UNTITLED else "$UNTITLED $n"
+            if (t !in used) return t
+            n++
+        }
     }
 
     fun select(id: Int) {
@@ -82,6 +96,6 @@ class CodeSession(val workDir: String) {
     }
 
     companion object {
-        const val UNTITLED = "Tidak berjudul"
+        const val UNTITLED = "Baru"
     }
 }

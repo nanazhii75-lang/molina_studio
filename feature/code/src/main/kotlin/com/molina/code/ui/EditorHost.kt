@@ -45,7 +45,8 @@ internal fun EditorTab.editorOrCreate(context: Context): CodeEditor {
     val ed = CodeEditor(context)
     ed.typefaceText = Typeface.MONOSPACE
     ed.setTextSize(CodeDimens.EditorTextSize.value)
-    ed.setWordwrap(true) // blueprint v2 bagian 12: word wrap default AKTIF
+    ed.setWordwrap(wordWrap) // blueprint v2 bagian 12: default AKTIF; diubah dari menu titik tiga
+    ed.setEditable(!readOnly)
     applyMolinaColors(ed.colorScheme)
     ed.subscribeEvent(ContentChangeEvent::class.java) { _, _ ->
         dirty = true
