@@ -409,30 +409,13 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] keputusan pemilik: BOM dan line ending (blueprint pertanyaan 13); sementara UTF-8 tanpa BOM, line ending apa adanya
 - [ ] berikutnya: F4 panel direktori (Buka, Muat ulang, pemilih folder untuk Simpan sebagai)
 
-## F4 Panel Direktori
-- Patch awal terpotong saat transfer (SyntaxError baris 953); diperbaiki dengan molina_f4_apply.py (verifikasi sha256 per payload).
-- Perubahan: DirectoryPanel/State/Dialogs/Icons baru; CodeScreen, FileStore, EditorHost, OverflowMenu, SaveAsDialog, CodeSession, CodeColors, CodeDimens diperbarui.
-- Build via GitHub Actions CI; belum diverifikasi di perangkat.
+## 2026-10-25 - F4 Panel Direktori [CODE-F4-DIREKTORI]
+- [x] feat(code): DirectoryPanel/State/Dialogs/Icons baru; CodeScreen, FileStore, EditorHost, OverflowMenu, SaveAsDialog, CodeSession, CodeColors, CodeDimens diperbarui (commit dc7667d)
+- [x] Patch awal terpotong saat transfer (SyntaxError baris 953); diperbaiki dengan molina_f4_apply.py (verifikasi sha256 per payload)
+- [ ] CI dc7667d: ISI SETELAH CEK TAB ACTIONS (hijau/merah)
+- [ ] uji perangkat: buka folder, muat ulang, tab duplikat, dirty baseline, BOM/line ending
+- [x] Catatan: commit docs memakai [skip ci] dan build.yml punya paths-ignore **.md, jadi CI hanya jalan untuk commit kode
 
 ## Housekeeping
-- Script patch sekali pakai (F2, F3e, F4, UI v2-v6, shield, cinema) dihapus dari repo; riwayat tetap ada di git.
-- .gitignore: __pycache__/ dan molina_*.py.
-
-## Status build F4
-- CI commit dc7667d: (isi: hijau/merah setelah dicek di Actions).
-- Berikutnya: uji di perangkat (buka folder, muat ulang, tab duplikat, dirty baseline, BOM/line ending).
-
-## F4 Panel Direktori
-- Patch awal terpotong saat transfer (SyntaxError baris 953); diperbaiki dengan molina_f4_apply.py (verifikasi sha256 per payload).
-- Perubahan: DirectoryPanel/State/Dialogs/Icons baru; CodeScreen, FileStore, EditorHost, OverflowMenu, SaveAsDialog, CodeSession, CodeColors, CodeDimens diperbarui.
-- Build via GitHub Actions CI; belum diverifikasi di perangkat.
-
-## F4 Panel Direktori (tertunda)
-- Script molina_f4_direktori.py gagal dijalankan: file terpotong saat transfer (SyntaxError baris 953).
-- Repo bersih, tidak ada perubahan ter-commit.
-- Tindak lanjut: kirim ulang patch terpecah dengan verifikasi sha256.
-
-## F4 Panel Direktori
-- Patch awal terpotong saat transfer (SyntaxError baris 953); diperbaiki dengan molina_f4_apply.py (verifikasi sha256 per payload).
-- Perubahan: DirectoryPanel/State/Dialogs/Icons baru; CodeScreen, FileStore, EditorHost, OverflowMenu, SaveAsDialog, CodeSession, CodeColors, CodeDimens diperbarui.
-- Build via GitHub Actions CI; belum diverifikasi di perangkat.
+- [x] .gitignore: __pycache__/ dan molina_*.py
+- [ ] Hapus file lama yang masih ter-track di root: molina_patch_*.sh, molina_terminal_v2.sh, molina_terminal_v3.sh, molina_ui_v5_dock.py
