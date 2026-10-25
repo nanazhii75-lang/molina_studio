@@ -25,16 +25,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/** Halaman "Script execution": pintasan script. Isi menyusul; sementara hanya penanda. */
-@Composable
-internal fun ScriptsPage() {
-    ComingSoon(
-        "Segera hadir",
-        "Pintasan untuk menjalankan script .sh dan .py di Debian dengan satu ketukan, lengkap dengan keluaran langsung. " +
-            "Fitur ini masih disiapkan."
-    )
-}
-
 /** Halaman "Paket": yt-dlp dipindah ke sini. Unduh, perbarui, dan hapus paket lain menyusul. */
 @Composable
 internal fun PackagesPage(onOpenYtdlp: () -> Unit) {

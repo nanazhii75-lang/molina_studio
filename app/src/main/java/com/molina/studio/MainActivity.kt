@@ -140,9 +140,19 @@ class MainActivity : ComponentActivity() {
                     ).also {
                         codeSessionRef = it
                         it.scriptExecutor = com.molina.studio.code.ProotScriptExecutor(applicationContext)
+                        it.scriptSink = com.molina.code.run.ScriptSink { share ->
+                            com.molina.studio.code.ScriptStore.upsertFromEditor(share).message
+                        }
                     }
                 }
                 DisposableEffect(codeSession) { onDispose { codeSession.releaseAll() } }
+                // Script execution (Settings) menjalankan skrip di Molina Terminal: pindah ke tab Terminal.
+                androidx.compose.runtime.LaunchedEffect(com.molina.studio.code.ScriptNav.openTerminal) {
+                    if (com.molina.studio.code.ScriptNav.openTerminal) {
+                        selected = Tab.Terminal.ordinal
+                        com.molina.studio.code.ScriptNav.openTerminal = false
+                    }
+                }
                 val htmlWebView by com.molina.studio.code.CodePrefs.htmlWebView.collectAsState()
                 SideEffect { codeSession.htmlWebView = htmlWebView }
                 val keyboardVisible = rememberKeyboardVisible()

@@ -28,6 +28,7 @@ class MolinaApp : Application() {
         StreamEnginePrefs.init(this)
         PrivacyPrefs.init(this)
         com.molina.studio.code.CodePrefs.init(this)
+        com.molina.studio.code.ScriptStore.init(this)
         MpvControl.install(this)
         SystemRefresh.install(this)
         // NewPipe lebih dulu; yt-dlp (default mati, lihat Pengaturan) hanya untuk URL yang tak dikenalinya.
