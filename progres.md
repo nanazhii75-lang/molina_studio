@@ -312,3 +312,7 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] uji perangkat: tab Code terbuka; ketik = titik emas; + tab baru, pindah tab menjaga isi dan undo; X pada tab dirty = dialog; tutup tab terakhir = tab kosong baru; pindah ke tab mpv/Terminal lalu kembali = tab tetap; keyboard menyembunyikan nav bawah; word wrap aktif; gutter dan kursor emas
 - [ ] batas diketahui: rotasi layar menghapus semua tab (Activity dibuat ulang, autosave draf menyusul di F5); titik tiga di header baru visual (F3b); tab bar belum auto-scroll ke tab aktif; dirty tetap true setelah undo ke isi awal; ripple masih bawaan (gold ripple di F3)
 - [ ] berikutnya: F3 toolbar (Simpan/Tempel/Undo/Redo/Cari/kursor/Tab/Play/Tutup, rail emas, Opsi A)
+
+## 2026-10-25 - Keputusan: warna nav bawah [CODE-NAV-WARNA-DITUNDA]
+- [x] Pemilik menyetujui saran: tab Code emas #FFB300, Settings champagne #CDBFA3 di nav bawah; dikerjakan nanti (setelah F2 hijau, sebelum atau bersama F3)
+- [ ] terkait: putuskan penyatuan tiga emas (merek #E6B450, editor #FFB300, gold_soft #E9B949) setelah melihat tampilannya di perangkat
