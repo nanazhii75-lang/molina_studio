@@ -57,7 +57,7 @@ internal class DirectoryState(private val session: CodeSession, initialRoot: Fil
         root = dir
     }
 
-    fun setRoot(dir: File) {
+    fun changeRoot(dir: File) {
         root = dir
         expandedKeys.clear()
         children.clear()
@@ -70,7 +70,7 @@ internal class DirectoryState(private val session: CodeSession, initialRoot: Fil
     fun up() {
         val parent = root.parentFile ?: return
         if (root.path == FileStore.STORAGE_ROOT) return
-        setRoot(parent)
+        changeRoot(parent)
     }
 
     /** Muat ulang folder utama dan semua folder yang sedang terbuka. */
@@ -103,7 +103,7 @@ internal class DirectoryState(private val session: CodeSession, initialRoot: Fil
     fun reveal(file: File) {
         val parent = file.parentFile ?: return
         val rootKey = root.path
-        if (parent.path != rootKey && !parent.path.startsWith("$rootKey/")) setRoot(parent)
+        if (parent.path != rootKey && !parent.path.startsWith("$rootKey/")) changeRoot(parent)
         val chain = ArrayList<File>()
         var p: File? = parent
         while (p != null && p.path != root.path) {

@@ -73,7 +73,7 @@ internal fun FileDialogs(session: CodeSession) {
                 if (isDir) {
                     add(ActionItem("Jadikan folder utama") {
                         session.fileDialog = null
-                        dir.setRoot(f)
+                        dir.changeRoot(f)
                     })
                 } else {
                     add(ActionItem("Buka") {

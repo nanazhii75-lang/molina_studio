@@ -126,7 +126,7 @@ private fun DrawerHeader(session: CodeSession) {
             Modifier
                 .weight(1f)
                 .clickable {
-                    session.picker = PickerRequest(PickMode.Folder, dir.root, "Pilih folder utama") { dir.setRoot(it) }
+                    session.picker = PickerRequest(PickMode.Folder, dir.root, "Pilih folder utama") { dir.changeRoot(it) }
                 }
                 .padding(horizontal = 4.dp)
         ) {
@@ -217,7 +217,7 @@ private fun DrawerEmptyState(session: CodeSession) {
         Spacer(Modifier.height(16.dp))
         DrawerTextButton("BUKA FOLDER") {
             session.picker = PickerRequest(PickMode.Folder, java.io.File(FileStore.STORAGE_ROOT), "Pilih folder utama") {
-                dir.setRoot(it)
+                dir.changeRoot(it)
             }
         }
         Spacer(Modifier.height(CodeDimens.EmptyButtonGap))
