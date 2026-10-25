@@ -8,21 +8,21 @@ import androidx.compose.ui.graphics.Color
  * v2 tidak dipakai. Jangan hardcode warna di layar; tambahkan token di sini.
  */
 object CodeColors {
-    // Permukaan: keluarga "espresso hangat"
+    // Permukaan: keluarga "hitam dingin", mengikuti nav/app (Opsi B, blueprint bagian 25)
     val EditorBg = Color(0xFF000000)
     val GutterBg = Color(0xFF121212)
-    val Surface1 = Color(0xFF1C1814)      // header path, tab bar
-    val Surface2 = Color(0xFF231D17)      // toolbar, find bar
-    val SurfaceDrawer = Color(0xFF1F1B17) // panel direktori
-    val SurfaceMenu = Color(0xFF1A1511)   // popup titik tiga
-    val SurfaceDialog = Color(0xFF1F1A15) // dialog
-    val SurfaceNav = Color(0xFF2A2218)    // bottom nav (tetap)
-    val Hairline = Color(0xFF3A2F22)      // pembatas 1dp, border popup/dialog
+    val Surface1 = Color(0xFF14161B)      // header path, tab bar
+    val Surface2 = Color(0xFF181B21)      // toolbar, find bar
+    val SurfaceDrawer = Color(0xFF101218) // panel direktori
+    val SurfaceMenu = Color(0xFF12151A)   // popup titik tiga
+    val SurfaceDialog = Color(0xFF171A20) // dialog
+    val SurfaceNav = Color(0xFF0A0A0F)    // bottom nav aktual (= MolinaTheme.Background)
+    val Hairline = Color(0xFF2A2D35)      // pembatas 1dp, border popup/dialog
 
     // Ikon
     val IconDefault = Color(0xFFCDBFA3)   // champagne
-    val IconDim = Color(0xFF7A6C55)
-    val IconDisabled = Color(0xFF5A4E3C)
+    val IconDim = Color(0xFF7D7A72)
+    val IconDisabled = Color(0xFF4D4C48)
 
     // Aksen (maksimal dua di toolbar: Gold dan Danger)
     val Gold = Color(0xFFFFB300)
