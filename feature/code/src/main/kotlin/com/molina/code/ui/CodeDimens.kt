@@ -42,6 +42,8 @@ object CodeDimens {
     val TreeTextSize = 13.sp
     val TreeSelectCorner = 3.dp
     val TreeSelectBorder = 1.dp
+    val TreeMenuButtonWidth = 36.dp
+    val TreeMenuDots = 16.dp
 
     val DrawerButton = 32.dp
     val PickerRowHeight = 40.dp

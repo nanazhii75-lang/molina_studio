@@ -101,7 +101,7 @@ internal fun DirectoryPanel(session: CodeSession, modifier: Modifier = Modifier)
                                 dir.selected = path
                                 if (row.entry.isDir) dir.toggle(row.entry.file) else session.openFile(row.entry.file)
                             },
-                            onLong = { session.fileDialog = FileDialog.Menu(row.entry.file) }
+                            onMenu = { session.fileDialog = FileDialog.Menu(row.entry.file) }
                         )
                     }
                 }
@@ -149,11 +149,11 @@ private fun DrawerHeader(session: CodeSession) {
     }
 }
 
-/** Satu baris tree 32dp: indent, expander (folder), ikon, nama. Tekan lama = menu konteks. */
+/** Satu baris tree 32dp: indent, expander (folder), ikon, nama. Titik tiga di kanan = menu konteks. */
 @Composable
-private fun TreeRow(row: DirRow, selected: Boolean, onTap: () -> Unit, onLong: () -> Unit) {
+private fun TreeRow(row: DirRow, selected: Boolean, onTap: () -> Unit, onMenu: () -> Unit) {
     val tap by rememberUpdatedState(onTap)
-    val long by rememberUpdatedState(onLong)
+    val menu by rememberUpdatedState(onMenu)
     val shape = RoundedCornerShape(CodeDimens.TreeSelectCorner)
     val entry = row.entry
     val base = Modifier
@@ -170,30 +170,46 @@ private fun TreeRow(row: DirRow, selected: Boolean, onTap: () -> Unit, onLong: (
     }
     Row(
         styled
-            .pointerInput(entry.file.path) {
-                detectTapGestures(onTap = { tap() }, onLongPress = { long() })
-            }
             .alpha(if (entry.hidden) CodeColors.HiddenFileAlpha else 1f)
             .padding(start = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Spacer(Modifier.width(CodeDimens.TreeIndent * row.depth))
-        if (entry.isDir) {
-            Canvas(Modifier.size(CodeDimens.TreeExpanderSize)) { drawExpander(row.expanded) }
-        } else {
-            Spacer(Modifier.size(CodeDimens.TreeExpanderSize))
+        Row(
+            Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .pointerInput(entry.file.path) { detectTapGestures(onTap = { tap() }) },
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Spacer(Modifier.width(CodeDimens.TreeIndent * row.depth))
+            if (entry.isDir) {
+                Canvas(Modifier.size(CodeDimens.TreeExpanderSize)) { drawExpander(row.expanded) }
+            } else {
+                Spacer(Modifier.size(CodeDimens.TreeExpanderSize))
+            }
+            Spacer(Modifier.width(6.dp))
+            Canvas(Modifier.size(CodeDimens.TreeFolderIcon)) {
+                if (entry.isDir) drawFolderIcon(row.expanded, CodeColors.FolderYellow) else drawFileIcon(extColor(entry.file.name))
+            }
+            Spacer(Modifier.width(6.dp))
+            BasicText(
+                text = entry.file.name,
+                modifier = Modifier.weight(1f, fill = false),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                style = TextStyle(color = CodeColors.TextPrimary, fontSize = CodeDimens.TreeTextSize)
+            )
         }
-        Spacer(Modifier.width(6.dp))
-        Canvas(Modifier.size(CodeDimens.TreeFolderIcon)) {
-            if (entry.isDir) drawFolderIcon(row.expanded, CodeColors.FolderYellow) else drawFileIcon(extColor(entry.file.name))
+        // Titik tiga: membuka menu aksi untuk folder maupun berkas (tanpa tekan lama)
+        Box(
+            Modifier
+                .width(CodeDimens.TreeMenuButtonWidth)
+                .fillMaxHeight()
+                .pointerInput(entry.file.path) { detectTapGestures(onTap = { menu() }) },
+            contentAlignment = Alignment.Center
+        ) {
+            Canvas(Modifier.size(CodeDimens.TreeMenuDots)) { drawMoreDots(CodeColors.IconDim) }
         }
-        Spacer(Modifier.width(6.dp))
-        BasicText(
-            text = entry.file.name,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            style = TextStyle(color = CodeColors.TextPrimary, fontSize = CodeDimens.TreeTextSize)
-        )
     }
 }
 
