@@ -408,3 +408,8 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] uji perangkat: ketik di "Baru" lalu Simpan -> dialog, simpan sebagai x.txt -> judul tab jadi x.txt dan titik hilang; edit lagi + Simpan menimpa tanpa dialog; nama sudah ada -> TIMPA; nama kosong/"a/b" ditolak; matikan paksa app lalu buka lagi -> tab dan isi dirty kembali; putar layar -> tab tetap; tutup tab dirty -> SIMPAN menyimpan lalu menutup; izin storage ditolak -> toast gagal menyimpan
 - [ ] keputusan pemilik: BOM dan line ending (blueprint pertanyaan 13); sementara UTF-8 tanpa BOM, line ending apa adanya
 - [ ] berikutnya: F4 panel direktori (Buka, Muat ulang, pemilih folder untuk Simpan sebagai)
+
+## F4 Panel Direktori
+- Patch awal terpotong saat transfer (SyntaxError baris 953); diperbaiki dengan molina_f4_apply.py (verifikasi sha256 per payload).
+- Perubahan: DirectoryPanel/State/Dialogs/Icons baru; CodeScreen, FileStore, EditorHost, OverflowMenu, SaveAsDialog, CodeSession, CodeColors, CodeDimens diperbarui.
+- Build via GitHub Actions CI; belum diverifikasi di perangkat.
