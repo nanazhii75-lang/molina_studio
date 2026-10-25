@@ -1550,6 +1550,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         }
         dialog.window?.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
         dialog.show()
+        dialog.dockTo(android.view.Gravity.END or android.view.Gravity.CENTER_VERTICAL, 380, 8)
     }
 
     /** Ikon cari/URL di player: putar sekarang (replace) atau tambah ke antrean (append), tanpa keluar dari player. */
@@ -1778,9 +1779,27 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
     }
 
     data class MenuItem(@IdRes val idRes: Int, val handler: () -> Boolean)
+    /**
+     * Tempelkan dialog ke sisi layar dengan lebar tetap (dp), tanpa lebar minimum tema.
+     * Gravity.END = tepi kanan, Gravity.BOTTOM = bawah; margin kecil dari tepi.
+     */
+    private fun AlertDialog.dockTo(gravity: Int, widthDp: Int, marginDp: Int = 8) {
+        val w = window ?: return
+        val dm = resources.displayMetrics
+        val px = (widthDp * dm.density).toInt().coerceAtMost((dm.widthPixels * 0.92f).toInt())
+        val margin = (marginDp * dm.density).toInt()
+        w.setGravity(gravity)
+        w.setLayout(px, android.view.WindowManager.LayoutParams.WRAP_CONTENT)
+        val lp = w.attributes
+        lp.x = margin
+        lp.y = margin
+        w.attributes = lp
+    }
+
     private fun genericMenu(
             @LayoutRes layoutRes: Int, buttons: List<MenuItem>, hiddenButtons: Set<Int>,
-            restoreState: StateRestoreCallback, onViewReady: (View) -> Unit = {}) {
+            restoreState: StateRestoreCallback, docked: Boolean = false,
+            onViewReady: (View) -> Unit = {}) {
         lateinit var dialog: AlertDialog
 
         val builder = AlertDialog.Builder(this, R.style.AppTheme_PlayerDialog)
@@ -1813,6 +1832,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
             dialog = create()
         }
         dialog.show()
+        if (docked) dialog.dockTo(android.view.Gravity.BOTTOM or android.view.Gravity.END, 72, 12)
     }
 
     private fun openTopMenu() {
@@ -1901,7 +1921,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
             hiddenButtons.add(R.id.rowChapter)
         /******/
 
-        genericMenu(R.layout.dialog_top_menu, buttons, hiddenButtons, restoreState) { v ->
+        genericMenu(R.layout.dialog_top_menu, buttons, hiddenButtons, restoreState, docked = true) { v ->
             v.findViewById<android.widget.ImageButton>(R.id.audioOnlyBtn).apply {
                 val label = getString(if (forcedAudioOnly) R.string.audio_only_off else R.string.audio_only_on)
                 contentDescription = label

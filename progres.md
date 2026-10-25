@@ -250,3 +250,7 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] feat(player-ui): hasil pencarian di player (MPVActivity.showSearchResults) kini memakai SearchResultsDialog (View) bergaya sama dengan Home: nomor, kotak biru, Prev/Next, Cari/lompat nomor, Info, Exit, jam + penghitung; mode Play (putar + antrean bergulir) dan Add to queue (daftar tetap terbuka) tidak berubah; user mencari dan memutar dari player tanpa kembali ke Home
 - [ ] BELUM dikompilasi (menunggu CI) dan belum diuji di perangkat: Prev/Next di Home dan player, Add to queue (daftar tetap terbuka, sorotan pindah), keyboard + resize, lompat nomor
 - [ ] dialog_search_item.xml (tata letak lama) kini tidak terpakai; hapus setelah CI hijau
+
+## 2026-10-25 - Cinema UI v5 (dok menu setting + playlist)
+- [x] feat(player-ui): menu setting jadi strip ikon vertikal (ScrollView) didok di pojok kanan-bawah (lebar 72dp); playlist didok ke tepi kanan (lebar maks. 380dp, tengah vertikal); helper AlertDialog.dockTo di MPVActivity
+- [ ] BELUM dikompilasi (menunggu CI) dan belum diuji di perangkat (landscape dan portrait): posisi tidak tertutup bar navigasi/cutout, strip tidak terpotong, scroll saat banyak item, menu Advanced masih di tengah (belum didok)
