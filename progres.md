@@ -430,3 +430,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] perbaikan sebelumnya: changeRoot (6519b08) mengatasi bentrok JVM setRoot.
 - [ ] CI commit indikator: ISI SETELAH CEK TAB ACTIONS
 - [ ] uji perangkat: buka berkas (hijau), ubah 1 karakter (merah), undo (hijau), redo (merah)
+
+## 2026-10-25 - Menu baris direktori jadi dropdown [CODE-MENU-DROPDOWN]
+- [x] refactor(code): menu aksi berkas tidak lagi Dialog penuh; Popup menempel di titik tiga baris tree (TreeActionMenu) dengan posisi rata kanan, flip ke atas, dijepit layar
+- [x] "Aksi file" dari header memakai dropdown kanan atas; baris terpilih disorot saat menu terbuka
+- [x] feat(code): item "Salin nama"; Hapus dipisah hairline; baris 40dp
+- [x] Dampak: hanya :feature:code (DirectoryDialogs, DirectoryPanel, DirectoryState). Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi (CI). Risiko: import Popup/PopupPositionProvider, ActionItem.separatorBefore
+- [ ] uji perangkat: menu dekat ⋮ baris paling bawah (harus flip ke atas), baris panjang, Aksi file dari header, Back menutup menu
