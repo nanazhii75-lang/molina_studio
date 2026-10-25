@@ -438,3 +438,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: hanya :feature:code (DirectoryDialogs, DirectoryPanel, DirectoryState). Gradle, Manifest, JNI mpv tidak disentuh
 - [ ] BELUM dikompilasi (CI). Risiko: import Popup/PopupPositionProvider, ActionItem.separatorBefore
 - [ ] uji perangkat: menu dekat ⋮ baris paling bawah (harus flip ke atas), baris panjang, Aksi file dari header, Back menutup menu
+
+## 2026-10-25 - Nomor baris warna Claude, sorot baris, baris:kolom [CODE-LINENUM-CLAUDE]
+- [x] feat(code): LineNumber terakota redup, LINE_NUMBER_CURRENT terang, panel nomor baris (LINE_NUMBER_PANEL) senada
+- [x] feat(code): jumpToLineHighlighted(line, column) dan flashCurrentLine: nomor dan latar baris menyala 1,4 dtk (Pergi ke baris) atau 0,7 dtk (Cari next/prev)
+- [x] feat(code): Pergi ke baris menerima baris:kolom (pemisah : , . spasi); kolom dijepit; hint menampilkan baris kini
+- [x] Dampak: hanya :feature:code (CodeColors, EditorHost, FindBar). Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi (CI). Risiko (belum dicocokkan ke source Rosemoe 0.23.6): LINE_NUMBER_CURRENT, LINE_NUMBER_PANEL, LINE_NUMBER_PANEL_TEXT, cursor.leftLine, text.getColumnCount, setSelection(line, column)
+- [ ] uji perangkat: Pergi ke 1, tengah, terakhir; 57:12; 57:999 (dijepit); Cari next/prev berulang cepat; scroll cepat (panel nomor); ganti tab saat menyala
