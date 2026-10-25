@@ -26,6 +26,9 @@ sealed class MdBlock {
  * paragraf, kutipan, daftar (bertingkat, bernomor, tugas), blok kode berpagar, garis, tabel, dan
  * inline tebal/miring/coret/kode/tautan. HTML mentah dan gambar tidak dirender (gambar jadi teks).
  */
+/** Hasil urai: [blocks] sejajar dengan [startLines] (baris sumber, basis 0, tempat tiap blok mulai). */
+class MdDoc(val blocks: List<MdBlock>, val startLines: List<Int>)
+
 object Markdown {
     private val HEADING = Regex("^ {0,3}(#{1,6})[ \\t]+(.*?)(?:[ \\t]+#+)?[ \\t]*$")
     private val RULE = Regex("^ {0,3}([-*_])(?:[ \\t]*\\1){2,}[ \\t]*$")
@@ -34,11 +37,18 @@ object Markdown {
     private val TABLE_SEP = Regex("^[ \\t]*\\|?[ \\t]*:?-+:?[ \\t]*(\\|[ \\t]*:?-+:?[ \\t]*)*\\|?[ \\t]*$")
     private val FENCE = Regex("^ {0,3}(`{3,}|~{3,})[ \\t]*([^`]*)$")
 
-    fun parse(source: String): List<MdBlock> {
+    fun parse(source: String): List<MdBlock> = parseWithLines(source).blocks
+
+    fun parseWithLines(source: String): MdDoc {
         val lines = source.replace("\r\n", "\n").replace('\r', '\n').split('\n')
         val out = ArrayList<MdBlock>()
+        val starts = ArrayList<Int>()
         var i = 0
+        var blockStart = 0
         while (i < lines.size) {
+            // tiap putaran menambah paling banyak satu blok: catat awal blok putaran sebelumnya
+            while (starts.size < out.size) starts.add(blockStart)
+            blockStart = i
             val line = lines[i]
             if (line.isBlank()) { i++; continue }
 
@@ -124,7 +134,8 @@ object Markdown {
             val text = buf.toString().trimEnd().removeSuffix("\\")
             out.add(MdBlock.Paragraph(Inline.parse(text.trimEnd())))
         }
-        return out
+        while (starts.size < out.size) starts.add(blockStart)
+        return MdDoc(out, starts)
     }
 
     private fun startsBlock(lines: List<String>, i: Int): Boolean {

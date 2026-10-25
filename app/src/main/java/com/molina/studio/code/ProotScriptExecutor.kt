@@ -61,7 +61,6 @@ internal object ScriptCommand {
  */
 internal class ProotScriptExecutor(context: Context) : ScriptExecutor {
     private val app = context.applicationContext
-    private val busy = AtomicBoolean(false)
 
     override fun start(request: RunRequest, listener: RunListener): RunHandle {
         val handle = Handle()
@@ -75,11 +74,13 @@ internal class ProotScriptExecutor(context: Context) : ScriptExecutor {
             } catch (e: Exception) {
                 listener.onFinished(failed("Gagal menjalankan: ${e.javaClass.simpleName}"))
             } finally {
+                activeHandle = null
                 busy.set(false)
             }
         }, "molina-script")
         worker.isDaemon = true
         handle.thread = worker
+        activeHandle = handle
         worker.start()
         return handle
     }
@@ -277,7 +278,19 @@ internal class ProotScriptExecutor(context: Context) : ScriptExecutor {
         return t
     }
 
-    private companion object {
-        const val MAX_OUTPUT_CHARS = 1_000_000L
+    companion object {
+        private const val MAX_OUTPUT_CHARS = 1_000_000L
+        private val busy = AtomicBoolean(false)
+        @Volatile private var activeHandle: Handle? = null
+
+        /** True bila ada skrip Code yang sedang berjalan (untuk Penyegaran sistem). */
+        fun isRunning(): Boolean = busy.get()
+
+        /** Batalkan skrip yang berjalan; mengembalikan 1 bila ada yang dibatalkan. */
+        fun cancelActive(): Int {
+            val h = activeHandle ?: return 0
+            h.cancel()
+            return 1
+        }
     }
 }

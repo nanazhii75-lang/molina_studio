@@ -602,6 +602,7 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
                     preview.open = false
                 } else {
                     preview.invalidate()
+                    preview.anchorLine = tab.editor?.cursor?.leftLine ?: -1
                     preview.mode = PaneMode.Preview
                     preview.open = true
                 }

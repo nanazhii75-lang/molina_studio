@@ -223,7 +223,7 @@ internal fun CheckMark(on: Boolean) {
     }
 }
 
-private fun shareText(ctx: Context, text: String) {
+internal fun shareText(ctx: Context, text: String) {
     val send = Intent(Intent.ACTION_SEND).apply {
         type = "text/plain"
         putExtra(Intent.EXTRA_TEXT, text)

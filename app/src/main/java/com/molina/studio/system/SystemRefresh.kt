@@ -9,6 +9,7 @@ import com.molina.core.common.RefreshReport
 import com.molina.core.common.Refreshable
 import com.molina.core.common.Refreshers
 import com.molina.studio.cinema.MemoryRefresh
+import com.molina.studio.code.ProotScriptExecutor
 import com.molina.studio.stream.StreamCache
 import com.molina.studio.stream.YtdlpRunner
 import com.molina.studio.terminal.TerminalService
@@ -24,6 +25,7 @@ import java.util.concurrent.TimeUnit
 internal object SystemRefresh {
     fun install(app: Context) {
         Refreshers.register(MpvRefreshable(app.applicationContext))
+        Refreshers.register(CodeRefreshable())
         Refreshers.register(TerminalRefreshable(app.applicationContext))
     }
 
@@ -86,5 +88,19 @@ internal class TerminalRefreshable(private val app: Context) : Refreshable {
             id, stopped = sessions, killed = r.total, remaining = r.remaining,
             note = if (r.remaining > 0) "${r.remaining} proses tidak mau mati" else null
         )
+    }
+}
+
+/** Skrip .sh/.py yang dijalankan dari editor Code (Debian PRoot). Aplikasi tetap hidup. */
+internal class CodeRefreshable : Refreshable {
+    override val id = "code"
+    override val label = "Skrip Code"
+
+    override fun activeCount(): Int = if (ProotScriptExecutor.isRunning()) 1 else 0
+
+    override fun refresh(): RefreshReport {
+        val n = ProotScriptExecutor.cancelActive()
+        AppLog.log("system", LogLevel.Info, "refresh", "code: dibatalkan=$n")
+        return RefreshReport(id, stopped = n)
     }
 }

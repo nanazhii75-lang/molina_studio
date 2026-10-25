@@ -44,7 +44,7 @@ internal sealed class MdUi {
 internal sealed class PreviewContent {
     object Empty : PreviewContent()
     class Message(val text: String) : PreviewContent()
-    class Markdown(val blocks: List<MdUi>) : PreviewContent()
+    class Markdown(val blocks: List<MdUi>, val startLines: List<Int>) : PreviewContent()
     class Json(val text: AnnotatedString, val lineCount: Int) : PreviewContent()
     class JsonError(val message: String, val line: Int, val column: Int, val snippet: String) : PreviewContent()
 }
@@ -57,6 +57,16 @@ internal class PreviewController {
         private set
     var label by mutableStateOf("")
         private set
+
+    /** Baris kursor editor saat Tinjauan dibuka (basis 0); dipakai sekali untuk menggulir ke bagian yang sama. -1 = tidak ada. */
+    var anchorLine = -1
+
+    /** Ambil lalu hapus [anchorLine], supaya pembaruan langsung berikutnya tidak menggulir lagi. */
+    fun takeAnchor(): Int {
+        val a = anchorLine
+        anchorLine = -1
+        return a
+    }
 
     /** Id tab yang isinya sedang tampil; -1 bila belum ada. Bukan state (tidak memicu recomposition). */
     var shownTabId = -1
@@ -111,12 +121,17 @@ internal fun EditorTab.firstLineOrNull(): String? {
 /** Pembangun isi pratinjau. Tidak menyentuh state Compose, aman di thread latar. */
 internal object PreviewRender {
     fun build(kind: PreviewKind, text: String): PreviewContent = when (kind) {
-        PreviewKind.MARKDOWN -> PreviewContent.Markdown(markdown(text))
+        PreviewKind.MARKDOWN -> markdown(text)
         PreviewKind.JSON -> json(text)
         else -> PreviewContent.Message("Tidak ada pratinjau untuk tipe berkas ini.")
     }
 
-    private fun markdown(text: String): List<MdUi> = Markdown.parse(text).map { b ->
+    private fun markdown(text: String): PreviewContent {
+        val doc = Markdown.parseWithLines(text)
+        return PreviewContent.Markdown(doc.blocks.map { b -> mdUi(b) }, doc.startLines)
+    }
+
+    private fun mdUi(b: MdBlock): MdUi =
         when (b) {
             is MdBlock.Heading -> MdUi.Heading(b.level, styled(b.spans))
             is MdBlock.Paragraph -> MdUi.Para(styled(b.spans))
@@ -126,7 +141,6 @@ internal object PreviewRender {
             MdBlock.Rule -> MdUi.Rule
             is MdBlock.Table -> MdUi.Table(b.header.map { styled(it) }, b.rows.map { r -> r.map { styled(it) } })
         }
-    }
 
     private fun styled(spans: List<MdSpan>): AnnotatedString = buildAnnotatedString {
         for (s in spans) {

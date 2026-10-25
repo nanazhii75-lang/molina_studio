@@ -38,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.UriHandler
 import androidx.compose.ui.text.AnnotatedString
@@ -78,6 +79,7 @@ internal fun PreviewPane(session: CodeSession, onJump: (Int, Int) -> Unit, modif
 internal fun PreviewPage(session: CodeSession, onJump: (Int, Int) -> Unit, modifier: Modifier = Modifier) {
     val preview = session.preview
     val tab = session.active
+    val ctx = LocalContext.current
     BackHandler { preview.open = false }
     Column(
         modifier
@@ -115,9 +117,13 @@ internal fun PreviewPage(session: CodeSession, onJump: (Int, Int) -> Unit, modif
                     style = TextStyle(color = CodeColors.SecondaryChampagne, fontSize = CodeDimens.PreviewSubtitleSize)
                 )
             }
+            PaneAction("BAGIKAN", CodeColors.Gold) {
+                val text = tab?.currentTextOrNull(200_000)
+                if (text == null) session.toast("Teks terlalu besar untuk dibagikan") else shareText(ctx, text)
+            }
         }
         Box(Modifier.fillMaxWidth().height(CodeDimens.Hairline).background(CodeColors.Hairline))
-        Box(Modifier.weight(1f).fillMaxWidth()) { PreviewBody(preview.content, onJump) }
+        Box(Modifier.weight(1f).fillMaxWidth()) { PreviewBody(preview.content, onJump, preview::takeAnchor) }
     }
 }
 
@@ -202,20 +208,28 @@ private fun CenterMessage(text: String) {
 // ------------------------------------------------------------------ Pratinjau
 
 @Composable
-private fun PreviewBody(content: PreviewContent, onJump: (Int, Int) -> Unit) {
+private fun PreviewBody(content: PreviewContent, onJump: (Int, Int) -> Unit, anchor: () -> Int = { -1 }) {
     when (content) {
         PreviewContent.Empty -> Unit
         is PreviewContent.Message -> CenterMessage(content.text)
-        is PreviewContent.Markdown -> MarkdownBody(content.blocks)
+        is PreviewContent.Markdown -> MarkdownBody(content.blocks, content.startLines, anchor)
         is PreviewContent.Json -> MonoBody(content.text)
         is PreviewContent.JsonError -> JsonErrorBody(content, onJump)
     }
 }
 
 @Composable
-private fun MarkdownBody(blocks: List<MdUi>) {
+private fun MarkdownBody(blocks: List<MdUi>, startLines: List<Int>, anchor: () -> Int) {
     val uri = LocalUriHandler.current
     val state = rememberLazyListState()
+    // Sekali per pembukaan: gulir ke blok tempat kursor editor berada.
+    LaunchedEffect(blocks) {
+        if (blocks.isEmpty()) return@LaunchedEffect
+        val line = anchor()
+        if (line < 0) return@LaunchedEffect
+        val idx = startLines.indexOfLast { it <= line }
+        if (idx > 0) state.scrollToItem(idx)
+    }
     if (blocks.isEmpty()) {
         CenterMessage("Dokumen kosong.")
         return

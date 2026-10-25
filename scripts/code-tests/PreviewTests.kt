@@ -237,6 +237,22 @@ Penutup.
         check("md inline brackets speed", (System.nanoTime() - t3) / 1_000_000 < 3000)
     }
 
+
+    run { // posisi baris awal blok
+        val doc = Markdown.parseWithLines("# A\n\npar satu\nlanjut\n\n- x\n- y\n\n```\nkode\n```\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\nakhir")
+        eq("mdl size", doc.startLines.size, doc.blocks.size)
+        eq("mdl starts", doc.startLines, listOf(0, 2, 5, 6, 8, 12, 16))
+        check("mdl sorted", doc.startLines.zipWithNext().all { it.first < it.second })
+        eq("mdl empty", Markdown.parseWithLines("").startLines.size, 0)
+        val rnd2 = Random(3)
+        repeat(2000) {
+            val sb = StringBuilder()
+            repeat(rnd2.nextInt(0, 50)) { sb.append(listOf("#", "- ", "\n", "\n\n", "a", "```\n", "> ", "| a |\n|-|\n", " ")[rnd2.nextInt(9)]) }
+            val d = Markdown.parseWithLines(sb.toString())
+            check("mdl fuzz aligned", d.startLines.size == d.blocks.size && d.startLines.zipWithNext().all { it.first <= it.second })
+        }
+    }
+
     // --- JSON
     run {
         val ok = JsonPreview.render("""{"a":1,"b":[true,null,"x\n"],"c":{},"d":[],"e":-1.5e+3}""")
