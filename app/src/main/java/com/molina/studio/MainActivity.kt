@@ -104,7 +104,11 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
     }
 
+    /** Sesi editor Code; dipegang agar draf bisa ditulis sinkron saat Activity berhenti (F3e). */
+    private var codeSessionRef: com.molina.code.ui.CodeSession? = null
+
     override fun onStop() {
+        codeSessionRef?.flushDrafts()
         AppVisibility.setForeground(false)
         super.onStop()
     }
@@ -128,7 +132,10 @@ class MainActivity : ComponentActivity() {
             MaterialTheme(colorScheme = MolinaColors) {
                 var selected by rememberSaveable { mutableIntStateOf(0) }
                 val codeSession = remember {
-                    com.molina.code.ui.CodeSession(AppPaths.get(this@MainActivity).workspace.path)
+                    com.molina.code.ui.CodeSession(
+                        AppPaths.get(this@MainActivity).workspace.path,
+                        java.io.File(filesDir, "code-drafts")
+                    ).also { codeSessionRef = it }
                 }
                 DisposableEffect(codeSession) { onDispose { codeSession.releaseAll() } }
                 val keyboardVisible = rememberKeyboardVisible()

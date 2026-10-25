@@ -48,10 +48,20 @@ internal fun EditorTab.editorOrCreate(context: Context): CodeEditor {
     ed.typefaceText = Typeface.MONOSPACE
     ed.setTextSize(CodeDimens.EditorTextSize.value)
     ed.setWordwrap(wordWrap) // blueprint v2 bagian 12: default AKTIF; diubah dari menu titik tiga
-    ed.setEditable(!readOnly)
+    ed.setEditable(!readOnly && !loading)
     applyMolinaColors(ed.colorScheme)
-    ed.subscribeEvent(ContentChangeEvent::class.java) { _, _ ->
-        dirty = true
+    // Isi hasil pemulihan draf dipasang sebelum langganan event agar tidak dihitung sebagai edit.
+    pendingText?.let {
+        ed.setText(it)
+        pendingText = null
+    }
+    ed.subscribeEvent(ContentChangeEvent::class.java) { ev, _ ->
+        // setText (pemulihan/muat) bukan edit pengguna: tidak boleh menandai dirty
+        if (ev.action != ContentChangeEvent.ACTION_SET_NEW_TEXT) {
+            dirty = true
+            edits++
+            onEdited?.invoke()
+        }
         // post: riwayat undo baru final setelah event selesai
         ed.post { revision++ }
     }

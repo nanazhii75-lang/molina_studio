@@ -23,6 +23,7 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
@@ -52,6 +53,7 @@ import io.github.rosemoe.sora.widget.SelectionMovement
 fun CodeScreen(session: CodeSession, modifier: Modifier = Modifier) {
     var pendingClose by remember { mutableStateOf<EditorTab?>(null) }
     val ctx = LocalContext.current
+    SideEffect { session.toast = { msg -> Toast.makeText(ctx, msg, Toast.LENGTH_SHORT).show() } }
 
     Column(modifier.fillMaxWidth().background(CodeColors.EditorBg)) {
         PathHeader(session)
@@ -65,6 +67,7 @@ fun CodeScreen(session: CodeSession, modifier: Modifier = Modifier) {
         session.active?.let { tab ->
             EditorToolbar(
                 tab = tab,
+                onSave = { session.save(tab) },
                 onPaste = { tab.editor?.pasteText() },
                 onUndo = { tab.editor?.undo() },
                 onRedo = { tab.editor?.redo() },
@@ -89,9 +92,15 @@ fun CodeScreen(session: CodeSession, modifier: Modifier = Modifier) {
         session.active?.let { GotoLineDialog(it) { session.gotoOpen = false } }
     }
 
+    session.saveAs?.let { SaveAsDialog(session, it) }
+
     pendingClose?.let { tab ->
         ConfirmCloseDialog(
             title = tab.title,
+            onSave = {
+                pendingClose = null
+                session.save(tab, after = { session.close(tab.id) })
+            },
             onDiscard = {
                 session.close(tab.id)
                 pendingClose = null
@@ -253,9 +262,14 @@ private fun TabItem(
     }
 }
 
-/** Konfirmasi tutup tab dirty. Simpan menyusul di F3; sementara hanya Buang atau Batal. */
+/** Konfirmasi tutup tab dirty: Batal, Buang, atau Simpan lalu tutup. */
 @Composable
-private fun ConfirmCloseDialog(title: String, onDiscard: () -> Unit, onCancel: () -> Unit) {
+private fun ConfirmCloseDialog(
+    title: String,
+    onSave: () -> Unit,
+    onDiscard: () -> Unit,
+    onCancel: () -> Unit
+) {
     val shape = RoundedCornerShape(CodeDimens.DialogCorner)
     Dialog(onDismissRequest = onCancel) {
         Column(
@@ -271,7 +285,7 @@ private fun ConfirmCloseDialog(title: String, onDiscard: () -> Unit, onCancel: (
             )
             Spacer(Modifier.height(12.dp))
             BasicText(
-                text = "\"$title\" belum disimpan. Perubahan akan hilang.",
+                text = "\"$title\" belum disimpan. Simpan sebelum menutup?",
                 style = TextStyle(color = CodeColors.TextPrimary, fontSize = 14.sp)
             )
             Spacer(Modifier.height(16.dp))
@@ -285,6 +299,11 @@ private fun ConfirmCloseDialog(title: String, onDiscard: () -> Unit, onCancel: (
                     text = "BUANG",
                     modifier = Modifier.clickable(onClick = onDiscard).padding(12.dp),
                     style = TextStyle(color = CodeColors.Danger, fontSize = 14.sp)
+                )
+                BasicText(
+                    text = "SIMPAN",
+                    modifier = Modifier.clickable(onClick = onSave).padding(12.dp),
+                    style = TextStyle(color = CodeColors.Gold, fontSize = 14.sp)
                 )
             }
         }

@@ -35,11 +35,12 @@ import androidx.compose.ui.unit.dp
 /**
  * Toolbar editor (F3, Opsi A): flat penuh lebar di Surface2 + rail emas. Grup:
  * [Simpan] | [Tempel Undo Redo] | [Cari Kiri Kanan] | [PilihSemuaSalin Play] | [Tutup].
- * Simpan dan Play sudah tampil tetapi aksinya menyusul (F3e, fase Play).
+ * Simpan aktif sejak F3e (aktif saat ada perubahan). Play tampil tetapi aksinya menyusul (fase Play).
  */
 @Composable
 internal fun EditorToolbar(
     tab: EditorTab,
+    onSave: () -> Unit,
     onPaste: () -> Unit,
     onUndo: () -> Unit,
     onRedo: () -> Unit,
@@ -82,11 +83,11 @@ internal fun EditorToolbar(
             Modifier.fillMaxWidth().height(CodeDimens.ToolbarHeight),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Simpan: aksi menyusul di F3e; titik emas menandai ada perubahan
+            // Simpan: aktif saat ada perubahan; titik emas menandai dirty
             ToolbarButton(
                 ToolbarIcon.Save,
                 if (tab.dirty) CodeColors.Gold else CodeColors.IconDim,
-                enabled = false, dot = tab.dirty, onClick = {}
+                enabled = tab.dirty && !tab.loading, dot = tab.dirty, onClick = onSave
             )
             GroupDivider()
             ToolbarButton(

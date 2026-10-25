@@ -68,6 +68,10 @@ internal fun OverflowMenu(session: CodeSession, onDismiss: () -> Unit) {
     val groups = listOf(
         listOf(
             MenuEntry("Baru", enabled = true) { session.newTab(); onDismiss() },
+            MenuEntry("Simpan sebagai", enabled = tab != null && !tab.loading) {
+                session.saveAsActive()
+                onDismiss()
+            },
             MenuEntry("Buka"),
             MenuEntry("Muat ulang"),
             MenuEntry("Aksi file")
@@ -103,7 +107,7 @@ internal fun OverflowMenu(session: CodeSession, onDismiss: () -> Unit) {
             MenuEntry("Hanya baca", enabled = tab != null, checked = tab?.readOnly ?: false) {
                 tab?.let {
                     it.readOnly = !it.readOnly
-                    it.editor?.setEditable(!it.readOnly)
+                    it.editor?.setEditable(!it.readOnly && !it.loading)
                 }
             }
         ),
