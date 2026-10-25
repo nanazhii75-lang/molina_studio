@@ -301,3 +301,14 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] telemetry_gate lulus; script patch idempotent (dijalankan 2x tanpa perubahan)
 - [ ] BELUM dikompilasi (menunggu CI hijau)
 - [ ] catatan merek: tiga emas berbeda (merek #E6B450, editor #FFB300, gold_soft #E9B949); putuskan penyatuan di F5
+
+## 2026-10-25 - Code Editor F2: layout editor [CODE-F2-LAYOUT]
+- [x] F1 hijau di CI (#103)
+- [x] feat(code): CodeSession/EditorTab (editor per tab), EditorHost (Rosemoe via AndroidView), CodeScreen (header path, tab bar, dialog Buang/Batal untuk tab dirty); tab Code di MainActivity kini membuka layar ini
+- [x] PIN SADAR: io.github.Rosemoe.sora-editor:editor:0.24.6 (Maven Central, Jun 2026); 0.24.7 dilewati karena baru terbit. Lisensi LGPL-2.1-or-later, dicatat di THIRD_PARTY_NOTICES.md. Belum ada dependency verification untuk Maven Central
+- [x] Dampak: Gradle (feature/code: foundation + sora-editor), MainActivity.kt. Manifest dan JNI mpv tidak disentuh. telemetry_gate lulus
+- [x] Tambahan di luar blueprint: tombol + tab baru; nilai HeaderHeight/TabBarHeight 40dp, TabMin/Max 96/180dp
+- [ ] BELUM dikompilasi (menunggu CI). Risiko: nama API Rosemoe (release, setWordwrap, subscribeEvent, konstanta EditorColorScheme); AAR dibangun compileSdk 36/AGP 9.1 vs proyek 35/8.7.3; kotlin-stdlib 2.3.10 runtime vs compiler 2.0.21
+- [ ] uji perangkat: tab Code terbuka; ketik = titik emas; + tab baru, pindah tab menjaga isi dan undo; X pada tab dirty = dialog; tutup tab terakhir = tab kosong baru; pindah ke tab mpv/Terminal lalu kembali = tab tetap; keyboard menyembunyikan nav bawah; word wrap aktif; gutter dan kursor emas
+- [ ] batas diketahui: rotasi layar menghapus semua tab (Activity dibuat ulang, autosave draf menyusul di F5); titik tiga di header baru visual (F3b); tab bar belum auto-scroll ke tab aktif; dirty tetap true setelah undo ke isi awal; ripple masih bawaan (gold ripple di F3)
+- [ ] berikutnya: F3 toolbar (Simpan/Tempel/Undo/Redo/Cari/kursor/Tab/Play/Tutup, rail emas, Opsi A)
