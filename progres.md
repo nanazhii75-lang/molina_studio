@@ -492,3 +492,10 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: resource :feature:mpv (styles, colors) dan :app (settings). Gradle, Manifest, JNI mpv tidak disentuh. Win7OpenDialog (Cinema) tidak diubah
 - [ ] BELUM dikompilasi (CI). Uji: Settings (beranda, Sistem, Log, dialog Segarkan), layar Open external subtitle, pemilih file lama, dialog Buat Folder
 - [ ] Log menunjukkan playlist-count=0 untuk .../playlist.m3u (kemungkinan gagal dibuka): investigasi terpisah
+
+## 2026-10-25 - Desain ulang layar Log profesional [LOG-PRO-V2]
+- [x] feat(log): chip sumber (Semua/Cinema/Terminal/Sistem/Logcat/Crash) + jumlah per sumber; dropdown level minimum; menu aksi (Salin, Bagikan, Kirim pesan uji, Hapus dengan konfirmasi)
+- [x] feat(log): baris berstruktur (jam, badge level, sumber/tag berwarna, pesan indentasi menggantung); log Cinema beruntun (>=4) dikelompokkan dan bisa dilipat dengan ringkasan galat/peringatan; tombol "Ke terbaru"; keadaan kosong + Atur ulang filter
+- [x] Dampak: hanya app/.../log/LogScreen.kt (LogBus/LogIpc tidak diubah). Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi (CI). Risiko: DropdownMenuItem/AlertDialog Material3 BOM 2024.12.01, LevelFilter.entries (Kotlin 1.9+)
+- [ ] uji perangkat: ganti chip, level Galat saja, lipat/buka grup Cinema, tombol Ke terbaru saat scroll naik, Hapus + Batal, Salin/Bagikan hanya yang terfilter
