@@ -419,3 +419,8 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 ## Housekeeping
 - [x] .gitignore: __pycache__/ dan molina_*.py
 - [ ] Hapus file lama yang masih ter-track di root: molina_patch_*.sh, molina_terminal_v2.sh, molina_terminal_v3.sh, molina_ui_v5_dock.py
+
+## 2026-10-25 - Temuan CI [CI-SKIP-PUSH]
+- [x] F3e (c253d45) dan F4 (dc7667d) tidak memicu CI: dua commit (feat lalu docs [skip ci]) dikirim dalam satu push, sehingga seluruh push dilewati. Run terakhir tetap #112 (F3c).
+- [x] Aturan: push commit kode terpisah dari commit docs [skip ci].
+- [ ] jalankan manual workflow Build Molina Studio (workflow_dispatch) di main; catat hasil untuk F3e dan F4.
