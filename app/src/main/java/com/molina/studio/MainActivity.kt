@@ -127,6 +127,10 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme(colorScheme = MolinaColors) {
                 var selected by rememberSaveable { mutableIntStateOf(0) }
+                val codeSession = remember {
+                    com.molina.code.ui.CodeSession(AppPaths.get(this@MainActivity).workspace.path)
+                }
+                DisposableEffect(codeSession) { onDispose { codeSession.releaseAll() } }
                 val keyboardVisible = rememberKeyboardVisible()
                 Scaffold(
                     containerColor = MaterialTheme.colorScheme.background,
@@ -178,6 +182,10 @@ class MainActivity : ComponentActivity() {
                         }
                         Tab.Settings -> {
                             com.molina.studio.settings.SettingsScreen(Modifier.fillMaxSize().padding(pad))
+                            return@Scaffold
+                        }
+                        Tab.Code -> {
+                            com.molina.code.ui.CodeScreen(codeSession, Modifier.fillMaxSize().padding(pad))
                             return@Scaffold
                         }
                         else -> {}

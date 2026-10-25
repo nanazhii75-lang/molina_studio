@@ -10,6 +10,17 @@ object CodeDimens {
     val CaretWidth = 2.dp
     val ActiveMatchBorder = 1.5.dp
 
+    // Header path dan tab bar (nilai tidak ada di blueprint; ditetapkan di F2, ubah bila perlu)
+    val HeaderHeight = 40.dp
+    val PathTextSize = 12.sp
+    val TabBarHeight = 40.dp
+    val TabMinWidth = 96.dp
+    val TabMaxWidth = 180.dp
+    val TabCloseWidth = 32.dp
+    val TabTopLine = 2.dp
+    val TabTitleSize = 13.sp
+    val DirtyDot = 6.dp
+
     // Toolbar: 10 ikon rata lebar (36dp), area sentuh setinggi 48dp
     val ToolbarHeight = 48.dp
     val ToolbarItemWidth = 36.dp

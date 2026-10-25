@@ -8,3 +8,5 @@
 
 - `app/src/main/jniLibs/arm64-v8a/libproot*.so`: PRoot prebuilt dari https://github.com/green-green-avk/build-proot-android (commit 01f83b88, paket proot-android-aarch64.tar.gz). PRoot berlisensi GPL-2.0-or-later.
 - Rootfs Debian trixie-slim arm64 diunduh saat runtime dari https://github.com/debuerreotype/docker-debian-artifacts (commit 9c4818e).
+
+- `feature/code` memakai sora-editor (Rosemoe) `io.github.Rosemoe.sora-editor:editor:0.24.6` dari Maven Central, tanpa modifikasi. Lisensi LGPL-2.1-or-later (kompatibel dengan GPL-3.0-or-later proyek ini). Sumber: https://github.com/Rosemoe/sora-editor. Versi dipilih sadar: rilis Jun 2026 (lebih dari 2 pekan), versi 0.24.7 sengaja dilewati karena baru terbit.

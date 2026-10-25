@@ -21,4 +21,6 @@ android {
 dependencies {
     implementation(platform("androidx.compose:compose-bom:2024.12.01"))
     implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.foundation:foundation")
+    implementation("io.github.Rosemoe.sora-editor:editor:0.24.6")
 }
