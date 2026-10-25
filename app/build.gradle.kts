@@ -53,6 +53,7 @@ dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs_nio:2.1.5")
     implementation(project(":terminal-view"))
     implementation(project(":feature:mpv"))
+    implementation(project(":feature:code"))
     implementation(project(":engine:newpipe"))
     implementation(project(":core:common"))
     implementation(project(":core:storage"))
