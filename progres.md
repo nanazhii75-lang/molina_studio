@@ -323,3 +323,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Nama API F2 dicocokkan dengan source 0.24.6: release, setWordwrap, subscribeEvent, ContentChangeEvent, 9 konstanta EditorColorScheme semuanya ada
 - [x] Dampak: hanya Gradle dependency dan notices. Manifest dan JNI mpv tidak disentuh
 - [ ] menunggu CI. Risiko tersisa: AAR dibangun compileSdk 36/AGP 9.1 vs proyek 35/8.7.3; kotlin-stdlib 2.3.10 runtime vs compiler 2.0.21; keberadaan artefak di Maven Central belum terverifikasi langsung
+
+## 2026-10-25 - Code Editor F2: fix compileSdk Rosemoe [CODE-F2-FIX-COMPILESDK]
+- [x] Koordinat 0.24.6 sudah benar (io.github.rosemoe:editor), dependency ter-resolve; error baru checkDebugAarMetadata: mensyaratkan compileSdk 36, proyek 35 / AGP 8.7.3
+- [x] Analisis: semua Rosemoe >= 0.23.7 dibangun compileSdk 36; 0.24.x juga Kotlin 2.2+ (proyek 2.0.21). Menaikkan AGP/Kotlin/compileSdk merembet ke semua modul dan Gradle wrapper
+- [x] PIN SADAR (menggantikan 0.24.6): io.github.Rosemoe.sora-editor:editor:0.23.6 (grup lama, compileSdk 35, Kotlin 2.1.21 terbaca compiler 2.0.21). API F2 dicocokkan ke source 0.23.6: semua ada
+- [x] Dampak: hanya feature/code/build.gradle.kts dan THIRD_PARTY_NOTICES.md. Manifest dan JNI mpv tidak disentuh
+- [ ] menunggu CI. Risiko: AAR 0.23.6 dibangun AGP 8.8.0 vs proyek 8.7.3; ketersediaan 0.23.6 di Maven Central belum terverifikasi langsung
+- [ ] jalur naik versi (AGP + Kotlin 2.2+ + compileSdk 36 untuk semua modul) ditunda sebagai tugas tersendiri
+- [x] Pemilik menyetujui warna nav bawah (Code #FFB300, Settings #CDBFA3) dikerjakan bersamaan F3 setelah CI hijau
