@@ -423,3 +423,12 @@ hr { border:0; border-top:1px solid #3A2F22; }
 - Ikon: kotak putus-putus (pilihan) + kotak penuh (salinan). Warna icon_default; icon_disabled bila dokumen kosong.
 - Perilaku: dokumen tidak kosong -> pilih semua, salin ke clipboard, tampilkan Toast "Semua teks disalin". Dokumen kosong -> nonaktif, clipboard tidak ditimpa.
 - Efek samping: seleksi tetap aktif setelah menyalin (mengikuti perilaku pilih-semua editor).
+
+## 27. F3b: Menu Titik Tiga, Judul Tab, Auto-scroll [BLUEPRINT-F3B-MENU]
+
+- Judul tab baru: "Baru" (menggantikan "Tidak berjudul" di bagian 3 dan 7; terlalu panjang menurut pemilik).
+- Penomoran: nomor terkecil yang belum dipakai tab lain (Baru, Baru 2, ...). Menutup tab terakhir selalu kembali ke "Baru", tidak menaikkan angka.
+- Tab bar auto-scroll ke tab aktif (termasuk tab yang baru dibuka).
+- Menu titik tiga mengikuti bagian 14 (5 grup, baris 44dp, maks 72% layar). Aktif: Baru, Bagikan, Pembungkus kata, Hanya baca, Statistik. Redup sampai fasenya jadi: Buka, Muat ulang, Aksi file (F4), Cari, Pergi ke baris (F3c), Kirim ke Library, Ekspor, Konversi, Syntax, Gaya Visual, Lakukan.
+- Enkode tampil sebagai baris read-only "Enkode: UTF-8 (terkunci)" (bagian 20.2).
+- Pembungkus kata dan Hanya baca disimpan per tab (EditorTab.wordWrap, EditorTab.readOnly).

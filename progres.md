@@ -369,3 +369,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: hanya :feature:code (ToolbarIcons, EditorToolbar, CodeScreen, CodeSession). Gradle, Manifest, JNI mpv tidak disentuh
 - [ ] BELUM dikompilasi (menunggu CI). Risiko: PathEffect.dashPathEffect pada Stroke di dalam scale(); selectAll/copyText Rosemoe (sudah dicocokkan ke source 0.23.6)
 - [ ] uji perangkat: tombol redup saat dokumen kosong; ketik lalu tekan = Toast + seluruh teks terseleksi; Tempel di tab lain menempel isi penuh; ikon putus-putus terlihat jelas pada 22dp
+
+## 2026-10-25 - F3b menu titik tiga + judul tab + auto-scroll [CODE-F3B-MENU-TAB]
+- [x] fix(code): judul tab "Tidak berjudul" jadi "Baru"; angka tidak lagi naik saat tab terakhir ditutup (nomor terkecil yang bebas, bukan penghitung kumulatif)
+- [x] feat(code): tab bar auto-scroll ke tab aktif (ScrollState + posisi tab via onGloballyPositioned)
+- [x] feat(code): OverflowMenu.kt, menu titik tiga 5 grup; aktif: Baru, Bagikan, Pembungkus kata, Hanya baca, Statistik; sisanya redup menunggu fase
+- [x] docs: blueprint-code-editor.md bagian 27
+- [x] Dampak: hanya :feature:code (CodeSession, EditorHost, CodeScreen, OverflowMenu baru). Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi (menunggu CI). Risiko: CodeEditor.setEditable(Boolean) dan Content.lineCount pada Rosemoe 0.23.6; import onSizeChanged/positionInParent; Popup di dalam Box anchor
+- [ ] uji perangkat: tutup tab terakhir = kembali "Baru" (bukan Baru 2); buka 8+ tab lalu tab aktif tergulir ke layar; titik tiga membuka menu di bawah header; Pembungkus kata dan Hanya baca bekerja per tab; Bagikan membuka chooser; item redup tidak bisa diketuk
