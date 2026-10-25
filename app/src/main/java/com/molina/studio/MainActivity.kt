@@ -42,8 +42,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 
 private enum class Tab(val label: String, val glyph: String, val color: Color) {
-    Mpv("mpv", "\u25B6", Color(0xFFB388FF)),          // ungu: bioskop
-    Terminal("Terminal", ">_", Color(0xFF69F0AE)),      // hijau: terminal
+    Mpv("mpv", "\u25B6", Color(0xFFB9A7E8)),          // lavender redup: bioskop
+    Terminal("Terminal", ">_", Color(0xFF8FCBA6)),      // hijau sage: terminal
     Code("Code", "< >", Color(0xFFFFB300)),             // emas: editor
     Settings("Settings", "\u2699", Color(0xFFCDBFA3))  // champagne: pengaturan
 }
@@ -138,8 +138,11 @@ class MainActivity : ComponentActivity() {
                         if (!keyboardVisible) {
                             Column {
                                 Box(
-                                    Modifier.fillMaxWidth().height(2.dp).background(
-                                        Brush.horizontalGradient(Tab.entries.map { it.color })
+                                    Modifier.fillMaxWidth().height(1.dp).background(
+                                        Brush.horizontalGradient(
+                                            // rail emas, selaras dengan rail toolbar Code
+                                            listOf(Color.Transparent, Color(0xFFFFB300).copy(alpha = 0.40f), Color.Transparent)
+                                        )
                                     )
                                 )
                                 NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
