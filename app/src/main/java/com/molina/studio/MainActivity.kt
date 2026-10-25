@@ -145,7 +145,7 @@ class MainActivity : ComponentActivity() {
                 Scaffold(
                     containerColor = MaterialTheme.colorScheme.background,
                     bottomBar = {
-                        if (!keyboardVisible) {
+                        if (!keyboardVisible && !(selected == Tab.Code.ordinal && codeSession.previewFullScreen)) {
                             Column {
                                 Box(
                                     Modifier.fillMaxWidth().height(1.dp).background(

@@ -3,7 +3,10 @@ package com.molina.code.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -32,7 +35,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.UriHandler
 import androidx.compose.ui.text.AnnotatedString
@@ -61,6 +66,58 @@ internal fun PreviewPane(session: CodeSession, onJump: (Int, Int) -> Unit, modif
                 PaneMode.Preview -> PreviewBody(preview.content, onJump)
             }
         }
+    }
+}
+
+/**
+ * Halaman Tinjauan penuh (blueprint bagian 21): appbar hitam dengan tombol kembali, judul
+ * "Tinjauan", subjudul path berkas, lalu isi pratinjau native. Tombol Back sistem menutupnya.
+ * Isi dibangun ulang otomatis bila berkas berubah (lihat efek di CodeScreen).
+ */
+@Composable
+internal fun PreviewPage(session: CodeSession, onJump: (Int, Int) -> Unit, modifier: Modifier = Modifier) {
+    val preview = session.preview
+    val tab = session.active
+    BackHandler { preview.open = false }
+    Column(
+        modifier
+            .background(CodeColors.PreviewBg)
+            // menyerap sentuhan agar tidak tembus ke editor di bawahnya
+            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {}
+    ) {
+        Row(
+            Modifier.fillMaxWidth().height(64.dp).background(CodeColors.PreviewBg),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                Modifier.width(56.dp).fillMaxHeight().clickable { preview.open = false },
+                contentAlignment = Alignment.Center
+            ) {
+                Canvas(Modifier.size(24.dp)) {
+                    val k = size.minDimension / 24f
+                    val c = CodeColors.IconDefault
+                    val w = 2f * k
+                    drawLine(c, Offset(20f * k, 12f * k), Offset(5f * k, 12f * k), strokeWidth = w, cap = StrokeCap.Round)
+                    drawLine(c, Offset(11f * k, 5f * k), Offset(4f * k, 12f * k), strokeWidth = w, cap = StrokeCap.Round)
+                    drawLine(c, Offset(11f * k, 19f * k), Offset(4f * k, 12f * k), strokeWidth = w, cap = StrokeCap.Round)
+                }
+            }
+            Column(Modifier.weight(1f).padding(end = 16.dp)) {
+                BasicText(
+                    text = "Tinjauan",
+                    maxLines = 1,
+                    style = TextStyle(color = CodeColors.IconDefault, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                )
+                BasicText(
+                    text = tab?.file?.path ?: tab?.title.orEmpty(),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = TextStyle(color = CodeColors.SecondaryChampagne, fontSize = CodeDimens.PreviewSubtitleSize)
+                )
+            }
+        }
+        Box(Modifier.fillMaxWidth().height(CodeDimens.Hairline).background(CodeColors.Hairline))
+        Box(Modifier.weight(1f).fillMaxWidth()) { PreviewBody(preview.content, onJump) }
     }
 }
 

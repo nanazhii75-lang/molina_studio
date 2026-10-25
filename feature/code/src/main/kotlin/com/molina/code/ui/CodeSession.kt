@@ -225,6 +225,10 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
     /** Panel pratinjau langsung / keluaran skrip di bawah editor (tombol Play). */
     internal val preview = PreviewController()
 
+    /** True saat halaman Tinjauan penuh (Markdown/JSON) terbuka; :app menyembunyikan bottom nav. */
+    val previewFullScreen: Boolean
+        get() = preview.open && preview.mode == PaneMode.Preview
+
     /** Status eksekusi skrip untuk panel Keluaran. */
     internal val run = RunController(mainHandler)
 
