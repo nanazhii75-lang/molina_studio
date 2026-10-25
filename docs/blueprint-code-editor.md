@@ -123,7 +123,7 @@ Nilai diambil dari screenshot lama. Verifikasi saat membuat colors.xml, jangan h
 - [ ] F1 Tokens dan tema (colors.xml, dimens.xml, style)
 - [ ] F2 Layout editor (header, tab bar, gutter, area)
 - [ ] F3 Toolbar editor
-- [ ] F4 Panel direktori Win7 + empty state
+- [x] F4 Panel direktori Win7 + empty state (ditulis, belum dikompilasi CI; bagian 31)
 - [ ] F5 Integrasi bottom nav dan state
 - [ ] F6 Uji di perangkat API 26 arm64 via GitHub Actions CI
 
@@ -391,7 +391,7 @@ hr { border:0; border-top:1px solid #3A2F22; }
 
 ## 24. Pertanyaan Terbuka Tambahan
 12. Cakupan kunci UTF-8: hanya saat menyimpan, atau juga saat membuka? Untuk file non-UTF-8: tolak, buka read-only dengan peringatan, atau decode fallback?
-13. Simpan UTF-8 tanpa BOM dengan line ending LF: setuju?
+13. [TERJAWAB, bagian 31.1] Simpan UTF-8 tanpa BOM; line ending dipertahankan dari berkas asli (berkas baru LF), diganti per tab lewat menu.
 14. Toggle terang di Tinjauan: dipertahankan (varian krem hangat) atau dihapus (hitam saja)?
 15. Tinjauan memakai WebView atau komponen render Markdown native?
 16. Folder simpan default: ikut folder kerja terbuka, atau tetap root /storage/emulated/0/?
@@ -500,6 +500,68 @@ Tanggal: 2026-10-25. Keputusan pemilik: akses file lewat path langsung `/storage
 - Berkas hilang atau bukan UTF-8 saat pemulihan: tab dibuang dengan toast "Gagal memuat ...".
 
 ### 30.4 Keterbatasan yang diketahui
-- Dua tab bisa menunjuk berkas yang sama (belum ada pengecekan duplikat). Ditangani di F4 saat "Buka" ada.
-- Undo yang membawa teks kembali ke keadaan tersimpan tetap menandai dirty.
-- Pemilih folder, "Muat ulang", dan "Aksi file" belum ada (F4).
+- [SELESAI di F4, bagian 31.5] Dua tab menunjuk berkas yang sama: kini dicegah.
+- [SELESAI di F4, bagian 31.2] Undo yang membawa teks kembali ke keadaan tersimpan tidak lagi menandai dirty.
+- [SELESAI di F4, bagian 31.3 sampai 31.4] Pemilih folder, "Muat ulang", dan "Aksi file".
+
+## 31. F4: Panel Direktori, Buka, Muat Ulang, Tanda Dirty Akurat [BLUEPRINT-F4-DIREKTORI]
+
+Tanggal: 2026-10-25. Pemilik menyerahkan keputusan BOM dan line ending kepada arsitek, dan mengizinkan saran diimplementasikan langsung.
+
+### 31.1 Keputusan: BOM dan line ending (menjawab pertanyaan terbuka 13)
+- **BOM**: simpan selalu UTF-8 tanpa BOM. BOM pada berkas yang dibuka dibuang (toast "BOM dibuang saat berkas disimpan"). Alasan: BOM merusak shebang skrip `.sh`/`.py` dan menambah diff palsu di Git.
+- **Line ending**: dipertahankan dari berkas asli. Berkas CRLF tetap CRLF, berkas LF tetap LF, berkas baru LF. Alasan: diff Git bersih, tidak ada konversi diam-diam pada repo lintas OS. Berkas dengan akhir baris campuran dinormalkan ke yang dominan saat disimpan.
+- Editor selalu memegang teks LF; akhir baris hanya diterapkan saat menulis ke disk (`FileStore.applyEol`). Tab menyimpan `eol` dan `baseEol`.
+- Menu titik tiga: item baru "Akhir baris: LF/CRLF" (grup Tampilan dan Teks) mengganti akhir baris tab. Perubahan ini menandai tab dirty karena byte berkas berubah.
+
+### 31.2 Tanda dirty berbasis baseline (perbaikan laporan pemilik)
+- Masalah: setelah berkas dibuka, diubah, lalu di-undo sampai isi awal, titik emas tetap menyala. Tidak ada tanda yang membedakan "bersih" dan "berubah".
+- Perbaikan: tiap tab menyimpan sidik jari isi tersimpan (`baseFp`, FNV-1a 64-bit atas teks yang dinormalkan ke LF) dan `baseEol`. Dirty = sidik jari isi sekarang berbeda dari baseline, atau `eol` berbeda dari `baseEol`.
+- Alur: setiap edit menandai dirty seketika, lalu 150 ms setelah edit berhenti (debounce akhir) isi dibandingkan. Undo ke isi awal menghapus titik emas; redo menyalakannya lagi. Tab "Baru" memakai baseline teks kosong.
+- Baseline diperbarui saat berkas dibuka, dimuat ulang, atau disimpan. Undo melewati titik simpan menandai dirty (benar: isi berbeda dari disk).
+- Isi lebih dari 2.000.000 karakter tidak dibandingkan; tab dianggap dirty.
+- Baseline, `eol`, dan `baseEol` ikut disimpan di draf (`session.json` versi 2) sehingga status benar setelah proses dimatikan.
+- Tanda yang terlihat: titik emas di judul tab, tombol Simpan aktif, dan chip status di header (Diubah emas / Tersimpan / Baru / Memuat).
+
+### 31.3 Panel direktori (blueprint bagian 5)
+- Dibuka dari ikon folder di header, ketuk path di header, atau geser dari tepi kiri area editor (pegangan 14dp di antara tab bar dan toolbar). Lebar 72% layar, maks 320dp, dengan scrim.
+- Ditutup: geser ke kiri (>48dp), ketuk scrim, atau tombol X merah. Tombol Back sistem belum menutup panel (lihat 31.7).
+- Header 48dp: naik satu level (berhenti di /storage/emulated/0), nama + path folder utama (ketuk = pilih folder utama), file baru, folder baru, tutup.
+- Tree: baris 32dp, indent 14dp, expander segitiga Win7, ikon folder kuning (terbuka/tertutup), ikon berkas dengan garis warna per ekstensi (kt, py, md, json, xml/html, sh), folder dulu lalu A-Z tanpa peka huruf, berkas tersembunyi redup 60%. Maks 2000 entri per folder.
+- Seleksi: berkas aktif atau baris yang terakhir diketuk memakai isi `SelectFill` dan border `SelectBorder`.
+- Tekan lama: menu konteks (Buka atau Jadikan folder utama, Ganti nama, Hapus, Salin path, File baru di sini, Folder baru di sini).
+- Empty state "Belum ada folder yang bisa dibuka" muncul bila folder utama tidak terbaca; tombol BUKA FOLDER dan BUKA BERKAS ditumpuk karena panel sempit.
+- Folder utama awal = folder kerja; disimpan di draf dan dipulihkan. Folder utama juga menjadi folder awal Simpan sebagai bila belum ada folder simpan terakhir.
+- Pembacaan folder di thread IO sesi; hasil di `DirectoryState.children`.
+
+### 31.4 Buka, Muat ulang, Aksi file (menu titik tiga)
+- **Buka**: pemilih berkas (mode File) mulai di folder berkas tab aktif, lalu folder utama panel.
+- **Muat ulang**: tab bersih dibaca ulang dari disk; tab dirty meminta konfirmasi BUANG. Tree ikut dimuat ulang.
+- **Aksi file**: aktif bila tab punya berkas; membuka menu konteks untuk berkas itu (ditambah "Tampilkan di panel" saat panel tertutup).
+- Berkas non-UTF-8, biner (berisi NUL), atau lebih dari 5 MB tidak dibuka dan ditolak dengan toast. Ini sikap sementara untuk pertanyaan terbuka 12.
+
+### 31.5 Tab duplikat
+- `openFile` membandingkan path kanonik: berkas yang sudah terbuka hanya dipilih, tidak dibuka ulang.
+- Tab "Baru" yang masih kosong dan belum disentuh dipakai ulang saat membuka berkas.
+- Simpan sebagai ke nama berkas yang sedang terbuka di tab lain ditolak ("Berkas itu sedang terbuka di tab lain").
+
+### 31.6 Pemilih folder dan operasi berkas
+- Dialog Simpan sebagai: tombol UBAH di samping Folder membuka pemilih folder (PILIH FOLDER INI).
+- Pemilih (`PickerDialog`) tanpa SAF: path langsung, naik berhenti di /storage/emulated/0, daftar dibaca sinkron (satu folder, maks 2000 entri).
+- Ganti nama dan hapus menyinkronkan tab: tab yang menunjuk berkas/folder bernama baru ikut diarahkan; tab yang berkasnya dihapus tetap terbuka dan ditandai belum tersimpan (dirty) dengan toast.
+- Hapus folder rekursif tidak mengikuti tautan simbolik. Folder utama panel dan /storage/emulated/0 tidak bisa dihapus.
+- Berkas baru dibuat kosong lalu langsung dibuka di tab.
+
+### 31.7 Keterbatasan yang diketahui
+- Tombol Back sistem belum menutup panel (butuh BackHandler dari activity-compose atau penanganan di MainActivity).
+- Panel muncul tanpa animasi geser.
+- Pemilih folder belum punya tombol folder baru.
+- Isi tree tidak memuat ulang otomatis bila berkas berubah dari aplikasi lain; gunakan Muat ulang.
+- Draf tab bersih tidak menyimpan isi; tab bersih dibaca ulang dari berkas saat pemulihan.
+
+### 31.8 Saran branding (diimplementasikan atau diusulkan)
+- Diimplementasikan: chip status di header memakai emas hanya untuk "Diubah", abu redup untuk lainnya, sehingga mata langsung menangkap perubahan.
+- Usulan: toast "Tersimpan" diganti snackbar tipis berlatar `Capsule` dan teks champagne.
+- Usulan: titik dirty berdenyut sekali saat draf ditulis.
+- Usulan: ikon berkas per ekstensi memakai glyph kecil (K, Py, MD) di dalam halaman, bukan hanya garis warna.
+
