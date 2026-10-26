@@ -6,6 +6,7 @@ import android.content.Context
 import android.os.Environment
 import android.widget.Toast
 import com.molina.studio.terminal.TerminalActions
+import com.molina.studio.terminal.TerminalPrefs
 import com.molina.studio.terminal.TerminalSessions
 import java.io.File
 
@@ -26,11 +27,14 @@ internal object MolinaExplorer {
         }
     }
 
-    /** Hanya penyimpanan internal yang di-bind ke Debian; kartu SD/USB tidak terlihat di sana. */
+    /**
+     * Terlihat di Debian: seluruh penyimpanan internal bila "Akses penyimpanan penuh" aktif,
+     * selain itu hanya folder kerja molina-studio (sesuai bind PRoot). Kartu SD/USB tidak pernah terlihat.
+     */
     fun visibleInDebian(f: File): Boolean {
-        val b = base()
+        val root = if (TerminalPrefs.fullStorageAccess) base() else base() + "/" + TerminalSessions.WORKSPACE_DIR
         val p = f.absolutePath
-        return p == b || p.startsWith("$b/")
+        return p == root || p.startsWith("$root/")
     }
 
     fun quote(path: String): String = "'" + path.replace("'", "'\\''") + "'"
@@ -64,7 +68,11 @@ internal object MolinaExplorer {
             return
         }
         if (!visibleInDebian(dir)) {
-            Toast.makeText(ctx, "Folder ini tidak terlihat di Debian (hanya penyimpanan internal).", Toast.LENGTH_LONG).show()
+            Toast.makeText(
+                ctx,
+                "Folder ini tidak terlihat di Debian. Aktifkan \"Akses penyimpanan penuh\" di Setelan Terminal (berlaku di sesi baru), atau pindahkan ke molina-studio.",
+                Toast.LENGTH_LONG
+            ).show()
             return
         }
         TerminalActions.send("cd " + quote(debianPath(dir)) + "\r")

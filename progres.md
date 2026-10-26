@@ -696,3 +696,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: :app (CinemaHome, CinemaActions, Win7OpenDialog, CinemaOpenChooser baru) dan :feature:mpv (MpvFolder baru). Gradle, Manifest, JNI mpv tidak disentuh
 - [ ] BELUM dikompilasi (CI). Risiko: rendah-sedang (edit Compose di Win7OpenDialog)
 - [ ] uji perangkat: File > dialog 2 pilihan; Buka berkas tetap normal; Buka folder > masuk folder berisi beberapa video > Pilih folder > Playlist di pemutar berisi semua video berurutan alami; folder tanpa media > pesan di Cinema; folder berisi 1 media > diputar tunggal
+
+## 2026-10-26 - Perbaikan buka folder dan cd Penjelajah [FIX-FOLDER-CD]
+- [x] fix(mpv): MPVActivity.onNewIntent: intent folder_playlist tidak lagi masuk jalur "tambah di akhir" saat pemutar berjalan di latar (hanya berkas tunggal yang ditambahkan); kini mengganti playlist lewat loadReplacing. Toast "Playlist folder: N berkas" sebagai umpan balik
+- [x] fix(explorer): MolinaExplorer.visibleInDebian mengikuti bind PRoot: tanpa Akses penyimpanan penuh hanya /sdcard/molina-studio yang terlihat; cd ke folder lain ditolak dengan petunjuk (sebelumnya cd terkirim dan gagal: No such file or directory)
+- [x] Catatan: folder /sdcard/molina_suite tidak ada di Debian karena bind default hanya molina-studio; solusi: aktifkan Akses penyimpanan penuh (sesi baru) atau pindahkan folder
+- [x] Dampak: :app (ExplorerBridge.kt) dan :feature:mpv (MPVActivity.kt). Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi (CI). Risiko: rendah
+- [ ] uji perangkat: putar video lalu keluar ke Cinema (pemutar di latar) > File > Buka folder > pemutar naik ke depan, toast Playlist folder N berkas, daftar playlist terisi; Penjelajah: cd ke luar molina-studio tanpa akses penuh > toast petunjuk; dengan akses penuh (sesi baru) > cd berhasil

@@ -474,6 +474,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         val folder = resolveFolderPlaylist(intent, filepath)
         if (folder != null) {
             MpvLog.i(TAG, "Playlist folder: ${folder.first.size} berkas")
+            showToast("Playlist folder: ${folder.first.size} berkas", true)
             player.playFolder(folder.first, folder.second)
         } else if (StreamLoader.isWebUrl(filepath)) {
             val startHeaders = intentHeaders
@@ -587,7 +588,9 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         val headers = if (intent?.action == Intent.ACTION_VIEW)
             parseHeadersExtra(intent?.extras) else emptyMap()
 
-        if (!activityIsForeground && didResumeBackgroundPlayback) {
+        // Folder dari Cinema selalu mengganti playlist; jalur "tambah di akhir" hanya untuk berkas tunggal
+        val folderRequest = intent?.getBooleanExtra("folder_playlist", false) == true
+        if (!activityIsForeground && didResumeBackgroundPlayback && !folderRequest) {
             if (this.newIntentReplace) {
                 loadReplacing(intent, filepath, headers)
                 showToast(getString(R.string.notice_file_play))
@@ -620,6 +623,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         val folder = resolveFolderPlaylist(intent, filepath)
         if (folder != null) {
             MpvLog.i(TAG, "Playlist folder: ${folder.first.size} berkas")
+            showToast("Playlist folder: ${folder.first.size} berkas", true)
             player.loadFolder(folder.first, folder.second)
         } else {
             loadWeb(filepath, MpvLoad.REPLACE, headers)
