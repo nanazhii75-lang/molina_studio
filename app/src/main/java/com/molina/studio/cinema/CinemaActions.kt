@@ -80,6 +80,14 @@ internal object CinemaActions {
             .putExtra("folder_playlist", true)
     )
 
+    /** Putar daftar dari folder beserta subfolder: [memoryUri] = MpvFolder.memoryPlaylist(...). */
+    fun playTree(ctx: Context, memoryUri: String): Boolean = start(
+        ctx,
+        Intent().setClassName(ctx.packageName, PLAYER)
+            .putExtra("filepath", memoryUri)
+            .putExtra("folder_playlist", true)
+    )
+
     fun openSettings(ctx: Context): Boolean =
         start(ctx, Intent().setClassName(ctx.packageName, SETTINGS))
 

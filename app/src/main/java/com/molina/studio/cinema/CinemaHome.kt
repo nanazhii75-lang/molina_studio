@@ -57,6 +57,7 @@ fun CinemaHome(modifier: Modifier = Modifier) {
     var openLocal by rememberSaveable { mutableStateOf(false) }
     var openChooser by rememberSaveable { mutableStateOf(false) }
     var openFolder by rememberSaveable { mutableStateOf(false) }
+    var folderDeep by rememberSaveable { mutableStateOf(false) }
 
     fun search(q: String) {
         if (searching) return
@@ -153,7 +154,8 @@ fun CinemaHome(modifier: Modifier = Modifier) {
     )
     if (openChooser) CinemaOpenChooser(
         onFile = { openChooser = false; openLocal = true },
-        onFolder = { openChooser = false; openFolder = true },
+        onFolder = { openChooser = false; folderDeep = false; openFolder = true },
+        onFolderDeep = { openChooser = false; folderDeep = true; openFolder = true },
         onDismiss = { openChooser = false }
     )
     if (openFolder) Win7OpenDialog(
@@ -161,11 +163,24 @@ fun CinemaHome(modifier: Modifier = Modifier) {
         pickFolder = true,
         onPickFolder = { d ->
             openFolder = false
-            val first = MpvFolder.firstMediaIn(d)
-            info = when {
-                first == null -> NO_MEDIA
-                CinemaActions.playFolder(ctx, first) -> ""
-                else -> FAIL
+            val deep = folderDeep
+            scope.launch {
+                if (deep) {
+                    info = "Memindai subfolder\u2026"
+                    val uri = withContext(Dispatchers.IO) { MpvFolder.memoryPlaylist(MpvFolder.mediaTree(d)) }
+                    info = when {
+                        uri == null -> NO_MEDIA
+                        CinemaActions.playTree(ctx, uri) -> ""
+                        else -> FAIL
+                    }
+                } else {
+                    val first = withContext(Dispatchers.IO) { MpvFolder.firstMediaIn(d) }
+                    info = when {
+                        first == null -> NO_MEDIA
+                        CinemaActions.playFolder(ctx, first) -> ""
+                        else -> FAIL
+                    }
+                }
             }
         }
     )

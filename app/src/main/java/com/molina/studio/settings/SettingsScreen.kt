@@ -172,7 +172,8 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             browse = true,
             onCopyPath = { f -> MolinaExplorer.copyPath(aptCtx, f) },
             onSendToTerminal = { f -> MolinaExplorer.sendToTerminal(aptCtx, f) },
-            onChangeDir = { f -> MolinaExplorer.changeDir(aptCtx, f) }
+            onChangeDir = { f -> MolinaExplorer.changeDir(aptCtx, f) },
+            isVisibleInDebian = { f -> MolinaExplorer.visibleInDebian(f) }
         )
         when {
             searching -> SearchResults(query) { open(it) }

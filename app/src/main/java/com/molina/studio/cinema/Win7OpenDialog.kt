@@ -118,6 +118,7 @@ fun Win7OpenDialog(
     onCopyPath: ((File) -> Unit)? = null,
     onSendToTerminal: ((File) -> Unit)? = null,
     onChangeDir: ((File) -> Unit)? = null,
+    isVisibleInDebian: ((File) -> Boolean)? = null,
     pickFolder: Boolean = false,
     onPickFolder: (File) -> Unit = {}
 ) {
@@ -281,10 +282,21 @@ fun Win7OpenDialog(
                     Spacer(Modifier.height(8.dp))
                     if (browse) {
                         val target = selected?.file ?: dir
-                        Text(
-                            target.path, color = Win7.TextDim, fontSize = 11.sp, maxLines = 1,
-                            overflow = TextOverflow.Ellipsis, modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
-                        )
+                        Row(Modifier.fillMaxWidth().padding(bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                target.path, color = Win7.TextDim, fontSize = 11.sp, maxLines = 1,
+                                overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f)
+                            )
+                            if (isVisibleInDebian != null) {
+                                val vis = isVisibleInDebian.invoke(target)
+                                Spacer(Modifier.width(6.dp))
+                                Text(
+                                    if (vis) "\u25CF Terlihat di Debian" else "\u25CB Di luar Debian",
+                                    color = if (vis) Color(0xFF4CAF50) else Color(0xFFE0A800),
+                                    fontSize = 10.sp, maxLines = 1
+                                )
+                            }
+                        }
                         Row(
                             Modifier.fillMaxWidth().padding(bottom = 8.dp),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),

@@ -704,3 +704,17 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: :app (ExplorerBridge.kt) dan :feature:mpv (MPVActivity.kt). Gradle, Manifest, JNI mpv tidak disentuh
 - [ ] BELUM dikompilasi (CI). Risiko: rendah
 - [ ] uji perangkat: putar video lalu keluar ke Cinema (pemutar di latar) > File > Buka folder > pemutar naik ke depan, toast Playlist folder N berkas, daftar playlist terisi; Penjelajah: cd ke luar molina-studio tanpa akses penuh > toast petunjuk; dengan akses penuh (sesi baru) > cd berhasil
+
+## 2026-10-26 - Penanda Debian di Penjelajah [EXPLORER-DEBIAN-BADGE]
+- [x] feat(explorer): panel path Penjelajah menampilkan penanda kecil "Terlihat di Debian" (hijau) atau "Di luar Debian" (kuning) untuk folder/berkas terpilih, mengikuti MolinaExplorer.visibleInDebian (bind PRoot + Akses penyimpanan penuh)
+- [x] Dampak: :app (Win7OpenDialog.kt, SettingsScreen.kt). Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi (CI). Risiko: rendah
+- [ ] uji perangkat: Penjelajah > molina-studio = Terlihat di Debian; folder lain = Di luar Debian; aktifkan Akses penyimpanan penuh (sesi baru) > semua internal Terlihat; kartu SD selalu Di luar
+
+## 2026-10-26 - Playlist folder + subfolder dan ikon emas [CINEMA-FOLDER-DEEP]
+- [x] feat(cinema): dialog File punya pilihan ketiga "Buka folder dan subfolder"; MpvFolder.mediaTree (rekursif, maks 1000 berkas, kedalaman 6, lewati folder tersembunyi dan putaran symlink) berjalan di thread IO, hasilnya dikirim sebagai playlist memory:// (CinemaActions.playTree) tanpa ubah MPVActivity
+- [x] feat(cinema): ikon dialog diganti ikon vektor emas (film, folder, tumpukan folder) via Canvas; emoji dihapus dari CinemaOpenChooser
+- [x] Subtitle otomatis: TIDAK perlu kode baru. mpv memakai sub-auto=exact secara default (tidak ada override di repo), jadi film.srt di samping film.mkv dimuat otomatis
+- [x] Dampak: :app (CinemaHome, CinemaActions, CinemaOpenChooser) dan :feature:mpv (MpvFolder). Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi (CI). Risiko: sedang (kode Canvas Compose baru)
+- [ ] uji perangkat: File > 3 pilihan dengan ikon emas; Buka folder dan subfolder pada folder berisi subfolder per judul > playlist berisi semua media berurutan; folder > 1000 berkas terpotong di 1000; film.srt di samping film.mkv tampil otomatis
