@@ -829,3 +829,8 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi (CI). Risiko: sedang (suspend lambda sebagai parameter dialog, Popup, horizontalScroll)
 - [ ] uji perangkat: ketik di kotak cari (hasil menyaring, "x" menghapus, pesan "Tidak ada hasil"); centang subfolder (hasil dengan jalur relatif, folder hasil bisa dibuka); Urut: tiap kunci + menurun + folder di atas + tersembunyi, tutup-buka Penjelajah (setelan bertahan); pilih video > Putar di mpv; pilih folder > Putar folder; pilih 3 video (mode Pilih) > Putar; pilih .md/.sh > Buka di Code (pindah ke tab Code, berkas terbuka); berkas biner ditolak; pilih .sh > Kirim ke Script execution lalu cek Settings > Script execution (kirim ulang = diperbarui, bukan dobel); ketuk ulang video/teks = buka cerdas
 - [ ] LANGKAH BERIKUT: Aplikasi lain lewat chooser sistem (FileProvider), tampilan grid/thumbnail, Bagikan, riwayat folder (maju/mundur), buka ZIP tanpa ekstrak
+
+## 2026-10-26 - Perbaikan build CI: showExplorer [FIX-SHOWEXPLORER]
+- [x] fix(settings): `Unresolved reference 'showExplorer'` di SettingsScreen.kt:140; deklarasi `var showExplorer` dipindah ke sebelum `LaunchedEffect(page)` yang memakainya (urutan deklarasi variabel lokal Kotlin)
+- [x] Dampak: :app saja (settings/SettingsScreen.kt, 1 baris dipindah). Gradle, Manifest, JNI mpv tidak disentuh. Perilaku tidak berubah
+- [ ] BELUM dikompilasi (CI). Risiko: rendah. Bila CI memunculkan error lain di berkas Explorer, kirim lognya

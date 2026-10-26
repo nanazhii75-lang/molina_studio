@@ -137,10 +137,10 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     // Lepas fokus (dan tutup keyboard) setiap kali halaman Settings berganti.
     LaunchedEffect(page) { focus.clearFocus() }
     // Ubin Berkas di beranda langsung membuka Penjelajah Molina.
+    var showExplorer by remember { mutableStateOf(false) }
     LaunchedEffect(page) { if (page == Page.Files) showExplorer = true }
     var apt by remember { mutableStateOf<AptJob?>(null) }
     var showTools by remember { mutableStateOf(false) }
-    var showExplorer by remember { mutableStateOf(false) }
     var sendEnter by remember { mutableStateOf(false) }
     val aptCtx = LocalContext.current
     remember { AptHistory.init(aptCtx) }
