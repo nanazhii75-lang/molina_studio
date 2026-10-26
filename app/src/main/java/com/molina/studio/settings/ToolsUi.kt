@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.sp
 import com.molina.studio.packages.BuiltinTools
 import com.molina.studio.packages.ToolCheck
 import com.molina.studio.packages.ToolItem
+import com.molina.studio.packages.ToolPurge
 import com.molina.studio.packages.ToolStore
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -60,7 +61,7 @@ private enum class ToolAction(val label: String, val timeoutMs: Long, val confir
     Remove("Hapus", 15 * 60_000L, true)
 }
 
-private class PendingRun(val tool: ToolItem, val action: ToolAction)
+private class PendingRun(val tool: ToolItem, val action: ToolAction, val backup: Boolean = false, val previewed: Boolean = false)
 
 private class ToolDraft(val id: String?, name: String, note: String, install: String, version: String, remove: String) {
     var name by mutableStateOf(name)
@@ -91,6 +92,7 @@ internal fun PackagesPage(onOpenYtdlp: () -> Unit) {
     var pending by remember { mutableStateOf<PendingRun?>(null) }
     var draft by remember { mutableStateOf<ToolDraft?>(null) }
     var toDrop by remember { mutableStateOf<ToolItem?>(null) }
+    var preview by remember { mutableStateOf<ToolItem?>(null) }
 
     Text(
         "Paket berisi alat khusus: pasang, cek versi, dan hapus. Skrip umum ada di menu Script execution.",
@@ -118,7 +120,8 @@ internal fun PackagesPage(onOpenYtdlp: () -> Unit) {
                     if (scriptOf(tool, a).isBlank()) {
                         toast(ctx, "Skrip ${a.label.lowercase()} belum diisi. Ubah alat untuk mengisinya.")
                     } else {
-                        pending = PendingRun(tool, a)
+                        if (a == ToolAction.Remove && tool.builtin && tool.purgePkgs.isNotEmpty()) preview = tool
+                        else pending = PendingRun(tool, a)
                     }
                 },
                 onEdit = { draft = ToolDraft(tool.id, tool.name, tool.note, tool.install, tool.version, tool.remove) },
@@ -130,6 +133,16 @@ internal fun PackagesPage(onOpenYtdlp: () -> Unit) {
 
     draft?.let { d ->
         ToolEditorDialog(d, ctx, onCancel = { draft = null }, onSaved = { draft = null })
+    }
+    preview?.let { t ->
+        PurgePreviewDialog(
+            t,
+            onProceed = { backup ->
+                preview = null
+                pending = PendingRun(t, ToolAction.Remove, backup, true)
+            },
+            onClose = { preview = null }
+        )
     }
     pending?.let { pr ->
         val note = when (pr.action) {
@@ -145,7 +158,13 @@ internal fun PackagesPage(onOpenYtdlp: () -> Unit) {
                 }
         }
         ToolRunDialog(
-            ToolRun("${pr.tool.name}: ${pr.action.label}", scriptOf(pr.tool, pr.action), pr.action.timeoutMs, note, pr.action.confirm),
+            ToolRun(
+                "${pr.tool.name}: ${pr.action.label}",
+                (if (pr.backup) ToolPurge.backupScript(pr.tool.name, pr.tool.backupPaths) else "") + scriptOf(pr.tool, pr.action),
+                pr.action.timeoutMs,
+                note + if (pr.backup) " Konfigurasi dicadangkan dulu ke /sdcard/molina-studio/.molina-backup." else "",
+                pr.action.confirm && !pr.previewed
+            ),
             onClose = { pending = null }
         ) { code, out ->
             when {

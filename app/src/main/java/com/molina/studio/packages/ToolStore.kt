@@ -17,7 +17,11 @@ data class ToolItem(
     val install: String,
     val version: String,
     val remove: String,
-    val builtin: Boolean = false
+    val builtin: Boolean = false,
+    /** Paket apt yang di-purge saat HAPUS (dipakai pratinjau hapus); kosong = tanpa pratinjau. */
+    val purgePkgs: List<String> = emptyList(),
+    /** Berkas konfigurasi non-rahasia yang bisa dicadangkan sebelum HAPUS. */
+    val backupPaths: List<String> = emptyList()
 )
 
 /** Hasil pemeriksaan versi terakhir; [text] kosong = belum diperiksa. */
@@ -44,16 +48,16 @@ object BuiltinTools {
     val all: List<ToolItem> = listOf(
         ToolItem(
             "b-python3", "Python 3", "Interpreter Python di Debian. yt-dlp membutuhkannya.",
-            "apt update $APT\napt install -y $APT python3", "python3 --version", PYTHON_REMOVE, true
+            "apt update $APT\napt install -y $APT python3", "python3 --version", PYTHON_REMOVE, true, listOf("python3")
         ),
         ToolItem(
             "b-git", "Git", "Sistem kontrol versi.",
-            "apt update $APT\napt install -y $APT git", "git --version", GIT_REMOVE, true
+            "apt update $APT\napt install -y $APT git", "git --version", GIT_REMOVE, true, listOf("git"), listOf("/root/.gitconfig", "/root/.config/git")
         ),
         ToolItem(
             "b-ffmpeg", "FFmpeg", "Konversi dan pemrosesan audio/video.",
             "apt update $APT\napt install -y $APT ffmpeg",
-            "command -v ffmpeg >/dev/null && ffmpeg -version | head -n 1", FFMPEG_REMOVE, true
+            "command -v ffmpeg >/dev/null && ffmpeg -version | head -n 1", FFMPEG_REMOVE, true, listOf("ffmpeg")
         )
     )
 }
@@ -68,6 +72,40 @@ object ToolPurge {
         "/usr/local/bin/yt-dlp*", "/root/.local/bin/yt-dlp*", "/usr/bin/yt-dlp",
         "/root/.cache/yt-dlp", "/root/.config/yt-dlp", "/root/yt-dlp.conf", "/etc/yt-dlp.conf", "/etc/yt-dlp"
     )
+
+    /** Simulasi (apt -s, tidak mengubah apa pun): paket yang akan di-purge, termasuk dependen dan dependensi yatim. */
+    fun preview(pkgs: List<String>): String {
+        val list = pkgs.joinToString(" ") { "'$it'" }
+        return buildString {
+            append("apt purge --auto-remove -s -y $APT $list > /tmp/.molina_prev.out 2>&1 || true\n")
+            append("grep -E '^(Purg|E:)' /tmp/.molina_prev.out || true\n")
+            append("rm -f /tmp/.molina_prev.out\n")
+        }
+    }
+
+    /**
+     * Cadangkan berkas konfigurasi non-rahasia ke folder kerja Molina (.molina-backup, dikecualikan dari git lewat
+     * .git/info/exclude). Gagal -> keluar kode 4 sehingga penghapusan di bawahnya tidak jalan.
+     */
+    fun backupScript(name: String, paths: List<String>): String {
+        val slug = name.lowercase().filter { it.isLetterOrDigit() }.ifEmpty { "alat" }
+        return buildString {
+            append("echo '== [0/4] Cadangkan konfigurasi =='\n")
+            append("D=/sdcard/molina-studio/.molina-backup/$slug-`date +%Y%m%d-%H%M%S`\n")
+            append("mkdir -p \"\$D\" || { echo 'GAGAL: folder cadangan tidak bisa dibuat, penghapusan dibatalkan.'; exit 4; }\n")
+            append("if [ -d /sdcard/molina-studio/.git ]; then\n")
+            append("  mkdir -p /sdcard/molina-studio/.git/info\n")
+            append("  grep -qxF '.molina-backup/' /sdcard/molina-studio/.git/info/exclude 2>/dev/null || echo '.molina-backup/' >> /sdcard/molina-studio/.git/info/exclude\n")
+            append("fi\n")
+            append("for f in ${paths.joinToString(" ")}; do\n")
+            append("  if [ -e \"\$f\" ]; then\n")
+            append("    cp -r \"\$f\" \"\$D\"/ || { echo \"GAGAL menyalin \$f, penghapusan dibatalkan.\"; exit 4; }\n")
+            append("    echo \"Dicadangkan: \$f\"\n")
+            append("  fi\n")
+            append("done\n")
+            append("echo \"Cadangan tersimpan di: \$D\"\n")
+        }
+    }
 
     fun script(pkgs: List<String>, paths: List<String>, autoremove: Boolean): String = buildString {
         append("echo '== [1/4] Purge paket =='\n")

@@ -154,7 +154,7 @@ internal fun ToolRunDialog(run: ToolRun, onClose: () -> Unit, onResult: (Int, St
     }
 }
 
-private fun startShell(ctx: Context, run: ToolRun, onChunk: (String) -> Unit, onDone: (RunResult) -> Unit): RunHandle {
+internal fun startShell(ctx: Context, run: ToolRun, onChunk: (String) -> Unit, onDone: (RunResult) -> Unit): RunHandle {
     val main = Handler(Looper.getMainLooper())
     val req = RunRequest(
         name = "tool",
@@ -169,7 +169,7 @@ private fun startShell(ctx: Context, run: ToolRun, onChunk: (String) -> Unit, on
     })
 }
 
-private fun describe(r: RunResult): String {
+internal fun describe(r: RunResult): String {
     val err = r.startError
     return when {
         err != null -> err
@@ -180,7 +180,7 @@ private fun describe(r: RunResult): String {
     }
 }
 
-private fun copyOutput(ctx: Context, text: String) {
+internal fun copyOutput(ctx: Context, text: String) {
     val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     cm.setPrimaryClip(ClipData.newPlainText("molina-run", text))
     Toast.makeText(ctx, "Keluaran disalin", Toast.LENGTH_SHORT).show()

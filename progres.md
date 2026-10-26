@@ -636,3 +636,13 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi (CI). Risiko: sedang (string skrip Kotlin + parsing keluaran)
 - [ ] uji perangkat: Daftar tool terpasang (rootfs ada/tidak ada); HAPUS Python 3/Git/FFmpeg -> baris Verifikasi "Tuntas"; Hapus yt-dlp -> status kembali NoYtdlp; pasang ulang berhasil; subtitle "Terakhir berhasil" muncul setelah apt sukses
 - [ ] catatan: alat buatan pengguna tetap memakai skrip hapus buatan sendiri (tidak otomatis tuntas)
+
+## 2026-10-26 - Debian: daftar berwarna, pratinjau hapus, cadangan konfigurasi [DEBIAN-UX-PREVIEW-BACKUP]
+- [x] feat(settings): "Daftar tool terpasang" kini daftar Compose berwarna (hijau = terpasang, abu-abu = tidak ada, kuning = skrip versi kosong) + info rilis Debian; tidak lagi log mentah; tombol Salin menyalin daftar teks
+- [x] feat(settings): HAPUS alat bawaan lewat PurgePreviewDialog: simulasi `apt purge --auto-remove -s` menampilkan paket yang akan dihapus (paket lain yang ikut terhapus ditandai kuning); lanjut hanya bila simulasi berhasil; konfirmasi kedua dilewati
+- [x] feat(packages): opsi cadangan sebelum HAPUS Git (.gitconfig, .config/git) ke /sdcard/molina-studio/.molina-backup/<alat>-<waktu>; .git-credentials TIDAK dicadangkan (token teks biasa di storage bersama); folder otomatis dikecualikan lewat .git/info/exclude; gagal salin -> exit 4, hapus dibatalkan
+- [x] refactor(settings): startShell, describe, copyOutput menjadi internal (dipakai dialog baru); ToolItem mendapat purgePkgs dan backupPaths (default kosong, alat buatan pengguna tidak berubah)
+- [x] Dampak: :app saja (packages/ToolStore.kt, settings/ToolRunUi.kt, ToolsUi.kt, InstalledToolsUi.kt, PurgePreviewUi.kt baru). Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi (CI). Risiko: sedang (dua dialog Compose baru + parsing keluaran apt)
+- [ ] uji perangkat: titik warna daftar tool; HAPUS Git -> pratinjau muncul, cek kotak cadangan, berkas muncul di /storage/emulated/0/molina-studio/.molina-backup; `git status` di repo tidak menampilkan folder cadangan; HAPUS Python 3 -> paket lain yang ikut terhapus berwarna kuning
+- [ ] catatan: cadangan hanya bekerja bila folder kerja molina-studio ter-bind di PRoot (default); bila tidak, berkas tertulis di dalam rootfs
