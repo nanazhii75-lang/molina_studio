@@ -2,11 +2,15 @@
 [ -f /etc/profile ] && . /etc/profile
 [ -f "$HOME/.bashrc" ] && . "$HOME/.bashrc"
 
-# Prompt: hijau di home (~ atau folder kerja Molina), merah di folder lain.
+# Prompt: hijau di home (~, Workspace Molina, atau project molina-studio), merah di folder lain.
+# /storage/emulated/0/... disamakan dengan /sdcard/... agar kedua penulisan path dikenali.
 __molina_ps1() {
   [ -r /etc/molina/prompt.env ] && . /etc/molina/prompt.env
-  local sgr="$MOLINA_PS_OTHER"
-  if [ "$PWD" = "$HOME" ] || [ "$PWD" = "$MOLINA_HOME" ]; then sgr="$MOLINA_PS_HOME"; fi
+  local sgr="$MOLINA_PS_OTHER" p="$PWD"
+  case "$p" in /storage/emulated/0/*) p="/sdcard/${p#/storage/emulated/0/}" ;; esac
+  case "$p" in
+    "$HOME"|"$MOLINA_HOME"|/sdcard/molina-studio) sgr="$MOLINA_PS_HOME" ;;
+  esac
   PS1='\[\e['"$sgr"'m\]user@localhost:\w $\[\e[0m\] '
 }
 PROMPT_COMMAND="${PROMPT_COMMAND:+$PROMPT_COMMAND;}__molina_ps1"

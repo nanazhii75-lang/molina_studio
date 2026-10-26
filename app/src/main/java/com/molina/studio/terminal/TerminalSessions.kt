@@ -170,6 +170,7 @@ object TerminalSessions {
 
         // Lingkup storage: default hanya folder kerja Molina; "Akses penuh" membuka seluruh storage.
         val fullAccess = TerminalPrefs.fullStorageAccess
+        var appVisible = fullAccess // /sdcard/Molina terlihat di guest (akses penuh, atau bind appRoot terpasang)
         val storageBinds: Array<String> = if (fullAccess) {
             File(rootfsDir, "storage/emulated/0").mkdirs()
             arrayOf("--bind=$storage:/sdcard", "--bind=$storage:/storage/emulated/0")
@@ -177,10 +178,12 @@ object TerminalSessions {
             val ws = File(storage, WORKSPACE_DIR).apply { mkdirs() }
             File(rootfsDir, "sdcard/$WORKSPACE_DIR").mkdirs()
             File(rootfsDir, "storage/emulated/0/$WORKSPACE_DIR").mkdirs()
+            val appBinds = StorageBinds.app(ctx, rootfsDir)
+            appVisible = appBinds.isNotEmpty()
             arrayOf(
                 "--bind=${ws.absolutePath}:/sdcard/$WORKSPACE_DIR",
                 "--bind=${ws.absolutePath}:/storage/emulated/0/$WORKSPACE_DIR",
-                *StorageBinds.app(ctx, rootfsDir).toTypedArray()
+                *appBinds.toTypedArray()
             )
         }
 
@@ -195,6 +198,7 @@ object TerminalSessions {
             "DEBIAN_FRONTEND=noninteractive", "MALLOC_ARENA_MAX=2",
             "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
             "MOLINA_HOME=${MolinaShell.HOME_DIR}",
+            *(if (appVisible) arrayOf("MOLINA_ROOT=${MolinaShell.APP_ROOT}") else emptyArray<String>()),
             "MOLINA_BRAND=${MolinaShell.BRAND}",
             "MOLINA_BRAND_SGR=${MolinaShell.BRAND_SGR}",
             "MOLINA_PS_HOME=${TerminalPrefs.promptTheme.homeSgr}",

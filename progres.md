@@ -774,3 +774,19 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi (CI). Risiko: sedang (Popup + Dialog bertingkat di Compose, edit Win7OpenDialog)
 - [ ] uji perangkat: pilih berkas > Salin > buka folder lain > Tempel (muncul); Pindah + Tempel (sumber hilang); Pindah ke folder yang sama ditolak; salin folder ke dalam dirinya ditolak; Ubah nama (ekstensi tidak ikut terpilih, nama bentrok ditolak); Kompres folder > .zip muncul dan bisa dibuka; Pindah ke favorit pada folder > muncul di panel kiri dan bertahan setelah aplikasi ditutup, lalu Hapus dari favorit; Properti folder besar tidak membekukan UI; tanpa pilihan, Properti menampilkan folder aktif
 - [ ] LANGKAH BERIKUT: Hapus (dengan konfirmasi), pilih banyak berkas, Buat folder baru, Ekstrak ZIP, progres untuk salinan besar
+
+## 2026-10-26 - Bundle molina_dl.py dan HOME_DIR terminal = Workspace [BUNDLE-DL-HOME-WORKSPACE]
+- [x] feat(scripts): assets/molina/molina_dl.py (disalin dari perangkat; syntax dicek saat patch); BundledScripts.install menyalin ke /sdcard/Molina/Scripts tanpa menimpa berkas yang sudah ada, dipanggil AppPaths.ensureIfPermitted setelah ensureDirs sukses
+- [x] feat(terminal): MolinaShell.APP_ROOT=/sdcard/Molina dan HOME_DIR=/sdcard/Molina/Workspace (sebelumnya /storage/emulated/0/molina-studio); MOLINA_HOME mengikuti; MOLINA_ROOT dikirim ke sesi hanya bila folder aplikasi terlihat di Debian (akses penuh atau bind appRoot)
+- [x] fix(terminal): bashrc: prompt hijau di ~, Workspace, dan /sdcard/molina-studio; /storage/emulated/0/... disamakan dengan /sdcard/... (sebelumnya hanya cocok bila PWD persis HOME_DIR)
+- [x] Tidak diubah: HOME=/root (dotfile tetap di rootfs), cwd awal /root, bind molina-studio, ProotScriptExecutor/ScriptCommand (skrip dari editor Code belum menerima MOLINA_ROOT; molina_dl.py memakai /sdcard/Molina sebagai default)
+- [x] Dampak: :app (BundledScripts baru, AppPaths, MolinaShell, TerminalSessions, assets bashrc dan molina_dl.py). Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi (CI). Risiko: sedang (menyentuh debianShell dan assets bashrc)
+- [ ] uji perangkat: buka aplikasi dengan izin storage > /sdcard/Molina/Scripts/molina_dl.py ada (dan tidak ditimpa bila diedit); sesi BARU > echo $MOLINA_ROOT = /sdcard/Molina; cd /sdcard/Molina/Workspace > prompt hijau; cd /storage/emulated/0/Molina/Workspace > hijau; folder lain merah; python3 /sdcard/Molina/Scripts/molina_dl.py berjalan tanpa peringatan folder cadangan
+
+## 2026-10-26 - Molina DL v2: indikator progres gaya IDM [DL-V2-PROGRESS]
+- [x] feat(scripts): molina_dl.py v2: bar langsung (persen, kecepatan, ETA, ukuran) dari --progress-template yt-dlp; satu baris per aliran (Video/Audio) + langkah Merger/ExtractAudio; antrian banyak URL dengan ringkasan; Ctrl+C membatalkan dan .part dilanjutkan; mode non-TTY cetak per 10%; MOLINA_DL_ASCII/NO_COLOR
+- [x] Uji: yt-dlp 2026.10.21 + ffmpeg asli ke server lokal (PTY 44-50 kolom): antrian sukses+gagal, batal+lanjut, tanpa proses sisa; dua aliran + Merger memakai yt-dlp tiruan. Belum diuji: situs sungguhan dan layar Molina Terminal
+- [x] Dampak: hanya skrip pengguna/asset molina_dl.py. Kotlin, Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] uji perangkat: bar tampil benar di Molina Terminal (font blok, warna emas); unduh YouTube video+audio; antrian 2-3 URL; Ctrl+C lalu lanjut
+- [ ] LANGKAH BERIKUT: halaman native Unduhan (streaming per baris lewat jalur ProotScriptExecutor, parser event di :core:common, foreground service); mode CLI non-interaktif/--json; BundledScripts memperbarui salinan yang belum diedit pengguna (hash)

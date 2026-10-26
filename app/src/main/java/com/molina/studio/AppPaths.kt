@@ -7,6 +7,7 @@ import com.molina.core.common.AppLog
 import com.molina.core.common.LogLevel
 import com.molina.core.common.MolinaPaths
 import com.molina.core.storage.AndroidMolinaPaths
+import com.molina.studio.terminal.BundledScripts
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -37,6 +38,7 @@ object AppPaths {
         scope.launch {
             val ok = try { paths.ensureDirs() } catch (e: Exception) { false }
             ready = ok
+            if (ok) BundledScripts.install(context.applicationContext)
             busy.set(false)
             val level = if (ok) LogLevel.Info else LogLevel.Warn
             AppLog.log("sistem", level, "AppPaths", "ensureDirs=$ok appRoot=${paths.appRoot.path}")

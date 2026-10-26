@@ -10,7 +10,10 @@ import java.io.File
 object MolinaShell {
     const val BRAND = "Welcome Molina Terminal"
     const val BRAND_SGR = "1;${MolinaTheme.GOLD_SGR}" // emas Molina
-    const val HOME_DIR = "/storage/emulated/0/molina-studio"
+    /** Akar data aplikasi di dalam Debian (bind appRoot; lihat StorageBinds). */
+    const val APP_ROOT = "/sdcard/Molina"
+    /** Folder kerja terminal = MolinaDir.Workspace; dipakai bashrc untuk warna prompt (MOLINA_HOME). */
+    const val HOME_DIR = "$APP_ROOT/Workspace"
     const val REDRAW_SEQ = "\u001b[99~"       // dipetakan ke redraw-current-line di bashrc
 
     val banner: String get() = "\u001b[${BRAND_SGR}m$BRAND\u001b[0m"
