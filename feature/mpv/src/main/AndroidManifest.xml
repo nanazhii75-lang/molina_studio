@@ -182,12 +182,6 @@
             </intent-filter>
         </activity>
 
-        <activity
-            android:name=".MainActivity"
-            android:configChanges="orientation|screenSize"
-            android:theme="@style/FilePickerTheme"
-            android:exported="false" />
-
         <!-- [MPV-PICKER-SW] render perangkat lunak: hindari korupsi gambar GPU (teks bertumpuk) di Android 8 -->
         <activity
             android:name=".FilePickerActivity"
@@ -200,7 +194,6 @@
         <activity
             android:name=".preferences.PreferenceActivity"
             android:theme="@style/AppTheme.Preference"
-            android:parentActivityName=".MainActivity"
             android:launchMode="singleTop"
             android:label="@string/title_activity_settings" />
 

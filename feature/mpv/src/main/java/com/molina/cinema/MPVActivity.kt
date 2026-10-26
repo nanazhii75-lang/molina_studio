@@ -1336,7 +1336,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
             }
 
             else -> {
-                // Custom intent from MainScreenFragment
+                // Intent kustom dari Molina Cinema (extra filepath)
                 intent.getStringExtra("filepath")?.takeIf { isAllowedCustomPath(it) }
             }
         }

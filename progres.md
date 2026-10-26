@@ -672,3 +672,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: :app saja (Win7OpenDialog.kt, SettingsScreen.kt, ExplorerBridge.kt). Gradle, Manifest, JNI mpv tidak disentuh
 - [ ] BELUM dikompilasi (CI). Risiko: rendah
 - [ ] uji perangkat: pilih folder > cd (prompt pindah direktori); file terpilih > tombol cd nonaktif; favorit Molina Studio muncul hanya di Penjelajah (tidak di tombol File Cinema); folder SD card > cd ditolak dengan toast
+
+## 2026-10-26 - Pembersihan UI lama mpv [MPV-CLEANUP-MAIN]
+- [x] refactor(mpv): hapus MainActivity.kt, MainScreenFragment.kt, layout activity_main.xml dan fragment_main_screen.xml (UI mpv-android lama; tidak ada pemanggil, layar utama kini CinemaHome di :app)
+- [x] refactor(mpv): Manifest mpv: hapus entri .MainActivity dan parentActivityName=.MainActivity pada PreferenceActivity (home sudah ditangani onBackPressedDispatcher)
+- [x] Dipertahankan: FilePickerActivity dan paket filepicker/ (masih dipakai MPVActivity: tombol Audio/Subtitle eksternal di menu atas dan tombol Pilih file di playlist)
+- [x] Dampak: :feature:mpv (kode, layout, AndroidManifest.xml). Gradle dan JNI mpv tidak disentuh. Aman bagi :app (MainActivity :app berbeda paket)
+- [ ] BELUM dikompilasi (CI). Risiko: sedang (hapus kelas + Manifest; pengaman Python sudah memindai pemakai tersisa)
+- [ ] uji perangkat: aplikasi tetap terbuka ke CinemaHome; putar video; menu Audio/Subtitle eksternal dan playlist Pilih file tetap jalan; Pengaturan pemutar terbuka dan tombol kembali berfungsi; About dari pengaturan terbuka
