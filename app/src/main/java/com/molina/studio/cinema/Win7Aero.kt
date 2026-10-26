@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.molina.studio.ui.MolinaTheme
 
 /** Token Windows 7 (Aero) untuk pemilih file lokal Molina Cinema. */
 internal object Win7 {
@@ -114,21 +115,22 @@ internal fun Win7Close(onClick: () -> Unit) {
     }
 }
 
+/** [GOLD-ICONS] Folder emas Molina: badan gradasi emas merek, tab lebih gelap, kilap tipis. */
 @Composable
 internal fun Win7Folder(box: Dp) {
     Canvas(Modifier.size(box)) {
         val w = size.width
         val h = size.height
-        drawRoundRect(Win7.FolderDark, Offset(w * 0.04f, h * 0.14f), Size(w * 0.42f, h * 0.2f), CornerRadius(w * 0.05f))
+        drawRoundRect(Color(0xFF8A6418), Offset(w * 0.04f, h * 0.14f), Size(w * 0.42f, h * 0.2f), CornerRadius(w * 0.05f))
         drawRoundRect(
-            Brush.verticalGradient(listOf(Win7.Folder, Win7.FolderDark)),
+            Brush.verticalGradient(listOf(MolinaTheme.Gold, Color(0xFFB07F22))),
             Offset(w * 0.04f, h * 0.26f), Size(w * 0.92f, h * 0.62f), CornerRadius(w * 0.07f)
         )
-        drawRoundRect(Color.White.copy(alpha = 0.35f), Offset(w * 0.08f, h * 0.32f), Size(w * 0.84f, h * 0.12f), CornerRadius(w * 0.04f))
+        drawRoundRect(Color.White.copy(alpha = 0.30f), Offset(w * 0.08f, h * 0.32f), Size(w * 0.84f, h * 0.12f), CornerRadius(w * 0.04f))
     }
 }
 
-/** Folder emas khas Molina (akar aplikasi /sdcard/Molina), pembeda dari folder biasa. */
+/** Folder akar Molina (/sdcard/Molina): emas lebih terang dengan bintang kecil sebagai pembeda. */
 @Composable
 internal fun Win7MolinaFolder(box: Dp) {
     Canvas(Modifier.size(box)) {
@@ -136,32 +138,52 @@ internal fun Win7MolinaFolder(box: Dp) {
         val h = size.height
         drawRoundRect(Color(0xFF9A6F10), Offset(w * 0.04f, h * 0.14f), Size(w * 0.42f, h * 0.2f), CornerRadius(w * 0.05f))
         drawRoundRect(
-            Brush.verticalGradient(listOf(Color(0xFFF2CB63), Color(0xFFB8860B))),
+            Brush.verticalGradient(listOf(Color(0xFFFFDC85), MolinaTheme.Gold)),
             Offset(w * 0.04f, h * 0.26f), Size(w * 0.92f, h * 0.62f), CornerRadius(w * 0.07f)
         )
-        drawRoundRect(Color.White.copy(alpha = 0.45f), Offset(w * 0.08f, h * 0.32f), Size(w * 0.84f, h * 0.12f), CornerRadius(w * 0.04f))
+        val cx = w * 0.5f
+        val cy = h * 0.58f
+        val r = w * 0.17f
+        val star = Path()
+        for (i in 0 until 10) {
+            val rad = if (i % 2 == 0) r else r * 0.45f
+            val ang = Math.toRadians((-90.0 + i * 36.0))
+            val x = cx + (rad * Math.cos(ang)).toFloat()
+            val y = cy + (rad * Math.sin(ang)).toFloat()
+            if (i == 0) star.moveTo(x, y) else star.lineTo(x, y)
+        }
+        star.close()
+        drawPath(star, Color(0xFF5A3F06))
     }
 }
 
+/** Berkas bergaya Home Theater: halaman gelap, garis tepi emas, lencana emas (video = putar, audio = not). */
 @Composable
 internal fun Win7File(video: Boolean, box: Dp) {
     Canvas(Modifier.size(box)) {
         val w = size.width
         val h = size.height
+        val gold = MolinaTheme.Gold
         val page = Path().apply {
             moveTo(w * 0.18f, h * 0.06f); lineTo(w * 0.62f, h * 0.06f); lineTo(w * 0.84f, h * 0.28f)
             lineTo(w * 0.84f, h * 0.94f); lineTo(w * 0.18f, h * 0.94f); close()
         }
-        drawPath(page, Color.White)
-        drawPath(page, Win7.Line, style = Stroke(width = 1.2f))
+        drawPath(page, Color(0xFF1B1E26))
+        drawPath(page, gold.copy(alpha = 0.85f), style = Stroke(width = 1.4f))
         val fold = Path().apply {
             moveTo(w * 0.62f, h * 0.06f); lineTo(w * 0.62f, h * 0.28f); lineTo(w * 0.84f, h * 0.28f); close()
         }
-        drawPath(fold, Win7.Hairline)
-        val badge = Path().apply {
-            moveTo(w * 0.36f, h * 0.46f); lineTo(w * 0.36f, h * 0.80f); lineTo(w * 0.68f, h * 0.63f); close()
+        drawPath(fold, gold.copy(alpha = 0.45f))
+        if (video) {
+            val badge = Path().apply {
+                moveTo(w * 0.36f, h * 0.46f); lineTo(w * 0.36f, h * 0.80f); lineTo(w * 0.68f, h * 0.63f); close()
+            }
+            drawPath(badge, gold)
+        } else {
+            drawCircle(gold, w * 0.09f, Offset(w * 0.40f, h * 0.76f))
+            drawRect(gold, Offset(w * 0.46f, h * 0.44f), Size(w * 0.05f, h * 0.34f))
+            drawRect(gold, Offset(w * 0.46f, h * 0.44f), Size(w * 0.20f, h * 0.07f))
         }
-        drawPath(badge, if (video) Color(0xFF3C7FB1) else Color(0xFF6A9A3A))
     }
 }
 

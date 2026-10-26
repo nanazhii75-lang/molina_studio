@@ -1,5 +1,16 @@
 package com.molina.studio.cinema
 
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.composed
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
@@ -570,7 +581,7 @@ fun Win7OpenDialog(
                             cursorBrush = SolidColor(Win7.Ink),
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                             keyboardActions = KeyboardActions(onDone = { confirm() }),
-                            modifier = Modifier.weight(1f).height(26.dp).background(Win7.Input)
+                            modifier = Modifier.weight(1f).height(26.dp).tapToFocus().background(Win7.Input)
                                 .border(1.dp, Win7.Field).padding(horizontal = 6.dp),
                             decorationBox = { inner -> Box(Modifier.fillMaxSize(), Alignment.CenterStart) { inner() } }
                         )
@@ -1019,6 +1030,23 @@ private fun W7InfoRow(label: String, value: String) {
     }
 }
 
+/**
+ * [KB-TAP] Kolom teks tidak bisa menerima fokus otomatis (fokus awal jendela dialog); fokus baru
+ * diizinkan setelah disentuh pengguna, dan dikunci lagi saat fokus lepas. Keyboard tidak muncul sendiri.
+ */
+private fun Modifier.tapToFocus(): Modifier = composed {
+    var armed by remember { mutableStateOf(false) }
+    this
+        .focusProperties { canFocus = armed }
+        .onFocusChanged { if (!it.isFocused) armed = false }
+        .pointerInput(Unit) {
+            awaitEachGesture {
+                awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                armed = true
+            }
+        }
+}
+
 @Composable
 private fun W7SearchBox(value: String, onChange: (String) -> Unit, modifier: Modifier) {
     Row(
@@ -1032,7 +1060,7 @@ private fun W7SearchBox(value: String, onChange: (String) -> Unit, modifier: Mod
             textStyle = TextStyle(color = Win7.Ink, fontSize = 12.sp),
             cursorBrush = SolidColor(Win7.Ink),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).tapToFocus(),
             decorationBox = { inner ->
                 Box(Modifier.fillMaxWidth(), Alignment.CenterStart) {
                     if (value.isEmpty()) Text("Cari nama\u2026", color = Win7.TextDim, fontSize = 12.sp, maxLines = 1)

@@ -834,3 +834,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] fix(settings): `Unresolved reference 'showExplorer'` di SettingsScreen.kt:140; deklarasi `var showExplorer` dipindah ke sebelum `LaunchedEffect(page)` yang memakainya (urutan deklarasi variabel lokal Kotlin)
 - [x] Dampak: :app saja (settings/SettingsScreen.kt, 1 baris dipindah). Gradle, Manifest, JNI mpv tidak disentuh. Perilaku tidak berubah
 - [ ] BELUM dikompilasi (CI). Risiko: rendah. Bila CI memunculkan error lain di berkas Explorer, kirim lognya
+
+## 2026-10-26 - Penjelajah: keyboard tidak muncul sendiri + ikon emas Molina [EXPLORER-KB-GOLD]
+- [x] fix(explorer): keyboard masih muncul otomatis karena fokus awal dialog mendarat di kolom teks pertama setelah clearFocus; ditambah modifier tapToFocus() (focusProperties canFocus baru true setelah sentuhan pengguna, dikunci lagi saat fokus lepas) pada kotak Cari nama dan kolom Nama file
+- [x] feat(ui): ikon Penjelajah beraksen emas MolinaTheme.Gold di latar gelap: Win7Folder (gradasi emas), Win7MolinaFolder (emas terang + bintang), Win7File (halaman gelap, tepi emas, lencana putar untuk video dan not untuk audio); konsisten dengan bar unduhan molina_dl
+- [x] Dampak: :app saja (cinema/Win7OpenDialog.kt, cinema/Win7Aero.kt). Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi (CI). Risiko: rendah-sedang (Modifier.composed, awaitEachGesture, import baru)
+- [ ] uji perangkat: Settings > Berkas > keyboard TIDAK muncul; ketuk Cari nama > keyboard muncul dan bisa mengetik; ketuk di luar/Back > keyboard tutup; ketuk lagi bisa fokus; Nama file (mode simpan) sama; ikon folder, folder Molina (bintang), video, dan audio tampil emas dan terbaca di baris 20dp
+- [ ] LANGKAH BERIKUT: Aplikasi lain lewat chooser sistem (FileProvider), tampilan grid/thumbnail, Bagikan, riwayat folder
