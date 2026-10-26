@@ -795,3 +795,15 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Temuan: .gitignore (molina_*.py) mengabaikan assets/molina/molina_dl.py sehingga aset bundel tidak ada di repo/CI
 - [ ] Tambah pengecualian .gitignore, commit molina_dl.py ke assets
 - [ ] LANGKAH BERIKUT: mode CLI --url --json; BundledScripts perbarui salinan via hash; halaman native Unduhan
+
+## 2026-10-26 - molina_dl v3: mode --json, inti Unduhan, pembaruan skrip via hash [DL-V3-JSON-HASH]
+- [x] fix(repo): .gitignore (molina_*.py) mengabaikan assets/molina/molina_dl.py sehingga tidak pernah ter-commit/CI; ditambah pengecualian dan skrip kini ada di repo
+- [x] feat(scripts): molina_dl.py v3 (dibangun dari salinan v1 di perangkat; fitur v2 ditulis ulang): bar emas per aliran, antrian banyak URL, mode non-TTY per 10%, CLI non-interaktif (--json, --info, --mode/--height/--ext/--audio-format/--bitrate/--dir, --version), kode keluar 0/1/2/130, SIGTERM membatalkan dengan .part tetap
+- [x] Uji: yt-dlp 2026.10.21 + ffmpeg ke server lokal: --json (antrian 404+sukses, ulang=existed, audio mp3, URL salah rc=2, --info, batal rc=130), bar PTY 44 kolom. Belum diuji: situs sungguhan, dua aliran video+audio dengan Merger, layar Molina Terminal
+- [x] feat(core): DownloadEvent/DownloadEventParser, DownloadReducer (keadaan sesi), BundledScriptPolicy; tes JVM scripts/core-tests/run.sh (45 pemeriksaan lulus)
+- [x] feat(terminal): BundledScripts memperbarui salinan yang belum diedit (SHA-256 tercatat di prefs molina_bundled_scripts); berkas diedit/asal tak diketahui tidak ditimpa, versi baru ditulis sebagai molina_dl.py.new
+- [x] docs: docs/unduhan-native.md (rancangan halaman Unduhan)
+- [x] Dampak: :core:common (berkas baru), :app (BundledScripts), assets, .gitignore. Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi Gradle (CI); Kotlin baru diuji dengan kotlinc 2.1.20 (JVM murni). Risiko: rendah-sedang (BundledScripts memakai API Android)
+- [ ] uji perangkat: perangkat Anda sudah punya molina_dl.py (v2) tanpa hash tercatat > buka aplikasi > muncul Scripts/molina_dl.py.new, berkas lama tetap; python3 molina_dl.py.new --version = 3; hapus berkas lama lalu buka aplikasi > terpasang v3 dan tercatat
+- [ ] LANGKAH BERIKUT: RunRequest.args + ProotScriptExecutor; DownloadRunner (state flow); foreground service; UnduhanScreen
