@@ -105,10 +105,11 @@ private val INDEX = listOf(
     Hit("Molina Shield", "Filter lalu lintas pemutar", Page.Network),
     Hit("Script execution", "Kelola dan jalankan skrip dari editor Code di Molina Terminal", Page.Scripts),
     Hit("Kirim ke Script Execution", "Skrip dari editor Code (menu titik tiga) tampil di Script execution", Page.Scripts),
-    Hit("Tambah skrip", "Judul, isi (maks 3.000 baris), dan catatan skrip", Page.Scripts),
+    Hit("Tambah skrip", "Skrip umum baru; isinya ditulis di editor Code", Page.Scripts),
     Hit("Editor Code", "Pratinjau HTML: renderer native atau WebView", Page.Code),
     Hit("Pratinjau HTML", "WebView untuk halaman HTML (JavaScript dan jaringan mati)", Page.Code),
-    Hit("Paket", "Unduh, perbarui, hapus paket; yt-dlp", Page.Packages),
+    Hit("Paket", "Alat khusus: pasang, versi, hapus (Python 3, Git, FFmpeg, yt-dlp)", Page.Packages),
+    Hit("Tambah alat", "Buat alat sendiri dengan skrip pasang, versi, hapus", Page.Packages),
     Hit("apt update", "Perbarui daftar paket Debian", Page.System),
     Hit("apt upgrade", "Tingkatkan paket Debian (apt upgrade -y)", Page.System),
     Hit("About", "Versi dan lisensi", Page.About)

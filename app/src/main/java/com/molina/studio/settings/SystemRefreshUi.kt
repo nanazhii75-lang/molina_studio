@@ -192,7 +192,9 @@ internal fun StreamEnginePage() {
     val install by YtdlpInstaller.state.collectAsState()
     val ytdlpOn by StreamEnginePrefs.ytdlpEnabled.collectAsState()
     var status by remember { mutableStateOf<YtdlpStatus?>(null) }
-    LaunchedEffect(install) {
+    var tick by remember { mutableIntStateOf(0) }
+    var ytRun by remember { mutableStateOf<ToolRun?>(null) }
+    LaunchedEffect(install, tick) {
         status = withContext(Dispatchers.IO) { YtdlpLocator.status(ctx) }
     }
 
@@ -226,6 +228,20 @@ internal fun StreamEnginePage() {
             is YtdlpInstallState.Failed -> "Gagal: ${i.message}"
         }
     ) { if (!working) YtdlpInstaller.install(ctx) }
+
+    if (st is YtdlpStatus.Ready) {
+        SettingsItem("Versi yt-dlp", "Jalankan yt-dlp --version di Debian (memulai proot + python sesaat).") {
+            ytRun = ToolRun("yt-dlp: Versi", "yt-dlp --version", 2 * 60_000L, "Memeriksa versi yt-dlp.", false)
+        }
+        SettingsItem("Hapus yt-dlp", "Hapus ${st.guestBinary} dari Debian. Python 3 tidak ikut dihapus.") {
+            ytRun = ToolRun("yt-dlp: Hapus", "rm -f '${st.guestBinary}'", 2 * 60_000L, "Menghapus yt-dlp dari Debian. Anda bisa memasangnya lagi kapan saja.", true)
+        }
+    }
+    ytRun?.let { r ->
+        ToolRunDialog(r, onClose = { ytRun = null }) { code, _ ->
+            if (code == 0 && r.script.startsWith("rm ")) tick++
+        }
+    }
 
     if (st == YtdlpStatus.NoPython) {
         SettingsItem("Salin perintah python3", YtdlpCommand.INSTALL_PYTHON_CMD) {

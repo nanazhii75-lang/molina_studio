@@ -608,3 +608,13 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi (CI). Risiko: sedang-rendah
 - [ ] uji perangkat: daftar ringkas; ketuk judul; ketuk segitiga; EDIT ke tab Code; kirim balik tidak menggandakan; + TAMBAH dengan template; hapus/catatan/salin
 - [ ] catatan: tab skrip yang dipulihkan dari draf setelah proses mati kehilangan tautan (kirim ulang membuat entri baru)
+
+## 2026-10-26 - Paket: alat khusus (pasang, versi, hapus) [PAKET-ALAT-PASANG-VERSI-HAPUS]
+- [x] feat(settings): Paket berisi yt-dlp (halaman khusus), alat Debian bawaan (Python 3, Git, FFmpeg), dan alat buatan pengguna (ToolStore, SharedPreferences JSON, maks 30)
+- [x] feat(settings): tiap alat punya skrip pasang, versi, hapus; dijalankan di Debian PRoot lewat ToolRunDialog (konfirmasi + pratinjau perintah, keluaran langsung, Berhenti/Salin); hasil VERSI tersimpan
+- [x] feat(settings): yt-dlp mendapat Versi dan Hapus; DebianAptDialog kini memakai ToolRunDialog (kode dibagi)
+- [x] Pembagian menu: Script execution = skrip umum; Paket = skrip khusus alat
+- [x] Dampak: :app saja (packages/ToolStore.kt, settings/ToolRunUi.kt, ToolsUi.kt, DebianAptUi.kt, PackageScriptUi.kt, SettingsScreen.kt, SystemRefreshUi.kt). Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi (CI). Risiko: sedang-rendah
+- [ ] uji perangkat: kartu alat; VERSI/PASANG/HAPUS; tambah-ubah-buang alat; yt-dlp Versi/Hapus; apt update/upgrade
+- [ ] lanjut: ubah nama skrip dari Settings (Script execution); SVG branding untuk ikon ubin

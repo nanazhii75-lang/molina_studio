@@ -25,21 +25,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/** Halaman "Paket": yt-dlp dipindah ke sini. Unduh, perbarui, dan hapus paket lain menyusul. */
-@Composable
-internal fun PackagesPage(onOpenYtdlp: () -> Unit) {
-    Category("Paket Molina")
-    W7Link({ W7IconYtdlp() }, "Mesin cadangan (yt-dlp)", "TikTok, Facebook, dll. lewat Debian (default mati)", onOpenYtdlp)
-    Spacer(Modifier.height(12.dp))
-    ComingSoon("Segera hadir", "Unduh, perbarui, dan hapus paket dari satu tempat.")
-}
-
-@Composable
-private fun ComingSoon(headline: String, body: String) {
-    Text(headline, color = W7D.NavHeader, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-    Text(body, color = W7D.TextDim, fontSize = 13.sp, modifier = Modifier.padding(top = 6.dp))
-}
-
 @Composable
 internal fun W7IconApt(label: String) {
     val shape = RoundedCornerShape(7.dp)
