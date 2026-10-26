@@ -72,6 +72,14 @@ internal object CinemaActions {
         Intent().setClassName(ctx.packageName, PLAYER).putExtra("filepath", path)
     )
 
+    /** Putar folder sebagai playlist: [firstPath] = berkas media pertama (MpvFolder.firstMediaIn). */
+    fun playFolder(ctx: Context, firstPath: String): Boolean = start(
+        ctx,
+        Intent().setClassName(ctx.packageName, PLAYER)
+            .putExtra("filepath", firstPath)
+            .putExtra("folder_playlist", true)
+    )
+
     fun openSettings(ctx: Context): Boolean =
         start(ctx, Intent().setClassName(ctx.packageName, SETTINGS))
 

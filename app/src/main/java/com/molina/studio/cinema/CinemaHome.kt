@@ -16,6 +16,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.molina.cinema.BackgroundPlaybackState
+import com.molina.cinema.MpvFolder
 import com.molina.core.common.PlaylistPlan
 import com.molina.core.common.StreamError
 import com.molina.core.common.StreamOutcome
@@ -28,6 +29,7 @@ import kotlinx.coroutines.withContext
 
 private const val HINT = "Ketuk ikon tautan di bawah untuk memutar atau mencari video di YouTube."
 private const val FAIL = "Pemutar gagal dibuka."
+private const val NO_MEDIA = "Folder ini tidak berisi berkas media."
 
 private fun searchError(e: StreamError): String = when (e) {
     StreamError.NETWORK -> "Pencarian gagal: periksa koneksi internet."
@@ -53,6 +55,8 @@ fun CinemaHome(modifier: Modifier = Modifier) {
     var results by remember { mutableStateOf<List<StreamSearchItem>>(emptyList()) }
     var showResults by remember { mutableStateOf(false) }
     var openLocal by rememberSaveable { mutableStateOf(false) }
+    var openChooser by rememberSaveable { mutableStateOf(false) }
+    var openFolder by rememberSaveable { mutableStateOf(false) }
 
     fun search(q: String) {
         if (searching) return
@@ -91,7 +95,7 @@ fun CinemaHome(modifier: Modifier = Modifier) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) { CinemaLogo(info.ifEmpty { HINT }) }
         Row(Modifier.fillMaxWidth(), Arrangement.SpaceEvenly) {
-            CinemaAction("\uD83D\uDCC4", "File") { openLocal = true }
+            CinemaAction("\uD83D\uDCC4", "File") { openChooser = true }
             CinemaAction("\uD83D\uDD17", "Tautan") { dialog = true }
             CinemaAction("\u2699", "Setelan") { if (!CinemaActions.openSettings(ctx)) info = "Setelan gagal dibuka." }
             CinemaAction("\u21BB", "Reset") {
@@ -145,6 +149,24 @@ fun CinemaHome(modifier: Modifier = Modifier) {
         onPick = { f ->
             openLocal = false
             if (!CinemaActions.playPath(ctx, f.absolutePath)) info = FAIL
+        }
+    )
+    if (openChooser) CinemaOpenChooser(
+        onFile = { openChooser = false; openLocal = true },
+        onFolder = { openChooser = false; openFolder = true },
+        onDismiss = { openChooser = false }
+    )
+    if (openFolder) Win7OpenDialog(
+        onDismiss = { openFolder = false },
+        pickFolder = true,
+        onPickFolder = { d ->
+            openFolder = false
+            val first = MpvFolder.firstMediaIn(d)
+            info = when {
+                first == null -> NO_MEDIA
+                CinemaActions.playFolder(ctx, first) -> ""
+                else -> FAIL
+            }
         }
     )
     if (showResults) SearchResultsDialog(

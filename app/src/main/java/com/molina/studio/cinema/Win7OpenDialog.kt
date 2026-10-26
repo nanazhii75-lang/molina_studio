@@ -117,7 +117,9 @@ fun Win7OpenDialog(
     browse: Boolean = false,
     onCopyPath: ((File) -> Unit)? = null,
     onSendToTerminal: ((File) -> Unit)? = null,
-    onChangeDir: ((File) -> Unit)? = null
+    onChangeDir: ((File) -> Unit)? = null,
+    pickFolder: Boolean = false,
+    onPickFolder: (File) -> Unit = {}
 ) {
     val ctx = LocalContext.current
     val favs = remember { w7Favorites(browse) }
@@ -178,7 +180,7 @@ fun Win7OpenDialog(
                 Row(Modifier.weight(1f).padding(top = 5.dp, start = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                     Win7Folder(16.dp)
                     Spacer(Modifier.width(6.dp))
-                    Text(if (browse) "Penjelajah Molina" else "Buka", color = Win7.Ink, fontSize = 13.sp)
+                    Text(if (browse) "Penjelajah Molina" else if (pickFolder) "Buka folder" else "Buka", color = Win7.Ink, fontSize = 13.sp)
                 }
                 Win7Close(onDismiss)
             }
@@ -222,6 +224,7 @@ fun Win7OpenDialog(
                         onSort = { k -> if (key == k) asc = !asc else { key = k; asc = true } },
                         onOpen = { e ->
                             if (e.isDir) go(e.file)
+                            else if (pickFolder) Unit
                             else if (selected?.file == e.file) onPick(e.file)
                             else { selected = e; fileName = e.name; message = "" }
                         },
@@ -230,7 +233,10 @@ fun Win7OpenDialog(
                 }
                 Box(Modifier.fillMaxWidth().height(1.dp).background(Win7.Hairline))
                 Column(Modifier.fillMaxWidth().padding(8.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (pickFolder) Text(
+                        "Folder: " + dir.path, color = Win7.Ink, fontSize = 12.sp, maxLines = 2,
+                        overflow = TextOverflow.Ellipsis, modifier = Modifier.fillMaxWidth()
+                    ) else Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("Nama file:", color = Win7.Ink, fontSize = 12.sp, modifier = Modifier.width(66.dp))
                         BasicTextField(
                             value = fileName,
@@ -246,7 +252,7 @@ fun Win7OpenDialog(
                         )
                     }
                     Spacer(Modifier.height(6.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (!pickFolder) Row(verticalAlignment = Alignment.CenterVertically) {
                         Spacer(Modifier.width(66.dp))
                         Row(
                             Modifier.weight(1f).height(26.dp)
@@ -291,7 +297,11 @@ fun Win7OpenDialog(
                     }
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Text(message, color = Color(0xFFFF8A80), fontSize = 11.sp, modifier = Modifier.weight(1f).padding(end = 8.dp))
-                        Win7Button("Buka", isDefault = true, enabled = fileName.isNotBlank(), onClick = { confirm() })
+                        Win7Button(
+                            if (pickFolder) "Pilih folder" else "Buka", isDefault = true,
+                            enabled = if (pickFolder) granted else fileName.isNotBlank(),
+                            onClick = { if (pickFolder) onPickFolder(dir) else confirm() }
+                        )
                         Spacer(Modifier.width(8.dp))
                         Win7Button("Batal", onClick = onDismiss)
                     }
