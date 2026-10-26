@@ -16,28 +16,6 @@
         <!-- Since this dialog scrolls only on small screens, don't add too many buttons here! -->
 
         <ImageButton
-        android:id="@+id/audioBtn"
-        style="@style/Widget.Molina.MenuIcon"
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:minWidth="0dp"
-        android:minHeight="48dp"
-        android:contentDescription="@string/open_external_audio"
-        android:tooltipText="@string/open_external_audio"
-        android:src="@drawable/ic_menu_audio_file" />
-
-        <ImageButton
-        android:id="@+id/subBtn"
-        style="@style/Widget.Molina.MenuIcon"
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:minWidth="0dp"
-        android:minHeight="48dp"
-        android:contentDescription="@string/open_external_sub"
-        android:tooltipText="@string/open_external_sub"
-        android:src="@drawable/ic_menu_subtitles" />
-
-        <ImageButton
         android:id="@+id/playlistBtn"
         style="@style/Widget.Molina.MenuIcon"
         android:layout_width="match_parent"

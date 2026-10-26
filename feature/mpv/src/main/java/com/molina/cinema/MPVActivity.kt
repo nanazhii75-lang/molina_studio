@@ -70,7 +70,6 @@ import java.io.File
 import java.lang.IllegalArgumentException
 import kotlin.math.roundToInt
 
-typealias ActivityResultCallback = (Int, Intent?) -> Unit
 typealias StateRestoreCallback = () -> Unit
 
 class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObserver {
@@ -1677,17 +1676,6 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         lateinit var dialog: AlertDialog
 
         impl.listeners = object : PlaylistDialog.Listeners {
-            private fun openFilePicker(skip: Int) {
-                openFilePickerFor(RCODE_LOAD_FILE, "", skip) { result, data ->
-                    if (result == RESULT_OK) {
-                        val path = data!!.getStringExtra("path")!!
-                        MPVLib.command(arrayOf("loadfile", path, "append"))
-                        impl.refresh()
-                    }
-                }
-            }
-            override fun pickFile() = openFilePicker(FilePickerActivity.FILE_PICKER)
-
             override fun openUrl() {
                 val helper = Utils.OpenUrlDialog(this@MPVActivity)
                 with (helper) {
@@ -1839,33 +1827,9 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
     private fun openTopMenu() {
         val restoreState = pauseForDialog()
 
-        fun addExternalThing(cmd: String, result: Int, data: Intent?) {
-            if (result != RESULT_OK)
-                return
-            // file picker may return a content URI or a bare file path
-            val path = data!!.getStringExtra("path")!!
-            val path2 = if (path.startsWith("content://"))
-                translateContentUri(Uri.parse(path))
-            else
-                path
-            MPVLib.command(arrayOf(cmd, path2, "cached"))
-        }
-
         /******/
         val hiddenButtons = mutableSetOf<Int>()
         val buttons: MutableList<MenuItem> = mutableListOf(
-                MenuItem(R.id.audioBtn) {
-                    openFilePickerFor(RCODE_EXTERNAL_AUDIO, R.string.open_external_audio) { result, data ->
-                        addExternalThing("audio-add", result, data)
-                        restoreState()
-                    }; false
-                },
-                MenuItem(R.id.subBtn) {
-                    openFilePickerFor(RCODE_EXTERNAL_SUB, R.string.open_external_sub) { result, data ->
-                        addExternalThing("sub-add", result, data)
-                        restoreState()
-                    }; false
-                },
                 MenuItem(R.id.playlistBtn) {
                     openPlaylistMenu(restoreState); false
                 },
@@ -2114,29 +2078,6 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
             ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
         else
             ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
-    }
-
-    private var activityResultCallbacks: MutableMap<Int, ActivityResultCallback> = mutableMapOf()
-    private fun openFilePickerFor(requestCode: Int, title: String, skip: Int?, callback: ActivityResultCallback) {
-        val intent = Intent(this, FilePickerActivity::class.java)
-        intent.putExtra("title", title)
-        intent.putExtra("allow_document", true)
-        skip?.let { intent.putExtra("skip", it) }
-        // start file picker at directory of current file
-        val path = MPVLib.getPropertyString("path") ?: ""
-        if (path.startsWith('/'))
-            intent.putExtra("default_path", File(path).parent)
-
-        activityResultCallbacks[requestCode] = callback
-        startActivityForResult(intent, requestCode)
-    }
-    private fun openFilePickerFor(requestCode: Int, @StringRes titleRes: Int, callback: ActivityResultCallback) {
-        openFilePickerFor(requestCode, getString(titleRes), null, callback)
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        activityResultCallbacks.remove(requestCode)?.invoke(resultCode, data)
     }
 
     private fun refreshUi() {
@@ -2698,10 +2639,6 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         private const val ASPECT_RATIO_MIN = 1.2f // covers 5:4 and up
         // fraction to which audio volume is ducked on loss of audio focus
         private const val AUDIO_FOCUS_DUCKING = 0.5f
-        // request codes for invoking other activities
-        private const val RCODE_EXTERNAL_AUDIO = 1000
-        private const val RCODE_EXTERNAL_SUB = 1001
-        private const val RCODE_LOAD_FILE = 1002
         // action of result intent
         private const val RESULT_INTENT = "com.molina.cinema.MPVActivity.result"
         // stream type used with AudioManager

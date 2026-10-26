@@ -680,3 +680,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: :feature:mpv (kode, layout, AndroidManifest.xml). Gradle dan JNI mpv tidak disentuh. Aman bagi :app (MainActivity :app berbeda paket)
 - [ ] BELUM dikompilasi (CI). Risiko: sedang (hapus kelas + Manifest; pengaman Python sudah memindai pemakai tersisa)
 - [ ] uji perangkat: aplikasi tetap terbuka ke CinemaHome; putar video; menu Audio/Subtitle eksternal dan playlist Pilih file tetap jalan; Pengaturan pemutar terbuka dan tombol kembali berfungsi; About dari pengaturan terbuka
+
+## 2026-10-26 - Hapus picker lama mpv [MPV-REMOVE-PICKER]
+- [x] refactor(mpv): hapus FilePickerActivity, paket filepicker/ (AbstractFilePickerFragment, FilePickerFragment, DocumentPickerFragment, dst.), MPVFilePickerFragment, MPVDocumentPickerFragment, layout/menu picker; entri Manifest FilePickerActivity dibuang
+- [x] refactor(mpv): MPVActivity: buang plumbing picker (openFilePickerFor, onActivityResult, RCODE_*, ActivityResultCallback) dan tombol Audio/Subtitle eksternal di menu atas; PlaylistDialog: buang tombol Pilih file (tombol URL tetap)
+- [x] Keputusan pengguna (opsi C): fitur tambah audio/subtitle eksternal dan tambah file ke playlist dari dalam pemutar dihapus; memilih file dilakukan lewat Penjelajah/Win7OpenDialog di Cinema
+- [x] Dampak: :feature:mpv (kode, layout, AndroidManifest.xml). Gradle dan JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi (CI). Risiko: sedang-tinggi (banyak berkas dihapus + penyuntingan MPVActivity); pengaman Python sudah memindai sisa referensi
+- [ ] uji perangkat: putar video dari Cinema; menu atas pemutar (tanpa tombol Audio/Subtitle eksternal); playlist terbuka (tombol URL tetap ada); lanjut/putar ulang normal; pengaturan pemutar terbuka

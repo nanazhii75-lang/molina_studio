@@ -46,7 +46,6 @@ internal class PlaylistDialog(
     private var query = ""
 
     interface Listeners {
-        fun pickFile()
         fun openUrl()
         fun onItemPicked(item: MPVView.PlaylistItem)
         fun onPendingPicked(planIndex: Int) {}
@@ -65,7 +64,6 @@ internal class PlaylistDialog(
         binding.list.setHasFixedSize(true)
         refresh()
 
-        binding.fileBtn.setOnClickListener { listeners?.pickFile() }
         binding.urlBtn.setOnClickListener { listeners?.openUrl() }
         binding.exitBtn.setOnClickListener { listeners?.onExit() }
         binding.menuBtn.setOnClickListener { listeners?.onMenu() }
