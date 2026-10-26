@@ -399,7 +399,7 @@ private fun TerminalIoPage() {
         "Akses penyimpanan penuh",
         if (TerminalPrefs.fullStorageAccess)
             "Seluruh /sdcard terlihat di dalam Debian. Berlaku di sesi baru."
-        else "Hanya /sdcard/molina-studio yang terlihat di dalam Debian. (Default) Berlaku di sesi baru.",
+        else "Hanya /sdcard/molina-studio dan /sdcard/Molina yang terlihat di dalam Debian. (Default) Berlaku di sesi baru.",
         TerminalPrefs.fullStorageAccess
     ) { TerminalPrefs.setFullStorageAccess(it) }
 }

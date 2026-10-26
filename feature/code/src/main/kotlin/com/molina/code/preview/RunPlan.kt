@@ -50,15 +50,21 @@ object RunPlans {
 object GuestPaths {
     /**
      * Jalur guest untuk [hostPath], atau null bila tidak terlihat di guest. Default hanya folder
-     * kerja [workspace] yang di-bind; [fullAccess] membuka seluruh storage.
+     * kerja [workspace] dan [extraRoots] (folder setingkat, mis. Molina) yang di-bind; [fullAccess] membuka seluruh storage.
      */
-    fun of(hostPath: String, storageRoot: String, workspace: String, fullAccess: Boolean): String? {
+    fun of(
+        hostPath: String,
+        storageRoot: String,
+        workspace: String,
+        fullAccess: Boolean,
+        extraRoots: List<String> = emptyList(),
+    ): String? {
         val root = storageRoot.trimEnd('/')
         if (hostPath != root && !hostPath.startsWith("$root/")) return null
         val rel = hostPath.removePrefix(root)
         if (rel.split('/').any { it == ".." }) return null
         if (fullAccess) return "/sdcard$rel"
-        val ws = "/$workspace"
-        return if (rel == ws || rel.startsWith("$ws/")) "/sdcard$rel" else null
+        val visible = (listOf(workspace) + extraRoots).any { rel == "/$it" || rel.startsWith("/$it/") }
+        return if (visible) "/sdcard$rel" else null
     }
 }

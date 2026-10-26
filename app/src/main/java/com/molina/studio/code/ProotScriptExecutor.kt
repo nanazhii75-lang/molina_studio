@@ -14,6 +14,7 @@ import com.molina.core.common.YtdlpCommand
 import com.molina.studio.system.AndroidProcessOps
 import com.molina.studio.terminal.MolinaDns
 import com.molina.studio.terminal.RootfsManager
+import com.molina.studio.terminal.StorageBinds
 import com.molina.studio.terminal.TerminalPrefs
 import com.molina.studio.terminal.TerminalSessions
 import java.io.File
@@ -144,9 +145,9 @@ internal class ProotScriptExecutor(context: Context) : ScriptExecutor {
             listOf(
                 "--bind=${ws.absolutePath}:/sdcard/$workspace",
                 "--bind=${ws.absolutePath}:/storage/emulated/0/$workspace",
-            )
+            ) + StorageBinds.app(app, rootfsDir)
         }
-        val cwd = req.hostDir?.let { GuestPaths.of(it, storage, workspace, full) } ?: "/root"
+        val cwd = req.hostDir?.let { GuestPaths.of(it, storage, workspace, full, listOf(com.molina.core.common.MolinaPaths.APP_FOLDER)) } ?: "/root"
 
         val cmd = YtdlpCommand.SH_WRAPPER + "$nativeDir/libproot.so" +
             ScriptCommand.prootArgs(rootfsDir.absolutePath, cwd, binds, req.plan.interpreter, guestScript)

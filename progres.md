@@ -745,3 +745,13 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: hanya skrip pengguna (di luar repo). Gradle, Manifest, JNI mpv tidak disentuh
 - [ ] uji perangkat dengan yt-dlp asli: video dan audio masuk ke folder yang benar setelah akses penuh aktif
 - [ ] LANGKAH BERIKUT: bind appRoot di TerminalSessions dan ProotScriptExecutor supaya /sdcard/Molina terlihat tanpa akses penuh; opsional kirim MOLINA_ROOT dari aplikasi
+
+## 2026-10-26 - Bind /sdcard/Molina ke Debian tanpa akses penuh [PROOT-BIND-APPROOT]
+- [x] StorageBinds.app (baru, :app/terminal): bind appRoot ke /sdcard/Molina dan /storage/emulated/0/Molina; titik mount rootfs hanya dibuat bila bind dipasang (skrip di guest bisa mendeteksi bind lewat isdir)
+- [x] TerminalSessions.debianShell dan ProotScriptExecutor.exec menambah bind appRoot di mode default (mode akses penuh tidak berubah)
+- [x] GuestPaths.of: parameter extraRoots (default kosong, tes lama tetap); cwd skrip dari /sdcard/Molina kini terpetakan
+- [x] ExplorerBridge.visibleInDebian + teks pengaturan: /sdcard/Molina ikut dianggap terlihat di Debian; 2 tes baru di PreviewTests
+- [x] Dampak: :app, :feature:code, scripts/code-tests. Gradle, Manifest, JNI mpv tidak disentuh; bind molina-studio tidak diubah
+- [ ] BELUM dikompilasi (CI). Risiko: sedang (menyentuh debianShell dan exec PRoot)
+- [ ] uji perangkat: akses penuh MATI + sesi BARU > ls /sdcard/Molina menampilkan Media/Video dst; molina_dl.py memakai Media/Video dan Media/Audio tanpa peringatan; Penjelajah: cd ke /sdcard/Molina berhasil; sesi lama (sebelum update) tetap tanpa bind; akses penuh AKTIF tetap normal
+- [ ] LANGKAH BERIKUT: pindahkan HOME_DIR terminal ke Workspace; bundle molina_dl.py sebagai asset

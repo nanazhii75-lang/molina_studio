@@ -29,14 +29,17 @@ internal object MolinaExplorer {
 
     /**
      * Terlihat di Debian: seluruh penyimpanan internal bila "Akses penyimpanan penuh" aktif,
-     * selain itu hanya folder kerja molina-studio (sesuai bind PRoot). Kartu SD/USB tidak pernah terlihat.
+     * selain itu hanya molina-studio dan folder aplikasi Molina (sesuai bind PRoot). Kartu SD/USB tidak pernah terlihat.
      */
     fun visibleInDebian(f: File): Boolean {
         // Bind PRoot tetap selama sesi hidup: ikuti sesi aktif, bukan hanya setelan terbaru
         val full = TerminalSessions.fullAccessOf(TerminalSessions.currentSession) ?: TerminalPrefs.fullStorageAccess
-        val root = if (full) base() else base() + "/" + TerminalSessions.WORKSPACE_DIR
+        val roots = if (full) listOf(base()) else listOf(
+            base() + "/" + TerminalSessions.WORKSPACE_DIR,
+            base() + "/" + com.molina.core.common.MolinaPaths.APP_FOLDER,
+        )
         val p = f.absolutePath
-        return p == root || p.startsWith("$root/")
+        return roots.any { p == it || p.startsWith("$it/") }
     }
 
     fun quote(path: String): String = "'" + path.replace("'", "'\\''") + "'"
@@ -80,7 +83,7 @@ internal object MolinaExplorer {
                 if (TerminalPrefs.fullStorageAccess && TerminalSessions.fullAccessOf(TerminalSessions.currentSession) == false)
                     "Sesi terminal ini dibuat sebelum Akses penyimpanan penuh aktif. Buka sesi baru (NEW SESSION)."
                 else
-                    "Folder ini tidak terlihat di Debian. Aktifkan \"Akses penyimpanan penuh\" di Setelan Terminal (berlaku di sesi baru), atau pindahkan ke molina-studio.",
+                    "Folder ini tidak terlihat di Debian. Aktifkan \"Akses penyimpanan penuh\" di Setelan Terminal (berlaku di sesi baru), atau pindahkan ke folder Molina atau molina-studio.",
                 Toast.LENGTH_LONG
             ).show()
             return

@@ -179,7 +179,8 @@ object TerminalSessions {
             File(rootfsDir, "storage/emulated/0/$WORKSPACE_DIR").mkdirs()
             arrayOf(
                 "--bind=${ws.absolutePath}:/sdcard/$WORKSPACE_DIR",
-                "--bind=${ws.absolutePath}:/storage/emulated/0/$WORKSPACE_DIR"
+                "--bind=${ws.absolutePath}:/storage/emulated/0/$WORKSPACE_DIR",
+                *StorageBinds.app(ctx, rootfsDir).toTypedArray()
             )
         }
 

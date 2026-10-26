@@ -48,6 +48,8 @@ fun main() {
     eq("gp full root", GuestPaths.of(root, root, "molina-studio", true), "/sdcard")
     eq("gp dotdot", GuestPaths.of("$root/molina-studio/../x", root, "molina-studio", true), null)
     eq("gp other root", GuestPaths.of("/data/x", root, "molina-studio", true), null)
+    eq("gp extra root", GuestPaths.of("$root/Molina/Media/Video", root, "molina-studio", false, listOf("Molina")), "/sdcard/Molina/Media/Video")
+    eq("gp extra prefix trap", GuestPaths.of("$root/Molina2/x", root, "molina-studio", false, listOf("Molina")), null)
 
     // --- OutputBuffer
     run {
