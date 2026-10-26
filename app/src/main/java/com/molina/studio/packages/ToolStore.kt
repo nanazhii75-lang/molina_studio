@@ -29,21 +29,71 @@ private const val APT = "-o APT::Sandbox::User=root"
 
 /** Alat bawaan (tidak bisa diubah atau dibuang). yt-dlp punya halaman sendiri karena memverifikasi SHA-256. */
 object BuiltinTools {
+    private val PYTHON_REMOVE = ToolPurge.script(
+        listOf("python3"),
+        listOf("/root/.cache/pip", "/root/.local/lib/python3*", "/root/.python_history", "/usr/local/lib/python3*"),
+        true
+    )
+    private val GIT_REMOVE = ToolPurge.script(
+        listOf("git"),
+        listOf("/root/.gitconfig", "/root/.git-credentials", "/root/.config/git", "/etc/gitconfig"),
+        true
+    )
+    private val FFMPEG_REMOVE = ToolPurge.script(listOf("ffmpeg"), emptyList(), true)
+
     val all: List<ToolItem> = listOf(
         ToolItem(
             "b-python3", "Python 3", "Interpreter Python di Debian. yt-dlp membutuhkannya.",
-            "apt update $APT\napt install -y $APT python3", "python3 --version", "apt remove -y $APT python3", true
+            "apt update $APT\napt install -y $APT python3", "python3 --version", PYTHON_REMOVE, true
         ),
         ToolItem(
             "b-git", "Git", "Sistem kontrol versi.",
-            "apt update $APT\napt install -y $APT git", "git --version", "apt remove -y $APT git", true
+            "apt update $APT\napt install -y $APT git", "git --version", GIT_REMOVE, true
         ),
         ToolItem(
             "b-ffmpeg", "FFmpeg", "Konversi dan pemrosesan audio/video.",
             "apt update $APT\napt install -y $APT ffmpeg",
-            "command -v ffmpeg >/dev/null && ffmpeg -version | head -n 1", "apt remove -y $APT ffmpeg", true
+            "command -v ffmpeg >/dev/null && ffmpeg -version | head -n 1", FFMPEG_REMOVE, true
         )
     )
+}
+
+/**
+ * Skrip "hapus tuntas" di Debian: purge paket (bukan sekadar remove), autoremove dependensi yatim, hapus
+ * konfigurasi/cache/sisa berkas, lalu verifikasi. Keluar dengan kode 3 bila masih ada sisa.
+ */
+object ToolPurge {
+    private const val STATE = "^(ii|rc|hi|iU|iF|iH|iW|iT) "
+    val YTDLP_PATHS = listOf(
+        "/usr/local/bin/yt-dlp*", "/root/.local/bin/yt-dlp*", "/usr/bin/yt-dlp",
+        "/root/.cache/yt-dlp", "/root/.config/yt-dlp", "/root/yt-dlp.conf", "/etc/yt-dlp.conf", "/etc/yt-dlp"
+    )
+
+    fun script(pkgs: List<String>, paths: List<String>, autoremove: Boolean): String = buildString {
+        append("echo '== [1/4] Purge paket =='\n")
+        for (p in pkgs) {
+            append("if dpkg -l '$p' 2>/dev/null | grep -qE '$STATE'; then\n")
+            append("  apt purge -y $APT '$p'\n")
+            append("else\n  echo 'Paket $p tidak terpasang, dilewati'\nfi\n")
+        }
+        if (autoremove) {
+            append("echo '== [2/4] Autoremove dependensi yatim =='\n")
+            append("apt autoremove --purge -y $APT\n")
+            append("apt clean\n")
+        }
+        append("echo '== [3/4] Hapus konfigurasi, cache, dan sisa berkas =='\n")
+        if (paths.isNotEmpty()) append("rm -rf ${paths.joinToString(" ")}\n")
+        append("echo '== [4/4] Verifikasi =='\n")
+        append("rm -f /tmp/.molina_left\n")
+        for (p in pkgs) {
+            append("if dpkg -l '$p' 2>/dev/null | grep -qE '$STATE'; then echo 'SISA paket: $p'; touch /tmp/.molina_left; fi\n")
+        }
+        for (f in paths) {
+            append("if ls -d $f >/dev/null 2>&1; then echo 'SISA berkas: $f'; touch /tmp/.molina_left; fi\n")
+        }
+        append("if [ -e /tmp/.molina_left ]; then rm -f /tmp/.molina_left; echo 'Penghapusan BELUM tuntas, lihat baris SISA di atas.'; exit 3; fi\n")
+        append("echo 'Tuntas: tidak ada sisa paket maupun berkas.'\n")
+    }
 }
 
 /**

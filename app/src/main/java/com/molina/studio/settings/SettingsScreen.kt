@@ -27,6 +27,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -112,6 +113,7 @@ private val INDEX = listOf(
     Hit("Tambah alat", "Buat alat sendiri dengan skrip pasang, versi, hapus", Page.Packages),
     Hit("apt update", "Perbarui dan tingkatkan paket Debian (apt update && apt upgrade -y)", Page.System),
     Hit("apt upgrade", "Perbarui dan tingkatkan paket Debian (apt update && apt upgrade -y)", Page.System),
+    Hit("Daftar tool terpasang", "Deteksi alat Molina di Debian beserta versinya", Page.System),
     Hit("About", "Versi dan lisensi", Page.About)
 )
 
@@ -130,6 +132,10 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     // Lepas fokus (dan tutup keyboard) setiap kali halaman Settings berganti.
     LaunchedEffect(page) { focus.clearFocus() }
     var apt by remember { mutableStateOf<AptJob?>(null) }
+    var showTools by remember { mutableStateOf(false) }
+    val aptCtx = LocalContext.current
+    remember { AptHistory.init(aptCtx) }
+    val aptLast by AptHistory.last.collectAsState()
     fun open(p: Page) { query = ""; page = p }
     BackHandler(enabled = query.isNotBlank() || page != Page.Home) {
         if (query.isNotBlank()) query = "" else page = parentOf(page) ?: Page.Home
@@ -156,6 +162,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     ) {
         if (showRefresh) SystemRefreshDialog { showRefresh = false }
         apt?.let { job -> DebianAptDialog(job) { apt = null } }
+        if (showTools) InstalledToolsDialog { showTools = false }
         when {
             searching -> SearchResults(query) { open(it) }
             page == Page.Log -> LogScreen(Modifier.fillMaxSize())
@@ -189,7 +196,8 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         W7Link({ W7IconShield() }, "Keamanan dan privasi", "Kebijakan URL, jaringan lokal (LAN), layar privat") { open(Page.Network) }
                         W7Link({ W7IconInfo() }, "About", "Versi dan lisensi") { open(Page.About) }
                         Category("Debian")
-                        W7Link({ W7IconAptSync() }, "Perbarui dan tingkatkan paket", "apt update && apt upgrade -y") { apt = AptJob.UpdateUpgrade }
+                        W7Link({ W7IconAptSync() }, "Perbarui dan tingkatkan paket", AptHistory.subtitle(aptLast)) { apt = AptJob.UpdateUpgrade }
+                        W7Link({ W7IconToolList() }, "Daftar tool terpasang", "Deteksi alat Molina di Debian beserta versinya") { showTools = true }
                         Spacer(Modifier.height(12.dp))
                         W7SystemSummary()
                     }

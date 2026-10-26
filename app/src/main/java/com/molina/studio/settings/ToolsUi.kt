@@ -57,7 +57,7 @@ private val Red = Color(0xFFE8776B)
 private enum class ToolAction(val label: String, val timeoutMs: Long, val confirm: Boolean) {
     Install("Pasang", 30 * 60_000L, true),
     Version("Versi", 2 * 60_000L, false),
-    Remove("Hapus", 10 * 60_000L, true)
+    Remove("Hapus", 15 * 60_000L, true)
 }
 
 private class PendingRun(val tool: ToolItem, val action: ToolAction)
@@ -135,7 +135,14 @@ internal fun PackagesPage(onOpenYtdlp: () -> Unit) {
         val note = when (pr.action) {
             ToolAction.Install -> "Memasang ${pr.tool.name} di Debian. Butuh internet."
             ToolAction.Version -> "Memeriksa versi ${pr.tool.name}."
-            ToolAction.Remove -> "Menghapus ${pr.tool.name} dari Debian. Aplikasi lain yang bergantung padanya bisa berhenti bekerja."
+            ToolAction.Remove ->
+                if (pr.tool.builtin) {
+                    "Menghapus ${pr.tool.name} dari Debian sampai tuntas: purge paket, dependensi yatim, konfigurasi, " +
+                        "cache, dan sisa berkas, lalu diverifikasi. Pengaturan pengguna ikut hilang (mis. ~/.gitconfig " +
+                        "untuk Git). Aplikasi lain yang bergantung padanya bisa berhenti bekerja."
+                } else {
+                    "Menjalankan skrip hapus ${pr.tool.name}. Pastikan skripnya membersihkan sisa berkas sendiri."
+                }
         }
         ToolRunDialog(
             ToolRun("${pr.tool.name}: ${pr.action.label}", scriptOf(pr.tool, pr.action), pr.action.timeoutMs, note, pr.action.confirm),

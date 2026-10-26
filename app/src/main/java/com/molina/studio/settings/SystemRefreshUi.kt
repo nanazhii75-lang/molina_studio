@@ -39,6 +39,7 @@ import com.molina.core.common.RefreshReport
 import com.molina.core.common.Refreshers
 import com.molina.core.common.StreamResolvers
 import com.molina.core.common.YtdlpCommand
+import com.molina.studio.packages.ToolPurge
 import com.molina.studio.cinema.MemoryRefresh
 import com.molina.studio.stream.StreamEnginePrefs
 import com.molina.studio.stream.YtdlpInstallState
@@ -233,13 +234,18 @@ internal fun StreamEnginePage() {
         SettingsItem("Versi yt-dlp", "Jalankan yt-dlp --version di Debian (memulai proot + python sesaat).") {
             ytRun = ToolRun("yt-dlp: Versi", "yt-dlp --version", 2 * 60_000L, "Memeriksa versi yt-dlp.", false)
         }
-        SettingsItem("Hapus yt-dlp", "Hapus ${st.guestBinary} dari Debian. Python 3 tidak ikut dihapus.") {
-            ytRun = ToolRun("yt-dlp: Hapus", "rm -f '${st.guestBinary}'", 2 * 60_000L, "Menghapus yt-dlp dari Debian. Anda bisa memasangnya lagi kapan saja.", true)
+        SettingsItem("Hapus yt-dlp", "Hapus tuntas: biner, cache, dan konfigurasi. Python 3 tidak ikut dihapus.") {
+            ytRun = ToolRun(
+                "yt-dlp: Hapus", ToolPurge.script(listOf("yt-dlp"), ToolPurge.YTDLP_PATHS, false), 10 * 60_000L,
+                "Menghapus yt-dlp sampai tuntas: semua salinan biner, cache, dan konfigurasi, lalu diverifikasi. " +
+                    "Python 3 tidak ikut dihapus. Anda bisa memasangnya lagi kapan saja.",
+                true
+            )
         }
     }
     ytRun?.let { r ->
         ToolRunDialog(r, onClose = { ytRun = null }) { code, _ ->
-            if (code == 0 && r.script.startsWith("rm ")) tick++
+            if (code != -1 && r.title.endsWith("Hapus")) tick++
         }
     }
 

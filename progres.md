@@ -627,3 +627,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: :app saja (settings/DebianAptUi.kt, ToolRunUi.kt, PackageScriptUi.kt, SettingsScreen.kt). Gradle, Manifest, JNI mpv tidak disentuh
 - [ ] BELUM dikompilasi (CI). Risiko: rendah-sedang (ikon Canvas + parameter baru ToolRun, semua default sehingga pemanggil lain tidak berubah)
 - [ ] uji perangkat: ikon tampil rapi; konfirmasi lalu update->upgrade berurutan; ringkasan muncul di status; offline -> upgrade tidak jalan, tanpa ringkasan
+
+## 2026-10-26 - Debian: daftar tool terpasang, hapus tuntas, riwayat apt [DEBIAN-TOOLS-PURGE]
+- [x] feat(settings): menu Debian "Daftar tool terpasang" (InstalledToolsUi.kt): satu skrip sh mendeteksi Python 3, Git, FFmpeg, alat buatan pengguna, dan yt-dlp beserta versinya + info rilis Debian; hasil disimpan ke kartu Paket (ToolStore.setCheck)
+- [x] feat(packages): ToolPurge.script = purge paket, autoremove --purge, apt clean, hapus konfigurasi/cache/sisa berkas, verifikasi (exit 3 bila ada sisa); dipakai HAPUS Python 3, Git, FFmpeg dan Hapus yt-dlp (semua salinan biner, cache, config)
+- [x] feat(settings): menu apt menampilkan "Terakhir berhasil: <tanggal>" (AptHistory, SharedPreferences molina_apt); ringkasan apt dicatat ke Log; tombol Salin menyertakan status + ringkasan
+- [x] Dampak: :app saja (packages/ToolStore.kt, settings/ToolsUi.kt, SystemRefreshUi.kt, ToolRunUi.kt, DebianAptUi.kt, PackageScriptUi.kt, SettingsScreen.kt, InstalledToolsUi.kt baru). Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi (CI). Risiko: sedang (string skrip Kotlin + parsing keluaran)
+- [ ] uji perangkat: Daftar tool terpasang (rootfs ada/tidak ada); HAPUS Python 3/Git/FFmpeg -> baris Verifikasi "Tuntas"; Hapus yt-dlp -> status kembali NoYtdlp; pasang ulang berhasil; subtitle "Terakhir berhasil" muncul setelah apt sukses
+- [ ] catatan: alat buatan pengguna tetap memakai skrip hapus buatan sendiri (tidak otomatis tuntas)

@@ -1,6 +1,14 @@
 package com.molina.studio.settings
 
 import androidx.compose.runtime.Composable
+import android.content.Context
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /** Pintasan perawatan Debian di Settings > Sistem. Dijalankan lewat [ToolRunDialog] di Debian PRoot. */
 internal enum class AptJob(val title: String, val command: String, val timeoutMs: Long, val note: String) {
@@ -36,8 +44,36 @@ private fun aptSummary(lines: List<String>): String? {
 
 @Composable
 internal fun DebianAptDialog(job: AptJob, onClose: () -> Unit) {
+    val ctx = LocalContext.current
     ToolRunDialog(
         ToolRun("Debian: ${job.title}", job.command, job.timeoutMs, job.note, true, APT_KEY_LINES, ::aptSummary),
-        onClose
-    )
+        onClose = onClose
+    ) { code, _ -> if (code == 0) AptHistory.mark(ctx) }
+}
+
+/** Waktu terakhir "perbarui dan tingkatkan" berhasil (SharedPreferences), ditampilkan di menu Debian. */
+internal object AptHistory {
+    private const val PREFS = "molina_apt"
+    private const val KEY = "last_ok"
+    private val _last = MutableStateFlow(0L)
+    val last: StateFlow<Long> = _last.asStateFlow()
+    private var loaded = false
+
+    @Synchronized
+    fun init(ctx: Context) {
+        if (loaded) return
+        loaded = true
+        _last.value = ctx.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getLong(KEY, 0L)
+    }
+
+    @Synchronized
+    fun mark(ctx: Context) {
+        val now = System.currentTimeMillis()
+        ctx.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putLong(KEY, now).apply()
+        _last.value = now
+    }
+
+    fun subtitle(at: Long): String =
+        if (at <= 0L) "apt update && apt upgrade -y"
+        else "Terakhir berhasil: " + SimpleDateFormat("d MMM HH.mm", Locale("id", "ID")).format(Date(at))
 }

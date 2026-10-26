@@ -94,7 +94,10 @@ internal fun ToolRunDialog(run: ToolRun, onClose: () -> Unit, onResult: (Int, St
                 status = describe(r)
                 collect("\n")
                 if (r.startError == null && !r.cancelled && !r.timedOut && r.exitCode == 0) {
-                    run.summarize?.invoke(keyLines.toList())?.let { status = status + "\n" + it }
+                    run.summarize?.invoke(keyLines.toList())?.let {
+                        status = status + "\n" + it
+                        AppLog.log("system", LogLevel.Info, "tool", "${run.title}: $it")
+                    }
                 }
                 val code = if (r.startError != null || r.cancelled || r.timedOut) -1 else r.exitCode
                 AppLog.log("system", LogLevel.Info, "tool", "${run.title} selesai exit=${r.exitCode} ${r.millis}ms")
@@ -142,7 +145,11 @@ internal fun ToolRunDialog(run: ToolRun, onClose: () -> Unit, onResult: (Int, St
                 if (running) TextButton(onClick = { handle?.cancel() }) { Text("Berhenti") }
                 else TextButton(onClick = onClose) { Text("Tutup") }
             },
-            dismissButton = { TextButton(onClick = { copyOutput(ctx, output) }) { Text("Salin") } }
+            dismissButton = {
+                TextButton(onClick = {
+                    copyOutput(ctx, listOf(status, output).filter { it.isNotBlank() }.joinToString("\n\n"))
+                }) { Text("Salin") }
+            }
         )
     }
 }

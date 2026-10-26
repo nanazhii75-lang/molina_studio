@@ -75,6 +75,28 @@ internal fun W7IconAptSync() {
     }
 }
 
+/** Ikon "daftar tool": tiga baris berbutir putih di ubin oranye. */
+@Composable
+internal fun W7IconToolList() {
+    val shape = RoundedCornerShape(7.dp)
+    Box(
+        Modifier.size(34.dp).clip(shape)
+            .background(Brush.verticalGradient(listOf(Color(0xFFE8A35F), Color(0xFFB5611E))), shape)
+            .border(1.dp, Color(0x55000000), shape),
+        Alignment.Center
+    ) {
+        Canvas(Modifier.size(20.dp)) {
+            val w = size.width
+            val sw = w * 0.11f
+            for (i in 0..2) {
+                val y = w * (0.2f + 0.3f * i)
+                drawCircle(Color.White, sw * 0.9f, Offset(w * 0.12f, y))
+                drawLine(Color.White, Offset(w * 0.3f, y), Offset(w * 0.92f, y), sw, StrokeCap.Round)
+            }
+        }
+    }
+}
+
 @Composable
 internal fun W7IconScriptBig(box: Dp) {
     Canvas(Modifier.size(box)) {
