@@ -2,31 +2,43 @@ package com.molina.core.common
 
 import java.io.File
 
-/** Subfolder data bersama di bawah [MolinaPaths.dataRoot]. */
+/**
+ * Subfolder data aplikasi di bawah [MolinaPaths.appRoot] (/sdcard/Molina).
+ * [folderName] boleh bertingkat (mis. "Media/Video").
+ */
 enum class MolinaDir(val folderName: String) {
-    Downloads("downloads"),
-    Export("export"),
-    Media("media"),
-    Backup("backup"),
+    Downloads("Downloads"),
+    Video("Media/Video"),
+    Audio("Media/Audio"),
+    Iptv("Media/IPTV"),
+    Workspace("Workspace"),
+    Scripts("Scripts"),
+    Backup("Backup"),
+    Documents("Documents"),
+    Export("Documents/Export"),
 }
 
 /**
  * Kontrak lokasi file. Kotlin murni (tanpa Context); implementasi Android ada di :core:storage.
- * Data bersama TIDAK ditaruh di [workspace] agar `git status` tetap bersih.
+ * Folder aplikasi ([appRoot]) terpisah total dari folder project ([devProject]).
  */
 interface MolinaPaths {
-    /** Root working tree git (/sdcard/molina-studio). Bukan tempat data aplikasi. */
-    val workspace: File
+    /** Akar data aplikasi (/sdcard/Molina). Terlihat di file manager, tidak privat. */
+    val appRoot: File
 
-    /** Folder data tersembunyi di luar working tree (/sdcard/.molina-data). Tidak privat. */
-    val dataRoot: File
+    /** Folder project Molina (/sdcard/molina-studio). Hanya untuk pengembangan; aplikasi tidak menulis ke sini. */
+    val devProject: File
 
     /** Penyimpanan privat aplikasi (filesDir). Satu-satunya tempat untuk rahasia. */
     val privateRoot: File
 
-    fun dir(kind: MolinaDir): File = File(dataRoot, kind.folderName)
+    /** Alias lama = [devProject]. Dipertahankan sampai pemakai (MainActivity) dipindah ke dir(MolinaDir.Workspace). */
+    val workspace: File get() = devProject
+
+    fun dir(kind: MolinaDir): File = File(appRoot, kind.folderName)
 
     companion object {
-        const val DATA_FOLDER = ".molina-data"
+        const val APP_FOLDER = "Molina"
+        const val DEV_FOLDER = "molina-studio"
     }
 }

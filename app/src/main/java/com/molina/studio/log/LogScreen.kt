@@ -576,7 +576,7 @@ private fun androidx.compose.ui.text.AnnotatedString.Builder.appendHighlighted(
     }
 }
 
-/** Ekspor log terfilter ke berkas bernama jelas di <dataRoot>/export (tanpa FileProvider/Manifest). */
+/** Ekspor log terfilter ke berkas bernama jelas di <appRoot>/Documents/Export (tanpa FileProvider/Manifest). */
 private fun exportLogs(ctx: Context, list: List<LogEntry>, filterDesc: String) {
     if (list.isEmpty()) {
         Toast.makeText(ctx, "Belum ada log", Toast.LENGTH_SHORT).show()

@@ -727,3 +727,13 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: :app (TerminalSessions.kt, ExplorerBridge.kt, Win7OpenDialog.kt, SettingsScreen.kt). Gradle, Manifest, JNI mpv tidak disentuh
 - [ ] BELUM dikompilasi (CI). Risiko: sedang (menyentuh TerminalSessions.debianShell)
 - [ ] uji perangkat: aktifkan akses penuh saat sesi lama hidup > penanda tetap Di luar Debian + cd ditolak dengan petunjuk NEW SESSION; buka NEW SESSION > ls /sdcard menampilkan seluruh storage, penanda hijau, cd berhasil; sakelar Enter aktif: file > dijalankan, folder > cd; mati: path hanya ditempel
+
+## 2026-10-26 - Kontrak penyimpanan Molina: akar aplikasi terpisah dari project [STORAGE-CONTRACT-1]
+- [x] Keputusan: /sdcard/molina-studio = folder project (pengembangan), BUKAN data aplikasi; data aplikasi pindah ke akar terpisah /sdcard/Molina
+- [x] MolinaPaths: appRoot (/sdcard/Molina), devProject (/sdcard/molina-studio), privateRoot; workspace jadi alias devProject sementara; dataRoot/.molina-data dihapus
+- [x] MolinaDir: Downloads, Video/Audio/Iptv (Media/...), Workspace, Scripts, Backup, Documents, Export (Documents/Export); Media lama dipecah
+- [x] AndroidMolinaPaths.ensureDirs membuat appRoot + semua subfolder; AppPaths mencatat appRoot ke AppLog
+- [x] Dampak: :core:common, :core:storage, :app (AppPaths.kt) + docs/HANDOFF.md. Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi (CI). Risiko: rendah (tanpa pemakai MolinaDir.Media; hanya Export dipakai LogScreen)
+- [ ] uji perangkat: buka aplikasi dengan izin storage > /sdcard/Molina berisi Downloads, Media/{Video,Audio,IPTV}, Workspace, Scripts, Backup, Documents/Export; ekspor log tersimpan di Documents/Export; log sistem memuat appRoot=/sdcard/Molina
+- [ ] LANGKAH BERIKUT (belum dikerjakan): pindahkan pemakai satu per satu: backup ToolStore > Backup, simpan script Settings > Scripts, download mpv > Downloads/Media, HOME_DIR/bind terminal > Workspace (molina-studio jadi bind opsional); migrasi isi .molina-data lama bila ada

@@ -10,13 +10,13 @@ import java.io.File
 class AndroidMolinaPaths(context: Context) : MolinaPaths {
     private val external: File = Environment.getExternalStorageDirectory()
 
-    override val workspace: File = File(external, "molina-studio")
-    override val dataRoot: File = File(external, MolinaPaths.DATA_FOLDER)
+    override val appRoot: File = File(external, MolinaPaths.APP_FOLDER)
+    override val devProject: File = File(external, MolinaPaths.DEV_FOLDER)
     override val privateRoot: File = context.applicationContext.filesDir
 
-    /** Membuat dataRoot + semua subfolder. Operasi disk: panggil di luar main thread. */
+    /** Membuat appRoot + semua subfolder. Operasi disk: panggil di luar main thread. */
     fun ensureDirs(): Boolean {
-        var ok = true
+        var ok = appRoot.isDirectory || appRoot.mkdirs()
         for (kind in MolinaDir.entries) {
             val d = dir(kind)
             ok = (d.isDirectory || d.mkdirs()) && ok

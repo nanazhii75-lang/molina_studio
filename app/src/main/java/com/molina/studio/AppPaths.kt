@@ -39,7 +39,7 @@ object AppPaths {
             ready = ok
             busy.set(false)
             val level = if (ok) LogLevel.Info else LogLevel.Warn
-            AppLog.log("sistem", level, "AppPaths", "ensureDirs=$ok dataRoot=${paths.dataRoot.path}")
+            AppLog.log("sistem", level, "AppPaths", "ensureDirs=$ok appRoot=${paths.appRoot.path}")
         }
     }
 }
