@@ -36,6 +36,22 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Fill
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.window.DialogWindowProvider
+import android.view.WindowManager
+import android.view.inputmethod.InputMethodManager
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.focus.FocusRequester
@@ -62,11 +78,18 @@ private class W7Entry(val file: File, val isDir: Boolean, val size: Long, val mo
 private enum class W7Sort { NAME, DATE, SIZE }
 private enum class W7Kind(val label: String) { MEDIA("Media (video dan audio)"), ALL("Semua file") }
 private class W7Place(val label: String, val dir: File, val molina: Boolean = false)
-private class W7Clip(val file: File, val cut: Boolean)
+private class W7Clip(val files: List<File>, val cut: Boolean)
 private sealed class W7Sheet {
     class Rename(val file: File) : W7Sheet()
-    class Info(val file: File) : W7Sheet()
+    class Info(val files: List<File>) : W7Sheet()
+    class Delete(val files: List<File>) : W7Sheet()
+    object NewDir : W7Sheet()
 }
+private enum class W7Ico { COPY, CUT, PASTE, RENAME, ZIP, UNZIP, DELETE, NEWDIR, STAR, STAR_OUT, INFO }
+
+private fun w7Names(l: List<File>): String = if (l.size == 1) l[0].name else l.size.toString() + " item"
+private fun w7StemEnd(name: String, dir: Boolean): Int =
+    if (dir) name.length else name.lastIndexOf('.').let { if (it > 0) it else name.length }
 
 private val W7_ID = Locale("id", "ID")
 private val W7_AUDIO = setOf("mp3", "m4a", "aac", "flac", "wav", "ogg", "oga", "opus", "wma", "ac3", "dts", "mka")
@@ -160,7 +183,7 @@ fun Win7OpenDialog(
     var fileName by remember { mutableStateOf("") }
     var message by remember { mutableStateOf("") }
     var comboOpen by remember { mutableStateOf(false) }
-    // [FILEOPS-1] alat berkas Penjelajah: salin, tempel, pindah, properti, kompres, ubah nama, favorit
+    // [FILEOPS-2] alat berkas Penjelajah: pilih banyak, salin, pindah, tempel, hapus, folder baru, ZIP/ekstrak, ubah nama, favorit, properti
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
     var clip by remember { mutableStateOf<W7Clip?>(null) }
@@ -168,19 +191,32 @@ fun Win7OpenDialog(
     var busy by remember { mutableStateOf(false) }
     var sheet by remember { mutableStateOf<W7Sheet?>(null) }
     var messageOk by remember { mutableStateOf(false) }
+    var multi by remember { mutableStateOf(false) }
+    var picked by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var progress by remember { mutableStateOf<Float?>(null) }
+    val cancelFlag = remember { AtomicBoolean(false) }
+    val guard = remember {
+        vols.map { it.dir.absolutePath }.toSet() +
+            File(Environment.getExternalStorageDirectory(), com.molina.core.common.MolinaPaths.APP_FOLDER).absolutePath
+    }
     fun say(text: String, ok: Boolean = false) { message = text; messageOk = ok }
-    fun runOp(okText: (File) -> String, onDone: () -> Unit = {}, op: () -> File) {
+    fun targets(): List<File> = if (multi) picked.map { File(it) } else listOfNotNull(selected?.file)
+    fun runOp(op: (FileOps.Ctl) -> String, onDone: () -> Unit = {}) {
         if (busy) return
         if (ContextCompat.checkSelfPermission(ctx, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
             say("Izin tulis penyimpanan belum diberikan. Aktifkan izin Penyimpanan di Setelan Android.")
             return
         }
         busy = true
+        progress = null
+        cancelFlag.set(false)
         say("Memproses\u2026", true)
         scope.launch {
-            val r = withContext(Dispatchers.IO) { runCatching { op() } }
+            val ctl = FileOps.Ctl(cancelFlag) { p -> progress = p }
+            val r = withContext(Dispatchers.IO) { runCatching { op(ctl) } }
             busy = false
-            r.onSuccess { say(okText(it), true); onDone(); selected = null; fileName = ""; tick++ }
+            progress = null
+            r.onSuccess { say(it, true); onDone(); selected = null; picked = emptySet(); fileName = ""; tick++ }
                 .onFailure { say(it.message ?: "Operasi gagal."); tick++ }
         }
     }
@@ -193,7 +229,7 @@ fun Win7OpenDialog(
 
     val roots = vols.map { it.dir.path }
     val canUp = dir.path !in roots && dir.parentFile != null
-    fun go(to: File) { dir = to; selected = null; fileName = ""; message = "" }
+    fun go(to: File) { dir = to; selected = null; picked = emptySet(); fileName = ""; message = "" }
     fun goUp(): Boolean {
         val parent = dir.parentFile
         if (!canUp || parent == null) return false
@@ -213,19 +249,50 @@ fun Win7OpenDialog(
     }
 
     when (val s = sheet) {
-        is W7Sheet.Rename -> W7RenameDialog(s.file, onCancel = { sheet = null }) { name ->
+        is W7Sheet.Rename -> W7NameDialog(
+            title = if (s.file.isDirectory) "Ubah nama folder" else "Ubah nama berkas",
+            initial = s.file.name, selectEnd = w7StemEnd(s.file.name, s.file.isDirectory), okLabel = "OK",
+            onCancel = { sheet = null }
+        ) { name ->
             sheet = null
-            runOp(okText = { "Nama diubah: " + it.name }) { FileOps.rename(s.file, name) }
+            runOp(op = { "Nama diubah: " + FileOps.rename(s.file, name).name })
         }
-        is W7Sheet.Info -> W7InfoDialog(s.file, isVisibleInDebian?.invoke(s.file)) { sheet = null }
+        W7Sheet.NewDir -> W7NameDialog(
+            title = "Folder baru", initial = "Folder baru", selectEnd = "Folder baru".length, okLabel = "Buat",
+            onCancel = { sheet = null }
+        ) { name ->
+            sheet = null
+            val d = dir
+            runOp(op = { "Folder dibuat: " + FileOps.mkdir(d, name).name })
+        }
+        is W7Sheet.Delete -> W7ConfirmDialog(s.files, onCancel = { sheet = null }) {
+            sheet = null
+            runOp(op = { ctl -> "Dihapus: " + FileOps.deleteAll(s.files, guard, ctl) + " item" })
+        }
+        is W7Sheet.Info -> W7InfoDialog(s.files, if (s.files.size == 1) isVisibleInDebian?.invoke(s.files[0]) else null) { sheet = null }
         null -> Unit
     }
 
     val frame = RoundedCornerShape(8.dp)
     Dialog(
-        onDismissRequest = { if (!goUp()) onDismiss() },
+        onDismissRequest = { if (multi) { multi = false; picked = emptySet() } else if (!goUp()) onDismiss() },
         properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnClickOutside = false)
     ) {
+        // [FILEOPS-2] keyboard tidak boleh muncul sendiri saat Penjelajah dibuka
+        val dlgFocus = LocalFocusManager.current
+        val dlgView = LocalView.current
+        val dlgWindow = (dlgView.parent as? DialogWindowProvider)?.window
+        SideEffect {
+            dlgWindow?.setSoftInputMode(
+                WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN or WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+            )
+        }
+        LaunchedEffect(Unit) {
+            dlgFocus.clearFocus(force = true)
+            delay(250)
+            dlgFocus.clearFocus(force = true)
+            (ctx.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager)?.hideSoftInputFromWindow(dlgView.windowToken, 0)
+        }
         Column(
             Modifier.fillMaxSize().padding(horizontal = 8.dp, vertical = 24.dp)
                 .clip(frame)
@@ -270,11 +337,22 @@ fun Win7OpenDialog(
                 ) {
                     W7Cmd("Naik", canUp) { goUp() }
                     W7Cmd("Segarkan", true) { tick++ }
+                    if (browse) {
+                        W7Cmd(
+                            if (multi) "Selesai" + (if (picked.isNotEmpty()) " (" + picked.size + ")" else "") else "Pilih",
+                            !busy
+                        ) { multi = !multi; picked = emptySet(); selected = null; fileName = "" }
+                        if (multi) W7Cmd("Semua", !busy) {
+                            val all = (entries ?: emptyList()).map { it.file.path }.toSet()
+                            picked = if (all.isNotEmpty() && picked == all) emptySet() else all
+                        }
+                    }
                     if (browse) Box {
                         W7Cmd("\u22EE Alat", !busy) { toolsOpen = !toolsOpen }
                         if (toolsOpen) {
-                            val sel = selected?.file
-                            val favTarget = if (sel == null) dir else sel.takeIf { it.isDirectory }
+                            val tg = targets()
+                            val one = tg.singleOrNull()
+                            val favTarget = if (tg.isEmpty()) dir else one?.takeIf { it.isDirectory }
                             val isFav = favTarget != null && ExplorerFavorites.contains(ctx, favTarget)
                             val c = clip
                             Popup(
@@ -283,38 +361,71 @@ fun Win7OpenDialog(
                                 onDismissRequest = { toolsOpen = false },
                                 properties = PopupProperties(focusable = true)
                             ) {
-                                Column(Modifier.width(236.dp).background(Win7.Input).border(1.dp, Win7.FrameLine)) {
-                                    W7MenuItem("Salin", sel != null) {
+                                Column(
+                                    Modifier.width(250.dp).heightIn(max = 400.dp).background(Win7.Input)
+                                        .border(1.dp, Win7.FrameLine).verticalScroll(rememberScrollState())
+                                ) {
+                                    W7MenuItem(W7Ico.COPY, "Salin", tg.isNotEmpty()) {
                                         toolsOpen = false
-                                        if (sel != null) { clip = W7Clip(sel, false); say("Disalin: " + sel.name, true) }
+                                        if (tg.isNotEmpty()) { clip = W7Clip(tg, false); say("Disalin: " + w7Names(tg), true) }
                                     }
-                                    W7MenuItem("Pindah", sel != null) {
+                                    W7MenuItem(W7Ico.CUT, "Pindah", tg.isNotEmpty()) {
                                         toolsOpen = false
-                                        if (sel != null) { clip = W7Clip(sel, true); say("Siap dipindah: " + sel.name + ". Buka folder tujuan lalu Tempel.", true) }
+                                        if (tg.isNotEmpty()) {
+                                            clip = W7Clip(tg, true)
+                                            say("Siap dipindah: " + w7Names(tg) + ". Buka folder tujuan lalu Tempel.", true)
+                                        }
                                     }
-                                    W7MenuItem(if (c != null) "Tempel: " + c.file.name else "Tempel", c != null) {
+                                    W7MenuItem(W7Ico.PASTE, if (c != null) "Tempel: " + w7Names(c.files) else "Tempel", c != null) {
                                         toolsOpen = false
                                         if (c != null) {
                                             val d = dir
                                             runOp(
-                                                okText = { (if (c.cut) "Dipindah: " else "Ditempel: ") + it.name },
+                                                op = { ctl ->
+                                                    val res = if (c.cut) FileOps.moveAll(c.files, d, ctl) else FileOps.copyAll(c.files, d, ctl)
+                                                    val head = if (c.cut) "Dipindah: " else "Ditempel: "
+                                                    head + w7Names(res)
+                                                },
                                                 onDone = { if (c.cut) clip = null }
-                                            ) { if (c.cut) FileOps.moveTo(c.file, d) else FileOps.copyTo(c.file, d) }
+                                            )
                                         }
                                     }
                                     Box(Modifier.fillMaxWidth().height(1.dp).background(Win7.Hairline))
-                                    W7MenuItem("Ubah nama", sel != null) {
+                                    W7MenuItem(W7Ico.RENAME, "Ubah nama", one != null) {
                                         toolsOpen = false
-                                        if (sel != null) sheet = W7Sheet.Rename(sel)
+                                        if (one != null) sheet = W7Sheet.Rename(one)
                                     }
-                                    W7MenuItem("Kompres (ZIP)", sel != null) {
+                                    W7MenuItem(W7Ico.ZIP, "Kompres (ZIP)", tg.isNotEmpty()) {
                                         toolsOpen = false
-                                        if (sel != null) {
+                                        if (tg.isNotEmpty()) {
                                             val d = dir
-                                            runOp(okText = { "ZIP dibuat: " + it.name }) { FileOps.zip(sel, d) }
+                                            runOp(op = { ctl -> "ZIP dibuat: " + FileOps.zipAll(tg, d, ctl).name })
                                         }
                                     }
-                                    W7MenuItem(if (isFav) "Hapus dari favorit" else "Pindah ke favorit", favTarget != null) {
+                                    W7MenuItem(
+                                        W7Ico.UNZIP, "Ekstrak ZIP",
+                                        one != null && one.isFile && one.extension.equals("zip", ignoreCase = true)
+                                    ) {
+                                        toolsOpen = false
+                                        if (one != null) {
+                                            val d = dir
+                                            runOp(op = { ctl -> "Diekstrak ke: " + FileOps.unzip(one, d, ctl).name })
+                                        }
+                                    }
+                                    W7MenuItem(W7Ico.DELETE, "Hapus", tg.isNotEmpty()) {
+                                        toolsOpen = false
+                                        if (tg.isNotEmpty()) sheet = W7Sheet.Delete(tg)
+                                    }
+                                    Box(Modifier.fillMaxWidth().height(1.dp).background(Win7.Hairline))
+                                    W7MenuItem(W7Ico.NEWDIR, "Folder baru", true) {
+                                        toolsOpen = false
+                                        sheet = W7Sheet.NewDir
+                                    }
+                                    W7MenuItem(
+                                        if (isFav) W7Ico.STAR else W7Ico.STAR_OUT,
+                                        if (isFav) "Hapus dari favorit" else "Pindah ke favorit",
+                                        favTarget != null
+                                    ) {
                                         toolsOpen = false
                                         if (favTarget != null) {
                                             val nm = favTarget.name.ifEmpty { favTarget.path }
@@ -330,10 +441,9 @@ fun Win7OpenDialog(
                                             favTick++
                                         }
                                     }
-                                    Box(Modifier.fillMaxWidth().height(1.dp).background(Win7.Hairline))
-                                    W7MenuItem("Properti", true) {
+                                    W7MenuItem(W7Ico.INFO, "Properti", true) {
                                         toolsOpen = false
-                                        sheet = W7Sheet.Info(sel ?: dir)
+                                        sheet = W7Sheet.Info(if (tg.isEmpty()) listOf(dir) else tg)
                                     }
                                 }
                             }
@@ -348,8 +458,10 @@ fun Win7OpenDialog(
                         modifier = Modifier.weight(1f).fillMaxHeight(),
                         granted = granted, entries = entries, key = key, asc = asc, selected = selected,
                         onSort = { k -> if (key == k) asc = !asc else { key = k; asc = true } },
+                        multi = multi, picked = picked,
                         onOpen = { e ->
-                            if (e.isDir) go(e.file)
+                            if (multi) picked = if (e.file.path in picked) picked - e.file.path else picked + e.file.path
+                            else if (e.isDir) go(e.file)
                             else if (pickFolder) Unit
                             else if (selected?.file == e.file) onPick(e.file)
                             else { selected = e; fileName = e.name; message = "" }
@@ -440,6 +552,16 @@ fun Win7OpenDialog(
                             Win7Button("cd", modifier = Modifier.weight(1f), enabled = onChangeDir != null && target.isDirectory, onClick = { onChangeDir?.invoke(target) })
                         }
                     }
+                    if (busy) Row(Modifier.fillMaxWidth().padding(bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.weight(1f).height(6.dp).background(Win7.Hairline)) {
+                            val p = progress
+                            Box(Modifier.fillMaxHeight().fillMaxWidth(p?.coerceIn(0f, 1f) ?: 0.25f).background(Win7.DefaultLine))
+                        }
+                        Text(
+                            "Hentikan", color = Win7.NavHeader, fontSize = 12.sp,
+                            modifier = Modifier.clickable { cancelFlag.set(true) }.padding(start = 10.dp, top = 4.dp, bottom = 4.dp)
+                        )
+                    }
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Text(message, color = if (messageOk) Color(0xFF4CAF50) else Color(0xFFFF8A80), fontSize = 11.sp, modifier = Modifier.weight(1f).padding(end = 8.dp))
                         Win7Button(
@@ -506,6 +628,8 @@ private fun W7FileArea(
     key: W7Sort,
     asc: Boolean,
     selected: W7Entry?,
+    multi: Boolean = false,
+    picked: Set<String> = emptySet(),
     onSort: (W7Sort) -> Unit,
     onOpen: (W7Entry) -> Unit,
     onAsk: () -> Unit
@@ -531,7 +655,10 @@ private fun W7FileArea(
                 entries == null -> W7Note("Folder ini tidak dapat dibuka.") {}
                 entries.isEmpty() -> W7Note("Folder ini kosong.") {}
                 else -> LazyColumn(Modifier.fillMaxSize()) {
-                    items(entries, key = { it.file.path }) { e -> W7EntryRow(e, e == selected, wide, onOpen) }
+                    items(entries, key = { it.file.path }) { e ->
+                        val on = e.file.path in picked
+                        W7EntryRow(e, if (multi) on else e == selected, wide, onOpen, if (multi) on else null)
+                    }
                 }
             }
         }
@@ -558,7 +685,7 @@ private fun W7Note(text: String, extra: @Composable ColumnScope.() -> Unit) {
 }
 
 @Composable
-private fun W7EntryRow(e: W7Entry, selected: Boolean, wide: Boolean, onOpen: (W7Entry) -> Unit) {
+private fun W7EntryRow(e: W7Entry, selected: Boolean, wide: Boolean, onOpen: (W7Entry) -> Unit, checked: Boolean? = null) {
     val shape = RoundedCornerShape(2.dp)
     val video = e.file.extension.lowercase() !in W7_AUDIO
     Row(
@@ -574,6 +701,10 @@ private fun W7EntryRow(e: W7Entry, selected: Boolean, wide: Boolean, onOpen: (W7
             .padding(horizontal = 6.dp, vertical = 3.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        if (checked != null) {
+            Text(if (checked) "[x]" else "[  ]", color = Win7.NavHeader, fontSize = 12.sp)
+            Spacer(Modifier.width(6.dp))
+        }
         if (e.isDir) Win7Folder(20.dp) else Win7File(video, 20.dp)
         Spacer(Modifier.width(6.dp))
         Column(Modifier.weight(1f)) {
@@ -589,13 +720,79 @@ private fun W7EntryRow(e: W7Entry, selected: Boolean, wide: Boolean, onOpen: (W7
 }
 
 @Composable
-private fun W7MenuItem(label: String, enabled: Boolean, onClick: () -> Unit) {
-    Text(
-        label, color = if (enabled) Win7.Ink else Win7.TextDim, fontSize = 13.sp, maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        modifier = Modifier.fillMaxWidth().clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 10.dp)
-    )
+private fun W7MenuItem(ico: W7Ico, label: String, enabled: Boolean, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable(enabled = enabled, onClick = onClick).padding(horizontal = 12.dp, vertical = 9.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        W7MenuIcon(ico, enabled)
+        Spacer(Modifier.width(10.dp))
+        Text(
+            label, color = if (enabled) Win7.Ink else Win7.TextDim, fontSize = 13.sp, maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+/** Ikon garis 16dp bergaya Aero untuk menu Alat (digambar di Canvas, tanpa aset). */
+@Composable
+private fun W7MenuIcon(ico: W7Ico, enabled: Boolean) {
+    val c = if (!enabled) Win7.Line else when (ico) {
+        W7Ico.DELETE -> Color(0xFFE57373)
+        W7Ico.STAR, W7Ico.STAR_OUT -> Color(0xFFE0A800)
+        else -> Win7.NavHeader
+    }
+    Canvas(Modifier.size(16.dp)) {
+        val u = size.width / 16f
+        val sw = 1.4f * u
+        val st = Stroke(width = sw, cap = StrokeCap.Round)
+        fun line(x1: Float, y1: Float, x2: Float, y2: Float) =
+            drawLine(c, Offset(x1 * u, y1 * u), Offset(x2 * u, y2 * u), strokeWidth = sw, cap = StrokeCap.Round)
+        fun box(x: Float, y: Float, w: Float, h: Float) =
+            drawRect(c, Offset(x * u, y * u), Size(w * u, h * u), style = st)
+        when (ico) {
+            W7Ico.COPY -> { box(2f, 4f, 8f, 10f); box(6f, 2f, 8f, 10f) }
+            W7Ico.CUT -> {
+                line(4f, 2f, 12f, 11f); line(12f, 2f, 4f, 11f)
+                drawCircle(c, radius = 2f * u, center = Offset(4f * u, 13f * u), style = st)
+                drawCircle(c, radius = 2f * u, center = Offset(12f * u, 13f * u), style = st)
+            }
+            W7Ico.PASTE -> { box(3f, 3f, 10f, 11f); drawRect(c, Offset(6f * u, 1.5f * u), Size(4f * u, 3f * u)) }
+            W7Ico.RENAME -> { line(8f, 3f, 8f, 13f); line(5f, 3f, 11f, 3f); line(5f, 13f, 11f, 13f) }
+            W7Ico.ZIP -> {
+                box(3f, 2f, 10f, 12f)
+                line(8f, 2f, 8f, 5f); line(6.5f, 6f, 9.5f, 6f); line(6.5f, 8.5f, 9.5f, 8.5f); line(6.5f, 11f, 9.5f, 11f)
+            }
+            W7Ico.UNZIP -> { box(2f, 8f, 12f, 6f); line(8f, 1.5f, 8f, 9f); line(5.5f, 6f, 8f, 9f); line(10.5f, 6f, 8f, 9f) }
+            W7Ico.DELETE -> {
+                line(2.5f, 4f, 13.5f, 4f); line(6f, 2.2f, 10f, 2.2f)
+                line(4f, 5f, 5f, 14f); line(12f, 5f, 11f, 14f); line(5f, 14f, 11f, 14f)
+                line(7f, 6.5f, 7f, 12f); line(9f, 6.5f, 9f, 12f)
+            }
+            W7Ico.NEWDIR -> {
+                box(2f, 5f, 12f, 8f)
+                line(2f, 5f, 4f, 3f); line(4f, 3f, 7f, 3f); line(7f, 3f, 8f, 5f)
+                line(8f, 7.5f, 8f, 11.5f); line(6f, 9.5f, 10f, 9.5f)
+            }
+            W7Ico.STAR, W7Ico.STAR_OUT -> {
+                val p = Path()
+                for (k in 0 until 10) {
+                    val r = if (k % 2 == 0) 6.5f else 2.8f
+                    val a = -PI / 2 + k * PI / 5
+                    val x = (8f + r * cos(a).toFloat()) * u
+                    val y = (8.7f + r * sin(a).toFloat()) * u
+                    if (k == 0) p.moveTo(x, y) else p.lineTo(x, y)
+                }
+                p.close()
+                drawPath(p, c, style = if (ico == W7Ico.STAR) Fill else st)
+            }
+            W7Ico.INFO -> {
+                drawCircle(c, radius = 6.2f * u, center = Offset(8f * u, 8f * u), style = st)
+                line(8f, 7f, 8f, 11.5f)
+                drawCircle(c, radius = 0.9f * u, center = Offset(8f * u, 4.9f * u))
+            }
+        }
+    }
 }
 
 @Composable
@@ -615,12 +812,14 @@ private fun W7Panel(title: String, onDismiss: () -> Unit, content: @Composable C
 }
 
 @Composable
-private fun W7RenameDialog(file: File, onCancel: () -> Unit, onOk: (String) -> Unit) {
-    val stem = if (file.isDirectory) file.name.length else file.name.lastIndexOf('.').let { if (it > 0) it else file.name.length }
-    var tf by remember(file) { mutableStateOf(TextFieldValue(file.name, TextRange(0, stem))) }
+private fun W7NameDialog(
+    title: String, initial: String, selectEnd: Int, okLabel: String,
+    onCancel: () -> Unit, onOk: (String) -> Unit
+) {
+    var tf by remember(initial) { mutableStateOf(TextFieldValue(initial, TextRange(0, selectEnd.coerceIn(0, initial.length)))) }
     val focus = remember { FocusRequester() }
-    LaunchedEffect(file) { delay(150); runCatching { focus.requestFocus() } }
-    W7Panel(if (file.isDirectory) "Ubah nama folder" else "Ubah nama berkas", onCancel) {
+    LaunchedEffect(initial) { delay(150); runCatching { focus.requestFocus() } }
+    W7Panel(title, onCancel) {
         BasicTextField(
             value = tf,
             onValueChange = { tf = it },
@@ -635,7 +834,7 @@ private fun W7RenameDialog(file: File, onCancel: () -> Unit, onOk: (String) -> U
         )
         Spacer(Modifier.height(12.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-            Win7Button("OK", isDefault = true, enabled = tf.text.isNotBlank()) { onOk(tf.text) }
+            Win7Button(okLabel, isDefault = true, enabled = tf.text.isNotBlank()) { onOk(tf.text) }
             Spacer(Modifier.width(8.dp))
             Win7Button("Batal", onClick = onCancel)
         }
@@ -643,30 +842,63 @@ private fun W7RenameDialog(file: File, onCancel: () -> Unit, onOk: (String) -> U
 }
 
 @Composable
-private fun W7InfoDialog(file: File, debian: Boolean?, onDismiss: () -> Unit) {
-    var p by remember(file) { mutableStateOf<FileOps.Props?>(null) }
-    var failed by remember(file) { mutableStateOf(false) }
-    LaunchedEffect(file) {
-        val r = withContext(Dispatchers.IO) { runCatching { FileOps.props(file) } }
-        p = r.getOrNull()
+private fun W7ConfirmDialog(files: List<File>, onCancel: () -> Unit, onOk: () -> Unit) {
+    val hasDir = files.any { it.isDirectory }
+    W7Panel("Hapus", onCancel) {
+        Text(
+            if (files.size == 1) "Hapus \"" + files[0].name + "\"" + (if (hasDir) " beserta seluruh isinya?" else "?")
+            else "Hapus " + files.size + " item terpilih" + (if (hasDir) " beserta isi folder?" else "?"),
+            color = Win7.Ink, fontSize = 13.sp
+        )
+        if (files.size > 1) {
+            Spacer(Modifier.height(6.dp))
+            files.take(4).forEach { Text("\u2022 " + it.name, color = Win7.TextDim, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+            if (files.size > 4) Text("\u2022 \u2026 dan " + (files.size - 4) + " lainnya", color = Win7.TextDim, fontSize = 12.sp)
+        }
+        Spacer(Modifier.height(8.dp))
+        Text("Penghapusan tidak dapat dibatalkan.", color = Color(0xFFFF8A80), fontSize = 12.sp)
+        Spacer(Modifier.height(12.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+            Win7Button("Hapus", isDefault = true) { onOk() }
+            Spacer(Modifier.width(8.dp))
+            Win7Button("Batal", onClick = onCancel)
+        }
+    }
+}
+
+@Composable
+private fun W7InfoDialog(files: List<File>, debian: Boolean?, onDismiss: () -> Unit) {
+    var ps by remember(files) { mutableStateOf<List<FileOps.Props>?>(null) }
+    var failed by remember(files) { mutableStateOf(false) }
+    LaunchedEffect(files) {
+        val r = withContext(Dispatchers.IO) { runCatching { files.map { FileOps.props(it) } } }
+        ps = r.getOrNull()
         failed = r.isFailure
     }
+    val first = files.first()
     W7Panel("Properti", onDismiss) {
         Column(Modifier.heightIn(max = 380.dp).verticalScroll(rememberScrollState())) {
-            W7InfoRow("Nama", file.name.ifEmpty { file.path })
-            W7InfoRow("Lokasi", file.parent ?: "/")
-            val x = p
+            W7InfoRow("Nama", if (files.size == 1) first.name.ifEmpty { first.path } else files.size.toString() + " item")
+            W7InfoRow("Lokasi", first.parent ?: "/")
+            val x = ps
             if (x == null) {
                 Text(
                     if (failed) "Properti tidak dapat dibaca." else "Menghitung ukuran\u2026",
                     color = Win7.TextDim, fontSize = 12.sp, modifier = Modifier.padding(vertical = 4.dp)
                 )
+            } else if (x.size == 1) {
+                val p = x[0]
+                W7InfoRow("Jenis", if (p.symlink) "Tautan simbolik" else if (p.isDir) "Folder" else if (first.extension.isEmpty()) "Berkas" else "Berkas ." + first.extension.lowercase())
+                W7InfoRow("Ukuran", FileOps.readable(p.size) + " (" + String.format(W7_ID, "%,d", p.size) + " byte)")
+                if (p.isDir) W7InfoRow("Isi", p.files.toString() + " berkas, " + p.folders + " folder")
+                W7InfoRow("Diubah", w7Date(p.modified))
+                W7InfoRow("Izin", (if (p.canRead) "Baca" else "Tanpa baca") + ", " + (if (p.canWrite) "Tulis" else "Tanpa tulis"))
             } else {
-                W7InfoRow("Jenis", if (x.symlink) "Tautan simbolik" else if (x.isDir) "Folder" else if (file.extension.isEmpty()) "Berkas" else "Berkas ." + file.extension.lowercase())
-                W7InfoRow("Ukuran", FileOps.readable(x.size) + " (" + String.format(W7_ID, "%,d", x.size) + " byte)")
-                if (x.isDir) W7InfoRow("Isi", x.files.toString() + " berkas, " + x.folders + " folder")
-                W7InfoRow("Diubah", w7Date(x.modified))
-                W7InfoRow("Izin", (if (x.canRead) "Baca" else "Tanpa baca") + ", " + (if (x.canWrite) "Tulis" else "Tanpa tulis"))
+                val bytes = x.fold(0L) { a, p -> a + p.size }
+                val nFiles = x.fold(0) { a, p -> a + (if (p.isDir) p.files else 1) }
+                val nDirs = x.fold(0) { a, p -> a + (if (p.isDir) p.folders + 1 else 0) }
+                W7InfoRow("Ukuran", FileOps.readable(bytes) + " (" + String.format(W7_ID, "%,d", bytes) + " byte)")
+                W7InfoRow("Isi", nFiles.toString() + " berkas, " + nDirs + " folder")
             }
             if (debian != null) W7InfoRow("Debian", if (debian) "Terlihat di Debian" else "Di luar Debian")
         }

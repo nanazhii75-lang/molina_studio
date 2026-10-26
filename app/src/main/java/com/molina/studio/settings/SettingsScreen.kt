@@ -57,12 +57,12 @@ object SettingsNav {
 }
 
 private enum class Page {
-    Home, System, Terminal, Debugging, TerminalIO, TerminalView, Tampilan, CrashReports, About, Log, Stream, Network, Scripts, Packages, Code
+    Home, System, Terminal, Debugging, TerminalIO, TerminalView, Tampilan, CrashReports, About, Log, Stream, Network, Scripts, Packages, Code, Files
 }
 
 private fun parentOf(p: Page): Page? = when (p) {
     Page.Home -> null
-    Page.System, Page.Scripts, Page.Packages -> Page.Home
+    Page.System, Page.Scripts, Page.Packages, Page.Files -> Page.Home
     Page.Stream -> Page.Packages
     Page.Debugging, Page.TerminalIO, Page.TerminalView, Page.Tampilan -> Page.Terminal
     Page.CrashReports -> Page.Debugging
@@ -85,6 +85,7 @@ private fun titleOf(p: Page): String = when (p) {
     Page.Scripts -> "Script execution"
     Page.Code -> "Editor Code"
     Page.Packages -> "Paket"
+    Page.Files -> "Berkas"
 }
 
 private fun trailOf(p: Page): List<Page> = generateSequence(p) { parentOf(it) }.toList().reversed()
@@ -116,7 +117,8 @@ private val INDEX = listOf(
     Hit("apt update", "Perbarui dan tingkatkan paket Debian (apt update && apt upgrade -y)", Page.System),
     Hit("apt upgrade", "Perbarui dan tingkatkan paket Debian (apt update && apt upgrade -y)", Page.System),
     Hit("Daftar tool terpasang", "Deteksi alat Molina di Debian beserta versinya", Page.System),
-    Hit("Penjelajah Molina", "Telusuri berkas, salin path, atau kirim ke Terminal", Page.System),
+    Hit("Berkas", "Penjelajah Molina: telusuri, salin, pindah, kompres, hapus, kirim path ke Terminal", Page.Files),
+    Hit("Penjelajah Molina", "Kelola berkas: salin, tempel, pindah, ubah nama, ZIP, favorit, properti", Page.Files),
     Hit("About", "Versi dan lisensi", Page.About)
 )
 
@@ -134,6 +136,8 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     val focus = LocalFocusManager.current
     // Lepas fokus (dan tutup keyboard) setiap kali halaman Settings berganti.
     LaunchedEffect(page) { focus.clearFocus() }
+    // Ubin Berkas di beranda langsung membuka Penjelajah Molina.
+    LaunchedEffect(page) { if (page == Page.Files) showExplorer = true }
     var apt by remember { mutableStateOf<AptJob?>(null) }
     var showTools by remember { mutableStateOf(false) }
     var showExplorer by remember { mutableStateOf(false) }
@@ -169,7 +173,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
         apt?.let { job -> DebianAptDialog(job) { apt = null } }
         if (showTools) InstalledToolsDialog { showTools = false }
         if (showExplorer) Win7OpenDialog(
-            onDismiss = { showExplorer = false },
+            onDismiss = { showExplorer = false; if (page == Page.Files) page = Page.Home },
             browse = true,
             onCopyPath = { f -> MolinaExplorer.copyPath(aptCtx, f) },
             onSendToTerminal = { f -> MolinaExplorer.sendToTerminal(aptCtx, f, sendEnter) },
@@ -203,6 +207,12 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                             links = emptyList(),
                             onOpen = { open(Page.Packages) }
                         )
+                        W7CategoryTile(
+                            icon = { Win7Folder(52.dp) },
+                            title = "Berkas",
+                            links = emptyList(),
+                            onOpen = { open(Page.Files) }
+                        )
                     }
                     Page.System -> {
                         W7Link({ W7IconTerminal() }, "Terminal", "Molina Terminal: debugging, I/O, tampilan") { open(Page.Terminal) }
@@ -213,8 +223,6 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         Category("Debian")
                         W7Link({ W7IconAptSync() }, "Perbarui dan tingkatkan paket", AptHistory.subtitle(aptLast)) { apt = AptJob.UpdateUpgrade }
                         W7Link({ W7IconToolList() }, "Daftar tool terpasang", "Deteksi alat Molina di Debian beserta versinya") { showTools = true }
-                        Category("Berkas")
-                        W7Link({ Win7Folder(32.dp) }, "Penjelajah Molina", "Telusuri berkas, salin path, atau kirim ke Terminal") { showExplorer = true }
                         Spacer(Modifier.height(12.dp))
                         W7SystemSummary()
                     }
@@ -239,6 +247,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                     Page.Scripts -> ScriptsPage()
                     Page.Code -> CodeSettingsPage()
                     Page.Packages -> PackagesPage(onOpenYtdlp = { open(Page.Stream) })
+                    Page.Files -> W7Link({ Win7Folder(32.dp) }, "Penjelajah Molina", "Telusuri, salin, pindah, kompres, hapus, atau kirim path ke Terminal") { showExplorer = true }
                 }
             }
         }
