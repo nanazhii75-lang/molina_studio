@@ -718,3 +718,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: :app (CinemaHome, CinemaActions, CinemaOpenChooser) dan :feature:mpv (MpvFolder). Gradle, Manifest, JNI mpv tidak disentuh
 - [ ] BELUM dikompilasi (CI). Risiko: sedang (kode Canvas Compose baru)
 - [ ] uji perangkat: File > 3 pilihan dengan ikon emas; Buka folder dan subfolder pada folder berisi subfolder per judul > playlist berisi semua media berurutan; folder > 1000 berkas terpotong di 1000; film.srt di samping film.mkv tampil otomatis
+
+## 2026-10-26 - Penjelajah ikuti sesi aktif dan kirim + Enter [EXPLORER-SESSION-ENTER]
+- [x] fix(terminal): TerminalSessions mencatat lingkup storage per sesi saat dibuat (fullAccessOf); sesi lama tetap memakai bind lama walau Akses penyimpanan penuh diaktifkan kemudian
+- [x] fix(explorer): visibleInDebian dan penanda Debian mengikuti sesi aktif; toast cd memberi tahu bila sesi dibuat sebelum akses penuh aktif (buka NEW SESSION)
+- [x] feat(explorer): sakelar "Ke Terminal langsung ditekan Enter": path di-quote lalu dikirim dengan Enter (\r); untuk folder diubah menjadi cd. Default mati (perilaku lama: tempel tanpa Enter)
+- [x] Temuan uji: setelah akses penuh diaktifkan, /sdcard/mykuniran tidak ditemukan karena sesi terminal lama tetap berjalan (sesi hidup di service); perlu sesi baru
+- [x] Dampak: :app (TerminalSessions.kt, ExplorerBridge.kt, Win7OpenDialog.kt, SettingsScreen.kt). Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi (CI). Risiko: sedang (menyentuh TerminalSessions.debianShell)
+- [ ] uji perangkat: aktifkan akses penuh saat sesi lama hidup > penanda tetap Di luar Debian + cd ditolak dengan petunjuk NEW SESSION; buka NEW SESSION > ls /sdcard menampilkan seluruh storage, penanda hijau, cd berhasil; sakelar Enter aktif: file > dijalankan, folder > cd; mati: path hanya ditempel

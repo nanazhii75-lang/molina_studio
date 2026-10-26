@@ -47,6 +47,12 @@ object TerminalSessions {
 
     @Volatile private var appContext: Context? = null
 
+    /** Lingkup storage saat sesi dibuat: bind PRoot tetap selama sesi hidup, walau setelan berubah. */
+    private val fullAccessBySession = java.util.Collections.synchronizedMap(java.util.WeakHashMap<TerminalSession, Boolean>())
+
+    /** true/false = sesi dibuat dengan/tanpa Akses penyimpanan penuh; null = tidak diketahui. */
+    fun fullAccessOf(s: TerminalSession?): Boolean? = if (s == null) null else fullAccessBySession[s]
+
     fun canAdd(): Boolean = sessions.size < MAX_SESSIONS
 
     /** Pastikan minimal ada satu sesi; kembalikan sesi aktif. */
@@ -163,7 +169,8 @@ object TerminalSessions {
         MolinaDns.writeResolvConf(ctx, rootfsDir)
 
         // Lingkup storage: default hanya folder kerja Molina; "Akses penuh" membuka seluruh storage.
-        val storageBinds: Array<String> = if (TerminalPrefs.fullStorageAccess) {
+        val fullAccess = TerminalPrefs.fullStorageAccess
+        val storageBinds: Array<String> = if (fullAccess) {
             File(rootfsDir, "storage/emulated/0").mkdirs()
             arrayOf("--bind=$storage:/sdcard", "--bind=$storage:/storage/emulated/0")
         } else {
@@ -202,8 +209,10 @@ object TerminalSessions {
             System.getenv("ANDROID_ROOT")?.let { add("ANDROID_ROOT=$it") }
             System.getenv("ANDROID_DATA")?.let { add("ANDROID_DATA=$it") }
         }.toTypedArray()
-        return TerminalSession(
+        val session = TerminalSession(
             "$nativeDir/libproot.so", ctx.filesDir.absolutePath, args, env, 2000, client
         )
+        fullAccessBySession[session] = fullAccess
+        return session
     }
 }

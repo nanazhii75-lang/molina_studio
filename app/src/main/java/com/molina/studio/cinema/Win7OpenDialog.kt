@@ -118,6 +118,8 @@ fun Win7OpenDialog(
     onCopyPath: ((File) -> Unit)? = null,
     onSendToTerminal: ((File) -> Unit)? = null,
     onChangeDir: ((File) -> Unit)? = null,
+    sendEnter: Boolean = false,
+    onSendEnterChange: ((Boolean) -> Unit)? = null,
     isVisibleInDebian: ((File) -> Boolean)? = null,
     pickFolder: Boolean = false,
     onPickFolder: (File) -> Unit = {}
@@ -296,6 +298,14 @@ fun Win7OpenDialog(
                                     fontSize = 10.sp, maxLines = 1
                                 )
                             }
+                        }
+                        if (onSendEnterChange != null) Row(
+                            Modifier.fillMaxWidth().clickable { onSendEnterChange.invoke(!sendEnter) }.padding(bottom = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(if (sendEnter) "[x]" else "[  ]", color = Win7.Ink, fontSize = 12.sp)
+                            Spacer(Modifier.width(6.dp))
+                            Text("Ke Terminal langsung ditekan Enter (folder = cd)", color = Win7.TextDim, fontSize = 11.sp)
                         }
                         Row(
                             Modifier.fillMaxWidth().padding(bottom = 8.dp),

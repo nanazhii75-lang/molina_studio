@@ -137,6 +137,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     var apt by remember { mutableStateOf<AptJob?>(null) }
     var showTools by remember { mutableStateOf(false) }
     var showExplorer by remember { mutableStateOf(false) }
+    var sendEnter by remember { mutableStateOf(false) }
     val aptCtx = LocalContext.current
     remember { AptHistory.init(aptCtx) }
     val aptLast by AptHistory.last.collectAsState()
@@ -171,7 +172,9 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             onDismiss = { showExplorer = false },
             browse = true,
             onCopyPath = { f -> MolinaExplorer.copyPath(aptCtx, f) },
-            onSendToTerminal = { f -> MolinaExplorer.sendToTerminal(aptCtx, f) },
+            onSendToTerminal = { f -> MolinaExplorer.sendToTerminal(aptCtx, f, sendEnter) },
+            sendEnter = sendEnter,
+            onSendEnterChange = { sendEnter = it },
             onChangeDir = { f -> MolinaExplorer.changeDir(aptCtx, f) },
             isVisibleInDebian = { f -> MolinaExplorer.visibleInDebian(f) }
         )

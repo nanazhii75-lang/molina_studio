@@ -32,7 +32,9 @@ internal object MolinaExplorer {
      * selain itu hanya folder kerja molina-studio (sesuai bind PRoot). Kartu SD/USB tidak pernah terlihat.
      */
     fun visibleInDebian(f: File): Boolean {
-        val root = if (TerminalPrefs.fullStorageAccess) base() else base() + "/" + TerminalSessions.WORKSPACE_DIR
+        // Bind PRoot tetap selama sesi hidup: ikuti sesi aktif, bukan hanya setelan terbaru
+        val full = TerminalSessions.fullAccessOf(TerminalSessions.currentSession) ?: TerminalPrefs.fullStorageAccess
+        val root = if (full) base() else base() + "/" + TerminalSessions.WORKSPACE_DIR
         val p = f.absolutePath
         return p == root || p.startsWith("$root/")
     }
@@ -46,13 +48,18 @@ internal object MolinaExplorer {
     }
 
     /** Tempel path (sudah di-quote) ke input shell sesi aktif, tanpa menekan Enter. */
-    fun sendToTerminal(ctx: Context, f: File) {
+    fun sendToTerminal(ctx: Context, f: File, enter: Boolean = false) {
         val em = TerminalSessions.currentSession?.emulator
         if (em == null) {
             Toast.makeText(ctx, "Belum ada sesi terminal aktif. Buka Terminal terlebih dahulu.", Toast.LENGTH_LONG).show()
             return
         }
-        em.paste(quote(debianPath(f)) + " ")
+        if (enter && f.isDirectory) {
+            changeDir(ctx, f) // folder + Enter = cd
+            return
+        }
+        if (enter) TerminalActions.send(quote(debianPath(f)) + "\r")
+        else em.paste(quote(debianPath(f)) + " ")
         val note = if (visibleInDebian(f)) "Path dikirim ke Terminal" else "Path dikirim, tetapi lokasi ini tidak terlihat di Debian"
         Toast.makeText(ctx, note, Toast.LENGTH_SHORT).show()
     }
@@ -70,7 +77,10 @@ internal object MolinaExplorer {
         if (!visibleInDebian(dir)) {
             Toast.makeText(
                 ctx,
-                "Folder ini tidak terlihat di Debian. Aktifkan \"Akses penyimpanan penuh\" di Setelan Terminal (berlaku di sesi baru), atau pindahkan ke molina-studio.",
+                if (TerminalPrefs.fullStorageAccess && TerminalSessions.fullAccessOf(TerminalSessions.currentSession) == false)
+                    "Sesi terminal ini dibuat sebelum Akses penyimpanan penuh aktif. Buka sesi baru (NEW SESSION)."
+                else
+                    "Folder ini tidak terlihat di Debian. Aktifkan \"Akses penyimpanan penuh\" di Setelan Terminal (berlaku di sesi baru), atau pindahkan ke molina-studio.",
                 Toast.LENGTH_LONG
             ).show()
             return
