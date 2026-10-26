@@ -8,10 +8,13 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.util.Log
+import com.molina.studio.AppPaths
 import com.molina.studio.MainActivity
 import com.molina.studio.R
 import com.molina.studio.log.LogBus
 import com.molina.core.common.LogLevel
+import com.molina.core.common.LogRedact
+import com.molina.core.common.MolinaDir
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -67,6 +70,13 @@ object CrashReporter {
         }
         File(d, "crash-$stamp.txt").writeText(body)
         File(d, PENDING).writeText(stamp)
+        // Salinan di <appRoot>/Crash supaya mudah diambil dari file manager. URL dan token disamarkan karena
+        // folder ini terbaca aplikasi lain; salinan privat di files/crash tetap lengkap. Gagal (mis. izin
+        // storage belum ada) tidak boleh mengganggu laporan utama.
+        runCatching {
+            val pub = AppPaths.get(ctx).dir(MolinaDir.Crash)
+            if (pub.isDirectory || pub.mkdirs()) File(pub, "crash-$stamp.txt").writeText(LogRedact.text(body))
+        }
         LogBus.log("crash", LogLevel.Error, "uncaught", "${error::class.java.simpleName}: ${error.message}")
     }
 

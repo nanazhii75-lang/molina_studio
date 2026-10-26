@@ -128,6 +128,21 @@ internal fun Win7Folder(box: Dp) {
     }
 }
 
+/** Folder emas khas Molina (akar aplikasi /sdcard/Molina), pembeda dari folder biasa. */
+@Composable
+internal fun Win7MolinaFolder(box: Dp) {
+    Canvas(Modifier.size(box)) {
+        val w = size.width
+        val h = size.height
+        drawRoundRect(Color(0xFF9A6F10), Offset(w * 0.04f, h * 0.14f), Size(w * 0.42f, h * 0.2f), CornerRadius(w * 0.05f))
+        drawRoundRect(
+            Brush.verticalGradient(listOf(Color(0xFFF2CB63), Color(0xFFB8860B))),
+            Offset(w * 0.04f, h * 0.26f), Size(w * 0.92f, h * 0.62f), CornerRadius(w * 0.07f)
+        )
+        drawRoundRect(Color.White.copy(alpha = 0.45f), Offset(w * 0.08f, h * 0.32f), Size(w * 0.84f, h * 0.12f), CornerRadius(w * 0.04f))
+    }
+}
+
 @Composable
 internal fun Win7File(video: Boolean, box: Dp) {
     Canvas(Modifier.size(box)) {

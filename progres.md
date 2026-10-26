@@ -755,3 +755,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi (CI). Risiko: sedang (menyentuh debianShell dan exec PRoot)
 - [ ] uji perangkat: akses penuh MATI + sesi BARU > ls /sdcard/Molina menampilkan Media/Video dst; molina_dl.py memakai Media/Video dan Media/Audio tanpa peringatan; Penjelajah: cd ke /sdcard/Molina berhasil; sesi lama (sebelum update) tetap tanpa bind; akses penuh AKTIF tetap normal
 - [ ] LANGKAH BERIKUT: pindahkan HOME_DIR terminal ke Workspace; bundle molina_dl.py sebagai asset
+
+## 2026-10-26 - Folder Crash + tempat Molina di dialog buka berkas [STORAGE-CRASH-DIR]
+- [x] MolinaDir.Crash (/sdcard/Molina/Crash) ditambahkan; ensureDirs otomatis membuatnya
+- [x] CrashReporter menyalin laporan ke Crash/ (URL dan token disamarkan LogRedact); salinan privat files/crash tetap utama dan tetap dipakai daftar di Settings. Hapus di Settings tidak menghapus salinan di Crash/
+- [x] Dialog buka berkas: tempat "Molina" (ikon folder emas Win7MolinaFolder) menuju /sdcard/Molina, tampil juga di mode pilih media; tempat "Molina Studio" diganti "Project" (hanya mode Penjelajah) karena menunjuk folder project molina-studio
+- [x] Dampak: :core:common, :app. Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi (CI). Risiko: rendah
+- [ ] uji perangkat: buka aplikasi dengan izin storage > /sdcard/Molina/Crash ada; picu crash uji > crash-*.txt muncul di Crash/ dan di Settings > Terminal > Debugging; dialog buka berkas menampilkan "Molina" berikon emas di Favorit
+- [ ] LANGKAH BERIKUT: bundle molina_dl.py sebagai asset (salin ke Scripts/ tanpa menimpa, kirim MOLINA_ROOT); terakhir pindahkan HOME_DIR terminal ke Workspace

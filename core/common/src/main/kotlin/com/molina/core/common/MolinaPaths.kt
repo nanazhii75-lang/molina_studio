@@ -16,6 +16,7 @@ enum class MolinaDir(val folderName: String) {
     Backup("Backup"),
     Documents("Documents"),
     Export("Documents/Export"),
+    Crash("Crash"),
 }
 
 /**

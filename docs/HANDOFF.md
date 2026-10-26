@@ -32,7 +32,7 @@ Untuk Claude lain yang melanjutkan. Baca seluruhnya sebelum menyentuh kode.
 - Modul: `:app` (perakit) > `:feature:mpv` (sudah modul), `:core:common` (Kotlin murni), `:core:storage`. Terminal, emulator, dan view masih di `:app` atau vendored (`terminal-emulator`, `terminal-view`, dari Termux v0.118.0). Rencana lengkap: BLUEPRINT bagian 5.
 - Kontrak di `core:common` yang SUDAH ada: `ExitHooks`, `LogLevel/LogEvent/LogSink/AppLog`, `AppVisibility`, `MolinaPaths` + `MolinaDir`, `LogRedact`.
 - Kontrak yang BELUM ada di kode: `SettingsSection`, `MolinaCommand/CommandBus`.
-- Penyimpanan: project (pengembangan) `/sdcard/molina-studio`, data aplikasi `/sdcard/Molina` (Downloads, Media/{Video,Audio,IPTV}, Workspace, Scripts, Backup, Documents), rahasia di `filesDir`/Keystore.
+- Penyimpanan: project (pengembangan) `/sdcard/molina-studio`, data aplikasi `/sdcard/Molina` (Downloads, Media/{Video,Audio,IPTV}, Workspace, Scripts, Backup, Documents, Crash), rahasia di `filesDir`/Keystore.
 - Native mpv: dibangun `native-mpv.yml` dari mpv-android `62013d4`; versi dipin di `native/pins.env`, hash unduhan di `native/pins.sha256`, rilis yang dipakai APK di `native/prebuilt.env`. Mengubah pin harus SADAR dan dicatat di `progres.md`.
 - Gerbang telemetri `scripts/telemetry_gate.py` memeriksa host, izin, dan dependensi. Mengubah allowlist harus SADAR dan dicatat. Folder `scripts/` dan baris komentar tidak dipindai.
 - Log: semua log mpv lewat `MpvLog` dan `PlaybackLog` yang disamarkan `LogRedact` (URL hanya skema+host, token, path lokal). Jangan memakai `android.util.Log` langsung di `feature/mpv`.

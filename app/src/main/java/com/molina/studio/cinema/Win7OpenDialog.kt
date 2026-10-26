@@ -51,7 +51,7 @@ private class W7Entry(val file: File, val isDir: Boolean, val size: Long, val mo
 
 private enum class W7Sort { NAME, DATE, SIZE }
 private enum class W7Kind(val label: String) { MEDIA("Media (video dan audio)"), ALL("Semua file") }
-private class W7Place(val label: String, val dir: File)
+private class W7Place(val label: String, val dir: File, val molina: Boolean = false)
 
 private val W7_ID = Locale("id", "ID")
 private val W7_AUDIO = setOf("mp3", "m4a", "aac", "flac", "wav", "ogg", "oga", "opus", "wma", "ac3", "dts", "mka")
@@ -64,7 +64,8 @@ private fun w7HasStorage(ctx: Context) =
     ContextCompat.checkSelfPermission(ctx, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
 
 private fun w7Favorites(browse: Boolean = false): List<W7Place> = listOfNotNull(
-    if (browse) W7Place("Molina Studio", File(Environment.getExternalStorageDirectory(), TerminalSessions.WORKSPACE_DIR)) else null,
+    W7Place("Molina", File(Environment.getExternalStorageDirectory(), com.molina.core.common.MolinaPaths.APP_FOLDER), true),
+    if (browse) W7Place("Project", File(Environment.getExternalStorageDirectory(), TerminalSessions.WORKSPACE_DIR)) else null,
     W7Place("Video", Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES)),
     W7Place("Unduhan", Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)),
     W7Place("Musik", Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)),
@@ -345,7 +346,7 @@ private fun W7Cmd(label: String, enabled: Boolean, onClick: () -> Unit) {
 private fun W7NavPane(favs: List<W7Place>, vols: List<W7Place>, dir: File, modifier: Modifier, onGo: (File) -> Unit) {
     Column(modifier.background(Win7.NavBg).verticalScroll(rememberScrollState()).padding(vertical = 6.dp)) {
         W7NavHeader("Favorit", true)
-        favs.forEach { p -> W7NavItem(p.label, dir == p.dir, { Win7Folder(16.dp) }) { onGo(p.dir) } }
+        favs.forEach { p -> W7NavItem(p.label, dir == p.dir, { if (p.molina) Win7MolinaFolder(16.dp) else Win7Folder(16.dp) }) { onGo(p.dir) } }
         Spacer(Modifier.height(8.dp))
         W7NavHeader("Komputer", false)
         vols.forEach { p -> W7NavItem(p.label, dir == p.dir, { Win7Drive(16.dp) }) { onGo(p.dir) } }
