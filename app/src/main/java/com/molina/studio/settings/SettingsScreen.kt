@@ -110,8 +110,8 @@ private val INDEX = listOf(
     Hit("Pratinjau HTML", "WebView untuk halaman HTML (JavaScript dan jaringan mati)", Page.Code),
     Hit("Paket", "Alat khusus: pasang, versi, hapus (Python 3, Git, FFmpeg, yt-dlp)", Page.Packages),
     Hit("Tambah alat", "Buat alat sendiri dengan skrip pasang, versi, hapus", Page.Packages),
-    Hit("apt update", "Perbarui daftar paket Debian", Page.System),
-    Hit("apt upgrade", "Tingkatkan paket Debian (apt upgrade -y)", Page.System),
+    Hit("apt update", "Perbarui dan tingkatkan paket Debian (apt update && apt upgrade -y)", Page.System),
+    Hit("apt upgrade", "Perbarui dan tingkatkan paket Debian (apt update && apt upgrade -y)", Page.System),
     Hit("About", "Versi dan lisensi", Page.About)
 )
 
@@ -189,8 +189,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         W7Link({ W7IconShield() }, "Keamanan dan privasi", "Kebijakan URL, jaringan lokal (LAN), layar privat") { open(Page.Network) }
                         W7Link({ W7IconInfo() }, "About", "Versi dan lisensi") { open(Page.About) }
                         Category("Debian")
-                        W7Link({ W7IconApt("upd") }, "Perbarui daftar paket", "apt update") { apt = AptJob.Update }
-                        W7Link({ W7IconApt("upg") }, "Tingkatkan paket", "apt upgrade -y") { apt = AptJob.Upgrade }
+                        W7Link({ W7IconAptSync() }, "Perbarui dan tingkatkan paket", "apt update && apt upgrade -y") { apt = AptJob.UpdateUpgrade }
                         Spacer(Modifier.height(12.dp))
                         W7SystemSummary()
                     }

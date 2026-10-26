@@ -20,6 +20,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -35,6 +36,42 @@ internal fun W7IconApt(label: String) {
         Alignment.Center
     ) {
         Text(label, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+/** Ikon "perbarui + tingkatkan": dua panah melingkar putih di ubin oranye (selaras ikon refresh Settings). */
+@Composable
+internal fun W7IconAptSync() {
+    val shape = RoundedCornerShape(7.dp)
+    Box(
+        Modifier.size(34.dp).clip(shape)
+            .background(Brush.verticalGradient(listOf(Color(0xFFE8A35F), Color(0xFFB5611E))), shape)
+            .border(1.dp, Color(0x55000000), shape),
+        Alignment.Center
+    ) {
+        Canvas(Modifier.size(20.dp)) {
+            val w = size.width
+            val sw = w * 0.13f
+            val c = w / 2f
+            val r = c - sw * 1.6f
+            val topLeft = Offset(c - r, c - r)
+            val arc = Size(r * 2, r * 2)
+            fun head(deg: Float) {
+                val a = Math.toRadians(deg.toDouble())
+                val cx = Math.cos(a).toFloat()
+                val sy = Math.sin(a).toFloat()
+                val px = c + r * cx
+                val py = c + r * sy
+                val len = w * 0.2f
+                val tip = Offset(px - sy * len, py + cx * len)
+                drawLine(Color.White, tip, Offset(px + cx * len, py + sy * len), sw, StrokeCap.Round)
+                drawLine(Color.White, tip, Offset(px - cx * len, py - sy * len), sw, StrokeCap.Round)
+            }
+            drawArc(Color.White, 20f, 130f, false, topLeft, arc, style = Stroke(sw, cap = StrokeCap.Round))
+            drawArc(Color.White, 200f, 130f, false, topLeft, arc, style = Stroke(sw, cap = StrokeCap.Round))
+            head(150f)
+            head(330f)
+        }
     }
 }
 

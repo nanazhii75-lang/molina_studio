@@ -39,7 +39,12 @@ import com.molina.core.common.LogLevel
 import com.molina.studio.code.ProotScriptExecutor
 
 /** Satu skrip yang dijalankan di Debian PRoot lewat dialog keluaran. [confirm] = minta persetujuan dulu. */
-internal class ToolRun(val title: String, val script: String, val timeoutMs: Long, val note: String, val confirm: Boolean)
+internal class ToolRun(
+    val title: String, val script: String, val timeoutMs: Long, val note: String, val confirm: Boolean,
+    /** Opsional: baris keluaran yang cocok disimpan (maks 50) lalu diringkas [summarize] saat sukses. */
+    val keyPattern: Regex? = null,
+    val summarize: ((List<String>) -> String?)? = null
+)
 
 private const val MAX_UI_CHARS = 60_000
 
@@ -58,6 +63,21 @@ internal fun ToolRunDialog(run: ToolRun, onClose: () -> Unit, onResult: (Int, St
     var handle by remember { mutableStateOf<RunHandle?>(null) }
     val scroll = rememberScrollState()
     LaunchedEffect(output) { scroll.scrollTo(scroll.maxValue) }
+    val keyLines = remember { mutableListOf<String>() }
+    val pending = remember { StringBuilder() }
+
+    fun collect(text: String) {
+        val kp = run.keyPattern ?: return
+        pending.append(text.replace("\r", "\n"))
+        var i = pending.indexOf("\n")
+        while (i >= 0) {
+            val line = pending.substring(0, i).trim()
+            pending.delete(0, i + 1)
+            if (line.isNotEmpty() && keyLines.size < 50 && kp.containsMatchIn(line)) keyLines.add(line)
+            i = pending.indexOf("\n")
+        }
+        if (pending.length > 4000) pending.clear()
+    }
 
     fun start() {
         started = true
@@ -65,10 +85,17 @@ internal fun ToolRunDialog(run: ToolRun, onClose: () -> Unit, onResult: (Int, St
         status = "Berjalan\u2026"
         handle = startShell(
             ctx, run,
-            onChunk = { output = (output + it.replace("\r", "")).takeLast(MAX_UI_CHARS) },
+            onChunk = {
+                output = (output + it.replace("\r", "")).takeLast(MAX_UI_CHARS)
+                collect(it)
+            },
             onDone = { r ->
                 running = false
                 status = describe(r)
+                collect("\n")
+                if (r.startError == null && !r.cancelled && !r.timedOut && r.exitCode == 0) {
+                    run.summarize?.invoke(keyLines.toList())?.let { status = status + "\n" + it }
+                }
                 val code = if (r.startError != null || r.cancelled || r.timedOut) -1 else r.exitCode
                 AppLog.log("system", LogLevel.Info, "tool", "${run.title} selesai exit=${r.exitCode} ${r.millis}ms")
                 onResult(code, output)

@@ -618,3 +618,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi (CI). Risiko: sedang-rendah
 - [ ] uji perangkat: kartu alat; VERSI/PASANG/HAPUS; tambah-ubah-buang alat; yt-dlp Versi/Hapus; apt update/upgrade
 - [ ] lanjut: ubah nama skrip dari Settings (Script execution); SVG branding untuk ikon ubin
+
+## 2026-10-26 - Settings > Sistem > Debian: update + upgrade digabung [DEBIAN-APT-GABUNG]
+- [x] refactor(settings): AptJob.Update dan AptJob.Upgrade digabung jadi AptJob.UpdateUpgrade (`apt update && apt upgrade -y`, upgrade hanya jalan bila update sukses; timeout 50 menit)
+- [x] SettingsScreen: dua menu Debian jadi satu "Perbarui dan tingkatkan paket"; entri pencarian apt update/upgrade menunjuk ke aksi yang sama
+- [x] feat(settings): ikon baru W7IconAptSync (dua panah melingkar) menggantikan ubin teks upd/upg
+- [x] feat(settings): ToolRun mendapat keyPattern + summarize (opsional); dialog apt menampilkan ringkasan ("N paket ditingkatkan..." / "Sistem sudah terbaru.") dari baris kunci, tahan log terpotong
+- [x] Dampak: :app saja (settings/DebianAptUi.kt, ToolRunUi.kt, PackageScriptUi.kt, SettingsScreen.kt). Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi (CI). Risiko: rendah-sedang (ikon Canvas + parameter baru ToolRun, semua default sehingga pemanggil lain tidak berubah)
+- [ ] uji perangkat: ikon tampil rapi; konfirmasi lalu update->upgrade berurutan; ringkasan muncul di status; offline -> upgrade tidak jalan, tanpa ringkasan

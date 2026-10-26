@@ -19,3 +19,4 @@ feature/mpv/src/main/jniLibs/
 __pycache__/
 molina_*.py
 # pemicu CI
+0001-*.patch
