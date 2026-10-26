@@ -1,5 +1,8 @@
 package com.molina.studio.cinema
 
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -93,6 +96,8 @@ private class W7Place(val label: String, val dir: File, val molina: Boolean = fa
 private class W7Clip(val files: List<File>, val cut: Boolean)
 private sealed class W7Sheet {
     class Rename(val file: File) : W7Sheet()
+    class Zip(val files: List<File>) : W7Sheet()
+    class Password(val zip: File, val wrong: Boolean) : W7Sheet()
     class Info(val files: List<File>) : W7Sheet()
     class Delete(val files: List<File>) : W7Sheet()
     object NewDir : W7Sheet()
@@ -159,6 +164,8 @@ fun Win7OpenDialog(
     browse: Boolean = false,
     onCopyPath: ((File) -> Unit)? = null,
     onSendToTerminal: ((File) -> Unit)? = null,
+    onRunInTerminal: ((File) -> Unit)? = null,
+    onInsertPaths: ((List<File>) -> Unit)? = null,
     onChangeDir: ((File) -> Unit)? = null,
     sendEnter: Boolean = false,
     onSendEnterChange: ((Boolean) -> Unit)? = null,
@@ -214,7 +221,7 @@ fun Win7OpenDialog(
     }
     fun say(text: String, ok: Boolean = false) { message = text; messageOk = ok }
     fun targets(): List<File> = if (multi) picked.map { File(it) } else listOfNotNull(selected?.file)
-    fun runOp(op: (FileOps.Ctl) -> String, onDone: () -> Unit = {}) {
+    fun runOp(op: (FileOps.Ctl) -> String, onDone: () -> Unit = {}, onFail: (Throwable) -> Unit = {}) {
         if (busy) return
         if (ContextCompat.checkSelfPermission(ctx, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
             say("Izin tulis penyimpanan belum diberikan. Aktifkan izin Penyimpanan di Setelan Android.")
@@ -230,7 +237,7 @@ fun Win7OpenDialog(
             busy = false
             progress = null
             r.onSuccess { say(it, true); onDone(); selected = null; picked = emptySet(); fileName = ""; tick++ }
-                .onFailure { say(it.message ?: "Operasi gagal."); tick++ }
+                .onFailure { say(it.message ?: "Operasi gagal."); tick++; onFail(it) }
         }
     }
 
@@ -306,6 +313,29 @@ fun Win7OpenDialog(
             runOp(op = { ctl -> "Dihapus: " + FileOps.deleteAll(s.files, guard, ctl) + " item" })
         }
         is W7Sheet.Info -> W7InfoDialog(s.files, if (s.files.size == 1) isVisibleInDebian?.invoke(s.files[0]) else null) { sheet = null }
+        is W7Sheet.Zip -> W7PasswordDialog(
+            title = "Kompres ZIP berkata sandi", okLabel = "Kompres", confirmField = true,
+            note = "Enkripsi AES-256. Simpan kata sandinya: ZIP tidak bisa dibuka tanpa itu.",
+            onCancel = { sheet = null }
+        ) { pw ->
+            sheet = null
+            val d = dir
+            val items = s.files
+            runOp(op = { ctl -> "ZIP terenkripsi dibuat: " + FileOps.zipAll(items, d, ctl, pw).name })
+        }
+        is W7Sheet.Password -> W7PasswordDialog(
+            title = "Ekstrak ZIP", okLabel = "Ekstrak", confirmField = false,
+            note = if (s.wrong) "Kata sandi salah. Coba lagi." else "ZIP ini dilindungi kata sandi.",
+            onCancel = { sheet = null }
+        ) { pw ->
+            sheet = null
+            val d = dir
+            val z = s.zip
+            runOp(
+                op = { ctl -> "Diekstrak ke: " + FileOps.unzip(z, d, ctl, pw).name },
+                onFail = { if (it is FileOps.WrongPassword) sheet = W7Sheet.Password(z, true) }
+            )
+        }
         null -> Unit
     }
 
@@ -498,6 +528,10 @@ fun Win7OpenDialog(
                                             runOp(op = { ctl -> "ZIP dibuat: " + FileOps.zipAll(tg, d, ctl).name })
                                         }
                                     }
+                                    W7MenuItem(W7Ico.ZIP, "Kompres ZIP + kata sandi\u2026", tg.isNotEmpty()) {
+                                        toolsOpen = false
+                                        if (tg.isNotEmpty()) sheet = W7Sheet.Zip(tg)
+                                    }
                                     W7MenuItem(
                                         W7Ico.UNZIP, "Ekstrak ZIP",
                                         one != null && one.isFile && one.extension.equals("zip", ignoreCase = true)
@@ -505,7 +539,10 @@ fun Win7OpenDialog(
                                         toolsOpen = false
                                         if (one != null) {
                                             val d = dir
-                                            runOp(op = { ctl -> "Diekstrak ke: " + FileOps.unzip(one, d, ctl).name })
+                                            runOp(
+                                                op = { ctl -> "Diekstrak ke: " + FileOps.unzip(one, d, ctl).name },
+                                                onFail = { if (it is FileOps.NeedPassword) { say(""); sheet = W7Sheet.Password(one, false) } }
+                                            )
                                         }
                                     }
                                     W7MenuItem(W7Ico.DELETE, "Hapus", tg.isNotEmpty()) {
@@ -631,21 +668,21 @@ fun Win7OpenDialog(
                                 )
                             }
                         }
-                        if (onSendEnterChange != null) Row(
-                            Modifier.fillMaxWidth().clickable { onSendEnterChange.invoke(!sendEnter) }.padding(bottom = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(if (sendEnter) "[x]" else "[  ]", color = Win7.Ink, fontSize = 12.sp)
-                            Spacer(Modifier.width(6.dp))
-                            Text("Ke Terminal langsung ditekan Enter (folder = cd)", color = Win7.TextDim, fontSize = 11.sp)
-                        }
                         Row(
                             Modifier.fillMaxWidth().padding(bottom = 8.dp),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Win7Button("Salin path", modifier = Modifier.weight(1f), enabled = onCopyPath != null, onClick = { onCopyPath?.invoke(target) })
-                            Win7Button("Ke Terminal", modifier = Modifier.weight(1f), enabled = onSendToTerminal != null, onClick = { onSendToTerminal?.invoke(target) })
+                            val insertList = if (multi && picked.isNotEmpty()) picked.map { File(it) } else listOf(target)
+                            if (target.isFile && !(multi && picked.size > 1)) {
+                                Win7Button("Jalankan", modifier = Modifier.weight(1f), enabled = onRunInTerminal != null, onClick = { onRunInTerminal?.invoke(target) })
+                            } else {
+                                Win7Button(
+                                    "Sisipkan" + (if (insertList.size > 1) " (" + insertList.size + ")" else ""),
+                                    modifier = Modifier.weight(1f), enabled = onInsertPaths != null, onClick = { onInsertPaths?.invoke(insertList) }
+                                )
+                            }
                             Win7Button("cd", modifier = Modifier.weight(1f), enabled = onChangeDir != null && target.isDirectory, onClick = { onChangeDir?.invoke(target) })
                         }
                     }
@@ -955,6 +992,75 @@ private fun W7NameDialog(
 }
 
 @Composable
+private fun W7SecretField(
+    value: String, onChange: (String) -> Unit, show: Boolean,
+    modifier: Modifier, onDone: () -> Unit
+) {
+    BasicTextField(
+        value = value,
+        onValueChange = onChange,
+        singleLine = true,
+        textStyle = TextStyle(color = Win7.Ink, fontSize = 14.sp),
+        cursorBrush = SolidColor(Win7.Ink),
+        visualTransformation = if (show) VisualTransformation.None else PasswordVisualTransformation(),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+        keyboardActions = KeyboardActions(onDone = { onDone() }),
+        modifier = modifier.fillMaxWidth().height(32.dp).background(Win7.Input)
+            .border(1.dp, Win7.Field).padding(horizontal = 8.dp),
+        decorationBox = { inner -> Box(Modifier.fillMaxSize(), Alignment.CenterStart) { inner() } }
+    )
+}
+
+/** [ZIP-AES] Dialog kata sandi: [confirmField] meminta ketik dua kali (membuat ZIP), tanpa itu satu kali (mengekstrak). */
+@Composable
+private fun W7PasswordDialog(
+    title: String, okLabel: String, confirmField: Boolean, note: String,
+    onCancel: () -> Unit, onOk: (String) -> Unit
+) {
+    var pw by remember { mutableStateOf("") }
+    var pw2 by remember { mutableStateOf("") }
+    var show by remember { mutableStateOf(false) }
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(Unit) { delay(150); runCatching { focus.requestFocus() } }
+    val valid = if (confirmField) pw.length >= 4 && pw == pw2 else pw.isNotEmpty()
+    val hint = when {
+        !confirmField -> ""
+        pw.isNotEmpty() && pw.length < 4 -> "Minimal 4 karakter."
+        pw2.isNotEmpty() && pw != pw2 -> "Kata sandi tidak sama."
+        else -> ""
+    }
+    W7Panel(title, onCancel) {
+        Text(note, color = Win7.TextDim, fontSize = 12.sp)
+        Spacer(Modifier.height(8.dp))
+        Text("Kata sandi", color = Win7.Ink, fontSize = 12.sp)
+        Spacer(Modifier.height(4.dp))
+        W7SecretField(pw, { pw = it }, show, Modifier.focusRequester(focus)) { if (valid) onOk(pw) }
+        if (confirmField) {
+            Spacer(Modifier.height(8.dp))
+            Text("Ulangi kata sandi", color = Win7.Ink, fontSize = 12.sp)
+            Spacer(Modifier.height(4.dp))
+            W7SecretField(pw2, { pw2 = it }, show, Modifier) { if (valid) onOk(pw) }
+        }
+        if (hint.isNotEmpty()) {
+            Spacer(Modifier.height(6.dp))
+            Text(hint, color = Color(0xFFFF8A80), fontSize = 12.sp)
+        }
+        Spacer(Modifier.height(8.dp))
+        Row(Modifier.fillMaxWidth().clickable { show = !show }.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(if (show) "[x]" else "[  ]", color = Win7.Ink, fontSize = 12.sp)
+            Spacer(Modifier.width(6.dp))
+            Text("Tampilkan kata sandi", color = Win7.TextDim, fontSize = 12.sp)
+        }
+        Spacer(Modifier.height(12.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+            Win7Button(okLabel, isDefault = true, enabled = valid) { onOk(pw) }
+            Spacer(Modifier.width(8.dp))
+            Win7Button("Batal", onClick = onCancel)
+        }
+    }
+}
+
+@Composable
 private fun W7ConfirmDialog(files: List<File>, onCancel: () -> Unit, onOk: () -> Unit) {
     val hasDir = files.any { it.isDirectory }
     W7Panel("Hapus", onCancel) {
@@ -989,6 +1095,14 @@ private fun W7InfoDialog(files: List<File>, debian: Boolean?, onDismiss: () -> U
         failed = r.isFailure
     }
     val first = files.first()
+    val shaCtx = LocalContext.current
+    val shaScope = rememberCoroutineScope()
+    val shaCancel = remember(files) { AtomicBoolean(false) }
+    var sha by remember(files) { mutableStateOf<String?>(null) }
+    var shaBusy by remember(files) { mutableStateOf(false) }
+    var shaPct by remember(files) { mutableStateOf(0f) }
+    var shaErr by remember(files) { mutableStateOf("") }
+    DisposableEffect(files) { onDispose { shaCancel.set(true) } }
     W7Panel("Properti", onDismiss) {
         Column(Modifier.heightIn(max = 380.dp).verticalScroll(rememberScrollState())) {
             W7InfoRow("Nama", if (files.size == 1) first.name.ifEmpty { first.path } else files.size.toString() + " item")
@@ -1006,6 +1120,36 @@ private fun W7InfoDialog(files: List<File>, debian: Boolean?, onDismiss: () -> U
                 if (p.isDir) W7InfoRow("Isi", p.files.toString() + " berkas, " + p.folders + " folder")
                 W7InfoRow("Diubah", w7Date(p.modified))
                 W7InfoRow("Izin", (if (p.canRead) "Baca" else "Tanpa baca") + ", " + (if (p.canWrite) "Tulis" else "Tanpa tulis"))
+                if (!p.isDir && !p.symlink) {
+                    val h = sha
+                    if (h != null) {
+                        W7InfoRow("SHA-256", h)
+                        Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.End) {
+                            Win7Button("Salin hash") {
+                                val cm = shaCtx.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                cm.setPrimaryClip(android.content.ClipData.newPlainText("sha256", h))
+                            }
+                        }
+                    } else {
+                        Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                            if (shaErr.isNotEmpty()) Text(shaErr, color = Color(0xFFFF8A80), fontSize = 11.sp, modifier = Modifier.weight(1f))
+                            Win7Button(
+                                if (shaBusy) "Menghitung " + (shaPct * 100).toInt() + "%" else "Hitung SHA-256",
+                                enabled = !shaBusy
+                            ) {
+                                shaBusy = true
+                                shaErr = ""
+                                shaScope.launch {
+                                    val r = withContext(Dispatchers.IO) {
+                                        runCatching { FileOps.sha256(first, FileOps.Ctl(shaCancel) { pc -> shaPct = pc }) }
+                                    }
+                                    shaBusy = false
+                                    r.onSuccess { sha = it }.onFailure { shaErr = it.message ?: "Gagal menghitung" }
+                                }
+                            }
+                        }
+                    }
+                }
             } else {
                 val bytes = x.fold(0L) { a, p -> a + p.size }
                 val nFiles = x.fold(0) { a, p -> a + (if (p.isDir) p.files else 1) }

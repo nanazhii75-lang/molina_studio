@@ -842,3 +842,13 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi (CI). Risiko: rendah-sedang (Modifier.composed, awaitEachGesture, import baru)
 - [ ] uji perangkat: Settings > Berkas > keyboard TIDAK muncul; ketuk Cari nama > keyboard muncul dan bisa mengetik; ketuk di luar/Back > keyboard tutup; ketuk lagi bisa fokus; Nama file (mode simpan) sama; ikon folder, folder Molina (bintang), video, dan audio tampil emas dan terbaca di baris 20dp
 - [ ] LANGKAH BERIKUT: Aplikasi lain lewat chooser sistem (FileProvider), tampilan grid/thumbnail, Bagikan, riwayat folder
+
+## 2026-10-26 - Penjelajah: Jalankan/Sisipkan, ZIP AES-256, SHA-256 [EXPLORER-RUN-ZIPAES]
+- [x] refactor(explorer): tombol "Ke Terminal" + kotak centang Enter dihapus (duplikat cd); diganti "Jalankan" (berkas: interpreter dari shebang/ekstensi, subshell (cd folder && interpreter berkas), folder kerja sesi tidak berubah) dan "Sisipkan (N)" (folder/seleksi banyak: path ter-quote tanpa Enter)
+- [x] feat(explorer): Kompres ZIP + kata sandi (AES-256, zip4j) dengan dialog dua kolom; Ekstrak ZIP mendeteksi enkripsi dan meminta sandi, sandi salah meminta ulang, hasil parsial dibersihkan; progres + Hentikan tetap bekerja
+- [x] feat(explorer): Properti satu berkas: Hitung SHA-256 (bertahap, berhenti saat dialog ditutup) + Salin hash
+- [x] Uji JVM murni (kotlinc 2.1.20 + zip4j 2.11.5): ZIP AES round-trip, NeedPassword/WrongPassword, tanpa sisa folder, folder kosong, symlink dilewati, ZIP biasa tidak regresi, banyak item, pembatalan, SHA-256 = sha256sum, runnerFor (shebang env/ekstensi/nama berbahaya ditolak). telemetry_gate lulus
+- [x] Dampak: Gradle (+net.lingala.zip4j:zip4j:2.11.5), :app (cinema/FileOps.kt, cinema/Win7OpenDialog.kt, settings/ExplorerBridge.kt, settings/SettingsScreen.kt). Manifest dan JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: sedang (dependensi baru, Compose dialog baru, parameter onFail pada runOp). Parameter sendEnter/onSendEnterChange/onSendToTerminal kini tak terpakai (hanya peringatan)
+- [ ] uji perangkat: pilih berkas .sh > Jalankan (hasil muncul di Terminal, cwd sesi tidak berubah); .py > Jalankan; .txt > pesan "belum dikenali"; pilih folder > Sisipkan; mode Pilih 3 berkas > Sisipkan (3); Alat > Kompres ZIP + kata sandi (kosong/beda sandi ditolak) > ekstrak tanpa sandi diminta sandi > salah minta ulang > benar berhasil; buka ZIP terenkripsi di aplikasi lain (7-Zip/ZArchiver) dengan sandi sama; Properti berkas besar > Hitung SHA-256 > Salin hash; tutup dialog saat menghitung tidak crash
+- [ ] LANGKAH BERIKUT: ekstrak 7z/tar.gz (commons-compress sudah ada, 7z butuh org.tukaani:xz), jelajah isi ZIP tanpa ekstrak, Bagikan (FileProvider), riwayat folder

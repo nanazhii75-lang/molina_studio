@@ -118,6 +118,42 @@ internal object MolinaExplorer {
         Toast.makeText(ctx, note, Toast.LENGTH_SHORT).show()
     }
 
+    /** Sisipkan path ter-quote (satu atau banyak, dipisah spasi) ke input shell sesi aktif, tanpa Enter. */
+    fun insertPaths(ctx: Context, files: List<File>) {
+        if (files.isEmpty()) return
+        val em = TerminalSessions.currentSession?.emulator
+        if (em == null) {
+            Toast.makeText(ctx, "Belum ada sesi terminal aktif. Buka Terminal terlebih dahulu.", Toast.LENGTH_LONG).show()
+            return
+        }
+        em.paste(files.joinToString(" ") { quote(debianPath(it)) } + " ")
+        val note = if (files.all { visibleInDebian(it) }) "Path dikirim ke Terminal" else "Path dikirim, tetapi lokasi ini tidak terlihat di Debian"
+        Toast.makeText(ctx, note, Toast.LENGTH_SHORT).show()
+    }
+
+    /**
+     * Jalankan [f] di sesi aktif dengan interpreter dari shebang atau ekstensi, di dalam subshell
+     * `(cd folder && interpreter berkas)` sehingga folder kerja sesi tidak berubah.
+     */
+    fun runFile(ctx: Context, f: File) {
+        if (TerminalSessions.currentSession?.emulator == null) {
+            Toast.makeText(ctx, "Belum ada sesi terminal aktif. Buka Terminal terlebih dahulu.", Toast.LENGTH_LONG).show()
+            return
+        }
+        val runner = com.molina.studio.cinema.FileOps.runnerFor(f)
+        if (runner == null) {
+            Toast.makeText(ctx, "Jenis berkas ini belum dikenali untuk dijalankan. Pakai Sisipkan lalu ketik perintahnya.", Toast.LENGTH_LONG).show()
+            return
+        }
+        val parent = f.parentFile
+        if (parent == null || !visibleInDebian(f)) {
+            Toast.makeText(ctx, "Berkas ini tidak terlihat di Debian. Pindahkan ke folder Molina atau molina-studio, atau aktifkan Akses penyimpanan penuh.", Toast.LENGTH_LONG).show()
+            return
+        }
+        TerminalActions.send("(cd " + quote(debianPath(parent)) + " && " + runner + " " + quote(debianPath(f)) + ")\r")
+        Toast.makeText(ctx, "Menjalankan: " + runner + " " + f.name, Toast.LENGTH_SHORT).show()
+    }
+
     /** Jalankan `cd` ke folder di sesi aktif (langsung dieksekusi). Hanya untuk folder yang terlihat di Debian. */
     fun changeDir(ctx: Context, dir: File) {
         if (TerminalSessions.currentSession?.emulator == null) {

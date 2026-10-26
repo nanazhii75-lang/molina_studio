@@ -5,11 +5,19 @@ import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 import java.nio.file.Files
+import java.security.MessageDigest
 import java.util.Locale
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 import java.util.zip.ZipOutputStream
+import net.lingala.zip4j.ZipFile as Z4jZipFile
+import net.lingala.zip4j.exception.ZipException as Z4jException
+import net.lingala.zip4j.model.ExcludeFileFilter
+import net.lingala.zip4j.model.ZipParameters
+import net.lingala.zip4j.model.enums.AesKeyStrength
+import net.lingala.zip4j.model.enums.EncryptionMethod
+import net.lingala.zip4j.progress.ProgressMonitor
 
 /**
  * Operasi berkas murni untuk Penjelajah Molina (tanpa Android/Compose). Semua fungsi bersifat blocking:
@@ -44,6 +52,12 @@ internal object FileOps {
             }
         }
     }
+
+    /** [ZIP-AES] ZIP berkata sandi tetapi sandi belum diberikan. */
+    class NeedPassword : IOException("ZIP ini dilindungi kata sandi")
+
+    /** [ZIP-AES] Kata sandi ZIP salah. */
+    class WrongPassword : IOException("Kata sandi salah")
 
     private fun isLink(f: File): Boolean = try { Files.isSymbolicLink(f.toPath()) } catch (e: Exception) { false }
     private fun present(f: File): Boolean = f.exists() || isLink(f)
@@ -222,7 +236,7 @@ internal object FileOps {
     }
 
     /** Kompres [files] menjadi satu ZIP di [destDir]. Satu item: nama item; banyak: nama folder tujuan. Tautan dilewati. */
-    fun zipAll(files: List<File>, destDir: File, ctl: Ctl): File {
+    fun zipAll(files: List<File>, destDir: File, ctl: Ctl, password: String? = null): File {
         if (files.isEmpty()) throw IOException("Tidak ada yang dikompres")
         for (f in files) if (!present(f)) throw IOException("Sumber tidak ditemukan: " + f.name)
         if (!destDir.isDirectory || !destDir.canWrite()) throw IOException("Folder tujuan tidak bisa ditulisi")
@@ -231,6 +245,7 @@ internal object FileOps {
             if (one.isDirectory) one.name else one.nameWithoutExtension.ifEmpty { one.name }
         } else destDir.name.ifEmpty { "Arsip" }
         val out = uniqueTarget(destDir, "$stem.zip", keepExt = true)
+        if (!password.isNullOrEmpty()) return zipEncrypted(files, out, password, ctl)
         ctl.total = sizeOf(files)
         try {
             ZipOutputStream(out.outputStream().buffered()).use { z ->
@@ -243,6 +258,58 @@ internal object FileOps {
         }
         return out
     }
+
+    /** [ZIP-AES] ZIP terenkripsi AES-256 (zip4j). Tautan dilewati; progres dan pembatalan lewat [ctl]. */
+    private fun zipEncrypted(files: List<File>, out: File, password: String, ctl: Ctl): File {
+        val skip = out.canonicalFile
+        val params = ZipParameters()
+        params.setEncryptFiles(true)
+        params.setEncryptionMethod(EncryptionMethod.AES)
+        params.setAesKeyStrength(AesKeyStrength.KEY_STRENGTH_256)
+        params.setExcludeFileFilter(ExcludeFileFilter { f -> isLink(f) || f.canonicalFile == skip })
+        ctl.total = files.size * 100L
+        try {
+            val zf = Z4jZipFile(out, password.toCharArray())
+            zf.setRunInThread(true)
+            for (f in files) {
+                ctl.check()
+                if (isLink(f)) continue
+                if (f.isDirectory) zf.addFolder(f, params) else zf.addFile(f, params)
+                await(zf.getProgressMonitor(), ctl, 100)
+            }
+        } catch (e: Exception) {
+            out.delete()
+            throw mapZip(e, "Gagal mengompres")
+        }
+        return out
+    }
+
+    /** Menunggu tugas zip4j (berjalan di thread sendiri), melaporkan persen ke [ctl], dan meneruskan pembatalan. */
+    private fun await(pm: ProgressMonitor, ctl: Ctl, weight: Int) {
+        var last = 0
+        var cancelled = false
+        while (pm.getState() == ProgressMonitor.State.BUSY) {
+            try { ctl.check() } catch (e: IOException) {
+                if (!cancelled) { cancelled = true; pm.setCancelAllTasks(true) }
+            }
+            val p = pm.getPercentDone()
+            if (p > last) { ctl.add((p - last) * weight / 100L); last = p }
+            try { Thread.sleep(60) } catch (e: InterruptedException) {
+                cancelled = true
+                pm.setCancelAllTasks(true)
+            }
+        }
+        if (cancelled || pm.getResult() == ProgressMonitor.Result.CANCELLED) throw IOException("Dibatalkan")
+        if (pm.getResult() == ProgressMonitor.Result.ERROR) throw (pm.getException() ?: IOException("Operasi ZIP gagal"))
+        if (last < 100) ctl.add((100 - last) * weight / 100L)
+    }
+
+    private fun mapZip(e: Exception, fallback: String): IOException =
+        if (e is Z4jException && e.getType() == Z4jException.Type.WRONG_PASSWORD) WrongPassword() else asIo(e, fallback)
+
+    /** [ZIP-AES] True bila [zip] punya entri terenkripsi (butuh kata sandi untuk diekstrak). */
+    fun isEncryptedZip(zip: File): Boolean =
+        try { zip.isFile && Z4jZipFile(zip).isEncrypted() } catch (e: Exception) { false }
 
     private fun addZip(z: ZipOutputStream, f: File, path: String, skip: File, ctl: Ctl) {
         ctl.check()
@@ -260,9 +327,10 @@ internal object FileOps {
     }
 
     /** Ekstrak [zip] ke folder baru bernama sama di [destDir]. Entri yang keluar dari folder tujuan (zip-slip) ditolak. */
-    fun unzip(zip: File, destDir: File, ctl: Ctl): File {
+    fun unzip(zip: File, destDir: File, ctl: Ctl, password: String? = null): File {
         if (!zip.isFile) throw IOException("Berkas ZIP tidak ditemukan")
         if (!destDir.isDirectory || !destDir.canWrite()) throw IOException("Folder tujuan tidak bisa ditulisi")
+        if (isEncryptedZip(zip)) return unzipEncrypted(zip, destDir, ctl, password)
         val target = uniqueTarget(destDir, zip.nameWithoutExtension.ifEmpty { "Ekstrak" }, keepExt = false)
         val base = target.canonicalFile
         try {
@@ -289,6 +357,78 @@ internal object FileOps {
             throw asIo(e, "Gagal mengekstrak")
         }
         return target
+    }
+
+    private fun unzipEncrypted(zip: File, destDir: File, ctl: Ctl, password: String?): File {
+        if (password.isNullOrEmpty()) throw NeedPassword()
+        val target = uniqueTarget(destDir, zip.nameWithoutExtension.ifEmpty { "Ekstrak" }, keepExt = false)
+        val base = target.canonicalFile
+        try {
+            val zf = Z4jZipFile(zip, password.toCharArray())
+            for (h in zf.getFileHeaders()) {
+                val out = File(target, h.getFileName()).canonicalFile
+                if (out.path != base.path && !out.path.startsWith(base.path + File.separator)) {
+                    throw IOException("Entri ZIP tidak aman: " + h.getFileName())
+                }
+            }
+            if (!target.mkdirs()) throw IOException("Gagal membuat folder " + target.name)
+            ctl.total = 100
+            zf.setRunInThread(true)
+            zf.extractAll(target.path)
+            await(zf.getProgressMonitor(), ctl, 100)
+        } catch (e: Exception) {
+            deleteRec(target)
+            throw mapZip(e, "Gagal mengekstrak")
+        }
+        return target
+    }
+
+    /**
+     * [RUNNER] Interpreter untuk menjalankan [f] di shell: dari shebang (#!), lalu dari ekstensi.
+     * Mengembalikan null bila tidak dikenal. Nama dibatasi huruf/angka/._+- agar aman disisipkan ke perintah shell.
+     */
+    fun runnerFor(f: File): String? {
+        if (!f.isFile) return null
+        val head = try {
+            f.inputStream().use { i ->
+                val b = ByteArray(160)
+                String(b, 0, maxOf(i.read(b), 0), Charsets.ISO_8859_1)
+            }
+        } catch (e: Exception) { "" }
+        if (head.startsWith("#!")) {
+            val toks = head.substring(2).lineSequence().first().trim().split(Regex("\\s+")).filter { it.isNotEmpty() }
+            var name = toks.firstOrNull()?.substringAfterLast('/') ?: ""
+            if (name == "env") name = toks.drop(1).firstOrNull { !it.startsWith("-") }?.substringAfterLast('/') ?: ""
+            if (name.isNotEmpty() && name.matches(Regex("[A-Za-z0-9._+-]+"))) return name
+        }
+        return when (f.extension.lowercase()) {
+            "sh", "bash" -> "bash"
+            "py" -> "python3"
+            "js", "mjs", "cjs" -> "node"
+            "pl" -> "perl"
+            "rb" -> "ruby"
+            "php" -> "php"
+            "lua" -> "lua"
+            else -> null
+        }
+    }
+
+    /** SHA-256 heksadesimal isi [f]; dibaca bertahap dan bisa dibatalkan lewat [ctl]. */
+    fun sha256(f: File, ctl: Ctl): String {
+        if (!f.isFile) throw IOException("Bukan berkas biasa")
+        ctl.total = f.length()
+        val md = MessageDigest.getInstance("SHA-256")
+        f.inputStream().use { i ->
+            val buf = ByteArray(256 * 1024)
+            while (true) {
+                ctl.check()
+                val n = i.read(buf)
+                if (n < 0) break
+                md.update(buf, 0, n)
+                ctl.add(n.toLong())
+            }
+        }
+        return md.digest().joinToString("") { String.format(Locale.ROOT, "%02x", it) }
     }
 
     /** Properti [f]; untuk folder ukuran dan isi dihitung rekursif (tautan dihitung sebagai berkas, tidak diikuti). */

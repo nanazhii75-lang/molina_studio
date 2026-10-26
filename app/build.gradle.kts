@@ -58,6 +58,7 @@ dependencies {
     implementation(project(":core:common"))
     implementation(project(":core:storage"))
     implementation("org.apache.commons:commons-compress:1.27.1")
+    implementation("net.lingala.zip4j:zip4j:2.11.5")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
     implementation(platform("androidx.compose:compose-bom:2024.12.01"))
     implementation("androidx.compose.ui:ui")

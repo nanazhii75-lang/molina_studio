@@ -180,6 +180,8 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             sendEnter = sendEnter,
             onSendEnterChange = { sendEnter = it },
             onChangeDir = { f -> MolinaExplorer.changeDir(aptCtx, f) },
+            onRunInTerminal = { f -> MolinaExplorer.runFile(aptCtx, f) },
+            onInsertPaths = { fs -> MolinaExplorer.insertPaths(aptCtx, fs) },
             isVisibleInDebian = { f -> MolinaExplorer.visibleInDebian(f) },
             onPlay = { files -> MolinaExplorer.play(aptCtx, files) },
             onOpenInCode = { files ->
