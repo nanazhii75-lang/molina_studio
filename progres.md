@@ -646,3 +646,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi (CI). Risiko: sedang (dua dialog Compose baru + parsing keluaran apt)
 - [ ] uji perangkat: titik warna daftar tool; HAPUS Git -> pratinjau muncul, cek kotak cadangan, berkas muncul di /storage/emulated/0/molina-studio/.molina-backup; `git status` di repo tidak menampilkan folder cadangan; HAPUS Python 3 -> paket lain yang ikut terhapus berwarna kuning
 - [ ] catatan: cadangan hanya bekerja bila folder kerja molina-studio ter-bind di PRoot (default); bila tidak, berkas tertulis di dalam rootfs
+
+## 2026-10-26 - Settings: daftar tool berwarna, pratinjau hapus, cadangan Git
+- [x] Daftar tool terpasang berwarna (titik status per tool)
+- [x] Pratinjau paket yang akan terhapus sebelum HAPUS
+- [x] Cadangan konfigurasi Git ke `.molina-backup` (opsional via centang)
+- [x] Commit + push, build via CI, uji fisik di perangkat: lolos
+- Dampak: hanya modul `:app`; Gradle, Manifest, JNI mpv tidak berubah
+- Berikutnya: tombol "Pulihkan cadangan" di kartu Git; halaman "Inventaris Molina"
