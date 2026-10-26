@@ -25,6 +25,9 @@ class CodeOpenRequest(val title: String, val key: String, val text: String)
 
 object CodeNav {
     var pending by mutableStateOf<CodeOpenRequest?>(null)
+
+    /** Berkas dari Penjelajah Molina (Buka di Code); dikonsumsi MainActivity lalu dikosongkan. */
+    var pendingFiles by mutableStateOf<List<File>>(emptyList())
 }
 
 /**

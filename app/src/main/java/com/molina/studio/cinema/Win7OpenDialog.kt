@@ -36,6 +36,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.foundation.horizontalScroll
+import kotlinx.coroutines.isActive
 import androidx.compose.foundation.Canvas
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -71,11 +73,10 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-private class W7Entry(val file: File, val isDir: Boolean, val size: Long, val modified: Long) {
+private class W7Entry(val file: File, val isDir: Boolean, val size: Long, val modified: Long, val rel: String? = null) {
     val name: String get() = file.name
 }
 
-private enum class W7Sort { NAME, DATE, SIZE }
 private enum class W7Kind(val label: String) { MEDIA("Media (video dan audio)"), ALL("Semua file") }
 private class W7Place(val label: String, val dir: File, val molina: Boolean = false)
 private class W7Clip(val files: List<File>, val cut: Boolean)
@@ -85,7 +86,7 @@ private sealed class W7Sheet {
     class Delete(val files: List<File>) : W7Sheet()
     object NewDir : W7Sheet()
 }
-private enum class W7Ico { COPY, CUT, PASTE, RENAME, ZIP, UNZIP, DELETE, NEWDIR, STAR, STAR_OUT, INFO }
+private enum class W7Ico { PLAY, CODE, SCRIPT, COPY, CUT, PASTE, RENAME, ZIP, UNZIP, DELETE, NEWDIR, STAR, STAR_OUT, INFO }
 
 private fun w7Names(l: List<File>): String = if (l.size == 1) l[0].name else l.size.toString() + " item"
 private fun w7StemEnd(name: String, dir: Boolean): Int =
@@ -118,19 +119,10 @@ private fun w7Drives(): List<W7Place> {
     return out
 }
 
-private fun w7Load(dir: File, kind: W7Kind, key: W7Sort, asc: Boolean): List<W7Entry>? {
-    val all = dir.listFiles() ?: return null
-    val items = all.filter { !it.name.startsWith(".") }
-        .filter { it.isDirectory || kind == W7Kind.ALL || it.extension.lowercase() in W7_MEDIA }
-        .map { W7Entry(it, it.isDirectory, if (it.isDirectory) 0L else it.length(), it.lastModified()) }
-    fun sorted(l: List<W7Entry>, k: W7Sort): List<W7Entry> = when (k) {
-        W7Sort.NAME -> l.sortedBy { it.name.lowercase() }
-        W7Sort.DATE -> l.sortedBy { it.modified }
-        W7Sort.SIZE -> l.sortedBy { it.size }
-    }
-    val dirs = sorted(items.filter { it.isDir }, if (key == W7Sort.SIZE) W7Sort.NAME else key)
-    val files = sorted(items.filter { !it.isDir }, key)
-    return (if (asc) dirs else dirs.reversed()) + (if (asc) files else files.reversed())
+/** Isi folder lewat [ExplorerList]; pasangan hasil = (daftar, terpotong?) atau null bila folder tak terbaca. */
+private fun w7Load(dir: File, query: String, o: ExplorerList.Opts, cancelled: () -> Boolean): Pair<List<W7Entry>, Boolean>? {
+    val r = ExplorerList.list(dir, query, o, cancelled) ?: return null
+    return Pair(r.items.map { W7Entry(it.file, it.isDir, it.size, it.modified, it.rel) }, r.truncated)
 }
 
 private fun w7Size(b: Long) = String.format(W7_ID, "%,d KB", maxOf(1L, (b + 1023) / 1024))
@@ -161,7 +153,10 @@ fun Win7OpenDialog(
     onSendEnterChange: ((Boolean) -> Unit)? = null,
     isVisibleInDebian: ((File) -> Boolean)? = null,
     pickFolder: Boolean = false,
-    onPickFolder: (File) -> Unit = {}
+    onPickFolder: (File) -> Unit = {},
+    onPlay: (suspend (List<File>) -> Boolean)? = null,
+    onOpenInCode: ((List<File>) -> Unit)? = null,
+    onSendToScripts: ((File) -> Pair<Boolean, String>)? = null
 ) {
     val ctx = LocalContext.current
     var favTick by remember { mutableStateOf(0) } // [FILEOPS-1]
@@ -175,8 +170,15 @@ fun Win7OpenDialog(
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted = it }
     var dir by remember { mutableStateOf(vols.first().dir) }
     var kind by remember { mutableStateOf(if (browse) W7Kind.ALL else W7Kind.MEDIA) }
-    var key by remember { mutableStateOf(W7Sort.NAME) }
-    var asc by remember { mutableStateOf(true) }
+    // [EXPLORER-SEARCH] pencarian nama + sortir yang diingat
+    val savedSort = remember { ExplorerPrefs.load(ctx) }
+    var key by remember { mutableStateOf(savedSort.key) }
+    var asc by remember { mutableStateOf(savedSort.asc) }
+    var foldersFirst by remember { mutableStateOf(savedSort.foldersFirst) }
+    var showHidden by remember { mutableStateOf(savedSort.showHidden) }
+    var deepSearch by remember { mutableStateOf(savedSort.deep) }
+    var query by remember { mutableStateOf("") }
+    var sortOpen by remember { mutableStateOf(false) }
     var tick by remember { mutableStateOf(0) }
     var entries by remember { mutableStateOf<List<W7Entry>?>(emptyList()) }
     var selected by remember { mutableStateOf<W7Entry?>(null) }
@@ -222,19 +224,42 @@ fun Win7OpenDialog(
     }
 
     LaunchedEffect(Unit) { if (!granted) ask.launch(Manifest.permission.READ_EXTERNAL_STORAGE) }
-    LaunchedEffect(dir, kind, key, asc, tick, granted) {
+    LaunchedEffect(key, asc, foldersFirst, showHidden, deepSearch) {
+        ExplorerPrefs.save(ctx, ExplorerPrefs.Data(key, asc, foldersFirst, showHidden, deepSearch))
+    }
+    LaunchedEffect(dir, kind, key, asc, tick, granted, query, foldersFirst, showHidden, deepSearch) {
         if (!granted) return@LaunchedEffect
-        entries = withContext(Dispatchers.IO) { w7Load(dir, kind, key, asc) }
+        if (query.isNotBlank()) delay(250)
+        val opts = ExplorerList.Opts(key, asc, foldersFirst, showHidden, deepSearch, if (kind == W7Kind.MEDIA) W7_MEDIA else null)
+        val deep = deepSearch && query.isNotBlank()
+        if (deep) say("Mencari sampai subfolder\u2026", true)
+        val r = withContext(Dispatchers.IO) { w7Load(dir, query, opts) { !isActive } }
+        if (deep && message.startsWith("Mencari")) say("")
+        entries = r?.first
+        if (r != null && r.second) say("Hasil dibatasi " + ExplorerList.MAX_RESULTS + " teratas. Persempit kata kunci.")
     }
 
     val roots = vols.map { it.dir.path }
     val canUp = dir.path !in roots && dir.parentFile != null
-    fun go(to: File) { dir = to; selected = null; picked = emptySet(); fileName = ""; message = "" }
+    fun go(to: File) { dir = to; selected = null; picked = emptySet(); fileName = ""; message = ""; query = "" }
     fun goUp(): Boolean {
         val parent = dir.parentFile
         if (!canUp || parent == null) return false
         go(parent)
         return true
+    }
+    /** Ketuk ulang berkas terpilih di Penjelajah: media ke mpv, teks ke Code. */
+    fun smartOpen(f: File) {
+        val play = onPlay
+        val code = onOpenInCode
+        when {
+            play != null && f.extension.lowercase() in W7_MEDIA -> scope.launch {
+                val ok = play(listOf(f))
+                say(if (ok) "Memutar di mpv: " + f.name else "Gagal memutar " + f.name, ok)
+            }
+            code != null && ExplorerList.looksText(f) -> code(listOf(f))
+            else -> say("Tidak ada aplikasi Molina untuk membuka jenis berkas ini. Pakai menu Alat untuk menyalin atau mengompres.")
+        }
     }
     fun confirm() {
         val typed = fileName.trim()
@@ -329,14 +354,47 @@ fun Win7OpenDialog(
                             )
                         }
                     }
+                    Spacer(Modifier.width(6.dp))
+                    W7SearchBox(query, { query = it; selected = null }, Modifier.width(112.dp))
+                }
+                if (query.isNotBlank()) Row(
+                    Modifier.fillMaxWidth().clickable { deepSearch = !deepSearch }.padding(horizontal = 10.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(if (deepSearch) "[x]" else "[  ]", color = Win7.Ink, fontSize = 12.sp)
+                    Spacer(Modifier.width(6.dp))
+                    Text("Cari sampai subfolder", color = Win7.TextDim, fontSize = 11.sp)
                 }
                 Row(
                     Modifier.fillMaxWidth().height(30.dp)
+                        .horizontalScroll(rememberScrollState())
                         .background(Brush.verticalGradient(listOf(Win7.BarTop, Win7.BarBottom))),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     W7Cmd("Naik", canUp) { goUp() }
                     W7Cmd("Segarkan", true) { tick++ }
+                    Box {
+                        W7Cmd("Urut \u25BE", true) { sortOpen = !sortOpen }
+                        if (sortOpen) Popup(
+                            alignment = Alignment.TopStart,
+                            offset = IntOffset(0, with(density) { 30.dp.roundToPx() }),
+                            onDismissRequest = { sortOpen = false },
+                            properties = PopupProperties(focusable = true)
+                        ) {
+                            Column(Modifier.width(240.dp).background(Win7.Input).border(1.dp, Win7.FrameLine)) {
+                                W7ChoiceItem(if (key == ExplorerList.Key.NAME) "\u25CF" else "\u25CB", "Nama") { key = ExplorerList.Key.NAME; sortOpen = false }
+                                W7ChoiceItem(if (key == ExplorerList.Key.DATE) "\u25CF" else "\u25CB", "Tanggal diubah") { key = ExplorerList.Key.DATE; sortOpen = false }
+                                W7ChoiceItem(if (key == ExplorerList.Key.SIZE) "\u25CF" else "\u25CB", "Ukuran") { key = ExplorerList.Key.SIZE; sortOpen = false }
+                                W7ChoiceItem(if (key == ExplorerList.Key.TYPE) "\u25CF" else "\u25CB", "Jenis (ekstensi)") { key = ExplorerList.Key.TYPE; sortOpen = false }
+                                Box(Modifier.fillMaxWidth().height(1.dp).background(Win7.Hairline))
+                                W7ChoiceItem(if (asc) "\u25CF" else "\u25CB", "Menaik (A-Z, lama ke baru)") { asc = true; sortOpen = false }
+                                W7ChoiceItem(if (!asc) "\u25CF" else "\u25CB", "Menurun (Z-A, baru ke lama)") { asc = false; sortOpen = false }
+                                Box(Modifier.fillMaxWidth().height(1.dp).background(Win7.Hairline))
+                                W7ChoiceItem(if (foldersFirst) "[x]" else "[  ]", "Folder di atas") { foldersFirst = !foldersFirst; sortOpen = false }
+                                W7ChoiceItem(if (showHidden) "[x]" else "[  ]", "Tampilkan berkas tersembunyi") { showHidden = !showHidden; sortOpen = false }
+                            }
+                        }
+                    }
                     if (browse) {
                         W7Cmd(
                             if (multi) "Selesai" + (if (picked.isNotEmpty()) " (" + picked.size + ")" else "") else "Pilih",
@@ -355,6 +413,8 @@ fun Win7OpenDialog(
                             val favTarget = if (tg.isEmpty()) dir else one?.takeIf { it.isDirectory }
                             val isFav = favTarget != null && ExplorerFavorites.contains(ctx, favTarget)
                             val c = clip
+                            val playable = onPlay != null && tg.isNotEmpty() &&
+                                (one?.isDirectory == true || tg.all { it.isFile && it.extension.lowercase() in W7_MEDIA })
                             Popup(
                                 alignment = Alignment.TopStart,
                                 offset = IntOffset(0, with(density) { 30.dp.roundToPx() }),
@@ -365,6 +425,31 @@ fun Win7OpenDialog(
                                     Modifier.width(250.dp).heightIn(max = 400.dp).background(Win7.Input)
                                         .border(1.dp, Win7.FrameLine).verticalScroll(rememberScrollState())
                                 ) {
+                                    W7MenuItem(W7Ico.PLAY, if (one?.isDirectory == true) "Putar folder di mpv" else "Putar di mpv", playable) {
+                                        toolsOpen = false
+                                        val fn = onPlay
+                                        if (fn != null && tg.isNotEmpty()) scope.launch {
+                                            val ok = fn(tg)
+                                            say(if (ok) "Memutar di mpv: " + w7Names(tg) else "Tidak ada media yang bisa diputar", ok)
+                                        }
+                                    }
+                                    W7MenuItem(W7Ico.CODE, "Buka di Code", onOpenInCode != null && tg.any { it.isFile }) {
+                                        toolsOpen = false
+                                        val fn = onOpenInCode
+                                        if (fn != null) {
+                                            val texts = tg.filter { ExplorerList.looksText(it) }.take(10)
+                                            if (texts.isEmpty()) say("Tidak ada berkas teks yang bisa dibuka di Code.") else fn(texts)
+                                        }
+                                    }
+                                    W7MenuItem(W7Ico.SCRIPT, "Kirim ke Script execution", onSendToScripts != null && one != null && one.isFile) {
+                                        toolsOpen = false
+                                        val fn = onSendToScripts
+                                        if (fn != null && one != null) scope.launch {
+                                            val r = withContext(Dispatchers.IO) { fn(one) }
+                                            say(r.second, r.first)
+                                        }
+                                    }
+                                    Box(Modifier.fillMaxWidth().height(1.dp).background(Win7.Hairline))
                                     W7MenuItem(W7Ico.COPY, "Salin", tg.isNotEmpty()) {
                                         toolsOpen = false
                                         if (tg.isNotEmpty()) { clip = W7Clip(tg, false); say("Disalin: " + w7Names(tg), true) }
@@ -459,11 +544,12 @@ fun Win7OpenDialog(
                         granted = granted, entries = entries, key = key, asc = asc, selected = selected,
                         onSort = { k -> if (key == k) asc = !asc else { key = k; asc = true } },
                         multi = multi, picked = picked,
+                        emptyNote = if (query.isNotBlank()) "Tidak ada hasil untuk \"" + query.trim() + "\"" else "Folder ini kosong.",
                         onOpen = { e ->
                             if (multi) picked = if (e.file.path in picked) picked - e.file.path else picked + e.file.path
                             else if (e.isDir) go(e.file)
                             else if (pickFolder) Unit
-                            else if (selected?.file == e.file) onPick(e.file)
+                            else if (selected?.file == e.file) { if (browse) smartOpen(e.file) else onPick(e.file) }
                             else { selected = e; fileName = e.name; message = "" }
                         },
                         onAsk = { ask.launch(Manifest.permission.READ_EXTERNAL_STORAGE) }
@@ -625,12 +711,13 @@ private fun W7FileArea(
     modifier: Modifier,
     granted: Boolean,
     entries: List<W7Entry>?,
-    key: W7Sort,
+    key: ExplorerList.Key,
     asc: Boolean,
     selected: W7Entry?,
     multi: Boolean = false,
     picked: Set<String> = emptySet(),
-    onSort: (W7Sort) -> Unit,
+    emptyNote: String = "Folder ini kosong.",
+    onSort: (ExplorerList.Key) -> Unit,
     onOpen: (W7Entry) -> Unit,
     onAsk: () -> Unit
 ) {
@@ -642,9 +729,9 @@ private fun W7FileArea(
                     .background(Brush.verticalGradient(listOf(Win7.BarTop, Win7.BarBottom))),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                W7HeadCell("Nama", W7Sort.NAME, key, asc, Modifier.weight(1f), onSort)
-                if (wide) W7HeadCell("Diubah", W7Sort.DATE, key, asc, Modifier.width(112.dp), onSort)
-                W7HeadCell("Ukuran", W7Sort.SIZE, key, asc, Modifier.width(76.dp), onSort)
+                W7HeadCell("Nama", ExplorerList.Key.NAME, key, asc, Modifier.weight(1f), onSort)
+                if (wide) W7HeadCell("Diubah", ExplorerList.Key.DATE, key, asc, Modifier.width(112.dp), onSort)
+                W7HeadCell("Ukuran", ExplorerList.Key.SIZE, key, asc, Modifier.width(76.dp), onSort)
             }
             Box(Modifier.fillMaxWidth().height(1.dp).background(Win7.Hairline))
             when {
@@ -653,7 +740,7 @@ private fun W7FileArea(
                     Win7Button("Izinkan akses", onClick = onAsk)
                 }
                 entries == null -> W7Note("Folder ini tidak dapat dibuka.") {}
-                entries.isEmpty() -> W7Note("Folder ini kosong.") {}
+                entries.isEmpty() -> W7Note(emptyNote) {}
                 else -> LazyColumn(Modifier.fillMaxSize()) {
                     items(entries, key = { it.file.path }) { e ->
                         val on = e.file.path in picked
@@ -666,7 +753,7 @@ private fun W7FileArea(
 }
 
 @Composable
-private fun W7HeadCell(label: String, me: W7Sort, key: W7Sort, asc: Boolean, modifier: Modifier, onSort: (W7Sort) -> Unit) {
+private fun W7HeadCell(label: String, me: ExplorerList.Key, key: ExplorerList.Key, asc: Boolean, modifier: Modifier, onSort: (ExplorerList.Key) -> Unit) {
     Row(
         modifier.fillMaxHeight().clickable { onSort(me) }.padding(horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -709,7 +796,8 @@ private fun W7EntryRow(e: W7Entry, selected: Boolean, wide: Boolean, onOpen: (W7
         Spacer(Modifier.width(6.dp))
         Column(Modifier.weight(1f)) {
             Text(e.name, color = Win7.Ink, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            if (!wide) Text(w7Date(e.modified), color = Win7.TextDim, fontSize = 10.sp, maxLines = 1)
+            if (e.rel != null) Text(e.rel, color = Win7.TextDim, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            else if (!wide) Text(w7Date(e.modified), color = Win7.TextDim, fontSize = 10.sp, maxLines = 1)
         }
         if (wide) Text(w7Date(e.modified), color = Win7.TextDim, fontSize = 12.sp, maxLines = 1, modifier = Modifier.width(112.dp))
         Text(
@@ -785,6 +873,20 @@ private fun W7MenuIcon(ico: W7Ico, enabled: Boolean) {
                 }
                 p.close()
                 drawPath(p, c, style = if (ico == W7Ico.STAR) Fill else st)
+            }
+            W7Ico.PLAY -> {
+                val tri = Path()
+                tri.moveTo(5f * u, 3f * u); tri.lineTo(13f * u, 8f * u); tri.lineTo(5f * u, 13f * u); tri.close()
+                drawPath(tri, c, style = Fill)
+            }
+            W7Ico.CODE -> {
+                line(5.5f, 4f, 2f, 8f); line(2f, 8f, 5.5f, 12f)
+                line(10.5f, 4f, 14f, 8f); line(14f, 8f, 10.5f, 12f)
+                line(9f, 3f, 7f, 13f)
+            }
+            W7Ico.SCRIPT -> {
+                box(1.5f, 2.5f, 13f, 11f)
+                line(4.5f, 6f, 7f, 8.2f); line(7f, 8.2f, 4.5f, 10.5f); line(8.5f, 10.5f, 11.5f, 10.5f)
             }
             W7Ico.INFO -> {
                 drawCircle(c, radius = 6.2f * u, center = Offset(8f * u, 8f * u), style = st)
@@ -914,5 +1016,43 @@ private fun W7InfoRow(label: String, value: String) {
     Row(Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
         Text(label, color = Win7.TextDim, fontSize = 12.sp, modifier = Modifier.width(62.dp))
         Text(value, color = Win7.Ink, fontSize = 12.sp, modifier = Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun W7SearchBox(value: String, onChange: (String) -> Unit, modifier: Modifier) {
+    Row(
+        modifier.height(26.dp).background(Win7.Input).border(1.dp, Win7.Field).padding(horizontal = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        BasicTextField(
+            value = value,
+            onValueChange = onChange,
+            singleLine = true,
+            textStyle = TextStyle(color = Win7.Ink, fontSize = 12.sp),
+            cursorBrush = SolidColor(Win7.Ink),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            modifier = Modifier.weight(1f),
+            decorationBox = { inner ->
+                Box(Modifier.fillMaxWidth(), Alignment.CenterStart) {
+                    if (value.isEmpty()) Text("Cari nama\u2026", color = Win7.TextDim, fontSize = 12.sp, maxLines = 1)
+                    inner()
+                }
+            }
+        )
+        if (value.isNotEmpty()) {
+            Text("\u00D7", color = Win7.TextDim, fontSize = 14.sp, modifier = Modifier.clickable { onChange("") }.padding(start = 6.dp))
+        }
+    }
+}
+
+@Composable
+private fun W7ChoiceItem(mark: String, label: String, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 9.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(mark, color = Win7.NavHeader, fontSize = 12.sp, modifier = Modifier.width(26.dp))
+        Text(label, color = Win7.Ink, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }

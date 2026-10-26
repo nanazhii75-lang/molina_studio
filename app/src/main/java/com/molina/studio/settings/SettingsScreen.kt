@@ -180,7 +180,14 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             sendEnter = sendEnter,
             onSendEnterChange = { sendEnter = it },
             onChangeDir = { f -> MolinaExplorer.changeDir(aptCtx, f) },
-            isVisibleInDebian = { f -> MolinaExplorer.visibleInDebian(f) }
+            isVisibleInDebian = { f -> MolinaExplorer.visibleInDebian(f) },
+            onPlay = { files -> MolinaExplorer.play(aptCtx, files) },
+            onOpenInCode = { files ->
+                showExplorer = false
+                if (page == Page.Files) page = Page.Home
+                MolinaExplorer.openInCode(aptCtx, files)
+            },
+            onSendToScripts = { f -> MolinaExplorer.sendToScripts(f) }
         )
         when {
             searching -> SearchResults(query) { open(it) }

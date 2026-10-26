@@ -8,6 +8,13 @@ import android.widget.Toast
 import com.molina.studio.terminal.TerminalActions
 import com.molina.studio.terminal.TerminalPrefs
 import com.molina.studio.terminal.TerminalSessions
+import com.molina.cinema.MpvFolder
+import com.molina.code.run.ScriptShare
+import com.molina.studio.cinema.CinemaActions
+import com.molina.studio.code.CodeNav
+import com.molina.studio.code.ScriptStore
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
 
 /** Jembatan Penjelajah Molina: path versi Debian, salin ke clipboard, kirim ke terminal. */
@@ -43,6 +50,50 @@ internal object MolinaExplorer {
     }
 
     fun quote(path: String): String = "'" + path.replace("'", "'\\''") + "'"
+
+    /**
+     * Putar di Molina Player (mpv): satu berkas, beberapa berkas (playlist memory://), atau satu folder
+     * (playlist folder). Pemindaian folder berjalan di IO; peluncuran activity di thread pemanggil.
+     */
+    suspend fun play(ctx: Context, files: List<File>): Boolean {
+        val dir = files.singleOrNull()?.takeIf { it.isDirectory }
+        return when {
+            dir != null -> {
+                val first = withContext(Dispatchers.IO) { MpvFolder.firstMediaIn(dir) } ?: return false
+                CinemaActions.playFolder(ctx, first)
+            }
+            files.size == 1 -> CinemaActions.playPath(ctx, files[0].absolutePath)
+            files.isNotEmpty() -> {
+                val uri = withContext(Dispatchers.IO) { MpvFolder.memoryPlaylist(files.map { it.absolutePath }) } ?: return false
+                CinemaActions.playTree(ctx, uri)
+            }
+            else -> false
+        }
+    }
+
+    /** Buka berkas teks di editor Code (tab Code): dikonsumsi MainActivity lewat [CodeNav.pendingFiles]. */
+    fun openInCode(ctx: Context, files: List<File>) {
+        val ok = files.filter { it.isFile }.take(10)
+        if (ok.isEmpty()) {
+            Toast.makeText(ctx, "Pilih berkas teks untuk dibuka di Code.", Toast.LENGTH_SHORT).show()
+            return
+        }
+        CodeNav.pendingFiles = ok
+    }
+
+    /** Kirim isi berkas teks ke Script execution. Sumber = path berkas, sama dengan kiriman dari editor Code (tidak menggandakan). */
+    fun sendToScripts(f: File): Pair<Boolean, String> {
+        if (!f.isFile) return Pair(false, "Pilih satu berkas teks")
+        if (f.length() > 1_000_000L) return Pair(false, "Berkas terlalu besar untuk Script execution")
+        val text = try {
+            f.readText(Charsets.UTF_8)
+        } catch (e: Exception) {
+            return Pair(false, "Gagal membaca " + f.name)
+        }
+        if (text.indexOf('\u0000') >= 0) return Pair(false, "Berkas biner tidak bisa dijadikan skrip")
+        val r = ScriptStore.upsertFromEditor(ScriptShare(f.name, f.path, text))
+        return Pair(r.ok, r.message)
+    }
 
     fun copyPath(ctx: Context, f: File) {
         val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager

@@ -162,6 +162,15 @@ class MainActivity : ComponentActivity() {
                         com.molina.studio.code.CodeNav.pending = null
                     }
                 }
+                // Penjelajah Molina: Buka di Code membuka berkas di editor lalu pindah ke tab Code.
+                androidx.compose.runtime.LaunchedEffect(com.molina.studio.code.CodeNav.pendingFiles) {
+                    val files = com.molina.studio.code.CodeNav.pendingFiles
+                    if (files.isNotEmpty()) {
+                        files.forEach { codeSession.openFile(it) }
+                        selected = Tab.Code.ordinal
+                        com.molina.studio.code.CodeNav.pendingFiles = emptyList()
+                    }
+                }
                 val htmlWebView by com.molina.studio.code.CodePrefs.htmlWebView.collectAsState()
                 SideEffect { codeSession.htmlWebView = htmlWebView }
                 val keyboardVisible = rememberKeyboardVisible()
