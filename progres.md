@@ -807,3 +807,15 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI); Kotlin baru diuji dengan kotlinc 2.1.20 (JVM murni). Risiko: rendah-sedang (BundledScripts memakai API Android)
 - [ ] uji perangkat: perangkat Anda sudah punya molina_dl.py (v2) tanpa hash tercatat > buka aplikasi > muncul Scripts/molina_dl.py.new, berkas lama tetap; python3 molina_dl.py.new --version = 3; hapus berkas lama lalu buka aplikasi > terpasang v3 dan tercatat
 - [ ] LANGKAH BERIKUT: RunRequest.args + ProotScriptExecutor; DownloadRunner (state flow); foreground service; UnduhanScreen
+
+## 2026-10-26 - Penjelajah: keyboard, pindah ke root, kelola berkas lanjutan [EXPLORER-FILEOPS-2]
+- [x] fix(explorer): keyboard tidak lagi muncul sendiri saat Penjelajah dibuka (soft input mode HIDDEN pada jendela dialog, clearFocus, dan sembunyikan IME); mengetik di kolom Nama file tetap memunculkannya
+- [x] refactor(settings): Penjelajah Molina pindah dari Sistem ke beranda Settings sebagai ubin "Berkas" sejajar Sistem, Script execution, dan Paket (Page.Files membuka dialog otomatis; tutup dialog kembali ke beranda); entri pencarian ikut diperbarui; Category "Berkas" di halaman Sistem dihapus
+- [x] feat(explorer): mode Pilih (kotak centang, Semua, Selesai; Back keluar dari mode pilih dulu) sehingga Salin, Pindah, Tempel, Kompres, Hapus bekerja massal
+- [x] feat(explorer): Hapus dengan dialog konfirmasi (akar penyimpanan dan /sdcard/Molina dilindungi), Folder baru, Ekstrak ZIP (zip-slip ditolak), Kompres banyak item jadi satu ZIP
+- [x] feat(explorer): progres byte + tombol Hentikan untuk salin/pindah/ZIP/ekstrak/hapus; hasil parsial dibersihkan saat gagal atau dihentikan
+- [x] feat(explorer): ikon garis bergaya Aero di menu Alat (Canvas, tanpa aset); Properti mendukung banyak item (total ukuran dan isi)
+- [x] Dampak: :app saja (cinema/FileOps.kt, cinema/Win7OpenDialog.kt, settings/SettingsScreen.kt). Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi (CI). Risiko: sedang (Popup/Dialog bertingkat, setSoftInputMode, edit Compose besar). FileOps sudah diuji JVM murni dengan kotlinc di luar CI
+- [ ] uji perangkat: buka Settings > Berkas > keyboard TIDAK muncul; ubin Berkas ada di beranda dan tidak lagi di Sistem; Pilih > centang beberapa berkas > Salin > folder lain > Tempel; Pindah massal; Hapus 1 berkas dan 1 folder (konfirmasi muncul, akar penyimpanan ditolak); Folder baru (nama bentrok ditolak); Kompres banyak item; Ekstrak ZIP; salinan berkas besar menampilkan progres lalu Hentikan membatalkan dan tidak meninggalkan sisa; ikon menu tampil; Properti multi-item; Back saat mode Pilih hanya menutup mode Pilih
+- [ ] LANGKAH BERIKUT: sortir/pencarian nama di Penjelajah, buka berkas dengan aplikasi lain, kirim ke Script execution dari Penjelajah, tampilan grid
