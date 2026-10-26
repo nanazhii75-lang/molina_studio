@@ -737,3 +737,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi (CI). Risiko: rendah (tanpa pemakai MolinaDir.Media; hanya Export dipakai LogScreen)
 - [ ] uji perangkat: buka aplikasi dengan izin storage > /sdcard/Molina berisi Downloads, Media/{Video,Audio,IPTV}, Workspace, Scripts, Backup, Documents/Export; ekspor log tersimpan di Documents/Export; log sistem memuat appRoot=/sdcard/Molina
 - [ ] LANGKAH BERIKUT (belum dikerjakan): pindahkan pemakai satu per satu: backup ToolStore > Backup, simpan script Settings > Scripts, download mpv > Downloads/Media, HOME_DIR/bind terminal > Workspace (molina-studio jadi bind opsional); migrasi isi .molina-data lama bila ada
+
+## 2026-10-26 - Skrip Molina DL ikut struktur Media [DL-SCRIPT-MEDIA-DIRS]
+- [x] molina_dl.py: video > /sdcard/Molina/Media/Video, audio > /sdcard/Molina/Media/Audio (MOLINA_ROOT / MOLINA_DL_DIR sebagai override)
+- [x] Akar tidak dibuat skrip; bila belum terlihat di Debian dipakai folder cadangan molina-studio/unduhan/{Video,Audio} dengan peringatan
+- [x] Tambahan: tolak URL playlist, Ctrl+C di prompt kembali ke menu, daftar berkas hasil, retry, nama berkas aman, cek ruang kosong
+- [x] Dampak: hanya skrip pengguna (di luar repo). Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] uji perangkat dengan yt-dlp asli: video dan audio masuk ke folder yang benar setelah akses penuh aktif
+- [ ] LANGKAH BERIKUT: bind appRoot di TerminalSessions dan ProotScriptExecutor supaya /sdcard/Molina terlihat tanpa akses penuh; opsional kirim MOLINA_ROOT dari aplikasi
