@@ -53,6 +53,9 @@ class EditorTab internal constructor(val id: Int, initialTitle: String) {
     /** Hanya baca per tab. Diubah dari menu titik tiga. */
     var readOnly by mutableStateOf(false)
 
+    /** Kunci entri Script Execution bila tab ini hasil EDIT dari Settings; dipakai saat Kirim ke Script Execution. */
+    internal var scriptKey: String? = null
+
     /** Naik saat hasil pencarian atau seleksi berubah; memicu hitung ulang penghitung find bar. */
     var findRevision by mutableIntStateOf(0)
         internal set
@@ -630,8 +633,31 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
         val text = tab.currentTextOrNull(MAX_RUN_CHARS) ?: run { toast("Skrip terlalu besar untuk dikirim"); return }
         if (text.isBlank()) { toast("Editor kosong, tidak ada yang dikirim"); return }
         val title = tab.file?.name ?: tab.title
-        val key = tab.file?.path ?: "tab:${tab.title}"
-        toast(sink.send(ScriptShare(title, key, text)))
+        val key = tab.scriptKey ?: tab.file?.path ?: "tab:${tab.title}"
+        val res = sink.send(ScriptShare(title, key, text))
+        toast(res.message)
+        // Tab hasil EDIT dari Script Execution: kiriman berhasil = tersimpan, penanda belum-disimpan padam.
+        if (res.ok && tab.scriptKey != null && tab.file == null) tab.markSaved(text, tab.eol)
+    }
+
+    /**
+     * Buka isi skrip dari Script Execution di tab editor (tombol EDIT di Settings). Tab dengan [key] yang sama
+     * hanya dipilih; tab kosong yang belum disentuh dipakai ulang. Isi dianggap belum tersimpan sampai
+     * dikirim balik lewat menu titik tiga > Kirim ke Script Execution.
+     */
+    fun openScript(title: String, key: String, text: String) {
+        dir.closePanel()
+        val existing = tabs.firstOrNull { it.scriptKey == key }
+        if (existing != null) {
+            activeId = existing.id
+            return
+        }
+        val tab = active?.takeIf { it.isPristine() } ?: newTab()
+        tab.title = title
+        tab.scriptKey = key
+        tab.applyDraft(text.replace("\r\n", "\n").replace('\r', '\n'), Eol.LF, FileStore.EMPTY_FP, Eol.LF)
+        activeId = tab.id
+        scheduleDraft()
     }
 
     private fun runScript(tab: EditorTab) {

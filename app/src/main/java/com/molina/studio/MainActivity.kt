@@ -141,7 +141,8 @@ class MainActivity : ComponentActivity() {
                         codeSessionRef = it
                         it.scriptExecutor = com.molina.studio.code.ProotScriptExecutor(applicationContext)
                         it.scriptSink = com.molina.code.run.ScriptSink { share ->
-                            com.molina.studio.code.ScriptStore.upsertFromEditor(share).message
+                            val r = com.molina.studio.code.ScriptStore.upsertFromEditor(share)
+                            com.molina.code.run.ScriptSendResult(r.ok, r.message)
                         }
                     }
                 }
@@ -151,6 +152,14 @@ class MainActivity : ComponentActivity() {
                     if (com.molina.studio.code.ScriptNav.openTerminal) {
                         selected = Tab.Terminal.ordinal
                         com.molina.studio.code.ScriptNav.openTerminal = false
+                    }
+                }
+                // EDIT di Script Execution membuka skrip di editor Code: pindah ke tab Code.
+                androidx.compose.runtime.LaunchedEffect(com.molina.studio.code.CodeNav.pending) {
+                    com.molina.studio.code.CodeNav.pending?.let { req ->
+                        codeSession.openScript(req.title, req.key, req.text)
+                        selected = Tab.Code.ordinal
+                        com.molina.studio.code.CodeNav.pending = null
                     }
                 }
                 val htmlWebView by com.molina.studio.code.CodePrefs.htmlWebView.collectAsState()

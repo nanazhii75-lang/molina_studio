@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.widget.Toast
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -16,7 +17,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -37,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
@@ -47,6 +49,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.molina.code.preview.ScriptLaunch
+import com.molina.studio.code.CodeNav
+import com.molina.studio.code.CodeOpenRequest
 import com.molina.studio.code.ScriptItem
 import com.molina.studio.code.ScriptRunner
 import com.molina.studio.code.ScriptStore
@@ -59,31 +63,24 @@ private val Blue = Color(0xFF6CB4FF)
 private val Red = Color(0xFFE8776B)
 private const val PREVIEW_LINES = 30
 
-/** Formulir tambah/ubah skrip. [id] null = skrip baru. */
-private class Draft(val id: String?, title: String, note: String, body: String) {
-    var title by mutableStateOf(title)
-    var note by mutableStateOf(note)
-    var body by mutableStateOf(body)
-}
-
 /**
- * Halaman "Script execution": skrip yang dikirim dari editor Code (menu titik tiga > Kirim ke Script
- * Execution) tampil sebagai accordion dengan judul, catatan, dan isi (maks 3.000 baris). Tambah, ubah,
- * hapus, salin, dan jalankan dengan satu ketukan di sesi Molina Terminal.
+ * Halaman "Script execution": daftar ringkas (judul + segitiga jalankan). Ketuk judul untuk detail
+ * (catatan, pratinjau 30 baris). Pengeditan isi dilakukan di editor Code (tombol EDIT membuka tab Code);
+ * simpan balik lewat menu titik tiga > Kirim ke Script Execution.
  */
 @Composable
 internal fun ScriptsPage() {
     val ctx = LocalContext.current
     val items by ScriptStore.items.collectAsState()
     var expandedId by rememberSaveable { mutableStateOf<String?>(null) }
-    var draft by remember { mutableStateOf<Draft?>(null) }
     var toDelete by remember { mutableStateOf<ScriptItem?>(null) }
     var toRun by remember { mutableStateOf<ScriptItem?>(null) }
+    var noteOf by remember { mutableStateOf<ScriptItem?>(null) }
+    var adding by remember { mutableStateOf(false) }
 
     Text(
-        "Kirim skrip dari editor Code lewat menu titik tiga > Kirim ke Script Execution. Skrip yang sama " +
-            "diperbarui, bukan digandakan. Tombol JALANKAN menulis skrip ke Debian lalu mengetiknya di Molina " +
-            "Terminal (chmod +x dan Enter otomatis).",
+        "Ketuk segitiga untuk menjalankan di Molina Terminal, ketuk judul untuk detail. EDIT membuka skrip di " +
+            "editor Code; simpan balik lewat menu titik tiga > Kirim ke Script Execution.",
         color = W7D.TextDim, fontSize = 13.sp, modifier = Modifier.padding(bottom = 8.dp)
     )
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -91,18 +88,10 @@ internal fun ScriptsPage() {
             "Skrip tersimpan: ${items.size} / ${ScriptStore.MAX_SCRIPTS}",
             color = W7D.NavHeader, fontSize = 14.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f)
         )
-        ActionText("+ TAMBAH", Blue) {
-            expandedId = null
-            draft = Draft(null, "", "", "")
-        }
+        ActionText("+ TAMBAH", Blue) { adding = true }
     }
     Spacer(Modifier.height(8.dp))
-
-    draft?.takeIf { it.id == null }?.let { d ->
-        ScriptEditorCard(d, ctx, onCancel = { draft = null }, onSaved = { id -> draft = null; expandedId = id })
-        Spacer(Modifier.height(8.dp))
-    }
-    if (items.isEmpty() && draft == null) {
+    if (items.isEmpty()) {
         Text(
             "Belum ada skrip. Tekan + TAMBAH atau kirim dari editor Code.",
             color = W7D.TextDim, fontSize = 13.sp, modifier = Modifier.padding(vertical = 12.dp)
@@ -113,22 +102,27 @@ internal fun ScriptsPage() {
             ScriptAccordion(
                 item = item,
                 expanded = expandedId == item.id,
-                draft = draft?.takeIf { it.id == item.id },
                 ctx = ctx,
-                onToggle = {
-                    expandedId = if (expandedId == item.id) null else item.id
-                    if (draft?.id == item.id && expandedId != item.id) draft = null
-                },
-                onEdit = { draft = Draft(item.id, item.title, item.note, item.body) },
-                onCancelEdit = { draft = null },
-                onSaved = { draft = null },
+                onToggle = { expandedId = if (expandedId == item.id) null else item.id },
                 onRun = { toRun = item },
+                onEdit = {
+                    CodeNav.pending = CodeOpenRequest(item.title, item.sourceKey ?: "script:${item.id}", item.body)
+                },
+                onNote = { noteOf = item },
                 onDelete = { toDelete = item }
             )
             Spacer(Modifier.height(8.dp))
         }
     }
 
+    if (adding) {
+        NewScriptDialog(onDismiss = { adding = false }) { raw ->
+            adding = false
+            val name = if (raw.substringAfterLast('.', "").lowercase() in setOf("sh", "bash", "py")) raw else "$raw.sh"
+            val body = if (name.endsWith(".py", ignoreCase = true)) "#!/usr/bin/env python3\n\n" else "#!/bin/bash\n\n"
+            CodeNav.pending = CodeOpenRequest(name, "script:new-${System.currentTimeMillis()}", body)
+        }
+    }
     toRun?.let { item ->
         val canNew = TerminalSessions.sessions.isNotEmpty() && TerminalSessions.canAdd()
         fun go(newSession: Boolean) {
@@ -156,6 +150,21 @@ internal fun ScriptsPage() {
             dismissButton = { TextButton(onClick = { toRun = null }) { Text("BATAL") } }
         )
     }
+    noteOf?.let { item ->
+        var text by remember(item.id) { mutableStateOf(item.note) }
+        AlertDialog(
+            onDismissRequest = { noteOf = null },
+            title = { Text("Catatan skrip") },
+            text = { W7Field(text, { text = it.take(ScriptLaunch.MAX_NOTE) }, Modifier.height(110.dp)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    noteOf = null
+                    toast(ctx, ScriptStore.save(item.id, item.title, text, item.body).message)
+                }) { Text("SIMPAN") }
+            },
+            dismissButton = { TextButton(onClick = { noteOf = null }) { Text("BATAL") } }
+        )
+    }
     toDelete?.let { item ->
         AlertDialog(
             onDismissRequest = { toDelete = null },
@@ -164,7 +173,6 @@ internal fun ScriptsPage() {
             confirmButton = {
                 TextButton(onClick = {
                     toDelete = null
-                    if (draft?.id == item.id) draft = null
                     if (expandedId == item.id) expandedId = null
                     ScriptStore.delete(item.id)
                     ScriptRunner.cleanup(ctx, item.id)
@@ -177,16 +185,34 @@ internal fun ScriptsPage() {
 }
 
 @Composable
+private fun NewScriptDialog(onDismiss: () -> Unit, onCreate: (String) -> Unit) {
+    var name by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Skrip baru") },
+        text = {
+            Column {
+                Text("Nama skrip, mis. backup.sh atau tools.py. Isinya ditulis di editor Code.", fontSize = 13.sp)
+                Spacer(Modifier.height(8.dp))
+                W7Field(name, { name = it.take(ScriptLaunch.MAX_TITLE) }, singleLine = true)
+            }
+        },
+        confirmButton = {
+            TextButton(enabled = name.isNotBlank(), onClick = { onCreate(name.trim()) }) { Text("BUKA EDITOR") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("BATAL") } }
+    )
+}
+
+@Composable
 private fun ScriptAccordion(
     item: ScriptItem,
     expanded: Boolean,
-    draft: Draft?,
     ctx: Context,
     onToggle: () -> Unit,
-    onEdit: () -> Unit,
-    onCancelEdit: () -> Unit,
-    onSaved: () -> Unit,
     onRun: () -> Unit,
+    onEdit: () -> Unit,
+    onNote: () -> Unit,
     onDelete: () -> Unit
 ) {
     val shape = RoundedCornerShape(6.dp)
@@ -195,32 +221,37 @@ private fun ScriptAccordion(
         Modifier.fillMaxWidth().clip(shape).background(W7D.Card, shape)
             .border(1.dp, if (expanded) W7D.SelLine else W7D.Hairline, shape)
     ) {
-        Row(
-            Modifier.fillMaxWidth().clickable(onClick = onToggle).padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(Modifier.weight(1f).padding(end = 8.dp)) {
-                Text(item.title, color = W7D.Ink, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(
-                    item.note.ifBlank { firstLine(item.body) },
-                    color = W7D.TextDim, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
-                )
-                Text(meta(item, lines), color = W7D.TextDim.copy(alpha = 0.8f), fontSize = 11.sp)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                item.title, color = W7D.Ink, fontSize = 15.sp, fontWeight = FontWeight.Bold,
+                maxLines = 1, overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f).clickable(onClick = onToggle)
+                    .padding(start = 12.dp, top = 14.dp, bottom = 14.dp, end = 8.dp)
+            )
+            Box(Modifier.size(48.dp).clickable(onClick = onRun), contentAlignment = Alignment.Center) {
+                Canvas(Modifier.size(18.dp)) {
+                    val w = size.width
+                    val h = size.height
+                    val p = Path()
+                    p.moveTo(w * 0.15f, h * 0.05f)
+                    p.lineTo(w * 0.95f, h * 0.5f)
+                    p.lineTo(w * 0.15f, h * 0.95f)
+                    p.close()
+                    drawPath(p, Blue)
+                }
             }
-            Text(if (expanded) "\u25BE" else "\u25B8", color = W7D.NavHeader, fontSize = 16.sp)
         }
         if (!expanded) return@Column
         Box(Modifier.fillMaxWidth().height(1.dp).background(W7D.Hairline))
-        if (draft != null) {
-            ScriptEditorCard(draft, ctx, onCancel = onCancelEdit, onSaved = { onSaved() }, bare = true)
-            return@Column
-        }
         Column(Modifier.padding(12.dp)) {
-            if (item.note.isNotBlank()) {
-                Text(item.note, color = W7D.Ink, fontSize = 13.sp, modifier = Modifier.padding(bottom = 8.dp))
-            }
+            Text(item.note.ifBlank { firstLine(item.body) }, color = W7D.Ink, fontSize = 13.sp)
+            Text(meta(item, lines), color = W7D.TextDim, fontSize = 11.sp, modifier = Modifier.padding(top = 4.dp, bottom = 8.dp))
             if (item.sourceKey != null) {
-                val from = if (item.sourceKey.startsWith("tab:")) "tab editor Code" else item.sourceKey
+                val from = when {
+                    item.sourceKey.startsWith("tab:") -> "tab editor Code"
+                    item.sourceKey.startsWith("script:") -> "skrip baru (editor Code)"
+                    else -> item.sourceKey
+                }
                 Text("Dari: $from", color = W7D.TextDim, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(bottom = 8.dp))
             }
             val code = remember(item.body) { codePreview(item.body) }
@@ -233,8 +264,8 @@ private fun ScriptAccordion(
             }
             Spacer(Modifier.height(8.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-                ActionText("JALANKAN", Blue, onClick = onRun)
-                ActionText("EDIT", W7D.Ink, onClick = onEdit)
+                ActionText("EDIT", Blue, onClick = onEdit)
+                ActionText("CATATAN", W7D.Ink, onClick = onNote)
                 ActionText("SALIN", W7D.Ink) {
                     val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                     cm.setPrimaryClip(ClipData.newPlainText(item.title, item.body))
@@ -248,61 +279,18 @@ private fun ScriptAccordion(
 }
 
 @Composable
-private fun ScriptEditorCard(d: Draft, ctx: Context, onCancel: () -> Unit, onSaved: (String?) -> Unit, bare: Boolean = false) {
-    val lines = remember(d.body) { ScriptLaunch.countLines(d.body) }
-    val over = lines > ScriptLaunch.MAX_LINES
-    val canSave = !over && d.title.isNotBlank() && d.body.isNotBlank()
-    val shape = RoundedCornerShape(6.dp)
-    val base = if (bare) Modifier.fillMaxWidth() else
-        Modifier.fillMaxWidth().clip(shape).background(W7D.Card, shape).border(1.dp, W7D.SelLine, shape)
-    Column(base.padding(12.dp)) {
-        FieldLabel(if (d.id == null) "Skrip baru" else "Ubah skrip")
-        FieldLabel("Judul skrip")
-        W7Field(d.title, { d.title = it.take(ScriptLaunch.MAX_TITLE) }, singleLine = true)
-        FieldLabel("Catatan (fungsi singkat skrip)")
-        W7Field(d.note, { d.note = it.take(ScriptLaunch.MAX_NOTE) }, Modifier.height(72.dp))
-        FieldLabel("Isi skrip")
-        W7Field(d.body, { d.body = it }, Modifier.height(280.dp), mono = true)
-        Text(
-            "$lines / ${ScriptLaunch.MAX_LINES} baris" + if (over) " \u00B7 melebihi batas, kurangi dulu" else "",
-            color = if (over) Red else W7D.TextDim, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp)
-        )
-        Spacer(Modifier.height(6.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            ActionText("SIMPAN", Blue, enabled = canSave) {
-                val r = ScriptStore.save(d.id, d.title, d.note, d.body)
-                toast(ctx, r.message)
-                if (r.ok) onSaved(r.id)
-            }
-            ActionText("BATAL", W7D.Ink, onClick = onCancel)
-        }
-    }
-}
-
-@Composable
-private fun FieldLabel(text: String) {
-    Text(text, color = W7D.NavHeader, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp, bottom = 4.dp))
-}
-
-@Composable
 private fun W7Field(
     value: String,
     onChange: (String) -> Unit,
     modifier: Modifier = Modifier,
-    singleLine: Boolean = false,
-    mono: Boolean = false
+    singleLine: Boolean = false
 ) {
     val shape = RoundedCornerShape(5.dp)
     BasicTextField(
         value = value,
         onValueChange = onChange,
         singleLine = singleLine,
-        textStyle = TextStyle(
-            color = W7D.Ink,
-            fontSize = if (mono) 12.sp else 14.sp,
-            lineHeight = if (mono) 17.sp else 20.sp,
-            fontFamily = if (mono) FontFamily.Monospace else FontFamily.Default
-        ),
+        textStyle = TextStyle(color = W7D.Ink, fontSize = 14.sp, lineHeight = 20.sp),
         cursorBrush = SolidColor(W7D.NavHeader),
         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None),
         modifier = modifier.fillMaxWidth().clip(shape).background(W7D.Field, shape).border(1.dp, W7D.Line, shape).padding(10.dp)
@@ -324,12 +312,12 @@ private fun toast(ctx: Context, msg: String) = Toast.makeText(ctx, msg, Toast.LE
 private fun firstLine(body: String): String =
     body.lineSequence().map { it.trim() }.firstOrNull { it.isNotEmpty() && !it.startsWith("#!") }.orEmpty()
 
-/** 30 baris pertama; sisanya diringkas supaya accordion tetap ringan untuk skrip ribuan baris. */
+/** 30 baris pertama; sisanya diringkas supaya detail tetap ringan untuk skrip ribuan baris. */
 private fun codePreview(body: String): String {
     val all = body.lines()
     val shown = all.take(PREVIEW_LINES).joinToString("\n") { if (it.length > 200) it.take(200) + "\u2026" else it }
     val more = all.size - PREVIEW_LINES
-    return if (more > 0) "$shown\n\u2026 (+$more baris lagi, tekan EDIT untuk melihat semua)" else shown
+    return if (more > 0) "$shown\n\u2026 (+$more baris lagi, tekan EDIT untuk membuka semua di editor Code)" else shown
 }
 
 private fun meta(item: ScriptItem, lines: Int): String {

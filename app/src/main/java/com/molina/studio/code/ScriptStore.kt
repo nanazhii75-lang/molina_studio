@@ -57,7 +57,7 @@ object ScriptStore {
         val title = share.title.trim().take(ScriptLaunch.MAX_TITLE).ifEmpty { "Skrip" }
         val now = System.currentTimeMillis()
         val list = _items.value
-        val old = list.firstOrNull { it.sourceKey == share.sourceKey }
+        val old = list.firstOrNull { it.sourceKey == share.sourceKey || "script:${it.id}" == share.sourceKey }
         if (old != null) {
             if (old.body == body && old.title == title) {
                 return ScriptResult(true, "\"$title\" sudah sinkron di Script Execution", old.id)

@@ -20,6 +20,13 @@ object ScriptNav {
     var openTerminal by mutableStateOf(false)
 }
 
+/** Permintaan membuka skrip di editor Code (tombol EDIT di Script Execution); dikonsumsi MainActivity. */
+class CodeOpenRequest(val title: String, val key: String, val text: String)
+
+object CodeNav {
+    var pending by mutableStateOf<CodeOpenRequest?>(null)
+}
+
 /**
  * Menjalankan skrip Script Execution di sesi Molina Terminal yang interaktif: isi skrip ditulis ke
  * `/root/.molina/scripts` di rootfs Debian (LF, bit eksekusi), lalu satu baris perintah

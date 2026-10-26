@@ -598,3 +598,13 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] CI commit Script Execution: ISI SETELAH CEK TAB ACTIONS. Risiko: BasicTextField 3.000 baris, key(), return@Column di accordion, ScriptNav di MainActivity
 - [ ] uji perangkat: kirim dari editor lalu cek di Settings; kirim ulang (diperbarui); tambah/edit/hapus; >3.000 baris menolak simpan; JALANKAN sesi aktif dan baru; Debian belum terpasang; .py dan .sh membuka Keluaran penuh, Back menutup
 - [ ] lanjut: sinkron dua arah (Settings ke editor) dan tombol "Buka di editor"
+
+## 2026-10-26 - Script Execution: daftar ringkas dan edit di editor Code [SCRIPTS-COMPACT-EDIT-IN-CODE]
+- [x] refactor(settings): daftar skrip hanya judul + ikon jalankan; ketuk judul menampilkan detail penuh (catatan, meta, pratinjau 30 baris)
+- [x] feat(code): EDIT dan + TAMBAH di Script Execution membuka tab editor Code (CodeNav + CodeSession.openScript); Kirim ke Script Execution memperbarui entri yang sama dan memadamkan penanda belum-disimpan
+- [x] Editor inline di Settings dihapus; CATATAN tetap diubah lewat dialog kecil
+- [x] ScriptSink kini mengembalikan ScriptSendResult(ok, message)
+- [x] Dampak: :feature:code dan :app (ScriptSink, CodeSession, ScriptStore, ScriptRunner, MainActivity, ScriptExecutionUi). Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi (CI). Risiko: sedang-rendah
+- [ ] uji perangkat: daftar ringkas; ketuk judul; ketuk segitiga; EDIT ke tab Code; kirim balik tidak menggandakan; + TAMBAH dengan template; hapus/catatan/salin
+- [ ] catatan: tab skrip yang dipulihkan dari draf setelah proses mati kehilangan tautan (kirim ulang membuat entri baru)
