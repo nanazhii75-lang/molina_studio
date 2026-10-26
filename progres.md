@@ -790,3 +790,8 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: hanya skrip pengguna/asset molina_dl.py. Kotlin, Gradle, Manifest, JNI mpv tidak disentuh
 - [ ] uji perangkat: bar tampil benar di Molina Terminal (font blok, warna emas); unduh YouTube video+audio; antrian 2-3 URL; Ctrl+C lalu lanjut
 - [ ] LANGKAH BERIKUT: halaman native Unduhan (streaming per baris lewat jalur ProotScriptExecutor, parser event di :core:common, foreground service); mode CLI non-interaktif/--json; BundledScripts memperbarui salinan yang belum diedit pengguna (hash)
+
+## 2026-10-26 - molina_dl.py belum ter-commit [DL-ASSET-GITIGNORE]
+- [x] Temuan: .gitignore (molina_*.py) mengabaikan assets/molina/molina_dl.py sehingga aset bundel tidak ada di repo/CI
+- [ ] Tambah pengecualian .gitignore, commit molina_dl.py ke assets
+- [ ] LANGKAH BERIKUT: mode CLI --url --json; BundledScripts perbarui salinan via hash; halaman native Unduhan
