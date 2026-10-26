@@ -20,3 +20,4 @@ __pycache__/
 molina_*.py
 # pemicu CI
 0001-*.patch
+!app/src/main/assets/molina/molina_dl.py
