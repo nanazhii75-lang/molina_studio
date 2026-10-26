@@ -42,6 +42,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.molina.studio.log.LogScreen
+import com.molina.studio.cinema.Win7Folder
+import com.molina.studio.cinema.Win7OpenDialog
 import com.molina.studio.terminal.CrashReporter
 import com.molina.studio.terminal.LogcatReporter
 import com.molina.studio.terminal.PromptTheme
@@ -114,6 +116,7 @@ private val INDEX = listOf(
     Hit("apt update", "Perbarui dan tingkatkan paket Debian (apt update && apt upgrade -y)", Page.System),
     Hit("apt upgrade", "Perbarui dan tingkatkan paket Debian (apt update && apt upgrade -y)", Page.System),
     Hit("Daftar tool terpasang", "Deteksi alat Molina di Debian beserta versinya", Page.System),
+    Hit("Penjelajah Molina", "Telusuri berkas, salin path, atau kirim ke Terminal", Page.System),
     Hit("About", "Versi dan lisensi", Page.About)
 )
 
@@ -133,6 +136,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     LaunchedEffect(page) { focus.clearFocus() }
     var apt by remember { mutableStateOf<AptJob?>(null) }
     var showTools by remember { mutableStateOf(false) }
+    var showExplorer by remember { mutableStateOf(false) }
     val aptCtx = LocalContext.current
     remember { AptHistory.init(aptCtx) }
     val aptLast by AptHistory.last.collectAsState()
@@ -163,6 +167,13 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
         if (showRefresh) SystemRefreshDialog { showRefresh = false }
         apt?.let { job -> DebianAptDialog(job) { apt = null } }
         if (showTools) InstalledToolsDialog { showTools = false }
+        if (showExplorer) Win7OpenDialog(
+            onDismiss = { showExplorer = false },
+            browse = true,
+            onCopyPath = { f -> MolinaExplorer.copyPath(aptCtx, f) },
+            onSendToTerminal = { f -> MolinaExplorer.sendToTerminal(aptCtx, f) },
+            onChangeDir = { f -> MolinaExplorer.changeDir(aptCtx, f) }
+        )
         when {
             searching -> SearchResults(query) { open(it) }
             page == Page.Log -> LogScreen(Modifier.fillMaxSize())
@@ -198,6 +209,8 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         Category("Debian")
                         W7Link({ W7IconAptSync() }, "Perbarui dan tingkatkan paket", AptHistory.subtitle(aptLast)) { apt = AptJob.UpdateUpgrade }
                         W7Link({ W7IconToolList() }, "Daftar tool terpasang", "Deteksi alat Molina di Debian beserta versinya") { showTools = true }
+                        Category("Berkas")
+                        W7Link({ Win7Folder(32.dp) }, "Penjelajah Molina", "Telusuri berkas, salin path, atau kirim ke Terminal") { showExplorer = true }
                         Spacer(Modifier.height(12.dp))
                         W7SystemSummary()
                     }

@@ -654,3 +654,21 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Commit + push, build via CI, uji fisik di perangkat: lolos
 - Dampak: hanya modul `:app`; Gradle, Manifest, JNI mpv tidak berubah
 - Berikutnya: tombol "Pulihkan cadangan" di kartu Git; halaman "Inventaris Molina"
+
+## 2026-10-26 - Penjelajah Molina di Settings [EXPLORER-SETTINGS]
+- [x] feat(settings): Win7OpenDialog mendapat mode JELAJAH (browse=true: filter Semua file, judul Penjelajah Molina, tombol Salin path dan Ke Terminal); mode PILIH_MEDIA untuk Cinema tidak berubah (parameter baru semua default)
+- [x] feat(settings): ExplorerBridge.kt (MolinaExplorer): path internal dipetakan ke /sdcard (di-bind PRoot), di-quote untuk shell, dikirim lewat emulator.paste tanpa Enter
+- [x] feat(settings): menu Sistem > Berkas > Penjelajah Molina + entri pencarian
+- [x] Dampak: :app saja (cinema/Win7OpenDialog.kt, settings/SettingsScreen.kt, settings/ExplorerBridge.kt baru). Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi (CI). Risiko: rendah-sedang (parameter default Compose + sisipan layout)
+- [ ] uji perangkat: Settings > Sistem > Penjelajah Molina; pilih file > Ke Terminal (path ter-quote muncul di prompt, tanpa Enter); Salin path; folder SD card -> peringatan tidak terlihat di Debian; tombol File di Cinema tetap mode media
+- [ ] catatan: hanya penyimpanan internal yang di-bind ke Debian
+
+## 2026-10-26 - Penjelajah Molina: aksi cd dan favorit [EXPLORER-CD-FAV]
+- [x] feat(settings): tombol cd di Penjelajah Molina (aktif untuk folder): mengirim `cd '<path>'` + Enter ke sesi aktif lewat TerminalActions.send; ditolak bila di luar penyimpanan internal
+- [x] feat(settings): favorit Molina Studio (/sdcard/molina-studio) di panel kiri, hanya pada mode JELAJAH; tata letak aksi: path di baris sendiri, tiga tombol berbagi lebar
+- [x] Audit: FilePickerActivity dan paket filepicker/ (:feature:mpv) MASIH dipakai MPVActivity (tambah playlist, audio/subtitle eksternal), jadi TIDAK dihapus
+- [x] Audit: cinema.MainActivity dan MainScreenFragment tampak yatim (tidak ada pemanggil); penghapusan butuh ubah Manifest mpv (MainActivity, parentActivityName PreferenceActivity), ditunda
+- [x] Dampak: :app saja (Win7OpenDialog.kt, SettingsScreen.kt, ExplorerBridge.kt). Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi (CI). Risiko: rendah
+- [ ] uji perangkat: pilih folder > cd (prompt pindah direktori); file terpilih > tombol cd nonaktif; favorit Molina Studio muncul hanya di Penjelajah (tidak di tombol File Cinema); folder SD card > cd ditolak dengan toast

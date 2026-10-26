@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
+import com.molina.studio.terminal.TerminalSessions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -62,7 +63,8 @@ private val W7_MEDIA = W7_AUDIO + setOf(
 private fun w7HasStorage(ctx: Context) =
     ContextCompat.checkSelfPermission(ctx, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
 
-private fun w7Favorites(): List<W7Place> = listOf(
+private fun w7Favorites(browse: Boolean = false): List<W7Place> = listOfNotNull(
+    if (browse) W7Place("Molina Studio", File(Environment.getExternalStorageDirectory(), TerminalSessions.WORKSPACE_DIR)) else null,
     W7Place("Video", Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES)),
     W7Place("Unduhan", Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)),
     W7Place("Musik", Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)),
@@ -109,14 +111,21 @@ private fun w7Crumbs(dir: File, drives: List<W7Place>): List<Pair<String, File>>
 
 /** Pemilih file lokal bergaya Windows 7 (Aero). Mengembalikan File yang dipilih lewat [onPick]. */
 @Composable
-fun Win7OpenDialog(onDismiss: () -> Unit, onPick: (File) -> Unit) {
+fun Win7OpenDialog(
+    onDismiss: () -> Unit,
+    onPick: (File) -> Unit = {},
+    browse: Boolean = false,
+    onCopyPath: ((File) -> Unit)? = null,
+    onSendToTerminal: ((File) -> Unit)? = null,
+    onChangeDir: ((File) -> Unit)? = null
+) {
     val ctx = LocalContext.current
-    val favs = remember { w7Favorites() }
+    val favs = remember { w7Favorites(browse) }
     val vols = remember { w7Drives() }
     var granted by remember { mutableStateOf(w7HasStorage(ctx)) }
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted = it }
     var dir by remember { mutableStateOf(vols.first().dir) }
-    var kind by remember { mutableStateOf(W7Kind.MEDIA) }
+    var kind by remember { mutableStateOf(if (browse) W7Kind.ALL else W7Kind.MEDIA) }
     var key by remember { mutableStateOf(W7Sort.NAME) }
     var asc by remember { mutableStateOf(true) }
     var tick by remember { mutableStateOf(0) }
@@ -169,7 +178,7 @@ fun Win7OpenDialog(onDismiss: () -> Unit, onPick: (File) -> Unit) {
                 Row(Modifier.weight(1f).padding(top = 5.dp, start = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                     Win7Folder(16.dp)
                     Spacer(Modifier.width(6.dp))
-                    Text("Buka", color = Win7.Ink, fontSize = 13.sp)
+                    Text(if (browse) "Penjelajah Molina" else "Buka", color = Win7.Ink, fontSize = 13.sp)
                 }
                 Win7Close(onDismiss)
             }
@@ -264,6 +273,22 @@ fun Win7OpenDialog(onDismiss: () -> Unit, onPick: (File) -> Unit) {
                         }
                     }
                     Spacer(Modifier.height(8.dp))
+                    if (browse) {
+                        val target = selected?.file ?: dir
+                        Text(
+                            target.path, color = Win7.TextDim, fontSize = 11.sp, maxLines = 1,
+                            overflow = TextOverflow.Ellipsis, modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
+                        )
+                        Row(
+                            Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Win7Button("Salin path", modifier = Modifier.weight(1f), enabled = onCopyPath != null, onClick = { onCopyPath?.invoke(target) })
+                            Win7Button("Ke Terminal", modifier = Modifier.weight(1f), enabled = onSendToTerminal != null, onClick = { onSendToTerminal?.invoke(target) })
+                            Win7Button("cd", modifier = Modifier.weight(1f), enabled = onChangeDir != null && target.isDirectory, onClick = { onChangeDir?.invoke(target) })
+                        }
+                    }
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Text(message, color = Color(0xFFFF8A80), fontSize = 11.sp, modifier = Modifier.weight(1f).padding(end = 8.dp))
                         Win7Button("Buka", isDefault = true, enabled = fileName.isNotBlank(), onClick = { confirm() })
