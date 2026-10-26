@@ -688,3 +688,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: :feature:mpv (kode, layout, AndroidManifest.xml). Gradle dan JNI mpv tidak disentuh
 - [ ] BELUM dikompilasi (CI). Risiko: sedang-tinggi (banyak berkas dihapus + penyuntingan MPVActivity); pengaman Python sudah memindai sisa referensi
 - [ ] uji perangkat: putar video dari Cinema; menu atas pemutar (tanpa tombol Audio/Subtitle eksternal); playlist terbuka (tombol URL tetap ada); lanjut/putar ulang normal; pengaturan pemutar terbuka
+
+## 2026-10-26 - Tombol File Cinema: pilih berkas atau folder [CINEMA-OPEN-FOLDER]
+- [x] feat(cinema): tombol File di CinemaHome membuka dialog pilihan (CinemaOpenChooser): Buka berkas (Win7OpenDialog seperti sebelumnya) atau Buka folder
+- [x] feat(cinema): Win7OpenDialog mode pickFolder (judul Buka folder, tombol Pilih folder, tanpa kolom nama file); folder dipilih = folder yang sedang ditampilkan
+- [x] feat(mpv): MpvFolder.firstMediaIn (publik, tidak rekursif); CinemaActions.playFolder mengirim filepath + folder_playlist ke MPVActivity, playlist dibangun Utils.folderPlaylist (tanpa ubah MPVActivity)
+- [x] Dampak: :app (CinemaHome, CinemaActions, Win7OpenDialog, CinemaOpenChooser baru) dan :feature:mpv (MpvFolder baru). Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi (CI). Risiko: rendah-sedang (edit Compose di Win7OpenDialog)
+- [ ] uji perangkat: File > dialog 2 pilihan; Buka berkas tetap normal; Buka folder > masuk folder berisi beberapa video > Pilih folder > Playlist di pemutar berisi semua video berurutan alami; folder tanpa media > pesan di Cinema; folder berisi 1 media > diputar tunggal
