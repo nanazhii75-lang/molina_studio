@@ -764,3 +764,13 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi (CI). Risiko: rendah
 - [ ] uji perangkat: buka aplikasi dengan izin storage > /sdcard/Molina/Crash ada; picu crash uji > crash-*.txt muncul di Crash/ dan di Settings > Terminal > Debugging; dialog buka berkas menampilkan "Molina" berikon emas di Favorit
 - [ ] LANGKAH BERIKUT: bundle molina_dl.py sebagai asset (salin ke Scripts/ tanpa menimpa, kirim MOLINA_ROOT); terakhir pindahkan HOME_DIR terminal ke Workspace
+
+## 2026-10-26 - Alat berkas di Penjelajah Molina [EXPLORER-FILEOPS]
+- [x] feat(explorer): Settings > Sistem > Berkas > Penjelajah Molina mendapat menu titik tiga "⋮ Alat" (hanya mode JELAJAH; tombol File Cinema tidak berubah): Salin, Pindah, Tempel, Ubah nama, Kompres (ZIP), Pindah ke favorit / Hapus dari favorit, Properti
+- [x] FileOps.kt (baru, murni JVM): salin/pindah rekursif (nama bentrok jadi "nama (1)"), tolak folder ke dalam dirinya sendiri, pindah beda volume = salin lalu hapus sumber, ubah nama tervalidasi, ZIP rekursif (tautan simbolik dilewati), properti (ukuran dan isi folder dihitung di IO)
+- [x] ExplorerFavorites.kt (baru): favorit buatan pengguna disimpan di SharedPreferences molina_explorer, tampil di panel Favorit setelah favorit bawaan
+- [x] Semua operasi berjalan di Dispatchers.IO, tombol Alat dikunci selama proses, pesan hasil hijau (sukses) atau merah (gagal); butuh izin WRITE_EXTERNAL_STORAGE (sudah diminta MainActivity)
+- [x] Dampak: :app saja (cinema/Win7OpenDialog.kt, FileOps.kt, ExplorerFavorites.kt). Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi (CI). Risiko: sedang (Popup + Dialog bertingkat di Compose, edit Win7OpenDialog)
+- [ ] uji perangkat: pilih berkas > Salin > buka folder lain > Tempel (muncul); Pindah + Tempel (sumber hilang); Pindah ke folder yang sama ditolak; salin folder ke dalam dirinya ditolak; Ubah nama (ekstensi tidak ikut terpilih, nama bentrok ditolak); Kompres folder > .zip muncul dan bisa dibuka; Pindah ke favorit pada folder > muncul di panel kiri dan bertahan setelah aplikasi ditutup, lalu Hapus dari favorit; Properti folder besar tidak membekukan UI; tanpa pilihan, Properti menampilkan folder aktif
+- [ ] LANGKAH BERIKUT: Hapus (dengan konfirmasi), pilih banyak berkas, Buat folder baru, Ekstrak ZIP, progres untuk salinan besar
