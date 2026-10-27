@@ -430,6 +430,7 @@ fun Win7OpenDialog(
         }
         is W7Sheet.ZipView -> W7ZipDialog(
             s.zip, onClose = { sheet = null }, onOpenFile = { smartOpen(it) },
+            clipFiles = { clip?.files ?: emptyList() }, // [ZIP-EDIT]
             onOpenTerminal = if (onOpenTerminal != null) ({ f: File ->
                 if (isVisibleInDebian?.invoke(f) != false) { onOpenTerminal.invoke(f.parentFile ?: f); true } else false
             }) else null
@@ -1490,7 +1491,7 @@ private val W7_ZIP_IMG = setOf("jpg", "jpeg", "png", "gif", "webp", "bmp")
 /** Entri yang sedang dibuka dari ZIP: salinan sementara + cap waktu/ukuran saat dibuka untuk mendeteksi suntingan. */
 private class W7ZipOpened(val file: File, var lm: Long, var len: Long)
 
-/** Permintaan kata sandi tertunda: kind 0 = buka, 1 = buka di Terminal, 2 = simpan ke ZIP. */
+/** Permintaan kata sandi tertunda: kind 0 = buka, 1 = buka di Terminal, 2 = simpan ke ZIP, 3 = tambah ke ZIP [ZIP-EDIT]. */
 private class W7ZipAsk(val kind: Int, val name: String, val wrong: Boolean)
 
 private class W7ZipChild(val full: String, val label: String, val isDir: Boolean, val size: Long)
@@ -1515,7 +1516,7 @@ private fun w7ZipChildren(entries: List<FileOps.ZipEntryInfo>, cwd: String): Lis
 @Composable
 private fun W7ZipDialog(
     zip: File, onClose: () -> Unit, onOpenFile: (File) -> Unit,
-    onOpenTerminal: ((File) -> Boolean)?, onExtract: () -> Unit
+    onOpenTerminal: ((File) -> Boolean)?, clipFiles: () -> List<File>, onExtract: () -> Unit
 ) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -1533,6 +1534,7 @@ private fun W7ZipDialog(
     var closeArmed by remember(zip) { mutableStateOf(false) }
     val opened = remember(zip) { mutableStateMapOf<String, W7ZipOpened>() }
     var dirty by remember(zip) { mutableStateOf<List<String>>(emptyList()) }
+    var delArm by remember(zip) { mutableStateOf<String?>(null) } // [ZIP-EDIT] target hapus yang menunggu konfirmasi
     LaunchedEffect(zip) {
         val r = withContext(Dispatchers.IO) { runCatching { FileOps.listZip(zip) } }
         listing = r.getOrNull()
@@ -1616,6 +1618,66 @@ private fun W7ZipDialog(
             }
         }
     }
+    // [ZIP-EDIT] tempel berkas/folder dari klip Penjelajah ke folder ZIP yang sedang dibuka
+    fun addFromClip(pw0: String?) {
+        if (busy) return
+        val src = clipFiles()
+        if (src.isEmpty()) {
+            statusOk = false
+            status = "Klip kosong. Di Penjelajah, pilih berkas lalu Alat > Salin, kemudian buka ZIP ini."
+            return
+        }
+        val pw = pw0 ?: zipPw
+        val dest = cwd
+        busy = true
+        statusOk = true
+        closeArmed = false
+        delArm = null
+        status = "Menambahkan " + src.size + " item ke ZIP\u2026"
+        scope.launch {
+            val r = withContext(Dispatchers.IO) { runCatching { FileOps.addEntries(zip, src, dest, pw, File(cacheRoot, "zipbak")) } }
+            busy = false
+            val ex = r.exceptionOrNull()
+            when {
+                ex == null -> {
+                    if (pw != null) zipPw = pw
+                    status = "Ditambahkan " + (r.getOrNull() ?: 0) + " item ke /" + dest + ". Cadangan ZIP ada di folder zipbak."
+                    reload()
+                }
+                ex is FileOps.NeedPassword -> { status = ""; ask = W7ZipAsk(3, "", false) }
+                ex is FileOps.WrongPassword -> { status = ""; ask = W7ZipAsk(3, "", true) }
+                else -> { statusOk = false; status = ex?.message ?: "Gagal menambah ke ZIP" }
+            }
+        }
+    }
+    // [ZIP-EDIT] hapus berkas terpilih (atau folder yang sedang dibuka) dari ZIP; ketuk dua kali untuk konfirmasi
+    fun deleteTarget() {
+        if (busy) return
+        val target = picked ?: cwd.takeIf { it.isNotEmpty() } ?: return
+        if (delArm != target) {
+            delArm = target
+            statusOk = false
+            status = "Hapus /" + target + " dari ZIP? Tekan Hapus sekali lagi untuk konfirmasi (cadangan dibuat otomatis)."
+            return
+        }
+        delArm = null
+        busy = true
+        statusOk = true
+        closeArmed = false
+        status = "Menghapus dari ZIP\u2026"
+        scope.launch {
+            val r = withContext(Dispatchers.IO) { runCatching { FileOps.deleteEntries(zip, listOf(target), File(cacheRoot, "zipbak")) } }
+            busy = false
+            val ex = r.exceptionOrNull()
+            if (ex == null) {
+                status = "Dihapus " + (r.getOrNull() ?: 0) + " entri dari ZIP. Cadangan ada di folder zipbak."
+                opened.keys.filter { it == target || (target.endsWith("/") && it.startsWith(target)) }.forEach { opened.remove(it) }
+                if (target.endsWith("/")) cwd = target.trimEnd('/').substringBeforeLast('/', "").let { if (it.isEmpty()) "" else it + "/" }
+                picked = null
+                reload()
+            } else { statusOk = false; status = ex.message ?: "Gagal menghapus dari ZIP" }
+        }
+    }
     fun tryClose() {
         if (dirty.isNotEmpty() && !closeArmed) {
             closeArmed = true
@@ -1671,6 +1733,7 @@ private fun W7ZipDialog(
                             Modifier.fillMaxWidth()
                                 .then(if (on) Modifier.background(Win7.SelFill) else Modifier)
                                 .clickable(enabled = !busy) {
+                                    delArm = null
                                     if (ch.isDir) { cwd = ch.full; picked = null }
                                     else if (picked == ch.full) openEntry(ch.full, null)
                                     else picked = ch.full
@@ -1703,7 +1766,7 @@ private fun W7ZipDialog(
                 }
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    "Ketuk folder untuk masuk. Ketuk berkas untuk memilih, ketuk lagi atau tekan Buka (media ke mpv, teks ke Code). Terminal membuka folder salinannya.",
+                    "Ketuk folder untuk masuk. Ketuk berkas untuk memilih, ketuk lagi atau tekan Buka (media ke mpv, teks ke Code). Terminal membuka folder salinannya. Tempel menambah berkas yang disalin di Penjelajah ke folder ini; Hapus membuang berkas terpilih (atau folder ini bila tak ada yang dipilih).",
                     color = Win7.TextDim, fontSize = 11.sp
                 )
             }
@@ -1726,6 +1789,10 @@ private fun W7ZipDialog(
         }
         Spacer(Modifier.height(6.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+            Win7Button("Tempel", enabled = listing != null && !busy) { addFromClip(null) }
+            Spacer(Modifier.width(6.dp))
+            Win7Button(if (delArm != null) "Yakin hapus?" else "Hapus", enabled = listing != null && !busy && (picked != null || cwd.isNotEmpty()), accent = if (delArm != null) Color(0xFFFF8A80) else null) { deleteTarget() }
+            Spacer(Modifier.width(6.dp))
             Win7Button("Ekstrak", enabled = listing != null && !busy) { onExtract() }
             Spacer(Modifier.width(6.dp))
             Win7Button("Tutup") { tryClose() }
@@ -1733,13 +1800,14 @@ private fun W7ZipDialog(
     }
     val a = ask
     if (a != null) W7PasswordDialog(
-        title = if (a.kind == 2) "Simpan ke ZIP" else "Buka dari ZIP",
-        okLabel = if (a.kind == 2) "Simpan" else "Buka", confirmField = false,
+        title = if (a.kind == 3) "Tambah ke ZIP" else if (a.kind == 2) "Simpan ke ZIP" else "Buka dari ZIP",
+        okLabel = if (a.kind == 3) "Tambah" else if (a.kind == 2) "Simpan" else "Buka", confirmField = false,
         note = if (a.wrong) "Kata sandi salah. Coba lagi." else "ZIP ini dilindungi kata sandi.",
         onCancel = { ask = null }
     ) { pw ->
         ask = null
         when (a.kind) {
+            3 -> addFromClip(pw)
             2 -> saveBack(pw)
             1 -> openEntry(a.name, pw, true)
             else -> openEntry(a.name, pw)

@@ -1279,3 +1279,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI). Risiko: sedang (zip4j removeFile/addFile, produceState, dialog password bertingkat)
 - [ ] uji perangkat (Android 8): masuk folder dalam ZIP; buka .txt di Code lalu edit lalu Simpan lalu buka ulang; ZIP berkata sandi; gambar pratinjau; Terminal pada salinan; Tutup dengan perubahan memunculkan peringatan
 - [ ] LANGKAH BERIKUT: tambah berkas baru ke ZIP dari Penjelajah (seret atau Sisipkan) dan hapus entri dari ZIP
+
+## 2026-10-28 - Tambah dan hapus entri di dalam ZIP [ZIP-EDIT]
+- [x] feat(zip): `FileOps.addEntries` menambah berkas/folder ke folder ZIP yang sedang dibuka (nama sama diganti; ZIP AES dienkripsi ulang AES-256 dengan kata sandi yang sama; ZIP itu sendiri dikecualikan)
+- [x] feat(zip): `FileOps.deleteEntries` menghapus berkas atau folder beserta isinya; konfirmasi dua ketukan di UI
+- [x] feat(zip): tombol Tempel (sumber: klip Salin Penjelajah) dan Hapus di dialog ZIP; cadangan otomatis zipbak dan pemulihan bila gagal dipakai bersama lewat `zipGuarded`
+- [x] Dampak: :app saja (cinema/FileOps, cinema/Win7OpenDialog). Gradle, Manifest, JNI mpv TIDAK disentuh; tanpa izin baru
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: sedang (zip4j removeFiles/addFolder + setRootFolderNameInZip, ExcludeFileFilter, dialog sandi tingkat 3)
+- [ ] uji perangkat (Android 8): salin berkas di Penjelajah lalu buka ZIP lalu Tempel; Tempel folder; nama sama (diganti); ZIP berkata sandi benar/salah; Hapus berkas dan folder (dua ketukan); cek zipbak/<nama>.zip.bak
+

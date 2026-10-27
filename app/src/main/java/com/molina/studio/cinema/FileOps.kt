@@ -568,6 +568,85 @@ internal object FileOps {
         }
     }
 
+    /** [ZIP-EDIT] Cadangkan ZIP ke [backupDir]/<nama>.bak, jalankan [block]; bila gagal ZIP dipulihkan dari cadangan. */
+    private fun <T> zipGuarded(zip: File, backupDir: File, fail: String, block: () -> T): T {
+        backupDir.mkdirs()
+        val bak = File(backupDir, zip.name + ".bak")
+        zip.copyTo(bak, overwrite = true)
+        try {
+            return block()
+        } catch (e: Exception) {
+            try { bak.copyTo(zip, overwrite = true) } catch (e2: Exception) { }
+            throw mapZip(e, fail)
+        }
+    }
+
+    /**
+     * [ZIP-EDIT] Hapus entri dari [zip]. Nama berakhiran "/" dianggap folder (seluruh isinya ikut dihapus).
+     * Mengembalikan jumlah entri yang dihapus. Tidak butuh kata sandi.
+     */
+    fun deleteEntries(zip: File, names: List<String>, backupDir: File): Int {
+        if (!zip.isFile || !zip.canWrite()) throw IOException("ZIP tidak bisa ditulisi")
+        if (names.isEmpty()) return 0
+        return zipGuarded(zip, backupDir, "Gagal menghapus dari ZIP") {
+            val zf = Z4jZipFile(zip)
+            val victims = ArrayList<String>()
+            for (h in zf.getFileHeaders()) {
+                val fn = h.getFileName()
+                if (names.any { n -> fn == n || (n.endsWith("/") && fn.startsWith(n)) }) victims.add(fn)
+            }
+            if (victims.isEmpty()) throw IOException("Entri tidak ditemukan di ZIP")
+            zf.removeFiles(victims)
+            victims.size
+        }
+    }
+
+    /**
+     * [ZIP-EDIT] Tambahkan [files] (berkas atau folder) ke [zip] di dalam folder [destPrefix] ("" = akar, atau "a/b/").
+     * Berkas bernama sama diganti. ZIP terenkripsi: entri baru dienkripsi AES-256 dengan kata sandi yang sama.
+     * Mengembalikan jumlah item yang ditambahkan.
+     */
+    fun addEntries(zip: File, files: List<File>, destPrefix: String, password: String?, backupDir: File): Int {
+        if (!zip.isFile || !zip.canWrite()) throw IOException("ZIP tidak bisa ditulisi")
+        val skip = zip.canonicalFile
+        val src = files.filter { it.exists() && !isLink(it) && it.canonicalFile != skip }
+        if (src.isEmpty()) throw IOException("Tidak ada berkas untuk ditambahkan")
+        val enc = isEncryptedZip(zip)
+        if (enc && password.isNullOrEmpty()) throw NeedPassword()
+        return zipGuarded(zip, backupDir, "Gagal menambah ke ZIP") {
+            val zf = if (enc) Z4jZipFile(zip, password!!.toCharArray()) else Z4jZipFile(zip)
+            if (enc) {
+                val probe = zf.getFileHeaders().firstOrNull { !it.isDirectory() }
+                if (probe != null) zf.getInputStream(probe).use { it.read() } // uji kata sandi sebelum mengubah apa pun
+            }
+            var n = 0
+            for (f in src) {
+                val params = ZipParameters()
+                if (enc) {
+                    params.setEncryptFiles(true)
+                    params.setEncryptionMethod(EncryptionMethod.AES)
+                    params.setAesKeyStrength(AesKeyStrength.KEY_STRENGTH_256)
+                }
+                params.setExcludeFileFilter(ExcludeFileFilter { x -> isLink(x) || x.canonicalFile == skip })
+                if (f.isDirectory) {
+                    val root = destPrefix + f.name
+                    val stale = zf.getFileHeaders().map { it.getFileName() }.filter { it.startsWith(root + "/") }
+                    if (stale.isNotEmpty()) zf.removeFiles(stale)
+                    params.setRootFolderNameInZip(root)
+                    zf.addFolder(f, params)
+                } else {
+                    val full = destPrefix + f.name
+                    val old = zf.getFileHeader(full)
+                    if (old != null) zf.removeFile(old)
+                    params.setFileNameInZip(full)
+                    zf.addFile(f, params)
+                }
+                n++
+            }
+            n
+        }
+    }
+
     /**
      * [RUNNER] Interpreter untuk menjalankan [f] di shell: dari shebang (#!), lalu dari ekstensi.
      * Mengembalikan null bila tidak dikenal. Nama dibatasi huruf/angka/._+- agar aman disisipkan ke perintah shell.
