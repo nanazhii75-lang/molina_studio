@@ -57,6 +57,17 @@ import com.molina.core.common.LogRedact
 import com.molina.studio.cinema.CinemaActions
 import com.molina.studio.cinema.Win7OpenDialog
 import com.molina.studio.settings.W7D
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
+import com.molina.studio.cinema.Win7Button
+import com.molina.studio.settings.win7Card
+import com.molina.studio.settings.W7IconDownloadBig
+import com.molina.studio.settings.GlossBar
+import com.molina.studio.settings.Win7GlassWindow
+import com.molina.studio.settings.RgbFrame
 import com.molina.studio.settings.MolinaExplorer
 import com.molina.studio.ui.MolinaTheme
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -149,107 +160,99 @@ fun UnduhanScreen(modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         item { Box(Modifier.height(4.dp)) }
+        // [win7-form] formulir dalam jendela kaca Aero; frame RGB berputar hanya saat unduhan berjalan.
         item {
-            OutlinedTextField(
-                value = urls,
-                onValueChange = { urls = it; error = null },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !run.running,
-                label = { Text("URL (satu per baris)") },
-                minLines = 2,
-                maxLines = 6,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = W7D.Accent,
-                    unfocusedBorderColor = W7D.Line,
-                    focusedLabelColor = W7D.Accent,
-                    cursorColor = W7D.Accent,
-                ),
-            )
-        }
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(
-                    onClick = {
-                        val clip = pasteText(ctx)
-                        if (clip.isBlank()) {
-                            Toast.makeText(ctx, "Clipboard kosong.", Toast.LENGTH_SHORT).show()
-                        } else {
-                            urls = if (urls.isBlank()) clip.trim() else urls.trimEnd() + "\n" + clip.trim()
-                            error = null
-                        }
-                    },
-                    enabled = !run.running,
-                    border = BorderStroke(1.dp, W7D.Accent),
-                ) { Text("Tempel", color = W7D.Accent) }
-                if (urls.isNotEmpty() && !run.running) {
-                    TextButton(onClick = { urls = ""; error = null }) { Text("Hapus", color = W7D.TextDim) }
-                }
-            }
-        }
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Chip("Video", video, !run.running) { video = true }
-                    Chip("Audio", !video, !run.running) { video = false }
-                }
-                if (video) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf(0 to "Terbaik", 1080 to "1080p", 720 to "720p", 480 to "480p").forEach { (h, l) ->
-                            Chip(l, height == h, !run.running) { height = h }
-                        }
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        DownloadCommand.VIDEO_EXTS.sorted().forEach { e ->
-                            Chip(e.uppercase(Locale.ROOT), videoExt == e, !run.running) { videoExt = e }
-                        }
-                    }
-                } else {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        DownloadCommand.AUDIO_FORMATS.sorted().forEach { f ->
-                            Chip(f.uppercase(Locale.ROOT), audioFmt == f, !run.running) { audioFmt = f }
-                        }
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        DownloadCommand.BITRATES.sortedBy { it.dropLast(1).toInt() }.forEach { b ->
-                            Chip(b, bitrate == b, !run.running) { bitrate = b }
-                        }
-                    }
-                }
-            }
-        }
-        item {
-            error?.let { Text(it, color = MolinaTheme.Bad, fontSize = 13.sp, modifier = Modifier.padding(bottom = 6.dp)) }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                if (run.running) {
-                    Button(
-                        onClick = { DownloadRunner.cancel() },
-                        colors = ButtonDefaults.buttonColors(containerColor = MolinaTheme.Bad, contentColor = Color.Black),
-                    ) { Text("Batalkan") }
-                } else {
-                    Button(
-                        onClick = {
-                            val req = DownloadRequest(
-                                urls = urls.split(Regex("\\s+")),
-                                mode = if (video) DownloadMode.VIDEO else DownloadMode.AUDIO,
-                                height = height,
-                                videoExt = videoExt,
-                                audioFormat = audioFmt,
-                                bitrate = bitrate,
-                            )
-                            val msg = DownloadRunner.start(ctx.applicationContext, req)
-                            error = msg
-                            if (msg == null) {
-                                urls = ""
-                                DownloadPrefs.save(ctx.applicationContext, DownloadForm.choices())
+            RgbFrame(Modifier.fillMaxWidth(), animate = run.running) {
+                Win7GlassWindow("Unduh dari URL", icon = { W7IconDownloadBig(18.dp) }) {
+                    OutlinedTextField(
+                        value = urls,
+                        onValueChange = { urls = it; error = null },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !run.running,
+                        label = { Text("URL (satu per baris)") },
+                        minLines = 2,
+                        maxLines = 6,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = W7D.Accent,
+                            unfocusedBorderColor = W7D.Line,
+                            focusedLabelColor = W7D.Accent,
+                            cursorColor = W7D.Accent,
+                        ),
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Win7Button("Tempel", enabled = !run.running) {
+                            val clip = pasteText(ctx)
+                            if (clip.isBlank()) {
+                                Toast.makeText(ctx, "Clipboard kosong.", Toast.LENGTH_SHORT).show()
+                            } else {
+                                urls = if (urls.isBlank()) clip.trim() else urls.trimEnd() + "\n" + clip.trim()
+                                error = null
                             }
-                        },
-                        enabled = count > 0,
-                        colors = ButtonDefaults.buttonColors(containerColor = W7D.Accent, contentColor = Color.Black),
-                    ) { Text(if (count > 0) "Mulai unduh ($count)" else "Mulai unduh") }
-                }
-                if (!run.running && hasResult) {
-                    TextButton(onClick = { DownloadRunner.clear(); error = null }) {
-                        Text("Kosongkan hasil", color = W7D.TextDim)
+                        }
+                        if (urls.isNotEmpty() && !run.running) {
+                            TextButton(onClick = { urls = ""; error = null }) { Text("Hapus", color = W7D.TextDim) }
+                        }
+                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Chip("Video", video, !run.running) { video = true }
+                            Chip("Audio", !video, !run.running) { video = false }
+                        }
+                        if (video) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                listOf(0 to "Terbaik", 1080 to "1080p", 720 to "720p", 480 to "480p").forEach { (h, l) ->
+                                    Chip(l, height == h, !run.running) { height = h }
+                                }
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                DownloadCommand.VIDEO_EXTS.sorted().forEach { e ->
+                                    Chip(e.uppercase(Locale.ROOT), videoExt == e, !run.running) { videoExt = e }
+                                }
+                            }
+                        } else {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                DownloadCommand.AUDIO_FORMATS.sorted().forEach { f ->
+                                    Chip(f.uppercase(Locale.ROOT), audioFmt == f, !run.running) { audioFmt = f }
+                                }
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                DownloadCommand.BITRATES.sortedBy { it.dropLast(1).toInt() }.forEach { b ->
+                                    Chip(b, bitrate == b, !run.running) { bitrate = b }
+                                }
+                            }
+                        }
+                    }
+                    error?.let { Text(it, color = MolinaTheme.Bad, fontSize = 13.sp) }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        if (run.running) {
+                            Win7Button("Batalkan", accent = MolinaTheme.Bad) { DownloadRunner.cancel() }
+                        } else {
+                            Win7Button(
+                                if (count > 0) "Mulai unduh ($count)" else "Mulai unduh",
+                                isDefault = true,
+                                enabled = count > 0,
+                            ) {
+                                val req = DownloadRequest(
+                                    urls = urls.split(Regex("\\s+")),
+                                    mode = if (video) DownloadMode.VIDEO else DownloadMode.AUDIO,
+                                    height = height,
+                                    videoExt = videoExt,
+                                    audioFormat = audioFmt,
+                                    bitrate = bitrate,
+                                )
+                                val msg = DownloadRunner.start(ctx.applicationContext, req)
+                                error = msg
+                                if (msg == null) {
+                                    urls = ""
+                                    DownloadPrefs.save(ctx.applicationContext, DownloadForm.choices())
+                                }
+                            }
+                        }
+                        if (!run.running && hasResult) {
+                            TextButton(onClick = { DownloadRunner.clear(); error = null }) {
+                                Text("Kosongkan hasil", color = W7D.TextDim)
+                            }
+                        }
                     }
                 }
             }
@@ -273,22 +276,18 @@ fun UnduhanScreen(modifier: Modifier = Modifier) {
             }
             if (!run.running && doneFiles.isNotEmpty()) {
                 item {
-                    OutlinedButton(
-                        onClick = {
-                            val dir = folderOf(doneFiles.first().path)
-                            if (dir == null) Toast.makeText(ctx, "Folder hasil ada di dalam Debian dan belum bisa dibuka dari sini.", Toast.LENGTH_LONG).show()
-                            else openDir = dir
-                        },
-                        border = BorderStroke(1.dp, W7D.Accent),
-                    ) { Text("Buka folder", color = W7D.Accent) }
+                    Win7Button("Buka folder") {
+                        val dir = folderOf(doneFiles.first().path)
+                        if (dir == null) Toast.makeText(ctx, "Folder hasil ada di dalam Debian dan belum bisa dibuka dari sini.", Toast.LENGTH_LONG).show()
+                        else openDir = dir
+                    }
                 }
             }
             if (!run.running && retryUrls.isNotEmpty()) {
                 item {
-                    OutlinedButton(
-                        onClick = { afterStart(DownloadRunner.retry(ctx.applicationContext)) },
-                        border = BorderStroke(1.dp, W7D.Accent),
-                    ) { Text("Ulangi yang gagal (${retryUrls.size})", color = W7D.Accent) }
+                    Win7Button("Ulangi yang gagal (${retryUrls.size})") {
+                        afterStart(DownloadRunner.retry(ctx.applicationContext))
+                    }
                 }
             }
         }
@@ -335,39 +334,53 @@ private fun SessionSummary(running: Boolean, ok: Int, failed: Int, cancelled: Bo
         finished -> "Selesai: $ok berhasil, $failed gagal"
         else -> "Sesi berhenti"
     }
-    Text(text, color = W7D.Ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+    val dot = when {
+        running -> W7D.Accent
+        failed > 0 -> MolinaTheme.Warn
+        finished -> MolinaTheme.Good
+        else -> W7D.TextDim
+    }
+    Row(
+        Modifier.fillMaxWidth().win7Card(dot).padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.size(8.dp).clip(CircleShape).background(dot))
+        Spacer(Modifier.width(8.dp))
+        Text(text, color = W7D.Ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+    }
+}
+
+/** Warna bilah per status: biru (antre/mengunduh), emas (memproses), hijau (selesai). */
+private fun barColors(status: DownloadItemStatus): Pair<Color, Color> = when (status) {
+    DownloadItemStatus.DONE -> Color(0xFF7BE87A) to Color(0xFF1E9E1A)
+    DownloadItemStatus.PROCESSING -> MolinaTheme.Gold to Color(0xFFB07F22)
+    else -> Color(0xFF8FC4EE) to Color(0xFF2D6DB5)
 }
 
 @Composable
-private fun ItemCard(ctx: Context, item: DownloadItemState, onRetry: (() -> Unit)? = null) {
+private fun ItemCard(ctx: Context, item: DownloadItemState, onRetry: (() -> Unit)? = null) { // [win7-itemcard]
     val pct = DownloadReducer.overallPercent(item)
     val title = item.title ?: LogRedact.target(item.url).ifEmpty { "Item ${item.index}" }.take(70)
+    val color = when (item.status) {
+        DownloadItemStatus.DONE -> MolinaTheme.Good
+        DownloadItemStatus.FAILED -> MolinaTheme.Bad
+        else -> W7D.Accent
+    }
     Column(
-        Modifier.fillMaxWidth()
-            .background(W7D.Card, RoundedCornerShape(10.dp))
-            .padding(12.dp),
+        Modifier.fillMaxWidth().win7Card(color).padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Text(
             "${item.index}. $title", color = W7D.Ink, fontSize = 14.sp,
             maxLines = 2, overflow = TextOverflow.Ellipsis,
         )
-        val color = when (item.status) {
-            DownloadItemStatus.DONE -> MolinaTheme.Good
-            DownloadItemStatus.FAILED -> MolinaTheme.Bad
-            else -> W7D.Accent
-        }
         if (item.status != DownloadItemStatus.FAILED) {
-            if (pct == null || item.status == DownloadItemStatus.PROCESSING) {
-                LinearProgressIndicator(Modifier.fillMaxWidth().height(4.dp), color = color, trackColor = W7D.Line)
-            } else {
-                LinearProgressIndicator(
-                    progress = { (pct / 100.0).toFloat().coerceIn(0f, 1f) },
-                    modifier = Modifier.fillMaxWidth().height(4.dp),
-                    color = color,
-                    trackColor = W7D.Line,
-                )
-            }
+            val frac: Float? =
+                if (pct != null && item.status != DownloadItemStatus.PROCESSING) (pct / 100.0).toFloat().coerceIn(0f, 1f)
+                else if (item.status == DownloadItemStatus.DONE) 1f
+                else null
+            val bc = barColors(item.status)
+            GlossBar(frac, bc.first, bc.second)
         }
         Text(statusLine(item, pct), color = if (item.status == DownloadItemStatus.FAILED) MolinaTheme.Bad else W7D.TextDim, fontSize = 12.sp)
         if (item.status == DownloadItemStatus.FAILED && onRetry != null) {

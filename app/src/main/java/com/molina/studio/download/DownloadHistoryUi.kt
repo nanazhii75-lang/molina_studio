@@ -26,6 +26,7 @@ import com.molina.core.common.DownloadHistoryEntry
 import com.molina.core.common.LogRedact
 import com.molina.studio.ui.MolinaTheme
 import com.molina.studio.settings.W7D
+import com.molina.studio.settings.win7Card
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -87,7 +88,7 @@ private fun HistoryCard(
     val retryN = e.retryUrls().size
     Column(
         Modifier.fillMaxWidth()
-            .background(W7D.Card, RoundedCornerShape(10.dp))
+            .win7Card(if (e.failedCount > 0) MolinaTheme.Warn else MolinaTheme.Good)
             .clickable(onClick = onToggle)
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),

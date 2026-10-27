@@ -1039,3 +1039,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah-sedang (Brush.sweepGradient + rotate di drawBehind, animateFloatAsState, import alias Level)
 - [ ] uji perangkat (Android 8): halaman Terminal tanpa bar chip dan ruang terminal bertambah; Extra Keys utuh; Settings > Sistem > Monitor Sistem tampil, angka bergerak tiap detik; frame RGB berputar mulus; unduh file besar lalu bilah Unduh naik; keluar halaman lalu sampling berhenti; pencarian "cpu"/"ram" menemukan halaman
 - [ ] LANGKAH BERIKUT: riwayat grafik garis CPU/RAM 60 detik, opsi matikan animasi RGB (hemat baterai)
+
+## 2026-10-27 - Unduhan: desain Win7 glass + grafik Monitor + saklar RGB [UNDUHAN-WIN7]
+- [x] refactor(ui): komponen kaca dipusatkan di `settings/Win7Glass.kt` (RgbFrame, Win7GlassWindow, GlossBar, win7Card, Sparkline, GlassPrefs); SystemMonitorUi.kt memakainya
+- [x] feat(download): halaman Unduhan tidak lagi flat: formulir dalam jendela kaca Aero berbingkai RGB (berputar HANYA saat unduhan berjalan, statis emas-biru saat diam), tombol Win7Button (Tempel, Mulai unduh, Batalkan, Buka folder, Ulangi), kartu item/riwayat berbingkai warna status, bilah progres glossy (biru mengunduh, emas memproses, hijau selesai, indeterminate bergeser), ringkasan sesi berindikator warna
+- [x] feat(settings): Monitor Sistem: grafik garis CPU dan RAM 60 detik + saklar "Animasi frame RGB" (SharedPreferences molina_ui/rgb_anim, berlaku juga di Unduhan)
+- [x] Dampak: :app saja (settings/Win7Glass.kt baru, settings/SystemMonitorUi.kt, download/UnduhanScreen.kt, download/DownloadHistoryUi.kt). Logika DownloadRunner/DownloadRequest tidak diubah. Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: sedang (blok formulir dipindah ke ColumnScope Win7GlassWindow, Win7Button, Canvas return@Canvas, import baru di UnduhanScreen)
+- [ ] uji perangkat (Android 8): formulir tampil dalam jendela kaca; Tempel/Hapus/chip mode berfungsi; Mulai unduh (frame RGB mulai berputar), Batalkan; bilah progres bergerak dan hijau saat selesai; Buka folder dan Ulangi; riwayat tampil dengan bingkai hijau/kuning; Monitor Sistem: grafik terisi tiap detik; saklar RGB mati -> bingkai statis di Monitor dan Unduhan
