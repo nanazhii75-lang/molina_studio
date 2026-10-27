@@ -43,7 +43,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.LaunchedEffect
 import com.molina.core.common.DownloadCommand
+import com.molina.core.common.DownloadFormat
+import com.molina.core.common.DownloadPaths
+import com.molina.core.common.DownloadUrls
 import com.molina.core.common.DownloadItemState
 import com.molina.core.common.DownloadItemStatus
 import com.molina.core.common.DownloadMode
@@ -68,17 +72,37 @@ fun UnduhanScreen(modifier: Modifier = Modifier) {
     val run by DownloadRunner.state.collectAsState()
     val sess = run.session
 
-    var urls by rememberSaveable { mutableStateOf("") }
-    var video by rememberSaveable { mutableStateOf(true) }
-    var height by rememberSaveable { mutableStateOf(0) }
-    var videoExt by rememberSaveable { mutableStateOf("mp4") }
-    var audioFmt by rememberSaveable { mutableStateOf("mp3") }
-    var bitrate by rememberSaveable { mutableStateOf("192k") }
+    // Formulir ada di DownloadForm (bukan rememberSaveable): tab hanya dikomposisi saat dipilih.
+    var urls by remember { DownloadForm.urls }
+    var video by remember { DownloadForm.video }
+    var height by remember { DownloadForm.height }
+    var videoExt by remember { DownloadForm.videoExt }
+    var audioFmt by remember { DownloadForm.audioFmt }
+    var bitrate by remember { DownloadForm.bitrate }
     var error by remember { mutableStateOf<String?>(null) }
     var openDir by remember { mutableStateOf<File?>(null) }
 
     val doneFiles = sess.items.flatMap { it.files }
     val hasResult = run.running || sess.items.isNotEmpty() || sess.fatalError != null || run.exitCode != null
+    val count = DownloadUrls.split(urls).size
+
+    // URL kiriman dari layar lain (kartu hasil pencarian Cinema): digabung ke kolom, duplikat dilewati.
+    val pending = DownloadNav.pendingUrls
+    LaunchedEffect(pending) {
+        if (pending.isNotEmpty()) {
+            val r = DownloadUrls.merge(urls, pending)
+            urls = r.text
+            error = null
+            DownloadNav.pendingUrls = emptyList()
+            val note = buildString {
+                append(if (r.added > 0) "${r.added} URL ditambahkan" else "URL sudah ada di daftar")
+                if (r.skipped > 0 && r.added > 0) append(", ${r.skipped} sudah ada")
+                if (r.dropped > 0) append(", ${r.dropped} melewati batas ${DownloadCommand.MAX_URLS}")
+                if (DownloadRunner.isRunning()) append(". Unduhan masih berjalan; mulai setelah selesai.")
+            }
+            Toast.makeText(ctx, note, Toast.LENGTH_SHORT).show()
+        }
+    }
 
     openDir?.let { dir ->
         Win7OpenDialog(
@@ -198,8 +222,9 @@ fun UnduhanScreen(modifier: Modifier = Modifier) {
                             error = msg
                             if (msg == null) urls = ""
                         },
+                        enabled = count > 0,
                         colors = ButtonDefaults.buttonColors(containerColor = MolinaTheme.Gold, contentColor = Color.Black),
-                    ) { Text("Mulai unduh") }
+                    ) { Text(if (count > 0) "Mulai unduh ($count)" else "Mulai unduh") }
                 }
                 if (!run.running && hasResult) {
                     TextButton(onClick = { DownloadRunner.clear(); error = null }) {
@@ -323,18 +348,9 @@ private fun statusLine(item: DownloadItemState, pct: Double?): String = when (it
     DownloadItemStatus.FAILED -> item.errorMsg ?: "Gagal"
 }
 
-private fun fmtSize(b: Long): String = when {
-    b >= 1L shl 30 -> String.format(Locale.ROOT, "%.2f GB", b / (1L shl 30).toDouble())
-    b >= 1L shl 20 -> String.format(Locale.ROOT, "%.1f MB", b / (1L shl 20).toDouble())
-    b >= 1L shl 10 -> String.format(Locale.ROOT, "%.0f KB", b / (1L shl 10).toDouble())
-    else -> "$b B"
-}
+private fun fmtSize(b: Long): String = DownloadFormat.size(b)
 
-private fun fmtEta(s: Long): String = when {
-    s >= 3600 -> "${s / 3600}j ${(s % 3600) / 60}m"
-    s >= 60 -> "${s / 60}m ${s % 60}d"
-    else -> "${s}d"
-}
+private fun fmtEta(s: Long): String = DownloadFormat.eta(s)
 
 private fun pasteText(ctx: Context): String {
     val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -345,9 +361,8 @@ private fun pasteText(ctx: Context): String {
 
 /** Path Debian (`/sdcard/...`) -> File Android. null bila di luar /sdcard (mis. cadangan di dalam rootfs Debian). */
 private fun androidFile(debianPath: String): File? {
-    if (debianPath != "/sdcard" && !debianPath.startsWith("/sdcard/")) return null
     val base = Environment.getExternalStorageDirectory().absolutePath
-    return File(base + debianPath.removePrefix("/sdcard"))
+    return DownloadPaths.toAndroid(debianPath, base)?.let { File(it) }
 }
 
 private fun folderOf(debianPath: String): File? =

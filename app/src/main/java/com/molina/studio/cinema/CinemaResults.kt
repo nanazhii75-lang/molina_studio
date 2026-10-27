@@ -7,6 +7,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -54,9 +55,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.molina.core.common.DownloadCommand
 import com.molina.core.common.RelativeTime
 import com.molina.core.common.StreamSearchItem
 import com.molina.studio.R
+import com.molina.studio.download.DownloadNav
 import com.molina.studio.ui.MolinaTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -132,6 +135,21 @@ internal fun SearchResultsDialog(
         if (t != null) onPick(t.item)
     }
 
+    // Kirim URL ke tab Unduhan (tidak langsung mengunduh: mode/kualitas dipilih di sana).
+    fun download(items: List<StreamSearchItem>) {
+        val all = items.map { it.pageUrl }.filter { it.startsWith("http://") || it.startsWith("https://") }
+        if (all.isEmpty()) {
+            Toast.makeText(ctx, "Tidak ada tautan yang bisa diunduh.", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val urls = all.take(DownloadCommand.MAX_URLS)
+        DownloadNav.request(urls)
+        val msg = if (urls.size == 1) "Dikirim ke Unduhan" else "${urls.size} tautan dikirim ke Unduhan" +
+            (if (all.size > urls.size) " (maks ${DownloadCommand.MAX_URLS})" else "")
+        Toast.makeText(ctx, msg, Toast.LENGTH_SHORT).show()
+        onDismiss()
+    }
+
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         // [CINEMA-RESULTS-FRAME] margin tepi 24dp, lebar maks 480dp, bingkai tipis bergradasi emas
         val frame = RoundedCornerShape(20.dp)
@@ -187,7 +205,8 @@ internal fun SearchResultsDialog(
                     items(visible, key = { it.number }) { e ->
                         ChannelRow(e, e.number == selected,
                             onPress = { selected = e.number },
-                            onClick = { onPick(e.item) })
+                            onClick = { onPick(e.item) },
+                            onDownload = { download(listOf(e.item)) })
                     }
                 }
 
@@ -204,6 +223,9 @@ internal fun SearchResultsDialog(
                         searchOpen = !searchOpen
                         if (!searchOpen) query = ""
                     }
+                    TvKey(R.drawable.ic_tv_download, "Unduh semua", MolinaTheme.Gold, Modifier.weight(1f)) {
+                        download(visible.map { it.item })
+                    }
                     TvKey(R.drawable.ic_tv_info, "Info", Color.White, Modifier.weight(1f)) {
                         Toast.makeText(ctx,
                             "Hasil %03d dari %03d".format(selected, entries.size),
@@ -217,7 +239,10 @@ internal fun SearchResultsDialog(
 }
 
 @Composable
-private fun ChannelRow(e: ResultEntry, isSelected: Boolean, onPress: () -> Unit, onClick: () -> Unit) {
+private fun ChannelRow(
+    e: ResultEntry, isSelected: Boolean,
+    onPress: () -> Unit, onClick: () -> Unit, onDownload: () -> Unit,
+) {
     val shape = RoundedCornerShape(4.dp)
     val brush = if (isSelected) Brush.verticalGradient(listOf(SelectedTop, SelectedBottom))
         else Brush.verticalGradient(listOf(RowTop, RowBottom))
@@ -244,6 +269,12 @@ private fun ChannelRow(e: ResultEntry, isSelected: Boolean, onPress: () -> Unit,
                 color = if (isSelected) Color(0xCCFFFFFF) else MolinaTheme.Muted,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
+        Box(
+            Modifier.padding(start = 8.dp).size(36.dp).clip(RoundedCornerShape(18.dp))
+                .border(1.dp, MolinaTheme.Gold.copy(alpha = 0.7f), RoundedCornerShape(18.dp))
+                .clickable(onClick = onDownload),
+            contentAlignment = Alignment.Center,
+        ) { Text("\u2193", color = MolinaTheme.Gold, fontSize = 18.sp, fontWeight = FontWeight.Bold) }
     }
 }
 

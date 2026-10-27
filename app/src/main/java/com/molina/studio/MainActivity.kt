@@ -172,6 +172,10 @@ class MainActivity : ComponentActivity() {
                         com.molina.studio.code.CodeNav.pendingFiles = emptyList()
                     }
                 }
+                // Kartu hasil pencarian Cinema: Unduh mengirim URL ke tab Unduhan.
+                androidx.compose.runtime.LaunchedEffect(com.molina.studio.download.DownloadNav.pendingUrls) {
+                    if (com.molina.studio.download.DownloadNav.pendingUrls.isNotEmpty()) selected = Tab.Download.ordinal
+                }
                 val htmlWebView by com.molina.studio.code.CodePrefs.htmlWebView.collectAsState()
                 SideEffect { codeSession.htmlWebView = htmlWebView }
                 val keyboardVisible = rememberKeyboardVisible()

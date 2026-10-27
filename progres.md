@@ -931,3 +931,15 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah-sedang (nav bawah kini 5 tab; Win7OpenDialog dipakai Settings dan Cinema, parameter baru berbawaan null)
 - [ ] uji perangkat (Android 8): tempel URL, mulai, tekan Home (notifikasi persen), batalkan, lanjutkan dengan URL sama; setelah selesai: Putar membuka Molina Player, Buka folder membuka Penjelajah di folder hasil; Settings > Penjelajah dan tab mpv tetap normal
 - [ ] LANGKAH BERIKUT (opsional): tombol "Unduh" dari kartu hasil pencarian Cinema ke tab Unduhan, uji unit untuk pemetaan path dan format ukuran
+
+## 2026-10-27 - Unduhan native langkah 5: integrasi pencarian Cinema -> Unduhan + UX + uji [DL-STEP5-INTEGRASI]
+- [x] feat(cinema): kartu hasil pencarian punya tombol bulat emas "↓" (kirim satu URL ke tab Unduhan) dan tombol bar bawah "Unduh semua" (semua hasil yang tampil, termasuk hasil saringan; maks 50). Ketuk baris tetap memutar
+- [x] feat(download): DownloadNav (jembatan URL ke tab Unduhan; MainActivity pindah tab, UnduhanScreen menggabungkan ke kolom, duplikat dilewati, batas 50 URL, Toast ringkasan). Tidak langsung mengunduh: mode/kualitas dipilih dulu
+- [x] fix(ux): formulir Unduhan (URL, mode, kualitas) disimpan di DownloadForm, tidak hilang saat pindah tab (sebelumnya rememberSaveable ikut hilang karena tab hanya dikomposisi saat dipilih)
+- [x] ux: tombol "Mulai unduh (n)" menampilkan jumlah URL dan nonaktif saat kosong
+- [x] refactor(core): DownloadUi.kt (DownloadFormat.size/eta, DownloadPaths.toAndroid menolak path di luar /sdcard, segmen .. dan karakter kontrol, DownloadUrls.split/merge); UnduhanScreen memakainya
+- [x] test: scripts/core-tests/run_ui.sh (kotlinc 2.1.20): 27 pemeriksaan LULUS (format ukuran/ETA termasuk locale id, pemetaan path, traversal, penggabungan URL dan batas 50)
+- [x] Dampak: :core:common (DownloadUi.kt), :app (download/DownloadNav.kt baru, UnduhanScreen.kt, cinema/CinemaResults.kt, MainActivity.kt, res/drawable/ic_tv_download.xml). Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah-sedang (CinemaResults: tanda tangan ChannelRow berubah, hanya dipakai di berkas itu)
+- [ ] uji perangkat (Android 8): cari judul di tab mpv > ketuk ↓ pada satu kartu: pindah ke tab Unduhan dengan URL terisi; ulangi dengan kartu lain (URL bertambah, tidak ganda); "Unduh semua" dengan saringan; pindah ke tab lain lalu kembali: isi formulir masih ada; ketuk baris (bukan ↓) tetap memutar di Player
+- [ ] LANGKAH BERIKUT (opsional): ingat pilihan mode/kualitas terakhir di SharedPreferences, riwayat unduhan, ketuk notifikasi selesai langsung membuka tab Unduhan
