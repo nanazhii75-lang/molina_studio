@@ -220,7 +220,10 @@ fun UnduhanScreen(modifier: Modifier = Modifier) {
                             )
                             val msg = DownloadRunner.start(ctx.applicationContext, req)
                             error = msg
-                            if (msg == null) urls = ""
+                            if (msg == null) {
+                                urls = ""
+                                DownloadPrefs.save(ctx.applicationContext, DownloadForm.choices())
+                            }
                         },
                         enabled = count > 0,
                         colors = ButtonDefaults.buttonColors(containerColor = MolinaTheme.Gold, contentColor = Color.Black),

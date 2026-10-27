@@ -112,7 +112,8 @@ class DownloadService : Service() {
     private fun openApp(): PendingIntent = PendingIntent.getActivity(
         this, 10,
         Intent(this, MainActivity::class.java)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP),
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            .putExtra(EXTRA_OPEN_TAB, OPEN_TAB_DOWNLOADS),
         PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
     )
 
@@ -149,6 +150,8 @@ class DownloadService : Service() {
 
     companion object {
         const val ACTION_CANCEL = "com.molina.studio.download.CANCEL"
+        const val EXTRA_OPEN_TAB = "com.molina.studio.extra.OPEN_TAB"
+        const val OPEN_TAB_DOWNLOADS = "downloads"
         private const val CHANNEL_ID = "molina_download"
         private const val NOTIF_ID = 1002
         private const val NOTIF_DONE_ID = 1003

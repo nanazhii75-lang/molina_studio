@@ -52,6 +52,18 @@ fun main() {
     check("merge: penuh -> yang sudah ada tetap dihitung skipped, baru dropped", m5.skipped == 1 && m5.dropped == 1 && m5.added == 0)
     check("merge: hasil lolos validasi bila URL sah", DownloadCommand.validate(DownloadRequest(DownloadUrls.split(m1.text))) == null)
 
+    // DownloadChoices.sanitize
+    val dc0 = DownloadChoices.sanitize(null, null, null, null, null)
+    check("choices: semua null -> bawaan", dc0 == DownloadChoices())
+    val dc1 = DownloadChoices.sanitize(false, 720, "mkv", "flac", "320k")
+    check("choices: nilai valid dipertahankan", !dc1.video && dc1.height == 720 && dc1.videoExt == "mkv" && dc1.audioFmt == "flac" && dc1.bitrate == "320k")
+    val dc2 = DownloadChoices.sanitize(true, 999, "avi", "ogg", "64k")
+    check("choices: nilai tidak valid -> bawaan per bidang", dc2 == DownloadChoices())
+    val dc3 = DownloadChoices.sanitize(false, 1234, "mkv", "wav", "128k")
+    check("choices: sebagian valid, sebagian jatuh ke bawaan", !dc3.video && dc3.height == 0 && dc3.videoExt == "mkv" && dc3.audioFmt == "mp3" && dc3.bitrate == "128k")
+    check("choices: semua HEIGHTS lolos validasi perintah", DownloadChoices.HEIGHTS.all { DownloadCommand.validate(DownloadRequest(listOf("https://a.test/1"), height = it)) == null })
+    check("choices: bawaan lolos validasi perintah", DownloadCommand.validate(DownloadRequest(listOf("https://a.test/1"), videoExt = dc0.videoExt, audioFormat = dc0.audioFmt, bitrate = dc0.bitrate)) == null)
+
     if (fails > 0) { println("$fails uji GAGAL"); kotlin.system.exitProcess(1) }
     println("semua uji lulus")
 }

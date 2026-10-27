@@ -943,3 +943,15 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah-sedang (CinemaResults: tanda tangan ChannelRow berubah, hanya dipakai di berkas itu)
 - [ ] uji perangkat (Android 8): cari judul di tab mpv > ketuk ↓ pada satu kartu: pindah ke tab Unduhan dengan URL terisi; ulangi dengan kartu lain (URL bertambah, tidak ganda); "Unduh semua" dengan saringan; pindah ke tab lain lalu kembali: isi formulir masih ada; ketuk baris (bukan ↓) tetap memutar di Player
 - [ ] LANGKAH BERIKUT (opsional): ingat pilihan mode/kualitas terakhir di SharedPreferences, riwayat unduhan, ketuk notifikasi selesai langsung membuka tab Unduhan
+
+## 2026-10-27 - Unduhan langkah 6: ingat pilihan, notifikasi buka tab Unduhan, lencana tab [DL-STEP6-PREFS-NOTIF]
+- [x] feat(download): DownloadPrefs (SharedPreferences molina_download) mengingat mode/tinggi/format video/format audio/bitrate terakhir; disimpan saat unduhan dimulai, dipulihkan sekali per proses di MainActivity.onCreate. URL tidak disimpan
+- [x] feat(core): DownloadChoices.sanitize (murni): nilai tidak valid/prefs rusak jatuh ke bawaan per bidang
+- [x] feat(download): ketuk notifikasi Unduhan (berjalan maupun selesai) membuka tab Unduhan lewat extra EXTRA_OPEN_TAB; ditangani di onCreate (hanya saat savedInstanceState null) dan onNewIntent; extra dibuang setelah dipakai
+- [x] feat(ui): lencana pada tab Unduhan: emas saat unduhan berjalan, hijau saat selesai dan belum dilihat (hilang saat tab dibuka)
+- [x] test: scripts/core-tests/run_ui.sh ditambah 6 pemeriksaan DownloadChoices
+- [x] Keputusan: launchMode Manifest TIDAK diubah (Intent notifikasi sudah FLAG_ACTIVITY_SINGLE_TOP, onNewIntent terpanggil)
+- [x] Dampak: :core:common (DownloadUi.kt), :app (download/DownloadPrefs.kt baru, DownloadNav.kt, UnduhanScreen.kt, DownloadService.kt, MainActivity.kt). Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah-sedang (MainActivity: onNewIntent + BadgedBox/Badge Material3; jika signature onNewIntent beda dengan versi androidx.activity, CI akan menolak)
+- [ ] uji perangkat (Android 8): pilih Audio/FLAC/320k > Mulai > tutup aplikasi > buka lagi: pilihan tetap; saat berjalan, buka tab lain: lencana emas di tab Unduhan; Home > ketuk notifikasi (berjalan) membuka tab Unduhan; setelah selesai di tab lain: lencana hijau, ketuk notifikasi "Unduhan selesai" membuka tab Unduhan (aplikasi hidup dan aplikasi sudah dimatikan); lencana hilang saat tab dibuka; rotasi layar tidak memindahkan tab lagi
+- [ ] LANGKAH BERIKUT (opsional): riwayat unduhan (daftar sesi lama), tombol "Ulangi" untuk item gagal

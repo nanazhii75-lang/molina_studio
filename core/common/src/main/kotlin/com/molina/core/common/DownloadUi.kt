@@ -72,3 +72,31 @@ object DownloadUrls {
         return UrlMerge(list.joinToString("\n"), added, skipped, dropped)
     }
 }
+
+/**
+ * Pilihan formulir Unduhan yang diingat antar sesi. [sanitize] menjatuhkan nilai yang tidak valid
+ * (mis. opsi sudah dihapus di versi baru atau berkas prefs rusak) ke bawaan, tanpa melempar galat.
+ */
+data class DownloadChoices(
+    val video: Boolean = true,
+    val height: Int = 0,
+    val videoExt: String = "mp4",
+    val audioFmt: String = "mp3",
+    val bitrate: String = "192k",
+) {
+    companion object {
+        /** Sama dengan chip tinggi di UnduhanScreen: 0 = Terbaik. */
+        val HEIGHTS = listOf(0, 1080, 720, 480)
+
+        fun sanitize(video: Boolean?, height: Int?, videoExt: String?, audioFmt: String?, bitrate: String?): DownloadChoices {
+            val d = DownloadChoices()
+            return DownloadChoices(
+                video = video ?: d.video,
+                height = height?.takeIf { it in HEIGHTS } ?: d.height,
+                videoExt = videoExt?.takeIf { it in DownloadCommand.VIDEO_EXTS } ?: d.videoExt,
+                audioFmt = audioFmt?.takeIf { it in DownloadCommand.AUDIO_FORMATS } ?: d.audioFmt,
+                bitrate = bitrate?.takeIf { it in DownloadCommand.BITRATES } ?: d.bitrate,
+            )
+        }
+    }
+}

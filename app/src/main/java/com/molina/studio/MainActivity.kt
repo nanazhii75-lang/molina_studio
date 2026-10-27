@@ -116,6 +116,22 @@ class MainActivity : ComponentActivity() {
         super.onStop()
     }
 
+    /** Notifikasi Unduhan diketuk saat Activity sudah hidup (FLAG_ACTIVITY_SINGLE_TOP): tidak perlu launchMode di Manifest. */
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleOpenTabIntent(intent)
+    }
+
+    /** Ketuk notifikasi Unduhan membuka tab Unduhan. Extra dibuang agar tidak terulang saat Activity dibuat ulang. */
+    private fun handleOpenTabIntent(i: android.content.Intent?) {
+        val key = com.molina.studio.download.DownloadService.EXTRA_OPEN_TAB
+        if (i?.getStringExtra(key) == com.molina.studio.download.DownloadService.OPEN_TAB_DOWNLOADS) {
+            i.removeExtra(key)
+            com.molina.studio.download.DownloadNav.openTab = true
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (savedInstanceState == null &&
@@ -130,6 +146,8 @@ class MainActivity : ComponentActivity() {
         com.molina.studio.terminal.LogcatReporter.setEnabled(
             com.molina.studio.terminal.TerminalPrefs.logcatReporter
         )
+        com.molina.studio.download.DownloadPrefs.restore(applicationContext)
+        if (savedInstanceState == null) handleOpenTabIntent(intent)
         AppExit.attach(this)
         setContent {
             MaterialTheme(colorScheme = MolinaColors) {
@@ -176,6 +194,25 @@ class MainActivity : ComponentActivity() {
                 androidx.compose.runtime.LaunchedEffect(com.molina.studio.download.DownloadNav.pendingUrls) {
                     if (com.molina.studio.download.DownloadNav.pendingUrls.isNotEmpty()) selected = Tab.Download.ordinal
                 }
+                // Ketuk notifikasi Unduhan: pindah ke tab Unduhan.
+                androidx.compose.runtime.LaunchedEffect(com.molina.studio.download.DownloadNav.openTab) {
+                    if (com.molina.studio.download.DownloadNav.openTab) {
+                        selected = Tab.Download.ordinal
+                        com.molina.studio.download.DownloadNav.openTab = false
+                    }
+                }
+                // Lencana tab Unduhan: emas saat berjalan, hijau saat selesai dan belum dilihat.
+                val dl by com.molina.studio.download.DownloadRunner.state.collectAsState()
+                var dlWasRunning by remember { mutableStateOf(dl.running) }
+                androidx.compose.runtime.LaunchedEffect(dl.running) {
+                    if (dlWasRunning && !dl.running && selected != Tab.Download.ordinal) {
+                        com.molina.studio.download.DownloadNav.unseen = true
+                    }
+                    dlWasRunning = dl.running
+                }
+                androidx.compose.runtime.LaunchedEffect(selected) {
+                    if (selected == Tab.Download.ordinal) com.molina.studio.download.DownloadNav.unseen = false
+                }
                 val htmlWebView by com.molina.studio.code.CodePrefs.htmlWebView.collectAsState()
                 SideEffect { codeSession.htmlWebView = htmlWebView }
                 val keyboardVisible = rememberKeyboardVisible()
@@ -198,7 +235,18 @@ class MainActivity : ComponentActivity() {
                                             selected = selected == i,
                                             onClick = { selected = i },
                                             icon = {
-                                                Text(tab.glyph, fontWeight = FontWeight.Bold)
+                                                if (tab == Tab.Download && (dl.running || com.molina.studio.download.DownloadNav.unseen)) {
+                                                    androidx.compose.material3.BadgedBox(
+                                                        badge = {
+                                                            androidx.compose.material3.Badge(
+                                                                containerColor = if (dl.running) com.molina.studio.ui.MolinaTheme.Gold
+                                                                else com.molina.studio.ui.MolinaTheme.Good
+                                                            )
+                                                        }
+                                                    ) { Text(tab.glyph, fontWeight = FontWeight.Bold) }
+                                                } else {
+                                                    Text(tab.glyph, fontWeight = FontWeight.Bold)
+                                                }
                                             },
                                             label = { Text(tab.label) },
                                             colors = NavigationBarItemDefaults.colors(

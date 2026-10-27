@@ -3,6 +3,7 @@ package com.molina.studio.download
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.molina.core.common.DownloadChoices
 
 /**
  * Jembatan ke tab Unduhan dari layar lain (mis. kartu hasil pencarian Cinema). [request] menaruh URL di
@@ -11,6 +12,12 @@ import androidx.compose.runtime.setValue
  */
 internal object DownloadNav {
     var pendingUrls by mutableStateOf<List<String>>(emptyList())
+
+    /** Diset true (mis. ketuk notifikasi Unduhan); MainActivity pindah ke tab Unduhan lalu mengembalikannya ke false. */
+    var openTab by mutableStateOf(false)
+
+    /** Ada unduhan yang selesai saat tab Unduhan tidak dibuka: menyalakan lencana hijau sampai tab dibuka. */
+    var unseen by mutableStateOf(false)
 
     fun request(urls: List<String>) {
         pendingUrls = (pendingUrls + urls).distinct()
@@ -28,4 +35,11 @@ internal object DownloadForm {
     val videoExt = mutableStateOf("mp4")
     val audioFmt = mutableStateOf("mp3")
     val bitrate = mutableStateOf("192k")
+
+    fun apply(c: DownloadChoices) {
+        video.value = c.video; height.value = c.height; videoExt.value = c.videoExt
+        audioFmt.value = c.audioFmt; bitrate.value = c.bitrate
+    }
+
+    fun choices() = DownloadChoices(video.value, height.value, videoExt.value, audioFmt.value, bitrate.value)
 }
