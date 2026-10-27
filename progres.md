@@ -1268,3 +1268,14 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI). Risiko: sedang (zip4j extractFile, panggilan W7PasswordDialog bertingkat)
 - [ ] uji perangkat (Android 8): ZIP biasa buka .txt/.py (Code), .mp4 (mpv), .jpg; ZIP berkata sandi (kata sandi benar/salah); entri besar; buka dua kali memakai cache
 - [ ] LANGKAH BERIKUT: tombol Simpan balik ke ZIP untuk berkas teks yang diedit, dan pratinjau gambar langsung di dialog
+
+## 2026-10-28 - Simpan balik ke ZIP, pratinjau gambar, navigasi folder ZIP, Terminal [ZIP-SAVE]
+- [x] feat(zip): dialog ZIP menjelajah per folder (path), dengan baris naik; batas daftar ZIP_LIST_MAX 300 menjadi 5000
+- [x] feat(zip): tombol Simpan menulis kembali entri yang disunting ke ZIP (`FileOps.replaceEntry`, zip4j); cadangan otomatis di zipbak, pemulihan bila gagal; ZIP AES dienkripsi ulang AES-256
+- [x] feat(zip): deteksi suntingan tiap detik (cap lastModified/length), penanda diubah di baris, peringatan saat Tutup dengan perubahan belum disimpan
+- [x] feat(zip): pratinjau gambar langsung dari ZIP (`W7Thumb.zipImage`, maks. 12 MB, di Dispatchers.IO) tanpa ekstrak ke disk
+- [x] feat(zip): tombol Terminal membuka folder salinan entri (bila terlihat dari Debian); salinan disimpan di getExternalFilesDir/zipview
+- [x] Dampak: :app saja (cinema/FileOps, cinema/W7Thumb, cinema/Win7OpenDialog). Gradle, Manifest, JNI mpv TIDAK disentuh; tanpa izin baru
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: sedang (zip4j removeFile/addFile, produceState, dialog password bertingkat)
+- [ ] uji perangkat (Android 8): masuk folder dalam ZIP; buka .txt di Code lalu edit lalu Simpan lalu buka ulang; ZIP berkata sandi; gambar pratinjau; Terminal pada salinan; Tutup dengan perubahan memunculkan peringatan
+- [ ] LANGKAH BERIKUT: tambah berkas baru ke ZIP dari Penjelajah (seret atau Sisipkan) dan hapus entri dari ZIP

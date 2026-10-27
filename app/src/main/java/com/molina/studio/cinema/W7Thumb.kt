@@ -37,6 +37,21 @@ internal object W7Thumb {
         return bmp
     }
 
+    /** [ZIP-PREVIEW] Pratinjau gambar langsung dari entri ZIP (tanpa ekstrak ke disk); maks. 12 MB, sisi terpanjang <= 640 px. */
+    suspend fun zipImage(zip: File, entryName: String, password: String?): Bitmap? = withContext(Dispatchers.IO) {
+        val bytes = FileOps.readEntryBytes(zip, entryName, password, 12 * 1024 * 1024) ?: return@withContext null
+        try {
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return@withContext null
+            var sample = 1
+            while (bounds.outWidth / (sample * 2) >= 640 || bounds.outHeight / (sample * 2) >= 640) sample *= 2
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sample })
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     private fun frame(f: File): Bitmap? {
         val r = MediaMetadataRetriever()
         return try {

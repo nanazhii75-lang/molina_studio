@@ -331,7 +331,7 @@ internal object FileOps {
         val truncated: Boolean
     )
 
-    const val ZIP_LIST_MAX = 300
+    const val ZIP_LIST_MAX = 5000
 
     /**
      * Daftar isi [zip] tanpa mengekstrak (ZIP berkata sandi pun bisa karena nama entri tidak dienkripsi).
@@ -500,6 +500,73 @@ internal object FileOps {
     }
 
     private fun cacheSize(f: File): Long = if (f.isFile) f.length() else (f.listFiles()?.sumOf { cacheSize(it) } ?: 0L)
+
+    /** [ZIP-PREVIEW] Baca satu entri ke memori (maks. [maxBytes]) untuk pratinjau; null bila terlalu besar, hilang, atau butuh kata sandi. */
+    fun readEntryBytes(zip: File, entryName: String, password: String?, maxBytes: Int): ByteArray? {
+        return try {
+            if (isEncryptedZip(zip)) {
+                if (password.isNullOrEmpty()) return null
+                val zf = Z4jZipFile(zip, password.toCharArray())
+                val h = zf.getFileHeader(entryName) ?: return null
+                if (h.getUncompressedSize() > maxBytes) return null
+                zf.getInputStream(h).use { readCapped(it, maxBytes) }
+            } else {
+                ZipFile(zip).use { zf ->
+                    val en = zf.getEntry(entryName) ?: return null
+                    if (en.size > maxBytes) return null
+                    zf.getInputStream(en).use { readCapped(it, maxBytes) }
+                }
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun readCapped(i: InputStream, max: Int): ByteArray? {
+        val bo = java.io.ByteArrayOutputStream()
+        val buf = ByteArray(32 * 1024)
+        var total = 0
+        while (true) {
+            val n = i.read(buf)
+            if (n < 0) break
+            total += n
+            if (total > max) return null
+            bo.write(buf, 0, n)
+        }
+        return bo.toByteArray()
+    }
+
+    /**
+     * [ZIP-SAVE] Ganti isi entri [entryName] di [zip] dengan [src] (hasil suntingan salinan sementara).
+     * Cadangan ZIP disimpan di [backupDir]/<nama>.bak; bila gagal, ZIP dipulihkan dari cadangan.
+     * ZIP terenkripsi: entri baru dienkripsi AES-256 dengan kata sandi yang sama; tanpa kata sandi melempar NeedPassword.
+     */
+    fun replaceEntry(zip: File, entryName: String, src: File, password: String?, backupDir: File) {
+        if (!zip.isFile || !zip.canWrite()) throw IOException("ZIP tidak bisa ditulisi")
+        if (!src.isFile) throw IOException("Salinan sementara tidak ditemukan")
+        val enc = isEncryptedZip(zip)
+        if (enc && password.isNullOrEmpty()) throw NeedPassword()
+        backupDir.mkdirs()
+        val bak = File(backupDir, zip.name + ".bak")
+        zip.copyTo(bak, overwrite = true)
+        try {
+            val zf = if (enc) Z4jZipFile(zip, password!!.toCharArray()) else Z4jZipFile(zip)
+            val old = zf.getFileHeader(entryName)
+            if (enc && old != null) zf.getInputStream(old).use { it.read() } // uji kata sandi sebelum mengubah apa pun
+            if (old != null) zf.removeFile(old)
+            val params = ZipParameters()
+            params.setFileNameInZip(entryName)
+            if (enc) {
+                params.setEncryptFiles(true)
+                params.setEncryptionMethod(EncryptionMethod.AES)
+                params.setAesKeyStrength(AesKeyStrength.KEY_STRENGTH_256)
+            }
+            zf.addFile(src, params)
+        } catch (e: Exception) {
+            try { bak.copyTo(zip, overwrite = true) } catch (e2: Exception) { }
+            throw mapZip(e, "Gagal menyimpan ke ZIP")
+        }
+    }
 
     /**
      * [RUNNER] Interpreter untuk menjalankan [f] di shell: dari shebang (#!), lalu dari ekstensi.
