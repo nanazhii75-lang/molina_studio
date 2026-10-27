@@ -15,4 +15,8 @@
     <string name="bookmark_rename_title">Nama penanda</string>
     <string name="bookmark_name_hint">Contoh: Adegan favorit (kosong = hanya waktu)</string>
     <string name="bookmark_renamed">Nama penanda disimpan</string>
+    <string name="bookmark_backup">Cadangan</string>
+    <string name="bookmark_backup_title">Cadangan penanda</string>
+    <string name="bookmark_export">Ekspor ke Backup/molina-bookmarks.json</string>
+    <string name="bookmark_import">Impor (gabungkan) dari berkas itu</string>
 </resources>

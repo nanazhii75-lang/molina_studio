@@ -2,6 +2,7 @@ package com.molina.studio.terminal
 
 import android.content.Context
 import android.widget.Toast
+import com.molina.core.common.MolinaDir
 import com.molina.core.common.MolinaPaths
 import com.molina.studio.AppPaths
 import java.io.File
@@ -132,8 +133,7 @@ internal object TerminalSnippets {
     /** Prefs kosong (pasang baru / data aplikasi dihapus): pulihkan dari cadangan bila ada, selain itu bawaan. */
     private fun restoreOrDefaults(ctx: Context): List<Snippet> {
         return try {
-            val f = backupFile(ctx)
-            if (!f.isFile) return defaults()
+            val f = readableBackup(ctx) ?: return defaults()
             val arr = JSONObject(f.readText()).getJSONArray("snippets")
             val out = (0 until arr.length()).mapNotNull { i ->
                 val o = arr.getJSONObject(i)
@@ -148,7 +148,13 @@ internal object TerminalSnippets {
     }
 
     /** Berkas cadangan di folder aplikasi: /sdcard/Molina/molina-snippets.json (terlihat juga dari Debian). */
-    private fun backupFile(ctx: Context): File = File(AppPaths.get(ctx).appRoot, "molina-snippets.json")
+    private fun backupFile(ctx: Context): File = File(AppPaths.get(ctx).dir(MolinaDir.Backup), "molina-snippets.json")
+
+    /** Lokasi lama (sebelum folder Backup): tetap dibaca bila berkas baru belum ada. */
+    private fun legacyBackupFile(ctx: Context): File = File(AppPaths.get(ctx).appRoot, "molina-snippets.json")
+
+    private fun readableBackup(ctx: Context): File? =
+        backupFile(ctx).takeIf { it.isFile } ?: legacyBackupFile(ctx).takeIf { it.isFile }
 
     fun exportToFile(ctx: Context): String {
         load(ctx)
@@ -159,7 +165,7 @@ internal object TerminalSnippets {
             items.forEach { arr.put(JSONObject().put("n", it.name).put("c", it.cmd)) }
             val root = JSONObject().put("app", "molina-terminal").put("version", 1).put("snippets", arr)
             f.writeText(root.toString(2) + "\n")
-            "Diekspor ${items.size} snippet ke /sdcard/${MolinaPaths.APP_FOLDER}/${f.name}"
+            "Diekspor ${items.size} snippet ke ${MolinaDir.Backup.folderName}/${f.name}"
         } catch (e: Exception) {
             "Gagal mengekspor snippet"
         }
@@ -168,8 +174,8 @@ internal object TerminalSnippets {
     /** Gabungkan snippet dari berkas cadangan; perintah yang sudah ada dilewati. Maks. 200 snippet, 4000 karakter per perintah. */
     fun importFromFile(ctx: Context): String {
         load(ctx)
-        val f = backupFile(ctx)
-        if (!f.isFile) return "Berkas tidak ditemukan: /sdcard/${MolinaPaths.APP_FOLDER}/${f.name}"
+        val f = readableBackup(ctx)
+            ?: return "Berkas tidak ditemukan: ${MolinaDir.Backup.folderName}/molina-snippets.json"
         return try {
             val arr = JSONObject(f.readText()).getJSONArray("snippets")
             var added = 0
@@ -188,6 +194,13 @@ internal object TerminalSnippets {
         } catch (e: Exception) {
             "Berkas cadangan tidak valid"
         }
+    }
+
+    /** Pindahkan snippet dari posisi [from] ke [to] (urut ulang daftar). */
+    fun move(ctx: Context, from: Int, to: Int) {
+        if (from !in items.indices || to !in items.indices || from == to) return
+        items.add(to, items.removeAt(from))
+        save(ctx)
     }
 
     fun removeAt(ctx: Context, index: Int) {
@@ -239,6 +252,21 @@ internal fun SnippetDialog(onDismiss: () -> Unit) {
                             }
                             SnipBtn("Sisip") { TerminalActions.insert(s.cmd); onDismiss() }
                             SnipBtn("Jalan") { TerminalActions.insert(s.cmd); TerminalActions.send("\r"); onDismiss() }
+                            Column {
+                                Text(
+                                    "\u25B2", color = if (i > 0) Win7.TextDim else Color.Transparent, fontSize = 11.sp,
+                                    modifier = Modifier.clickable(enabled = i > 0) { TerminalSnippets.move(ctx, i, i - 1) }
+                                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                                )
+                                Text(
+                                    "\u25BC",
+                                    color = if (i < TerminalSnippets.items.lastIndex) Win7.TextDim else Color.Transparent,
+                                    fontSize = 11.sp,
+                                    modifier = Modifier.clickable(enabled = i < TerminalSnippets.items.lastIndex) {
+                                        TerminalSnippets.move(ctx, i, i + 1)
+                                    }.padding(horizontal = 8.dp, vertical = 3.dp)
+                                )
+                            }
                             Text(
                                 "\u2715", color = Win7.TextDim, fontSize = 13.sp,
                                 modifier = Modifier.clickable { TerminalSnippets.removeAt(ctx, i) }.padding(8.dp)

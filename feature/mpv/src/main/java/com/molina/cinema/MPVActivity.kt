@@ -1907,8 +1907,18 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
                 else getString(R.string.bookmark_exists), true
             )
         }
-        builder.setNegativeButton(android.R.string.cancel, null)
         var handoff = false
+        builder.setNegativeButton(R.string.bookmark_backup) { _, _ ->
+            handoff = true
+            AlertDialog.Builder(this, R.style.AppTheme_PlayerDialog)
+                .setTitle(R.string.bookmark_backup_title)
+                .setItems(arrayOf(getString(R.string.bookmark_export), getString(R.string.bookmark_import))) { _, which ->
+                    val msg = if (which == 0) VideoBookmarks.exportNow(this) else VideoBookmarks.importFromFile(this)
+                    showToast(msg, true)
+                }
+                .setOnDismissListener { refreshSeekMarks(); restoreState() }
+                .show()
+        }
         builder.setOnDismissListener { if (!handoff) restoreState() }
         val dialog = builder.create()
         dialog.show()
@@ -2335,12 +2345,13 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
 
     private fun markLabel(sec: Double, m: Mark?): String {
         val t = Utils.prettyTime(sec.roundToInt())
-        return if (m == null || m.name.isBlank()) t else "$t  \u00B7  ${m.name}"
+        if (m == null) return t
+        return if (m.name.isBlank()) "\u25CF  $t" else "\u25CF  $t  \u00B7  ${m.name}"
     }
 
     /** Saat bilah seek diseret melewati penanda bernama (+-2 detik): tampilkan "mm:ss . nama" di label gestur. */
     private fun showMarkLabelWhileSeeking(sec: Double) {
-        val m = nearestMark(sec, 2.0)?.takeIf { it.name.isNotBlank() }
+        val m = nearestMark(sec, 2.0)
         if (m == null) {
             hideMarkLabel.run()
             return

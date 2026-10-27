@@ -1140,3 +1140,13 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah (override onTouchEvent SeekBar; lambda `Runnable` yang memakai `binding`; `return` di dalam `try` pada restoreOrDefaults)
 - [ ] uji perangkat (Android 8): ketuk titik emas > lompat tepat ke posisi + label muncul; geser dari atas titik tetap bisa seek normal; beri nama penanda lalu seret melewatinya > label berisi nama; Snippet: tambah satu > cek berkas JSON ikut berubah; hapus data aplikasi (atau pasang ulang) > buka Snippet > daftar kembali dari cadangan
 - [ ] LANGKAH BERIKUT: tanda emas penanda di label durasi/preview, urutan ulang snippet, cadangan penanda video (ekspor/impor) ke folder Molina
+
+## 2026-10-27 - Cadangan penanda video, urut ulang snippet, penanda di label pratinjau seek [BACKUP-MARKS-REORDER-PREVIEW]
+- [x] feat(mpv): cadangan penanda video. Setiap perubahan ditulis ke /sdcard/Molina/Backup/molina-bookmarks.json (executor satu thread); prefs kosong (pasang baru / data dihapus) dipulihkan dari berkas itu; data lama dicadangkan sekali saat dibaca. Dialog Penanda: tombol "Cadangan" (menggantikan "Batal"; tombol Kembali tetap menutup) > Ekspor / Impor (gabung, lewati posisi yang sudah ada)
+- [x] refactor(term): cadangan snippet dipindah ke /sdcard/Molina/Backup/molina-snippets.json (folder `MolinaDir.Backup` yang sudah ada); berkas lama di /sdcard/Molina/ tetap terbaca bila berkas baru belum ada
+- [x] feat(term): urut ulang snippet dengan tombol panah naik/turun di tiap baris (`TerminalSnippets.move`)
+- [x] feat(mpv): "pratinjau seek": aplikasi belum punya pratinjau gambar, jadi label gestur saat bilah seek diseret kini menampilkan titik emas + waktu (+ nama) untuk SETIAP penanda dalam +-2 detik, bukan hanya yang bernama
+- [x] Dampak: :feature:mpv (VideoBookmarks.kt ditulis ulang, MPVActivity, molina_bookmarks.xml; memakai :core:common yang sudah menjadi dependensi), :app (TerminalSnippets). Gradle, Manifest, JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah-sedang (`sumOf` pada Collection<MutableList>, `return` di dalam elvis pada readAll, `Modifier.clickable(enabled=)` dengan lambda di Column dalam Row)
+- [ ] uji perangkat (Android 8): buat penanda > cek /sdcard/Molina/Backup/molina-bookmarks.json; hapus data aplikasi > putar video yang sama > penanda kembali; Cadangan > Ekspor/Impor memberi toast; seret seekbar melewati penanda tanpa nama > label "titik + waktu"; Snippet: panah naik/turun mengubah urutan dan urutan bertahan setelah aplikasi ditutup
+- [ ] LANGKAH BERIKUT: pratinjau gambar (thumbnail) saat seek, ekspor ke satu berkas gabungan di Backup (penanda + snippet + setelan), tombol pulihkan dari Backup di Pengaturan
