@@ -1013,3 +1013,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: cinema/ExplorerRecent.kt (baru), cinema/Win7OpenDialog.kt, settings/ExplorerBridge.kt, settings/SettingsScreen.kt. Manifest, Gradle, JNI mpv tidak disentuh
 - [ ] BELUM dikompilasi Gradle (CI). Risiko: sedang (parameter baru W7NavPane, import RootfsManager)
 - [ ] uji perangkat: buka Berkas, masuk folder, tutup, buka lagi (kembali ke folder terakhir); bagian Terakhir muncul dan bekerja; tombol "Buka folder di Penjelajah" dari Unduhan tetap membuka folder unduhan; akar Debian terlihat, Naik tidak keluar dari /root; di Debian > Buka Terminal (prompt di /root/...) dan Salin path (mulai /root); hapus berkas di Debian > Recycle Bin > Urungkan
+
+## 2026-10-27 - Settings: halaman Penyimpanan [SETTINGS-STORAGE]
+- [x] feat(settings): Sistem > Penyimpanan: sisa ruang internal, ukuran rootfs Debian, cache apt, cache aplikasi, folder kerja molina-studio, Recycle Bin (internal, kartu SD, Debian); Hitung ulang
+- [x] feat(settings): Bersihkan cache apt (hapus .deb unduhan dan partial, berkas lock dibiarkan), Bersihkan cache aplikasi (proot-tmp dilewati karena dipakai sesi Terminal), dan Kosongkan Recycle Bin dengan konfirmasi (TrashBin.usage/empty). Symlink tidak diikuti saat menghitung dan menghapus
+- [x] Dampak: settings/StorageUi.kt (baru), settings/SettingsScreen.kt (enum Page, titleOf, indeks pencarian, tautan Sistem). Manifest, Gradle, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah-sedang (ArrayDeque.removeLast, sumOf pada Long, TrashBin dari :core:common)
+- [ ] uji perangkat: Settings > Sistem > Penyimpanan: angka muncul tanpa macet UI; apt install paket lalu Bersihkan cache apt (angka turun, paket tetap jalan); Bersihkan cache aplikasi; hapus berkas di Berkas lalu Kosongkan Recycle Bin (angka Recycle Bin menjadi 0); sesi Terminal tetap normal; pencarian "penyimpanan" menemukan halaman
+- [ ] CATATAN: tahap B peta jalan (Penyimpanan dan Folder Molina) tumpang tindih dengan halaman ini; sisa B = lokasi default unduhan/konversi/trash
+- [ ] LANGKAH BERIKUT: cadangkan/pulihkan setelan, profil Terminal

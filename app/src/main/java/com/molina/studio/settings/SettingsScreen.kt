@@ -58,7 +58,7 @@ object SettingsNav {
 }
 
 private enum class Page {
-    Home, System, Terminal, Debugging, TerminalIO, TerminalView, Tampilan, CrashReports, About, Log, Stream, Network, Scripts, Packages, Code, Files, Downloads
+    Home, System, Terminal, Debugging, TerminalIO, TerminalView, Tampilan, CrashReports, About, Log, Stream, Network, Scripts, Packages, Code, Files, Downloads, Storage
 }
 
 private fun parentOf(p: Page): Page? = when (p) {
@@ -88,6 +88,7 @@ private fun titleOf(p: Page): String = when (p) {
     Page.Packages -> "Paket"
     Page.Files -> "Berkas"
     Page.Downloads -> "Unduhan"
+    Page.Storage -> "Penyimpanan"
 }
 
 private fun trailOf(p: Page): List<Page> = generateSequence(p) { parentOf(it) }.toList().reversed()
@@ -122,6 +123,8 @@ private val INDEX = listOf(
     Hit("Berkas", "Penjelajah Molina: telusuri, salin, pindah, kompres, hapus, kirim path ke Terminal", Page.Files),
     Hit("Penjelajah Molina", "Kelola berkas: salin, tempel, pindah, ubah nama, ZIP, favorit, properti", Page.Files),
     Hit("Unduhan", "Unduh video atau audio dari URL: antrean, riwayat, ulangi yang gagal", Page.Downloads),
+    Hit("Penyimpanan", "Ukuran Debian, cache, Recycle Bin, folder kerja, dan bersihkan ruang", Page.Storage),
+    Hit("Bersihkan cache", "Hapus cache apt dan cache aplikasi", Page.Storage),
     Hit("About", "Versi dan lisensi", Page.About)
 )
 
@@ -252,6 +255,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         W7Link({ W7IconTerminal() }, "Editor Code", "Pratinjau HTML: renderer native atau WebView") { open(Page.Code) }
                         W7Link({ W7IconLog() }, "Log", "Log aktivitas mpv, Terminal, dan sistem") { open(Page.Log) }
                         W7Link({ W7IconShield() }, "Keamanan dan privasi", "Kebijakan URL, jaringan lokal (LAN), layar privat") { open(Page.Network) }
+                        W7Link({ W7IconToolList() }, "Penyimpanan", "Ukuran Debian, cache, Recycle Bin, dan bersihkan ruang") { open(Page.Storage) }
                         W7Link({ W7IconInfo() }, "About", "Versi dan lisensi") { open(Page.About) }
                         Category("Debian")
                         W7Link({ W7IconAptSync() }, "Perbarui dan tingkatkan paket", AptHistory.subtitle(aptLast)) { apt = AptJob.UpdateUpgrade }
@@ -281,6 +285,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                     Page.Scripts -> ScriptsPage()
                     Page.Code -> CodeSettingsPage()
                     Page.Packages -> PackagesPage(onOpenYtdlp = { open(Page.Stream) })
+                    Page.Storage -> StoragePage()
                     Page.Files -> W7Link({ Win7Folder(32.dp) }, "Penjelajah Molina", "Telusuri, salin, pindah, kompres, hapus, atau kirim path ke Terminal") { showExplorer = true }
                 }
             }
