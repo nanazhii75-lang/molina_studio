@@ -870,3 +870,10 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah-sedang (parameter composable baru, referensi `sheet`/`scope` di baris tombol)
 - [ ] uji perangkat: pilih video > tombol "Putar"; pilih .sh/.txt > "Edit" membuka Code; pilih folder atau berkas lain > "Properti"; Alat > Salin path; tombol ">_ Terminal" tidak terpotong; Terminal dari folder > drawer menampilkan nama folder; "Sisipkan (3)" pada seleksi banyak masih muat
 - [ ] LANGKAH BERIKUT: riwayat folder (5 terakhir) di Favorit
+
+## 2026-10-27 - Penjelajah: mode Pilih bisa membuka folder [EXPLORER-PICK-FOLDER]
+- [x] fix(explorer): di mode Pilih, folder bisa dicentang (sudah) tetapi tidak bisa dibuka karena ketukan hanya mencentang. Kini baris folder punya tombol "›" di kanan untuk masuk folder; ketuk bagian lain tetap mencentang. Petunjuk singkat muncul saat mode Pilih diaktifkan
+- [x] Dampak: hanya cinema/Win7OpenDialog.kt (parameter onEnter pada W7FileArea dan W7EntryRow). Manifest, Gradle, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah
+- [ ] uji perangkat: Pilih > centang folder + berkas > Salin/Pindah/Hapus/Kompres/Sisipkan; ketuk "›" di folder membuka folder (centang direset, Salin/Pindah yang sudah di clipboard tetap bisa Tempel di folder tujuan); Semua mencentang folder juga; ketuk ">" tidak ikut mencentang barisnya
+- [ ] LANGKAH BERIKUT: riwayat folder (5 terakhir) di Favorit

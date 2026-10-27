@@ -437,7 +437,10 @@ fun Win7OpenDialog(
                         W7Cmd(
                             if (multi) "Selesai" + (if (picked.isNotEmpty()) " (" + picked.size + ")" else "") else "Pilih",
                             !busy
-                        ) { multi = !multi; picked = emptySet(); selected = null; fileName = "" }
+                        ) {
+                            multi = !multi; picked = emptySet(); selected = null; fileName = ""
+                            if (multi) say("Mode Pilih: ketuk untuk mencentang berkas atau folder, ketuk \u203A untuk membuka folder.", true)
+                        }
                         if (multi) W7Cmd("Semua", !busy) {
                             val all = (entries ?: emptyList()).map { it.file.path }.toSet()
                             picked = if (all.isNotEmpty() && picked == all) emptySet() else all
@@ -610,6 +613,7 @@ fun Win7OpenDialog(
                             else if (selected?.file == e.file) { if (browse) smartOpen(e.file) else onPick(e.file) }
                             else { selected = e; fileName = e.name; message = "" }
                         },
+                        onEnter = { e -> go(e.file) },
                         onAsk = { ask.launch(Manifest.permission.READ_EXTERNAL_STORAGE) }
                     )
                 }
@@ -791,6 +795,7 @@ private fun W7FileArea(
     emptyNote: String = "Folder ini kosong.",
     onSort: (ExplorerList.Key) -> Unit,
     onOpen: (W7Entry) -> Unit,
+    onEnter: (W7Entry) -> Unit = {},
     onAsk: () -> Unit
 ) {
     BoxWithConstraints(modifier.background(Win7.Input)) {
@@ -816,7 +821,7 @@ private fun W7FileArea(
                 else -> LazyColumn(Modifier.fillMaxSize()) {
                     items(entries, key = { it.file.path }) { e ->
                         val on = e.file.path in picked
-                        W7EntryRow(e, if (multi) on else e == selected, wide, onOpen, if (multi) on else null)
+                        W7EntryRow(e, if (multi) on else e == selected, wide, onOpen, if (multi) on else null, if (multi) onEnter else null)
                     }
                 }
             }
@@ -844,7 +849,7 @@ private fun W7Note(text: String, extra: @Composable ColumnScope.() -> Unit) {
 }
 
 @Composable
-private fun W7EntryRow(e: W7Entry, selected: Boolean, wide: Boolean, onOpen: (W7Entry) -> Unit, checked: Boolean? = null) {
+private fun W7EntryRow(e: W7Entry, selected: Boolean, wide: Boolean, onOpen: (W7Entry) -> Unit, checked: Boolean? = null, onEnter: ((W7Entry) -> Unit)? = null) {
     val shape = RoundedCornerShape(2.dp)
     val video = e.file.extension.lowercase() !in W7_AUDIO
     Row(
@@ -876,6 +881,12 @@ private fun W7EntryRow(e: W7Entry, selected: Boolean, wide: Boolean, onOpen: (W7
             if (e.isDir) "" else w7Size(e.size), color = Win7.TextDim, fontSize = 12.sp, maxLines = 1,
             textAlign = TextAlign.End, modifier = Modifier.width(if (wide) 76.dp else 68.dp)
         )
+        if (checked != null && e.isDir && onEnter != null) {
+            Box(
+                Modifier.width(40.dp).heightIn(min = 32.dp).clickable { onEnter(e) },
+                contentAlignment = Alignment.Center
+            ) { Text("\u203A", color = Win7.NavHeader, fontSize = 22.sp) }
+        }
     }
 }
 
