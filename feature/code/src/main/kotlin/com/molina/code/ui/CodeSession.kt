@@ -197,6 +197,9 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
     /** Dialog Pergi ke baris terbuka. */
     var gotoOpen by mutableStateOf(false)
 
+    /** [CODE-PALETTE] Palet Perintah terbuka. */
+    var paletteOpen by mutableStateOf(false)
+
     /** Dialog Simpan sebagai yang sedang terbuka (null = tertutup). */
     var saveAs by mutableStateOf<SaveAsRequest?>(null)
         private set
@@ -740,6 +743,52 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
         preview.mode = PaneMode.Output
         preview.open = true
         run.start(tab.title, text, plan, tab.file?.parentFile?.path)
+    }
+
+    // [CODE-PALETTE] buka berkas:baris dari tautan error di panel Keluaran
+    internal fun openLocation(path: String, line: Int, col: Int) {
+        val f = resolveLocation(path)
+        val base = path.substringAfterLast('/')
+        val tab: EditorTab? = if (f != null) {
+            openFile(f)
+            tabFor(f)
+        } else {
+            tabs.firstOrNull { it.file?.name == base || it.title == base }
+                ?: tabs.firstOrNull { it.title == run.title }
+        }
+        if (tab == null) {
+            toast("Berkas tidak ditemukan: $path")
+            return
+        }
+        preview.open = false
+        activeId = tab.id
+        jumpWhenReady(tab, line - 1, col, 40)
+    }
+
+    private fun resolveLocation(raw: String): File? {
+        var p = raw.removePrefix("file://")
+        if (p.startsWith("/sdcard/")) p = "/storage/emulated/0/" + p.removePrefix("/sdcard/")
+        val cands = ArrayList<File>()
+        if (p.startsWith("/")) {
+            cands.add(File(p))
+        } else {
+            active?.file?.parentFile?.let { cands.add(File(it, p)) }
+            cands.add(File(workDir, p))
+            cands.add(File(dir.root, p))
+        }
+        return cands.firstOrNull { it.isFile }
+    }
+
+    /** Lompat ke [line] (basis 0) begitu editor tab siap dan teksnya selesai dimuat; mencoba ulang tiap 100 ms. */
+    private fun jumpWhenReady(tab: EditorTab, line: Int, col: Int, tries: Int) {
+        val ed = tab.editor
+        val total = ed?.text?.lineCount ?: 0
+        if (ed != null && !tab.loading && total > 0 && (line < total || tries <= 0)) {
+            ed.jumpToLineHighlighted(line.coerceIn(0, total - 1), col)
+            return
+        }
+        if (tries <= 0) return
+        mainHandler.postDelayed({ jumpWhenReady(tab, line, col, tries - 1) }, 100L)
     }
 
     fun releaseAll() {

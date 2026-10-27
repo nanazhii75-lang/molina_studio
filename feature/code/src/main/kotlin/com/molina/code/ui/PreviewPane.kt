@@ -131,7 +131,7 @@ internal fun PreviewPage(session: CodeSession, onJump: (Int, Int) -> Unit, modif
         Box(Modifier.fillMaxWidth().height(CodeDimens.Hairline).background(CodeColors.Hairline))
         if (output) RunStatusBar(run)
         Box(Modifier.weight(1f).fillMaxWidth()) {
-            if (output) OutputBody(run) else PreviewBody(preview.content, onJump, preview::takeAnchor)
+            if (output) OutputBody(session, run) else PreviewBody(preview.content, onJump, preview::takeAnchor)
         }
     }
 }
@@ -429,9 +429,9 @@ private fun JsonErrorBody(e: PreviewContent.JsonError, onJump: (Int, Int) -> Uni
 // ------------------------------------------------------------------ Keluaran skrip
 
 @Composable
-private fun OutputBody(run: RunController) {
+private fun OutputBody(session: CodeSession, run: RunController) { // [CODE-PALETTE] tautan error bisa diketuk
     val scroll = rememberScrollState()
-    val text = remember(run.version) { PreviewRender.output(run.lines) }
+    val text = remember(run.version) { outputWithLinks(run.lines) }
     LaunchedEffect(run.version) {
         // Ikuti keluaran terbaru selama skrip berjalan; setelah selesai pengguna bebas menggulir.
         if (run.running) {
@@ -450,13 +450,19 @@ private fun OutputBody(run: RunController) {
         return
     }
     Box(Modifier.fillMaxSize().verticalScroll(scroll).padding(CodeDimens.PanePadding)) {
-        BasicText(
+        ClickableText(
             text = text,
             style = TextStyle(
                 color = CodeColors.OutputText,
                 fontSize = CodeDimens.PaneMonoSize,
                 fontFamily = FontFamily.Monospace
-            )
+            ),
+            onClick = { off ->
+                text.getStringAnnotations(LOC_TAG, off, off).firstOrNull()?.let { a ->
+                    val p = a.item.split('\u0000')
+                    session.openLocation(p[0], p.getOrNull(1)?.toIntOrNull() ?: 1, p.getOrNull(2)?.toIntOrNull() ?: 0)
+                }
+            }
         )
     }
 }

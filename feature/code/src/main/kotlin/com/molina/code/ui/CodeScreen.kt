@@ -147,6 +147,8 @@ fun CodeScreen(session: CodeSession, modifier: Modifier = Modifier) {
         session.active?.let { GotoLineDialog(it) { session.gotoOpen = false } }
     }
 
+    if (session.paletteOpen) CommandPalette(session) { session.paletteOpen = false } // [CODE-PALETTE]
+
     session.saveAs?.let { SaveAsDialog(session, it) }
 
     pendingClose?.let { tab ->

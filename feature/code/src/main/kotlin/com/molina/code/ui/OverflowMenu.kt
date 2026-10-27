@@ -59,15 +59,16 @@ private const val MAX_SHARE_CHARS = 200_000
  * layar, di-anchor kanan atas. Item yang fiturnya belum ada tampil redup dan menyala bertahap
  * sesuai fase (Buka, Muat ulang, Aksi file aktif sejak F4).
  */
-@Composable
-internal fun OverflowMenu(session: CodeSession, onDismiss: () -> Unit) {
-    val ctx = LocalContext.current
+internal fun menuGroups(session: CodeSession, ctx: Context, onDismiss: () -> Unit): List<List<MenuEntry>> { // [CODE-PALETTE] dipakai menu dan Palet Perintah
     val tab = session.active
     val rev = tab?.revision ?: 0
     val ed = tab?.editor
     val hasText = rev >= 0 && (ed?.text?.length ?: 0) > 0
 
-    val groups = listOf(
+    return listOf(
+        listOf(
+            MenuEntry("Palet perintah", enabled = true, icon = MenuIcon.Command) { session.paletteOpen = true; onDismiss() }
+        ),
         listOf(
             MenuEntry("Baru", enabled = true, icon = MenuIcon.New) { session.newTab(); onDismiss() },
             MenuEntry("Simpan sebagai", enabled = tab != null && !tab.loading, icon = MenuIcon.SaveAs) {
@@ -118,11 +119,8 @@ internal fun OverflowMenu(session: CodeSession, onDismiss: () -> Unit) {
                 session.saveSelectionAsSnippet()
                 onDismiss()
             },
-            MenuEntry("Ekspor", icon = MenuIcon.Export),
-            MenuEntry("Konversi berkas...", icon = MenuIcon.Convert)
         ),
         listOf(
-            MenuEntry("Syntax", icon = MenuIcon.Syntax),
             MenuEntry("Enkode: UTF-8 (terkunci)", icon = MenuIcon.Encoding),
             MenuEntry("Akhir baris: ${tab?.eol?.label ?: "LF"}", enabled = tab != null && !tab.loading, icon = MenuIcon.Eol) {
                 tab?.let {
@@ -131,7 +129,6 @@ internal fun OverflowMenu(session: CodeSession, onDismiss: () -> Unit) {
                     session.scheduleDraft()
                 }
             },
-            MenuEntry("Gaya Visual", icon = MenuIcon.Palette),
             MenuEntry("Pembungkus kata", enabled = tab != null, checked = tab?.wordWrap ?: true, icon = MenuIcon.Wrap) {
                 tab?.let {
                     it.wordWrap = !it.wordWrap
@@ -154,10 +151,14 @@ internal fun OverflowMenu(session: CodeSession, onDismiss: () -> Unit) {
                 }
                 onDismiss()
             },
-            MenuEntry("Lakukan", icon = MenuIcon.Redo)
         )
     )
+}
 
+@Composable
+internal fun OverflowMenu(session: CodeSession, onDismiss: () -> Unit) {
+    val ctx = LocalContext.current
+    val groups = menuGroups(session, ctx, onDismiss)
     val offsetY = with(LocalDensity.current) { CodeDimens.HeaderHeight.roundToPx() }
     val maxHeight = (LocalConfiguration.current.screenHeightDp * CodeDimens.MenuMaxHeightFraction).dp
     val shape = RoundedCornerShape(CodeDimens.MenuCorner)

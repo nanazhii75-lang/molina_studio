@@ -14,7 +14,7 @@ import androidx.compose.ui.graphics.drawscope.scale
 internal enum class MenuIcon {
     New, SaveAs, Open, Reload, Actions, Find, GoToLine, Share, Script, Insert, Run, Snippet,
     Export, Convert, Syntax, Encoding, Eol, Palette, Wrap, ReadOnly, Stats, Redo,
-    FolderUp, NewFolder, Rename, Copy, Reveal, Delete
+    FolderUp, NewFolder, Rename, Copy, Reveal, Delete, Command, File
 }
 
 private val MStroke = Stroke(width = 2f, cap = StrokeCap.Round, join = StrokeJoin.Round)
@@ -150,6 +150,16 @@ internal fun DrawScope.drawMenuIcon(kind: MenuIcon, color: Color) {
                 drawPath(mp { moveTo(6f, 7f); lineTo(7f, 21f); lineTo(17f, 21f); lineTo(18f, 7f) }, color, style = MStroke)
                 ln(color, 10f, 11f, 10f, 17f)
                 ln(color, 14f, 11f, 14f, 17f)
+            }
+            MenuIcon.Command -> {
+                drawPath(mp { moveTo(3f, 5f); lineTo(21f, 5f); lineTo(21f, 19f); lineTo(3f, 19f); close() }, color, style = MStroke)
+                drawPath(mp { moveTo(7f, 9.5f); lineTo(10.5f, 12f); lineTo(7f, 14.5f) }, color, style = MStroke)
+                ln(color, 12.5f, 15f, 17f, 15f)
+            }
+            MenuIcon.File -> {
+                drawPath(mp { moveTo(6f, 3f); lineTo(14f, 3f); lineTo(19f, 8f); lineTo(19f, 21f); lineTo(6f, 21f); close() }, color, style = MStroke)
+                ln(color, 9f, 13f, 16f, 13f)
+                ln(color, 9f, 17f, 16f, 17f)
             }
             else -> Unit
         }

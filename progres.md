@@ -1296,3 +1296,13 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah-sedang (drawArc/Size di MenuIcons.kt)
 - [ ] uji perangkat (Android 8): ikon terbaca di 18 dp, baris redup (disabled) ikut redup, teks sejajar, ikon Hapus merah, menu tree dan menu Aksi file sama
 
+## 2026-10-28 - Palet Perintah, tautan error di Keluaran, menu dirapikan [CODE-PALETTE]
+- [x] feat(code): Palet Perintah (menu titik tiga > Palet perintah): satu kotak cari untuk perintah aktif, tab terbuka, dan berkas folder utama (fuzzy, awal kata/camelCase diutamakan; maks. 4000 berkas, kedalaman 8, tanpa symlink/biner/.git/build; dipindai di Dispatchers.IO). Enter menjalankan hasil teratas
+- [x] refactor(code): daftar menu titik tiga diekstrak ke `menuGroups()` sehingga menu dan palet memakai satu sumber perintah
+- [x] feat(code): `ErrorLinks` mengenali File "x", line N (Python), x: line N: (bash), dan x.ext:baris[:kolom] (gcc/kotlinc/dll.); tautan di panel Keluaran bergaris bawah emas, ketuk membuka berkas dan melompat ke baris (fallback: tab skrip yang sedang dijalankan)
+- [x] chore(code): placeholder yang selalu redup (Ekspor, Konversi berkas, Syntax, Gaya Visual, Lakukan) dihapus dari menu titik tiga
+- [x] Dampak: :feature:code saja (file baru CommandPalette, OutputLinks, preview/ErrorLinks). Gradle, Manifest, JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: sedang (ClickableText di Compose BOM 2024.12.01, Dialog usePlatformDefaultWidth, refactor menuGroups)
+- [ ] uji perangkat (Android 8): buka palet lalu ketik "cari", nama tab, nama berkas; Enter; jalankan .py yang error lalu ketuk tautan File "x", line N; jalankan .sh dengan error baris N; folder besar tidak membuat palet lag
+- [ ] LANGKAH BERIKUT: Find in Files (grep di PRoot), Outline per berkas, penanda perubahan di gutter, scratch file/live template, tombol Play di gutter
+
