@@ -1206,3 +1206,4 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah (import Column tidak terpakai lagi diganti Box; import lain yang tak terpakai hanya warning)
 - [ ] uji perangkat (Android 8): tap Berkas > explorer langsung tampil tanpa kartu; tidak ada X; Back naik folder lalu di root pindah ke tab mpv; "Buka di Code" dan "Buka Terminal di sini" tetap pindah halaman; dialog Buka di mpv/Unduhan masih punya X
 - [ ] LANGKAH BERIKUT: ubah explorer dari Dialog menjadi konten tab biasa (nav bawah tetap terlihat) sehingga perpindahan tab tidak bergantung pada Back
+- [x] refactor(files): tab Berkas langsung membuka Penjelajah (tanpa kartu & tombol X); Win7OpenDialog mendukung mode asScreen
