@@ -893,3 +893,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah
 - [ ] uji perangkat: centang 2 berkas di folder A > buka folder B (›) > centang 1 > "Selesai (3)" > Salin > Tempel di folder C; "Semua" di B tidak menghapus centang A; "Kosongkan"; Kompres 2 berkas bernama sama dari folder berbeda > pesan bentrok; Back saat Pilih menutup mode Pilih
 - [ ] LANGKAH BERIKUT: halaman native Unduhan (RunRequest.args, DownloadRunner, foreground service, UnduhanScreen); lalu halaman Penyimpanan; ekstrak 7z/tar.gz
+
+## 2026-10-27 - Unduhan native langkah 1: argumen skrip + env di jalur PRoot [DL-STEP1-ARGS]
+- [x] feat(code): RunRequest punya `args: List<String>` dan `env: Map<String,String>` (bernilai bawaan kosong; RunController dan ToolRunUi tidak berubah). Argumen diteruskan tanpa shell sehingga harfiah; tidak pernah masuk log
+- [x] refactor(code): ScriptCommand dipindah ke ScriptCommand.kt (murni) + `validate()`: tolak NUL, argumen >4096 karakter, >256 argumen, nama env tidak valid/PATH/HOME/LANG/TERM/IFS/SHELL/LD_*/PROOT*; ProotScriptExecutor memvalidasi di awal runSync (gagal = startError, skrip tidak jalan)
+- [x] test: scripts/code-tests/run_script_command.sh (kotlinc 2.1.20): bentuk argv tanpa args/env identik dengan sebelumnya (golden), args harfiah berurutan, env sebelum interpreter, semua penolakan validasi
+- [x] Dampak: :feature:code (run/ScriptExecutor.kt), :app (code/ScriptCommand.kt baru, code/ProotScriptExecutor.kt). Gradle, Manifest, JNI mpv tidak disentuh. Editor Code dan ToolRunUi memakai jalur yang sama: perilaku bawaan tidak berubah
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah-sedang (jalur exec PRoot dipakai bersama editor Code)
+- [ ] uji perangkat: Code > jalankan .sh dan .py seperti biasa (tanpa regresi); Settings > tool run (setup) masih jalan; Dibatalkan/Timeout tetap berfungsi
+- [ ] LANGKAH BERIKUT: langkah 2 DownloadRunner (state flow dari --json, naikkan batas keluaran), lalu foreground service dan UnduhanScreen

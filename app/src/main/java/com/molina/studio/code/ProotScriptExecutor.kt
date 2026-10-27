@@ -25,34 +25,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 
-/** Argumen proot untuk satu skrip. Murni (tanpa Android) supaya mudah diuji. */
-internal object ScriptCommand {
-    const val GUEST_TMP_DIR = "/tmp/molina-run"
-
-    /**
-     * Argv libproot.so (tanpa argv[0]). [storageBinds] sudah berbentuk `--bind=host:guest`.
-     * `env -i` menjaga lingkungan guest bersih; PYTHONUNBUFFERED supaya keluaran Python mengalir langsung.
-     */
-    fun prootArgs(
-        rootfs: String,
-        cwd: String,
-        storageBinds: List<String>,
-        interpreter: String,
-        guestScript: String,
-    ): List<String> = buildList {
-        add("--link2symlink"); add("--kill-on-exit"); add("-0")
-        add("--rootfs=$rootfs"); add("--cwd=$cwd")
-        add("--bind=/dev"); add("--bind=/proc"); add("--bind=/sys")
-        addAll(storageBinds)
-        add("/usr/bin/env"); add("-i")
-        add("HOME=/root"); add("LANG=C.UTF-8"); add("TERM=dumb")
-        add("MALLOC_ARENA_MAX=2"); add("DEBIAN_FRONTEND=noninteractive")
-        add("PYTHONDONTWRITEBYTECODE=1"); add("PYTHONIOENCODING=utf-8"); add("PYTHONUNBUFFERED=1")
-        add("PATH=${YtdlpCommand.GUEST_PATH}")
-        add(interpreter); add(guestScript)
-    }
-}
-
 /**
  * Menjalankan skrip dari editor Code di Debian PRoot milik Molina Terminal. Aturan:
  * - satu skrip pada satu waktu,
@@ -97,6 +69,7 @@ internal class ProotScriptExecutor(context: Context) : ScriptExecutor {
     private fun failed(msg: String) = RunResult(-1, false, false, false, 0L, msg)
 
     private fun runSync(req: RunRequest, out: RunListener, handle: Handle): RunResult {
+        ScriptCommand.validate(req.args, req.env)?.let { return failed(it) }
         val rootfsDir = RootfsManager.rootfsDir(app)
         if (!File(rootfsDir, "usr/bin/env").exists()) {
             return failed("Debian belum terpasang. Buka tab Terminal untuk menyiapkannya.")
@@ -150,7 +123,7 @@ internal class ProotScriptExecutor(context: Context) : ScriptExecutor {
         val cwd = req.hostDir?.let { GuestPaths.of(it, storage, workspace, full, listOf(com.molina.core.common.MolinaPaths.APP_FOLDER)) } ?: "/root"
 
         val cmd = YtdlpCommand.SH_WRAPPER + "$nativeDir/libproot.so" +
-            ScriptCommand.prootArgs(rootfsDir.absolutePath, cwd, binds, req.plan.interpreter, guestScript)
+            ScriptCommand.prootArgs(rootfsDir.absolutePath, cwd, binds, req.plan.interpreter, guestScript, req.args, req.env)
         val pb = ProcessBuilder(cmd).directory(app.filesDir)
         pb.environment().apply {
             clear()

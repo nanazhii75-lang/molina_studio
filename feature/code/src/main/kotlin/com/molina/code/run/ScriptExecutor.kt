@@ -20,7 +20,11 @@ class RunRequest(
     val scriptText: String,
     val plan: RunPlan,
     val hostDir: String?,
-    val timeoutMs: Long
+    val timeoutMs: Long,
+    /** Argumen skrip (argv[1..]), diteruskan apa adanya tanpa shell. Tidak pernah dicatat di log. */
+    val args: List<String> = emptyList(),
+    /** Variabel lingkungan tambahan di guest (mis. MOLINA_ROOT). Divalidasi oleh ScriptCommand.validate. */
+    val env: Map<String, String> = emptyMap()
 )
 
 interface RunListener {

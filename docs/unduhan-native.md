@@ -9,7 +9,7 @@ Status: **inti logika selesai dan teruji** (`:core:common`); UI Compose dan serv
 Kode keluar: 0 sukses, 1 ada gagal, 2 galat penggunaan/lingkungan, 130 dibatalkan (SIGTERM/SIGINT).
 
 ## Yang masih perlu disambung (urut)
-1. `RunRequest`/`ScriptCommand.prootArgs` belum menerima argumen skrip: tambah `args: List<String>` (di :feature:code dan
+1. [SELESAI 2026-10-27: args/env di RunRequest, ScriptCommand.kt, validasi, uji JVM] `RunRequest`/`ScriptCommand.prootArgs` belum menerima argumen skrip: tambah `args: List<String>` (di :feature:code dan
    `ProotScriptExecutor`), lalu jalankan `/sdcard/Molina/Scripts/molina_dl.py --json ...` dengan `MOLINA_ROOT` bila folder terlihat.
    Risiko sedang: menyentuh jalur exec PRoot yang juga dipakai editor Code.
 2. `DownloadRunner` (di :app): `RunListener.onOutput` per baris -> `DownloadEventParser` -> `MutableStateFlow<DownloadSessionState>`.
