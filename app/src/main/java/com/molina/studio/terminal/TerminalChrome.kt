@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import com.molina.studio.code.CodeInbox
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -175,6 +176,16 @@ internal fun TerminalHeader(onOpenSettings: () -> Unit) {
                 DropdownMenuItem(
                     text = { Text("Sisip keluaran ke Code") },
                     onClick = { menu = false; toCode = true }
+                )
+                DropdownMenuItem(
+                    text = { Text("Salin keluaran terakhir ke Code") },
+                    onClick = {
+                        menu = false
+                        val out = TerminalActions.lastCommandOutput()
+                        val msg = if (out.isNullOrBlank()) "Keluaran perintah terakhir tidak ditemukan"
+                        else CodeInbox.deliver(out)
+                        if (msg != null) Toast.makeText(ctx, msg, Toast.LENGTH_SHORT).show()
+                    }
                 )
                 DropdownMenuItem(
                     text = { Text("Pengaturan") },

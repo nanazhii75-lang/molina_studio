@@ -1122,3 +1122,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah (`when` pada `arr.get(i)` JSONObject/Number; AlertDialog bersarang + restoreState)
 - [ ] uji perangkat (Android 8): tandai posisi > tekan lama > Ubah nama > nama muncul di daftar; kosongkan nama > kembali hanya waktu; tekan lama > Hapus; penanda lama (sebelum update) tetap muncul; video terjeda saat dialog dan lanjut setelah ditutup
 - [ ] LANGKAH BERIKUT: penanda di bilah seek, tombol "Salin keluaran perintah terakhir" ke Code, impor/ekspor snippet
+
+## 2026-10-27 - Penanda di bilah seek, salin keluaran terakhir ke Code, impor/ekspor snippet [SEEK-SALIN-SNIPPETIO]
+- [x] feat(mpv): titik emas penanda di bilah seek. `MarkedSeekBar` (turunan SeekBar, menggambar lingkaran emas #E6B450 berbingkai gelap di posisi penanda) menggantikan SeekBar di player.xml (id playbackSeekbar tetap). `refreshSeekMarks()` dipanggil saat durasi diketahui dan setiap dialog Penanda ditutup
+- [x] feat(term): menu titik tiga Terminal > "Salin keluaran terakhir ke Code" tanpa dialog. `TerminalActions.lastCommandOutput()` mengenali baris prompt `user@host:path$`/`#` pada transkrip; bila prompt tak dikenali muncul toast
+- [x] feat(term): Snippet perintah > tombol "Ekspor" / "Impor" ke /sdcard/Molina/molina-snippets.json (folder aplikasi, terlihat dari Debian lewat bind). Impor menggabungkan dan melewati perintah yang sudah ada (maks. 200 snippet)
+- [x] Dampak: :feature:mpv (MarkedSeekBar.kt baru, player.xml, MPVActivity), :app (TerminalActions, TerminalChrome, TerminalSnippets). Gradle, Manifest, JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah-sedang (override `onDraw` SeekBar dengan @Synchronized; regex prompt pada string mentah; Win7Button tanpa modifier)
+- [ ] uji perangkat (Android 8): beri 2-3 penanda pada video > titik emas muncul di seekbar pada posisi benar, titik hilang saat Hapus semua, video tanpa penanda tidak tergambar apa pun; Terminal: jalankan `ls` > menu > Salin keluaran terakhir ke Code > hanya keluaran `ls` yang masuk (tanpa prompt); jalankan perintah tanpa keluaran > toast "tidak ditemukan"; Snippet > Ekspor > cek /sdcard/Molina/molina-snippets.json; hapus satu snippet > Impor > kembali muncul tanpa duplikat
+- [ ] LANGKAH BERIKUT: ketuk titik di bilah seek untuk lompat ke penanda, cadangan otomatis snippet saat berubah, tampilkan nama penanda di label posisi saat menyeret

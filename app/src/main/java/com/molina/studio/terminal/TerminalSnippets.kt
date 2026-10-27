@@ -1,6 +1,10 @@
 package com.molina.studio.terminal
 
 import android.content.Context
+import android.widget.Toast
+import com.molina.core.common.MolinaPaths
+import com.molina.studio.AppPaths
+import java.io.File
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -102,6 +106,49 @@ internal object TerminalSnippets {
         return "Snippet disimpan: $n"
     }
 
+    /** Berkas cadangan di folder aplikasi: /sdcard/Molina/molina-snippets.json (terlihat juga dari Debian). */
+    private fun backupFile(ctx: Context): File = File(AppPaths.get(ctx).appRoot, "molina-snippets.json")
+
+    fun exportToFile(ctx: Context): String {
+        load(ctx)
+        return try {
+            val f = backupFile(ctx)
+            f.parentFile?.mkdirs()
+            val arr = JSONArray()
+            items.forEach { arr.put(JSONObject().put("n", it.name).put("c", it.cmd)) }
+            val root = JSONObject().put("app", "molina-terminal").put("version", 1).put("snippets", arr)
+            f.writeText(root.toString(2) + "\n")
+            "Diekspor ${items.size} snippet ke /sdcard/${MolinaPaths.APP_FOLDER}/${f.name}"
+        } catch (e: Exception) {
+            "Gagal mengekspor snippet"
+        }
+    }
+
+    /** Gabungkan snippet dari berkas cadangan; perintah yang sudah ada dilewati. Maks. 200 snippet, 4000 karakter per perintah. */
+    fun importFromFile(ctx: Context): String {
+        load(ctx)
+        val f = backupFile(ctx)
+        if (!f.isFile) return "Berkas tidak ditemukan: /sdcard/${MolinaPaths.APP_FOLDER}/${f.name}"
+        return try {
+            val arr = JSONObject(f.readText()).getJSONArray("snippets")
+            var added = 0
+            for (i in 0 until arr.length()) {
+                if (items.size >= 200) break
+                val o = arr.getJSONObject(i)
+                val n = o.optString("n").trim().take(60)
+                val c = o.optString("c").trim()
+                if (n.isEmpty() || c.isEmpty() || c.length > 4000) continue
+                if (items.any { it.cmd == c }) continue
+                items.add(Snippet(n, c))
+                added++
+            }
+            if (added > 0) save(ctx)
+            "Diimpor $added snippet baru"
+        } catch (e: Exception) {
+            "Berkas cadangan tidak valid"
+        }
+    }
+
     fun removeAt(ctx: Context, index: Int) {
         if (index in items.indices) {
             items.removeAt(index)
@@ -179,6 +226,10 @@ internal fun SnippetDialog(onDismiss: () -> Unit) {
                     modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(3.dp),
                     placeholder = { Text("Perintah", fontSize = 13.sp) }, colors = fieldColors
                 )
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start)) {
+                    Win7Button("Ekspor") { Toast.makeText(ctx, TerminalSnippets.exportToFile(ctx), Toast.LENGTH_LONG).show() }
+                    Win7Button("Impor") { Toast.makeText(ctx, TerminalSnippets.importFromFile(ctx), Toast.LENGTH_LONG).show() }
+                }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                     Win7Button("Tutup", onClick = onDismiss)
                     Win7Button("Tambah", isDefault = true, enabled = name.isNotBlank() && cmd.isNotBlank()) {

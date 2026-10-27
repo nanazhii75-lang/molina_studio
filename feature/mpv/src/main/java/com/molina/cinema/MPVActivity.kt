@@ -1869,7 +1869,8 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
     }
 
     /** Dialog Penanda posisi: ketuk = lompat, tekan lama = hapus, tombol Tandai = simpan posisi sekarang. */
-    private fun openBookmarks(restoreState: StateRestoreCallback) {
+    private fun openBookmarks(restoreStateOrig: StateRestoreCallback) {
+        val restoreState: StateRestoreCallback = { refreshSeekMarks(); restoreStateOrig() }
         val key = bookmarkKey()
         if (key == null) {
             showToast(getString(R.string.bookmark_unavailable), true)
@@ -2307,6 +2308,14 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
             binding.playbackDurationTxt.text = Utils.prettyTime(duration)
         if (!userIsOperatingSeekbar)
             binding.playbackSeekbar.max = duration * SEEK_BAR_PRECISION
+        refreshSeekMarks()
+    }
+
+    /** Titik emas penanda di bilah seek; kosong untuk stream tanpa kunci penanda. */
+    private fun refreshSeekMarks() {
+        val key = try { bookmarkKey() } catch (e: Exception) { null }
+        val secs = if (key == null) emptyList() else VideoBookmarks.list(this, key).map { it.sec }
+        binding.playbackSeekbar.setMarks(secs, SEEK_BAR_PRECISION)
     }
 
     private fun updatePlaybackStatus(paused: Boolean) {

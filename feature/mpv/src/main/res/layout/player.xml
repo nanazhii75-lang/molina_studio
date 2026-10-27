@@ -106,7 +106,7 @@
                     android:textColor="@android:color/white"
                     tools:text="00:00" />
 
-                <SeekBar
+                <com.molina.cinema.MarkedSeekBar
                     android:id="@+id/playbackSeekbar"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
