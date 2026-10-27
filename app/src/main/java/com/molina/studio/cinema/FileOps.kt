@@ -439,6 +439,69 @@ internal object FileOps {
     }
 
     /**
+     * [ZIP-OPEN] Ekstrak SATU entri [entryName] dari [zip] ke cache sementara (bukan seluruh ZIP), lalu kembalikan berkasnya.
+     * Entri yang keluar dari folder cache (zip-slip) ditolak. Hasil dipakai ulang bila sudah ada; cache dipangkas ke 300 MB
+     * (folder ZIP terlama dihapus lebih dulu). ZIP terenkripsi: tanpa [password] melempar NeedPassword, salah = WrongPassword.
+     */
+    fun extractEntry(zip: File, entryName: String, cacheRoot: File, password: String?, cancelled: () -> Boolean): File {
+        if (!zip.isFile) throw IOException("Berkas ZIP tidak ditemukan")
+        val root = File(cacheRoot, "zipview")
+        val bucket = File(root, Integer.toHexString((zip.canonicalPath + "|" + zip.lastModified() + "|" + zip.length()).hashCode()))
+        val base = bucket.canonicalFile
+        val out = File(bucket, entryName).canonicalFile
+        if (out.path != base.path && !out.path.startsWith(base.path + File.separator)) {
+            throw IOException("Entri ZIP tidak aman: " + entryName)
+        }
+        if (out.isFile && out.length() > 0L) {
+            bucket.setLastModified(System.currentTimeMillis())
+            return out
+        }
+        trimZipCache(root, 300L * 1024L * 1024L, bucket)
+        out.parentFile?.mkdirs()
+        try {
+            if (isEncryptedZip(zip)) {
+                if (password.isNullOrEmpty()) throw NeedPassword()
+                Z4jZipFile(zip, password.toCharArray()).extractFile(entryName, bucket.path)
+            } else {
+                ZipFile(zip).use { zf ->
+                    val en = zf.getEntry(entryName) ?: throw IOException("Entri tidak ditemukan di ZIP")
+                    if (en.isDirectory) throw IOException("Itu folder, bukan berkas")
+                    zf.getInputStream(en).use { i ->
+                        out.outputStream().use { o ->
+                            val buf = ByteArray(64 * 1024)
+                            while (true) {
+                                if (cancelled()) throw IOException("Dibatalkan")
+                                val n = i.read(buf)
+                                if (n < 0) break
+                                o.write(buf, 0, n)
+                            }
+                        }
+                    }
+                    if (en.time > 0) out.setLastModified(en.time)
+                }
+            }
+        } catch (e: Exception) {
+            out.delete()
+            throw if (e is Z4jException) mapZip(e, "Gagal membuka entri") else asIo(e, "Gagal membuka entri")
+        }
+        bucket.setLastModified(System.currentTimeMillis())
+        return out
+    }
+
+    private fun trimZipCache(root: File, maxBytes: Long, keep: File) {
+        val dirs = root.listFiles()?.filter { it.isDirectory && it.path != keep.path } ?: return
+        var total = dirs.sumOf { cacheSize(it) }
+        for (d in dirs.sortedBy { it.lastModified() }) {
+            if (total <= maxBytes) break
+            val s = cacheSize(d)
+            deleteRec(d)
+            total -= s
+        }
+    }
+
+    private fun cacheSize(f: File): Long = if (f.isFile) f.length() else (f.listFiles()?.sumOf { cacheSize(it) } ?: 0L)
+
+    /**
      * [RUNNER] Interpreter untuk menjalankan [f] di shell: dari shebang (#!), lalu dari ekstensi.
      * Mengembalikan null bila tidak dikenal. Nama dibatasi huruf/angka/._+- agar aman disisipkan ke perintah shell.
      */

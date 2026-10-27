@@ -1259,3 +1259,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] feat(files): panel bawah menampilkan W7FileIcon (28 dp) atau ikon folder (26 dp) di kiri nama; media bertumbnail tetap memakai thumbnail
 - [x] Dampak: :app saja (cinema/W7BrowseDock). Gradle, Manifest, JNI mpv TIDAK disentuh
 - [ ] uji perangkat: pilih py/xml/zip lalu ikon sesuai; pilih folder lalu ikon folder; pilih mp4 lalu thumbnail
+
+## 2026-10-28 - Buka berkas di dalam ZIP tanpa ekstrak penuh [ZIP-OPEN]
+- [x] feat(zip): `FileOps.extractEntry` mengekstrak SATU entri ke cacheDir/zipview (bukan seluruh ZIP); zip-slip ditolak, hasil dipakai ulang, cache dipangkas 300 MB; ZIP AES lewat zip4j dengan kata sandi
+- [x] feat(zip): dialog ZIP kini punya ikon per entri, pilih lalu Buka (atau ketuk dua kali); entri diserahkan ke smartOpen: media ke mpv, teks ke Code, ZIP bersarang ke dialog ZIP, lainnya Buka dengan
+- [x] Catatan: berkas dibuka dari salinan sementara; perubahan di Code tidak ditulis balik ke ZIP
+- [x] Dampak: :app saja (cinema/FileOps, cinema/Win7OpenDialog). Gradle, Manifest, JNI mpv TIDAK disentuh; tidak ada izin baru (cacheDir internal)
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: sedang (zip4j extractFile, panggilan W7PasswordDialog bertingkat)
+- [ ] uji perangkat (Android 8): ZIP biasa buka .txt/.py (Code), .mp4 (mpv), .jpg; ZIP berkata sandi (kata sandi benar/salah); entri besar; buka dua kali memakai cache
+- [ ] LANGKAH BERIKUT: tombol Simpan balik ke ZIP untuk berkas teks yang diedit, dan pratinjau gambar langsung di dialog

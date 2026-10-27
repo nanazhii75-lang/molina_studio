@@ -424,7 +424,7 @@ fun Win7OpenDialog(
                 onFail = { if (it is FileOps.WrongPassword) sheet = W7Sheet.Password(z, true) }
             )
         }
-        is W7Sheet.ZipView -> W7ZipDialog(s.zip, onClose = { sheet = null }) {
+        is W7Sheet.ZipView -> W7ZipDialog(s.zip, onClose = { sheet = null }, onOpenFile = { smartOpen(it) }) {
             sheet = null
             val z = s.zip
             val d = z.parentFile?.takeIf { it.isDirectory } ?: dir
@@ -1477,13 +1477,42 @@ private fun w7Trace(t: Throwable): String =
 
 /** [ZIP-VIEW] Isi ZIP tanpa mengekstrak; tombol Ekstrak memakai alur yang sama dengan menu Alat (termasuk kata sandi). */
 @Composable
-private fun W7ZipDialog(zip: File, onClose: () -> Unit, onExtract: () -> Unit) {
+private fun W7ZipDialog(zip: File, onClose: () -> Unit, onOpenFile: (File) -> Unit, onExtract: () -> Unit) {
+    val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
     var listing by remember(zip) { mutableStateOf<FileOps.ZipListing?>(null) }
     var err by remember(zip) { mutableStateOf<String?>(null) }
+    var picked by remember(zip) { mutableStateOf<String?>(null) }
+    var busy by remember(zip) { mutableStateOf(false) }
+    var status by remember(zip) { mutableStateOf("") }
+    var statusOk by remember(zip) { mutableStateOf(true) }
+    var needPw by remember(zip) { mutableStateOf<Boolean?>(null) }
     LaunchedEffect(zip) {
         val r = withContext(Dispatchers.IO) { runCatching { FileOps.listZip(zip) } }
         listing = r.getOrNull()
         err = r.exceptionOrNull()?.let { it.message ?: it.javaClass.simpleName }
+    }
+    // [ZIP-OPEN] buka satu entri tanpa mengekstrak seluruh ZIP: salin entri itu ke cache sementara lalu serahkan ke smartOpen
+    fun openEntry(name: String, pw: String?) {
+        if (busy) return
+        busy = true
+        statusOk = true
+        status = "Menyiapkan " + name.substringAfterLast('/') + "\u2026"
+        scope.launch {
+            val r = withContext(Dispatchers.IO) { runCatching { FileOps.extractEntry(zip, name, ctx.cacheDir, pw) { !isActive } } }
+            busy = false
+            val f = r.getOrNull()
+            val ex = r.exceptionOrNull()
+            when {
+                f != null -> {
+                    status = "Dibuka dari salinan sementara; perubahan tidak disimpan ke ZIP."
+                    onOpenFile(f)
+                }
+                ex is FileOps.NeedPassword -> { status = ""; needPw = false }
+                ex is FileOps.WrongPassword -> { status = ""; needPw = true }
+                else -> { statusOk = false; status = ex?.message ?: "Gagal membuka entri" }
+            }
+        }
     }
     W7Panel("ZIP: " + zip.name, onClose) {
         val l = listing
@@ -1498,7 +1527,7 @@ private fun W7ZipDialog(zip: File, onClose: () -> Unit, onExtract: () -> Unit) {
                 )
                 if (l.encrypted) {
                     Spacer(Modifier.height(4.dp))
-                    Text("Terenkripsi AES: kata sandi diminta saat mengekstrak.", color = Color(0xFFE0A800), fontSize = 12.sp)
+                    Text("Terenkripsi AES: kata sandi diminta saat membuka entri atau mengekstrak.", color = Color(0xFFE0A800), fontSize = 12.sp)
                 }
                 Spacer(Modifier.height(8.dp))
                 Column(
@@ -1506,7 +1535,18 @@ private fun W7ZipDialog(zip: File, onClose: () -> Unit, onExtract: () -> Unit) {
                         .border(1.dp, Win7.Field).verticalScroll(rememberScrollState())
                 ) {
                     l.entries.forEach { en ->
-                        Row(Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
+                        val on = !en.isDir && en.name == picked
+                        Row(
+                            Modifier.fillMaxWidth()
+                                .then(if (on) Modifier.background(Win7.SelFill) else Modifier)
+                                .clickable(enabled = !en.isDir && !busy) {
+                                    if (picked == en.name) openEntry(en.name, null) else picked = en.name
+                                }
+                                .padding(horizontal = 6.dp, vertical = 3.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (en.isDir) Win7Folder(16.dp) else W7FileIcon(en.name.substringAfterLast('/').substringAfterLast('.', ""), 18.dp)
+                            Spacer(Modifier.width(6.dp))
                             Text(
                                 en.name, color = if (en.isDir) Win7.NavHeader else Win7.Ink, fontSize = 12.sp, maxLines = 1,
                                 overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f)
@@ -1519,14 +1559,35 @@ private fun W7ZipDialog(zip: File, onClose: () -> Unit, onExtract: () -> Unit) {
                         color = Win7.TextDim, fontSize = 11.sp, modifier = Modifier.padding(6.dp)
                     )
                 }
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    "Ketuk berkas untuk memilih, ketuk lagi atau tekan Buka untuk membukanya tanpa mengekstrak.",
+                    color = Win7.TextDim, fontSize = 11.sp
+                )
             }
+        }
+        if (status.isNotEmpty()) {
+            Spacer(Modifier.height(4.dp))
+            Text(status, color = if (statusOk) Win7.NavHeader else Color(0xFFFF8A80), fontSize = 12.sp)
         }
         Spacer(Modifier.height(12.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-            Win7Button("Ekstrak", isDefault = true, enabled = listing != null) { onExtract() }
+            Win7Button("Buka", isDefault = true, enabled = picked != null && !busy) { picked?.let { openEntry(it, null) } }
+            Spacer(Modifier.width(8.dp))
+            Win7Button("Ekstrak", enabled = listing != null && !busy) { onExtract() }
             Spacer(Modifier.width(8.dp))
             Win7Button("Tutup", onClick = onClose)
         }
+    }
+    val np = needPw
+    val pk = picked
+    if (np != null && pk != null) W7PasswordDialog(
+        title = "Buka dari ZIP", okLabel = "Buka", confirmField = false,
+        note = if (np) "Kata sandi salah. Coba lagi." else "ZIP ini dilindungi kata sandi.",
+        onCancel = { needPw = null }
+    ) { pw ->
+        needPw = null
+        openEntry(pk, pw)
     }
 }
 
