@@ -1031,3 +1031,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah-sedang (when baru di smartOpen, fungsi lokal go/goBack/goForward memakai mutableStateListOf)
 - [ ] uji perangkat: ketuk PDF/gambar dua kali > chooser muncul; APK > installer; berkas tanpa aplikasi > toast; Alat > Buka dengan... pada satu berkas; berkas di akar Debian > Buka dengan dan Bagikan; masuk folder A > B > C lewat ketukan, tombol bulat kembali ke B lalu A; Maju kembali ke B; lompat lewat Favorit/Terakhir lalu Mundur kembali ke folder sebelumnya; hapus folder lalu Mundur melewati folder yang hilang
 - [ ] LANGKAH BERIKUT: daftar "Terbaru" (sudah di peta jalan sesi lain), lalu Folder Molina (lokasi default) di Penyimpanan
+
+## 2026-10-27 - System monitor pindah ke Settings, gaya Win7 + frame RGB [SETTINGS-MONITOR]
+- [x] refactor(term): bar status 4 chip (unduh/unggah/CPU/RAM) dihapus dari halaman Terminal (`StatusChips()` dilepas dari TerminalScreen.kt, StatusChips.kt dihapus); baris Extra Keys TIDAK diubah
+- [x] feat(settings): Sistem > Monitor Sistem (`settings/SystemMonitorUi.kt`, Page.Monitor): jendela kaca Aero (tepi biru berkilap, bilah judul, area klien hitam), 4 meter berbilah progres glossy, dibalut frame RGB berputar (sweep gradient, 4 dtk/putaran); data tetap dari `SystemStats` (hanya aktif selama halaman terbuka)
+- [x] Dampak: :app saja (settings/SystemMonitorUi.kt baru, settings/SettingsScreen.kt, terminal/TerminalScreen.kt, terminal/StatusChips.kt dihapus). Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah-sedang (Brush.sweepGradient + rotate di drawBehind, animateFloatAsState, import alias Level)
+- [ ] uji perangkat (Android 8): halaman Terminal tanpa bar chip dan ruang terminal bertambah; Extra Keys utuh; Settings > Sistem > Monitor Sistem tampil, angka bergerak tiap detik; frame RGB berputar mulus; unduh file besar lalu bilah Unduh naik; keluar halaman lalu sampling berhenti; pencarian "cpu"/"ram" menemukan halaman
+- [ ] LANGKAH BERIKUT: riwayat grafik garis CPU/RAM 60 detik, opsi matikan animasi RGB (hemat baterai)

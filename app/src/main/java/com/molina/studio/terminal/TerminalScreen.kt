@@ -93,7 +93,6 @@ private fun TerminalContent(modifier: Modifier, onOpenSettings: () -> Unit) {
 
     Box(modifier) {
     Column(Modifier.fillMaxSize()) {
-        StatusChips()
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
             if (rootfsState !is RootfsState.Ready) {
                 SetupPanel(

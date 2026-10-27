@@ -58,7 +58,7 @@ object SettingsNav {
 }
 
 private enum class Page {
-    Home, System, Terminal, Debugging, TerminalIO, TerminalView, Tampilan, CrashReports, About, Log, Stream, Network, Scripts, Packages, Code, Files, Downloads, Storage
+    Home, System, Terminal, Debugging, TerminalIO, TerminalView, Tampilan, CrashReports, About, Log, Stream, Network, Scripts, Packages, Code, Files, Downloads, Storage, Monitor
 }
 
 private fun parentOf(p: Page): Page? = when (p) {
@@ -89,6 +89,7 @@ private fun titleOf(p: Page): String = when (p) {
     Page.Files -> "Berkas"
     Page.Downloads -> "Unduhan"
     Page.Storage -> "Penyimpanan"
+    Page.Monitor -> "Monitor Sistem"
 }
 
 private fun trailOf(p: Page): List<Page> = generateSequence(p) { parentOf(it) }.toList().reversed()
@@ -125,6 +126,10 @@ private val INDEX = listOf(
     Hit("Unduhan", "Unduh video atau audio dari URL: antrean, riwayat, ulangi yang gagal", Page.Downloads),
     Hit("Penyimpanan", "Ukuran Debian, cache, Recycle Bin, folder kerja, dan bersihkan ruang", Page.Storage),
     Hit("Bersihkan cache", "Hapus cache apt dan cache aplikasi", Page.Storage),
+    Hit("Monitor Sistem", "Kecepatan unduh dan unggah, pemakaian CPU dan RAM secara langsung", Page.Monitor),
+    Hit("CPU", "Pemakaian CPU seluruh proses Molina", Page.Monitor),
+    Hit("RAM", "Pemakaian memori seluruh proses Molina", Page.Monitor),
+    Hit("Kecepatan jaringan", "Unduh dan unggah per detik", Page.Monitor),
     Hit("About", "Versi dan lisensi", Page.About)
 )
 
@@ -257,6 +262,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         W7Link({ W7IconLog() }, "Log", "Log aktivitas mpv, Terminal, dan sistem") { open(Page.Log) }
                         W7Link({ W7IconShield() }, "Keamanan dan privasi", "Kebijakan URL, jaringan lokal (LAN), layar privat") { open(Page.Network) }
                         W7Link({ W7IconToolList() }, "Penyimpanan", "Ukuran Debian, cache, Recycle Bin, dan bersihkan ruang") { open(Page.Storage) }
+                        W7Link({ W7IconMonitor(32.dp) }, "Monitor Sistem", "Unduh, unggah, CPU, dan RAM secara langsung") { open(Page.Monitor) }
                         W7Link({ W7IconInfo() }, "About", "Versi dan lisensi") { open(Page.About) }
                         Category("Debian")
                         W7Link({ W7IconAptSync() }, "Perbarui dan tingkatkan paket", AptHistory.subtitle(aptLast)) { apt = AptJob.UpdateUpgrade }
@@ -287,6 +293,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                     Page.Code -> CodeSettingsPage()
                     Page.Packages -> PackagesPage(onOpenYtdlp = { open(Page.Stream) })
                     Page.Storage -> StoragePage()
+                    Page.Monitor -> SystemMonitorPage()
                     Page.Files -> W7Link({ Win7Folder(32.dp) }, "Penjelajah Molina", "Telusuri, salin, pindah, kompres, hapus, atau kirim path ke Terminal") { showExplorer = true }
                 }
             }
