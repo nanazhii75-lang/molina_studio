@@ -141,7 +141,6 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     LaunchedEffect(page) { if (page == Page.Files) showExplorer = true }
     var apt by remember { mutableStateOf<AptJob?>(null) }
     var showTools by remember { mutableStateOf(false) }
-    var sendEnter by remember { mutableStateOf(false) }
     val aptCtx = LocalContext.current
     remember { AptHistory.init(aptCtx) }
     val aptLast by AptHistory.last.collectAsState()
@@ -176,11 +175,13 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             onDismiss = { showExplorer = false; if (page == Page.Files) page = Page.Home },
             browse = true,
             onCopyPath = { f -> MolinaExplorer.copyPath(aptCtx, f) },
-            onSendToTerminal = { f -> MolinaExplorer.sendToTerminal(aptCtx, f, sendEnter) },
-            sendEnter = sendEnter,
-            onSendEnterChange = { sendEnter = it },
-            onChangeDir = { f -> MolinaExplorer.changeDir(aptCtx, f) },
-            onRunInTerminal = { f -> MolinaExplorer.runFile(aptCtx, f) },
+            onOpenTerminal = { f ->
+                if (MolinaExplorer.openTerminalHere(aptCtx, f)) {
+                    showExplorer = false
+                    if (page == Page.Files) page = Page.Home
+                }
+            },
+            onShare = { files -> MolinaExplorer.share(aptCtx, files) },
             onInsertPaths = { fs -> MolinaExplorer.insertPaths(aptCtx, fs) },
             isVisibleInDebian = { f -> MolinaExplorer.visibleInDebian(f) },
             onPlay = { files -> MolinaExplorer.play(aptCtx, files) },

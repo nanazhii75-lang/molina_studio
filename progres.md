@@ -852,3 +852,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI). Risiko: sedang (dependensi baru, Compose dialog baru, parameter onFail pada runOp). Parameter sendEnter/onSendEnterChange/onSendToTerminal kini tak terpakai (hanya peringatan)
 - [ ] uji perangkat: pilih berkas .sh > Jalankan (hasil muncul di Terminal, cwd sesi tidak berubah); .py > Jalankan; .txt > pesan "belum dikenali"; pilih folder > Sisipkan; mode Pilih 3 berkas > Sisipkan (3); Alat > Kompres ZIP + kata sandi (kosong/beda sandi ditolak) > ekstrak tanpa sandi diminta sandi > salah minta ulang > benar berhasil; buka ZIP terenkripsi di aplikasi lain (7-Zip/ZArchiver) dengan sandi sama; Properti berkas besar > Hitung SHA-256 > Salin hash; tutup dialog saat menghitung tidak crash
 - [ ] LANGKAH BERIKUT: ekstrak 7z/tar.gz (commons-compress sudah ada, 7z butuh org.tukaani:xz), jelajah isi ZIP tanpa ekstrak, Bagikan (FileProvider), riwayat folder
+
+## 2026-10-27 - Penjelajah: Buka Terminal, Bagikan [EXPLORER-OPENTERM-SHARE]
+- [x] refactor(explorer): tombol "Jalankan" dan "cd" diganti "Buka Terminal": membuat sesi Debian baru dengan cwd di folder tujuan (folder induk bila berkas) lalu langsung pindah ke tab Terminal. Batas 5 sesi penuh: fallback cd di sesi aktif. Pengecekan "terlihat di Debian" memakai setelan sesi BARU
+- [x] feat(explorer): menu Alat > Bagikan (berkas, FileProvider, share sheet Android); folder dilewati
+- [x] cleanup: hapus runFile, sendToTerminal, state/parameter sendEnter, onChangeDir, onRunInTerminal (FileOps.runnerFor dibiarkan, tidak dipakai)
+- [x] Dampak: AndroidManifest (+FileProvider ${applicationId}.fileprovider), res/xml/molina_file_paths.xml, TerminalSessions (newSession/debianShell + cwd), ExplorerBridge, Win7OpenDialog, SettingsScreen. JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: sedang (Manifest provider baru, parameter composable berubah)
+- [ ] uji perangkat: pilih folder > Buka Terminal (prompt di folder itu, tab pindah, sesi lama utuh); pilih berkas > Buka Terminal (folder induk); folder di luar Debian > toast penjelasan; 5 sesi penuh > cd di sesi aktif; Alat > Bagikan 1 berkas ke aplikasi lain; Bagikan 3 berkas; pilih folder > Bagikan nonaktif; berkas di kartu SD > toast "di luar penyimpanan internal"
+- [ ] LANGKAH BERIKUT: ekstrak 7z/tar.gz, jelajah isi ZIP, riwayat folder

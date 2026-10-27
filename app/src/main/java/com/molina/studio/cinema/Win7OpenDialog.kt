@@ -102,7 +102,7 @@ private sealed class W7Sheet {
     class Delete(val files: List<File>) : W7Sheet()
     object NewDir : W7Sheet()
 }
-private enum class W7Ico { PLAY, CODE, SCRIPT, COPY, CUT, PASTE, RENAME, ZIP, UNZIP, DELETE, NEWDIR, STAR, STAR_OUT, INFO }
+private enum class W7Ico { PLAY, CODE, SCRIPT, COPY, CUT, PASTE, RENAME, ZIP, UNZIP, DELETE, NEWDIR, STAR, STAR_OUT, INFO, SHARE }
 
 private fun w7Names(l: List<File>): String = if (l.size == 1) l[0].name else l.size.toString() + " item"
 private fun w7StemEnd(name: String, dir: Boolean): Int =
@@ -163,12 +163,9 @@ fun Win7OpenDialog(
     onPick: (File) -> Unit = {},
     browse: Boolean = false,
     onCopyPath: ((File) -> Unit)? = null,
-    onSendToTerminal: ((File) -> Unit)? = null,
-    onRunInTerminal: ((File) -> Unit)? = null,
+    onOpenTerminal: ((File) -> Unit)? = null,
+    onShare: ((List<File>) -> Boolean)? = null,
     onInsertPaths: ((List<File>) -> Unit)? = null,
-    onChangeDir: ((File) -> Unit)? = null,
-    sendEnter: Boolean = false,
-    onSendEnterChange: ((Boolean) -> Unit)? = null,
     isVisibleInDebian: ((File) -> Boolean)? = null,
     pickFolder: Boolean = false,
     onPickFolder: (File) -> Unit = {},
@@ -490,6 +487,15 @@ fun Win7OpenDialog(
                                             say(r.second, r.first)
                                         }
                                     }
+                                    W7MenuItem(W7Ico.SHARE, "Bagikan", onShare != null && tg.any { it.isFile }) {
+                                        toolsOpen = false
+                                        val fn = onShare
+                                        if (fn != null) {
+                                            val fs = tg.filter { it.isFile }
+                                            if (fs.size < tg.size) say("Folder dilewati; hanya berkas yang dibagikan.")
+                                            fn(fs)
+                                        }
+                                    }
                                     Box(Modifier.fillMaxWidth().height(1.dp).background(Win7.Hairline))
                                     W7MenuItem(W7Ico.COPY, "Salin", tg.isNotEmpty()) {
                                         toolsOpen = false
@@ -675,15 +681,11 @@ fun Win7OpenDialog(
                         ) {
                             Win7Button("Salin path", modifier = Modifier.weight(1f), enabled = onCopyPath != null, onClick = { onCopyPath?.invoke(target) })
                             val insertList = if (multi && picked.isNotEmpty()) picked.map { File(it) } else listOf(target)
-                            if (target.isFile && !(multi && picked.size > 1)) {
-                                Win7Button("Jalankan", modifier = Modifier.weight(1f), enabled = onRunInTerminal != null, onClick = { onRunInTerminal?.invoke(target) })
-                            } else {
-                                Win7Button(
-                                    "Sisipkan" + (if (insertList.size > 1) " (" + insertList.size + ")" else ""),
-                                    modifier = Modifier.weight(1f), enabled = onInsertPaths != null, onClick = { onInsertPaths?.invoke(insertList) }
-                                )
-                            }
-                            Win7Button("cd", modifier = Modifier.weight(1f), enabled = onChangeDir != null && target.isDirectory, onClick = { onChangeDir?.invoke(target) })
+                            Win7Button(
+                                "Sisipkan" + (if (insertList.size > 1) " (" + insertList.size + ")" else ""),
+                                modifier = Modifier.weight(1f), enabled = onInsertPaths != null, onClick = { onInsertPaths?.invoke(insertList) }
+                            )
+                            Win7Button("Buka Terminal", modifier = Modifier.weight(1.3f), enabled = onOpenTerminal != null, onClick = { onOpenTerminal?.invoke(target) })
                         }
                     }
                     if (busy) Row(Modifier.fillMaxWidth().padding(bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -935,6 +937,12 @@ private fun W7MenuIcon(ico: W7Ico, enabled: Boolean) {
             W7Ico.SCRIPT -> {
                 box(1.5f, 2.5f, 13f, 11f)
                 line(4.5f, 6f, 7f, 8.2f); line(7f, 8.2f, 4.5f, 10.5f); line(8.5f, 10.5f, 11.5f, 10.5f)
+            }
+            W7Ico.SHARE -> {
+                drawCircle(c, radius = 1.8f * u, center = Offset(12f * u, 3.5f * u), style = st)
+                drawCircle(c, radius = 1.8f * u, center = Offset(4f * u, 8f * u), style = st)
+                drawCircle(c, radius = 1.8f * u, center = Offset(12f * u, 12.5f * u), style = st)
+                line(5.6f, 7f, 10.4f, 4.5f); line(5.6f, 9f, 10.4f, 11.5f)
             }
             W7Ico.INFO -> {
                 drawCircle(c, radius = 6.2f * u, center = Offset(8f * u, 8f * u), style = st)

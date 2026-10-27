@@ -3,6 +3,7 @@ package com.molina.studio.settings
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
 import android.os.Environment
 import android.widget.Toast
 import com.molina.studio.terminal.TerminalActions
@@ -12,6 +13,7 @@ import com.molina.cinema.MpvFolder
 import com.molina.code.run.ScriptShare
 import com.molina.studio.cinema.CinemaActions
 import com.molina.studio.code.CodeNav
+import com.molina.studio.code.ScriptNav
 import com.molina.studio.code.ScriptStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -38,9 +40,10 @@ internal object MolinaExplorer {
      * Terlihat di Debian: seluruh penyimpanan internal bila "Akses penyimpanan penuh" aktif,
      * selain itu hanya molina-studio dan folder aplikasi Molina (sesuai bind PRoot). Kartu SD/USB tidak pernah terlihat.
      */
-    fun visibleInDebian(f: File): Boolean {
+    fun visibleInDebian(f: File, forNewSession: Boolean = false): Boolean {
         // Bind PRoot tetap selama sesi hidup: ikuti sesi aktif, bukan hanya setelan terbaru
-        val full = TerminalSessions.fullAccessOf(TerminalSessions.currentSession) ?: TerminalPrefs.fullStorageAccess
+        val full = if (forNewSession) TerminalPrefs.fullStorageAccess
+            else TerminalSessions.fullAccessOf(TerminalSessions.currentSession) ?: TerminalPrefs.fullStorageAccess
         val roots = if (full) listOf(base()) else listOf(
             base() + "/" + TerminalSessions.WORKSPACE_DIR,
             base() + "/" + com.molina.core.common.MolinaPaths.APP_FOLDER,
@@ -101,23 +104,6 @@ internal object MolinaExplorer {
         Toast.makeText(ctx, "Path disalin: " + debianPath(f), Toast.LENGTH_SHORT).show()
     }
 
-    /** Tempel path (sudah di-quote) ke input shell sesi aktif, tanpa menekan Enter. */
-    fun sendToTerminal(ctx: Context, f: File, enter: Boolean = false) {
-        val em = TerminalSessions.currentSession?.emulator
-        if (em == null) {
-            Toast.makeText(ctx, "Belum ada sesi terminal aktif. Buka Terminal terlebih dahulu.", Toast.LENGTH_LONG).show()
-            return
-        }
-        if (enter && f.isDirectory) {
-            changeDir(ctx, f) // folder + Enter = cd
-            return
-        }
-        if (enter) TerminalActions.send(quote(debianPath(f)) + "\r")
-        else em.paste(quote(debianPath(f)) + " ")
-        val note = if (visibleInDebian(f)) "Path dikirim ke Terminal" else "Path dikirim, tetapi lokasi ini tidak terlihat di Debian"
-        Toast.makeText(ctx, note, Toast.LENGTH_SHORT).show()
-    }
-
     /** Sisipkan path ter-quote (satu atau banyak, dipisah spasi) ke input shell sesi aktif, tanpa Enter. */
     fun insertPaths(ctx: Context, files: List<File>) {
         if (files.isEmpty()) return
@@ -132,26 +118,68 @@ internal object MolinaExplorer {
     }
 
     /**
-     * Jalankan [f] di sesi aktif dengan interpreter dari shebang atau ekstensi, di dalam subshell
-     * `(cd folder && interpreter berkas)` sehingga folder kerja sesi tidak berubah.
+     * Buka Terminal di folder [f] (folder induk bila berkas): sesi Debian baru dengan cwd di sana,
+     * lalu minta MainActivity pindah ke tab Terminal. Bila batas sesi penuh, `cd` di sesi aktif.
+     * Mengembalikan true bila Terminal ditampilkan (pemanggil boleh menutup Penjelajah).
      */
-    fun runFile(ctx: Context, f: File) {
-        if (TerminalSessions.currentSession?.emulator == null) {
-            Toast.makeText(ctx, "Belum ada sesi terminal aktif. Buka Terminal terlebih dahulu.", Toast.LENGTH_LONG).show()
-            return
+    fun openTerminalHere(ctx: Context, f: File): Boolean {
+        val dir = (if (f.isDirectory) f else f.parentFile)
+        if (dir == null || !dir.isDirectory) {
+            Toast.makeText(ctx, "Folder tidak ditemukan.", Toast.LENGTH_SHORT).show()
+            return false
         }
-        val runner = com.molina.studio.cinema.FileOps.runnerFor(f)
-        if (runner == null) {
-            Toast.makeText(ctx, "Jenis berkas ini belum dikenali untuk dijalankan. Pakai Sisipkan lalu ketik perintahnya.", Toast.LENGTH_LONG).show()
-            return
+        if (!visibleInDebian(dir, forNewSession = true)) {
+            Toast.makeText(
+                ctx,
+                "Folder ini tidak terlihat di Debian. Aktifkan \"Akses penyimpanan penuh\" di Setelan Terminal, atau pindahkan ke folder Molina atau molina-studio.",
+                Toast.LENGTH_LONG
+            ).show()
+            return false
         }
-        val parent = f.parentFile
-        if (parent == null || !visibleInDebian(f)) {
-            Toast.makeText(ctx, "Berkas ini tidak terlihat di Debian. Pindahkan ke folder Molina atau molina-studio, atau aktifkan Akses penyimpanan penuh.", Toast.LENGTH_LONG).show()
-            return
+        val target = debianPath(dir)
+        val created = try { TerminalSessions.newSession(ctx, target) } catch (e: Exception) { null }
+        if (created != null) {
+            Toast.makeText(ctx, "Terminal dibuka di " + target, Toast.LENGTH_SHORT).show()
+        } else if (TerminalSessions.currentSession?.emulator != null && visibleInDebian(dir)) {
+            TerminalActions.send("cd " + quote(target) + "\r")
+            Toast.makeText(ctx, "Batas sesi penuh: cd di sesi aktif ke " + target, Toast.LENGTH_LONG).show()
+        } else {
+            Toast.makeText(ctx, "Batas sesi penuh (" + TerminalSessions.MAX_SESSIONS + "). Tutup salah satu sesi terlebih dahulu.", Toast.LENGTH_LONG).show()
+            return false
         }
-        TerminalActions.send("(cd " + quote(debianPath(parent)) + " && " + runner + " " + quote(debianPath(f)) + ")\r")
-        Toast.makeText(ctx, "Menjalankan: " + runner + " " + f.name, Toast.LENGTH_SHORT).show()
+        ScriptNav.openTerminal = true
+        return true
+    }
+
+    /** Bagikan berkas (bukan folder) lewat share sheet Android memakai FileProvider. */
+    fun share(ctx: Context, files: List<File>): Boolean {
+        val fs = files.filter { it.isFile && it.canRead() }.take(50)
+        if (fs.isEmpty()) {
+            Toast.makeText(ctx, "Pilih berkas (bukan folder) untuk dibagikan.", Toast.LENGTH_SHORT).show()
+            return false
+        }
+        return try {
+            val auth = ctx.packageName + ".fileprovider"
+            val uris = ArrayList(fs.map { androidx.core.content.FileProvider.getUriForFile(ctx, auth, it) })
+            val intent = if (uris.size == 1) {
+                val mime = android.webkit.MimeTypeMap.getSingleton()
+                    .getMimeTypeFromExtension(fs[0].extension.lowercase()) ?: "application/octet-stream"
+                Intent(Intent.ACTION_SEND).apply { type = mime; putExtra(Intent.EXTRA_STREAM, uris[0]) }
+            } else {
+                Intent(Intent.ACTION_SEND_MULTIPLE).apply { type = "*/*"; putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris) }
+            }
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            val chooser = Intent.createChooser(intent, "Bagikan")
+            if (ctx !is android.app.Activity) chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            ctx.startActivity(chooser)
+            true
+        } catch (e: IllegalArgumentException) {
+            Toast.makeText(ctx, "Lokasi berkas ini tidak bisa dibagikan (di luar penyimpanan internal).", Toast.LENGTH_LONG).show()
+            false
+        } catch (e: Exception) {
+            Toast.makeText(ctx, "Gagal membagikan: " + (e.message ?: "tidak diketahui"), Toast.LENGTH_LONG).show()
+            false
+        }
     }
 
     /** Jalankan `cd` ke folder di sesi aktif (langsung dieksekusi). Hanya untuk folder yang terlihat di Debian. */

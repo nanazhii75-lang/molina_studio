@@ -75,11 +75,11 @@ object TerminalSessions {
 
     /** Sesi baru (NEW SESSION). null bila sudah mencapai batas [MAX_SESSIONS]. */
     @Synchronized
-    fun newSession(context: Context): TerminalSession? {
+    fun newSession(context: Context, guestCwd: String? = null): TerminalSession? {
         if (!canAdd()) return null
         val app = context.applicationContext
         appContext = app
-        val s = debianShell(app)
+        val s = debianShell(app, guestCwd)
         sessions.add(s)
         select(sessions.lastIndex)
         LogBus.log("terminal", LogLevel.Info, "session", "Sesi Debian [${sessions.size}] dimulai")
@@ -153,13 +153,13 @@ object TerminalSessions {
         currentIndex = 0
     }
 
-    private fun debianShell(ctx: Context): TerminalSession {
+    private fun debianShell(ctx: Context, cwd: String? = null): TerminalSession {
         TerminalPrefs.init(ctx)
         val nativeDir = ctx.applicationInfo.nativeLibraryDir
         val rootfsDir = RootfsManager.rootfsDir(ctx)
         val rootfs = rootfsDir.absolutePath
         val tmp = File(ctx.cacheDir, "proot-tmp").apply { mkdirs() }
-        val guestCwd = "/root" // home default: prompt tampil sebagai user@localhost:~
+        val guestCwd = cwd?.takeIf { it.startsWith("/") } ?: "/root" // home default: prompt tampil sebagai user@localhost:~
         val storage = Environment.getExternalStorageDirectory().absolutePath
 
         // bashrc Molina (prompt berwarna + banner) dan titik mount /storage/emulated/0 di guest.
