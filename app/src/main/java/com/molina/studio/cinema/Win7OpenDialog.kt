@@ -1057,7 +1057,7 @@ private fun W7EntryRow(
             Text(if (checked) "[x]" else "[  ]", color = Win7.NavHeader, fontSize = 12.sp)
             Spacer(Modifier.width(6.dp))
         }
-        if (e.isDir) Win7Folder(20.dp) else Win7File(video, 20.dp)
+        if (e.isDir) Win7Folder(20.dp) else W7FileIcon(e.file.extension, 22.dp)
         Spacer(Modifier.width(6.dp))
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {

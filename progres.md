@@ -1247,3 +1247,10 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: :app saja (ExplorerPrefs, Win7OpenDialog). Gradle, Manifest, JNI mpv TIDAK disentuh
 - [ ] uji perangkat: aktifkan urutan, tutup lalu buka Penjelajah, pilihan tetap aktif
 - [ ] LANGKAH BERIKUT: cek hasil CI semua patch files-*, lalu uji perangkat gabungan
+
+## 2026-10-28 - Ikon berkas per ekstensi [FILES-ICONS]
+- [x] feat(files): `W7FileIcon` membedakan jenis berkas: gambar (bukit+matahari), video (putar), audio (not), dan label berwarna PY/XML/SVG/JSON/YML/CFG/KT/JV/GRD/C/C++/JS/SH/MD/TXT/LOG/CSV/ZIP/PDF/DOC/XLS/PPT/APK/SUB/LST
+- [x] Ekstensi tak dikenal: aksen emas dengan 3 huruf pertama ekstensi; tanpa ekstensi: halaman polos
+- [x] Dampak: :app saja (cinema/W7FileIcon baru, cinema/Win7OpenDialog 1 baris). Gradle, Manifest, JNI mpv TIDAK disentuh. Win7File lama tetap dipakai CinemaWin7Home
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah
+- [ ] uji perangkat (Android 8): label tiga huruf terbaca di ikon 22 dp; font besar sistem tidak memotong label
