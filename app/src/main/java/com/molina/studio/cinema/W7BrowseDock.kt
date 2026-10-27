@@ -74,7 +74,7 @@ internal fun W7BrowseDock(
             "  \u00B7  " + SimpleDateFormat("dd/MM/yyyy HH.mm", locale).format(Date(modified))
     }
     val path = if (files.size == 1) dockTail(files[0].path, 48) else dockTail(files.firstOrNull()?.parent ?: "", 48)
-    val thumbFile = one?.takeIf { W7Thumb.isVideo(it) }
+    val thumbFile = one?.takeIf { W7Thumb.hasThumb(it) }
     // Thumbnail dimuat di IO setelah jeda 250 ms agar ganti seleksi cepat tidak memicu dekode sia-sia
     val thumb: ImageBitmap? by produceState<ImageBitmap?>(null, thumbFile?.path) {
         value = null
@@ -87,13 +87,13 @@ internal fun W7BrowseDock(
         Row(Modifier.fillMaxWidth().height(34.dp), verticalAlignment = Alignment.CenterVertically) {
             if (thumbFile != null) {
                 Box(
-                    Modifier.size(width = 52.dp, height = 30.dp).clip(RoundedCornerShape(2.dp))
+                    Modifier.size(width = if (W7Thumb.isAudio(thumbFile)) 30.dp else 52.dp, height = 30.dp).clip(RoundedCornerShape(2.dp))
                         .background(Win7.Input).border(1.dp, Win7.Hairline, RoundedCornerShape(2.dp)),
                     Alignment.Center
                 ) {
                     val bmp = thumb
                     if (bmp != null) Image(bmp, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                    else Text("\u25B6", color = MolinaTheme.Cinema.copy(alpha = 0.7f), fontSize = 12.sp)
+                    else Text(if (W7Thumb.isAudio(thumbFile)) "\u266A" else "\u25B6", color = MolinaTheme.Cinema.copy(alpha = 0.7f), fontSize = 12.sp)
                 }
                 Spacer(Modifier.width(8.dp))
             }

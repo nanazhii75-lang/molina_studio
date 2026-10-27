@@ -1225,3 +1225,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah-sedang (produceState, MediaMetadataRetriever)
 - [ ] uji perangkat (Android 8): pilih mp4 lalu thumbnail muncul; mkv bisa gagal dan jatuh ke ikon putar; chip muncul setelah memutar berkas dari Penjelajah; warna dialog lain tidak berubah kecuali garis tombol utama
 - [ ] LANGKAH BERIKUT: thumbnail audio (cover art) lewat embeddedPicture, dan pencarian kilat di Penjelajah
+
+## 2026-10-28 - Cover art audio di panel Penjelajah [FILES-COVER]
+- [x] feat(files): `W7Thumb` mendukung audio via `embeddedPicture`; decode memakai inSampleSize, maks. 120x120, tetap di Dispatchers.IO + LruCache
+- [x] Panel bawah: cover persegi 30 dp untuk audio, ikon nada bila tidak ada cover; video tidak berubah
+- [x] Catatan: pencarian di Penjelajah SUDAH ada (kotak cari + cari dalam), jadi tidak dibuat ulang
+- [x] Dampak: :app saja (cinema/W7Thumb, cinema/W7BrowseDock). Gradle, Manifest, JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah
+- [ ] uji perangkat (Android 8): pilih mp3 yang punya cover lalu cover tampil; mp3 tanpa cover menampilkan ikon nada
+- [ ] LANGKAH BERIKUT: antrean "Putar semua di folder ini" dari panel bawah
