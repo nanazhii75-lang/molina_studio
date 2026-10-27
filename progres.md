@@ -980,3 +980,10 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: :app (MainActivity, SettingsScreen, Win7SettingsUi, DownloadNav, UnduhanScreen, DownloadHistoryUi, DownloadTileIcon.kt baru). Gradle, Manifest, JNI mpv tidak disentuh
 - [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah-sedang (when(page) Settings kini punya Page.Downloads; LazyColumn Unduhan dipasang langsung tanpa verticalScroll induk)
 - [ ] uji perangkat (Android 8): bilah bawah 4 tab; Settings > Unduhan terbuka dan tombol kembali ke beranda; ketuk ↓ di kartu Cinema membuka Settings > Unduhan dengan URL terisi; mulai unduhan lalu pindah tab: lencana emas di Settings, hijau saat selesai; ketuk notifikasi membuka Settings > Unduhan; cari "unduh" di kotak cari
+
+## 2026-10-27 - Peta jalan tahap berikutnya (belum dikerjakan) [ROADMAP-NEXT]
+- [ ] A: Recycle Bin (.molina-trash + manifest JSON, pulihkan/kosongkan/auto-purge 30 hari) + Urungkan + cari/urut/terbaru di Berkas
+- [ ] B: Settings > Penyimpanan dan Folder Molina (lokasi default unduhan/konversi/trash)
+- [ ] C: Konverter di bawah Unduhan (FFmpeg via Debian PRoot, preset, antrean, Unduh > Konversi > Putar)
+- [ ] D: Cadangkan/Pulihkan setelan (ZIP AES), E: Kesehatan sistem
+- [ ] Semua bergaya Win7 hitam pekat (W7D); tanpa izin/host baru
