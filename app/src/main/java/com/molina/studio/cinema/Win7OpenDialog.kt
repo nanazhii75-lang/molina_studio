@@ -256,7 +256,7 @@ fun Win7OpenDialog(
 
     val roots = vols.map { it.dir.path }
     val canUp = dir.path !in roots && dir.parentFile != null
-    fun go(to: File) { dir = to; selected = null; picked = emptySet(); fileName = ""; message = ""; query = "" }
+    fun go(to: File) { dir = to; selected = null; fileName = ""; message = ""; query = "" } // [PICK-PERSIST] picked bertahan lintas folder
     fun goUp(): Boolean {
         val parent = dir.parentFile
         if (!canUp || parent == null) return false
@@ -439,12 +439,13 @@ fun Win7OpenDialog(
                             !busy
                         ) {
                             multi = !multi; picked = emptySet(); selected = null; fileName = ""
-                            if (multi) say("Mode Pilih: ketuk untuk mencentang berkas atau folder, ketuk \u203A untuk membuka folder.", true)
+                            if (multi) say("Mode Pilih: ketuk untuk mencentang berkas atau folder, ketuk \u203A untuk membuka folder. Centang bertahan saat pindah folder.", true)
                         }
                         if (multi) W7Cmd("Semua", !busy) {
-                            val all = (entries ?: emptyList()).map { it.file.path }.toSet()
-                            picked = if (all.isNotEmpty() && picked == all) emptySet() else all
+                            val here = (entries ?: emptyList()).map { it.file.path }.toSet()
+                            picked = if (here.isNotEmpty() && picked.containsAll(here)) picked - here else picked + here
                         }
+                        if (picked.isNotEmpty()) W7Cmd("Kosongkan", !busy) { picked = emptySet() }
                     }
                     if (browse) Box {
                         W7Cmd("\u22EE Alat", !busy) { toolsOpen = !toolsOpen }

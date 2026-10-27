@@ -877,3 +877,19 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah
 - [ ] uji perangkat: Pilih > centang folder + berkas > Salin/Pindah/Hapus/Kompres/Sisipkan; ketuk "›" di folder membuka folder (centang direset, Salin/Pindah yang sudah di clipboard tetap bisa Tempel di folder tujuan); Semua mencentang folder juga; ketuk ">" tidak ikut mencentang barisnya
 - [ ] LANGKAH BERIKUT: riwayat folder (5 terakhir) di Favorit
+
+## Backlog Enhancement (2026-10-27)
+- [ ] Penjelajah: seleksi tetap, pratinjau cepat, tempat sampah 7 hari (riwayat folder dibatalkan)
+- [ ] Penjelajah: jalan pintas folder Debian, Buka Terminal di sini, Putar dengan Molina Player
+- [ ] Settings: Pulihkan ke bawaan, cadangan JSON (tanpa kredensial), profil Terminal, halaman Penyimpanan
+- [ ] Cinema: lanjutkan menonton, memori subtitle/audio; Unduhan: antrean + retry
+- [ ] About: versi + commit; ekspor log
+
+## 2026-10-27 - Penjelajah: seleksi tetap lintas folder [EXPLORER-PICK-PERSIST]
+- [x] feat(explorer): centang mode Pilih tidak direset saat pindah folder; "Semua" hanya untuk folder yang dibuka; tombol "Kosongkan"
+- [x] fix(explorer): zipAll menolak nama tingkat atas kembar dengan pesan jelas
+- [x] Keputusan: riwayat folder/folder terakhir DIBATALKAN
+- [x] Dampak: :app saja (cinema/Win7OpenDialog.kt, cinema/FileOps.kt). Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah
+- [ ] uji perangkat: centang 2 berkas di folder A > buka folder B (›) > centang 1 > "Selesai (3)" > Salin > Tempel di folder C; "Semua" di B tidak menghapus centang A; "Kosongkan"; Kompres 2 berkas bernama sama dari folder berbeda > pesan bentrok; Back saat Pilih menutup mode Pilih
+- [ ] LANGKAH BERIKUT: halaman native Unduhan (RunRequest.args, DownloadRunner, foreground service, UnduhanScreen); lalu halaman Penyimpanan; ekstrak 7z/tar.gz

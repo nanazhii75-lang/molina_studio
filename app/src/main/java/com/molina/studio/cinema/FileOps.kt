@@ -240,6 +240,9 @@ internal object FileOps {
         if (files.isEmpty()) throw IOException("Tidak ada yang dikompres")
         for (f in files) if (!present(f)) throw IOException("Sumber tidak ditemukan: " + f.name)
         if (!destDir.isDirectory || !destDir.canWrite()) throw IOException("Folder tujuan tidak bisa ditulisi")
+        files.groupBy { it.name }.entries.firstOrNull { it.value.size > 1 }?.let {
+            throw IOException("Nama bentrok di dalam ZIP: \"" + it.key + "\" ada di lebih dari satu folder. Kompres terpisah atau ubah namanya.")
+        } // [PICK-PERSIST]
         val one = files.singleOrNull()
         val stem = if (one != null) {
             if (one.isDirectory) one.name else one.nameWithoutExtension.ifEmpty { one.name }
