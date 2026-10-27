@@ -1006,3 +1006,10 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] uji perangkat: ketuk berkas .zip (pilih lalu ketuk lagi) > dialog isi ZIP muncul > Ekstrak > folder hasil muncul; ZIP AES > penanda AES > Ekstrak meminta kata sandi; ZIP salah/rusak > pesan jelas; bila ada kegagalan, salin baris dari Settings > Log (sumber penjelajah)
 - [ ] CATATAN: ZIP berkata sandi memakai AES-256 (WinZip); banyak aplikasi bawaan Android/pengelola berkas TIDAK bisa membukanya (butuh 7-Zip, ZArchiver, WinZip). ZIP biasa (tanpa sandi) kompatibel di mana saja
 - [ ] LANGKAH BERIKUT: ekstrak sebagian (pilih entri), ekstrak ke folder lain, uji perangkat ZIP besar (progres)
+
+## 2026-10-27 - Penjelajah: riwayat folder dan beranda Debian [EXPLORER-RECENT-DEBIAN]
+- [x] feat(explorer): Penjelajah dibuka di folder terakhir (startDir dari tab Unduhan tetap diutamakan); panel kiri punya bagian "Terakhir" (5 folder terakhir, tanpa duplikat favorit/akar)
+- [x] feat(explorer): akar "Debian" (rootfs/root) di daftar Komputer: kelola berkas Debian dari Penjelajah; path dipetakan ke path Debian (/root/...), sehingga Salin path, Sisipkan, dan Buka Terminal memakai path yang benar. Akar ini tidak bisa dinaiki ke atas, terlindung dari hapus/ubah nama, dan punya .molina-trash sendiri (Recycle Bin per volume)
+- [x] Dampak: cinema/ExplorerRecent.kt (baru), cinema/Win7OpenDialog.kt, settings/ExplorerBridge.kt, settings/SettingsScreen.kt. Manifest, Gradle, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: sedang (parameter baru W7NavPane, import RootfsManager)
+- [ ] uji perangkat: buka Berkas, masuk folder, tutup, buka lagi (kembali ke folder terakhir); bagian Terakhir muncul dan bekerja; tombol "Buka folder di Penjelajah" dari Unduhan tetap membuka folder unduhan; akar Debian terlihat, Naik tidak keluar dari /root; di Debian > Buka Terminal (prompt di /root/...) dan Salin path (mulai /root); hapus berkas di Debian > Recycle Bin > Urungkan

@@ -146,6 +146,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     var showTools by remember { mutableStateOf(false) }
     val aptCtx = LocalContext.current
     remember { AptHistory.init(aptCtx) }
+    remember { MolinaExplorer.attach(aptCtx) }
     val aptLast by AptHistory.last.collectAsState()
     fun open(p: Page) { query = ""; page = p }
     BackHandler(enabled = query.isNotBlank() || page != Page.Home) {

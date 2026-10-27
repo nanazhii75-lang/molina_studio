@@ -79,6 +79,7 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.IntOffset
 import androidx.core.content.ContextCompat
+import com.molina.studio.terminal.RootfsManager
 import com.molina.studio.terminal.TerminalSessions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -131,6 +132,13 @@ private fun w7Favorites(browse: Boolean = false): List<W7Place> = listOfNotNull(
     W7Place("Musik", Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)),
     W7Place("Kamera", Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM))
 ).filter { it.dir.isDirectory }
+
+/** Beranda Debian (/root di rootfs) sebagai akar tambahan agar berkas Debian bisa dikelola dari Penjelajah. */
+private fun w7DebianPlaces(ctx: Context, browse: Boolean): List<W7Place> {
+    if (!browse) return emptyList()
+    val home = File(RootfsManager.rootfsDir(ctx), "root")
+    return if (home.isDirectory) listOf(W7Place("Debian", home)) else emptyList()
+}
 
 private fun w7Drives(): List<W7Place> {
     val out = mutableListOf(W7Place("Internal", Environment.getExternalStorageDirectory()))
@@ -186,11 +194,16 @@ fun Win7OpenDialog(
         val mine = if (browse) ExplorerFavorites.load(ctx).filter { f -> base.none { it.dir.path == f.path } } else emptyList()
         base + mine.map { W7Place(it.name.ifEmpty { it.path }, it) }
     }
-    val vols = remember { w7Drives() }
+    val vols = remember { w7Drives() + w7DebianPlaces(ctx, browse) }
     val volDirs = remember(vols) { vols.map { it.dir } }
     var granted by remember { mutableStateOf(w7HasStorage(ctx)) }
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted = it }
-    var dir by remember { mutableStateOf(startDir?.takeIf { it.isDirectory } ?: vols.first().dir) }
+    // Mode jelajah: tanpa startDir, mulai dari folder terakhir yang dibuka (bila masih ada), bukan selalu dari akar
+    var dir by remember { mutableStateOf(startDir?.takeIf { it.isDirectory } ?: (if (browse) ExplorerRecent.last(ctx) else null) ?: vols.first().dir) }
+    val recents = remember(dir) {
+        if (browse) ExplorerRecent.load(ctx).filter { r -> r != dir && vols.none { it.dir == r } && favs.none { it.dir == r } }.take(5)
+        else emptyList()
+    }
     var kind by remember { mutableStateOf(if (browse) W7Kind.ALL else W7Kind.MEDIA) }
     // [EXPLORER-SEARCH] pencarian nama + sortir yang diingat
     val savedSort = remember { ExplorerPrefs.load(ctx) }
@@ -274,7 +287,7 @@ fun Win7OpenDialog(
 
     val roots = vols.map { it.dir.path }
     val canUp = dir.path !in roots && dir.parentFile != null
-    fun go(to: File) { dir = to; selected = null; fileName = ""; message = ""; query = ""; undo = null } // [PICK-PERSIST] picked bertahan lintas folder
+    fun go(to: File) { dir = to; selected = null; fileName = ""; message = ""; query = ""; undo = null; if (browse) ExplorerRecent.push(ctx, to) } // [PICK-PERSIST] picked bertahan lintas folder
     fun goUp(): Boolean {
         val parent = dir.parentFile
         if (!canUp || parent == null) return false
@@ -644,7 +657,7 @@ fun Win7OpenDialog(
                 }
                 Box(Modifier.fillMaxWidth().height(1.dp).background(Win7.Hairline))
                 Row(Modifier.weight(1f).fillMaxWidth()) {
-                    W7NavPane(favs, vols, dir, Modifier.width(92.dp).fillMaxHeight(), onBin = if (browse) ({ showBin = true }) else null) { go(it) }
+                    W7NavPane(favs, vols, dir, Modifier.width(92.dp).fillMaxHeight(), onBin = if (browse) ({ showBin = true }) else null, recents = recents) { go(it) }
                     Box(Modifier.width(1.dp).fillMaxHeight().background(Win7.Hairline))
                     W7FileArea(
                         modifier = Modifier.weight(1f).fillMaxHeight(),
@@ -803,10 +816,15 @@ private fun W7Cmd(label: String, enabled: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun W7NavPane(favs: List<W7Place>, vols: List<W7Place>, dir: File, modifier: Modifier, onBin: (() -> Unit)? = null, onGo: (File) -> Unit) {
+private fun W7NavPane(favs: List<W7Place>, vols: List<W7Place>, dir: File, modifier: Modifier, onBin: (() -> Unit)? = null, recents: List<File> = emptyList(), onGo: (File) -> Unit) {
     Column(modifier.background(Win7.NavBg).verticalScroll(rememberScrollState()).padding(vertical = 6.dp)) {
         W7NavHeader("Favorit", true)
         favs.forEach { p -> W7NavItem(p.label, dir == p.dir, { if (p.molina) Win7MolinaFolder(16.dp) else Win7Folder(16.dp) }) { onGo(p.dir) } }
+        if (recents.isNotEmpty()) {
+            Spacer(Modifier.height(8.dp))
+            W7NavHeader("Terakhir", false)
+            recents.forEach { r -> W7NavItem(r.name.ifEmpty { "/" }, dir == r, { Win7Folder(16.dp) }) { onGo(r) } }
+        }
         Spacer(Modifier.height(8.dp))
         W7NavHeader("Komputer", false)
         vols.forEach { p -> W7NavItem(p.label, dir == p.dir, { Win7Drive(16.dp) }) { onGo(p.dir) } }

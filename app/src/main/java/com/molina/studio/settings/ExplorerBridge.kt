@@ -25,10 +25,21 @@ internal object MolinaExplorer {
 
     private fun base(): String = Environment.getExternalStorageDirectory().absolutePath
 
+    /** Lokasi rootfs Debian di sisi Android; diisi saat Penjelajah dibuka. */
+    @Volatile private var rootfsPath: String? = null
+
+    fun attach(ctx: Context) {
+        rootfsPath = com.molina.studio.terminal.RootfsManager.rootfsDir(ctx).absolutePath
+    }
+
     /** Path di dalam Debian PRoot; penyimpanan internal di-bind ke /sdcard. */
     fun debianPath(f: File): String {
         val b = base()
         val p = f.absolutePath
+        rootfsPath?.let { r ->
+            if (p == r) return "/"
+            if (p.startsWith("$r/")) return p.substring(r.length)
+        }
         return when {
             p == b -> SDCARD
             p.startsWith("$b/") -> SDCARD + p.substring(b.length)
@@ -49,6 +60,7 @@ internal object MolinaExplorer {
             base() + "/" + com.molina.core.common.MolinaPaths.APP_FOLDER,
         )
         val p = f.absolutePath
+        if (rootfsPath?.let { r -> p == r || p.startsWith("$r/") } == true) return true
         return roots.any { p == it || p.startsWith("$it/") }
     }
 
