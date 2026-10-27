@@ -1215,3 +1215,13 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah
 - [ ] uji perangkat (Android 8): nama/path sangat panjang tidak mengubah tinggi panel; Putar/Edit/Buka ZIP/Properti sesuai seleksi; multi-pilih menampilkan jumlah item; Buka pada folder masuk ke folder
 - [ ] LANGKAH BERIKUT: pencarian kilat di Penjelajah dan pratinjau thumbnail video di panel
+
+## 2026-10-28 - Aksen merek, thumbnail video, chip riwayat putar [FILES-POLISH]
+- [x] refactor(theme): 24 token Win7 dipindah ke `MolinaTheme.Explorer`; `Win7` kini hanya alias (call site tidak berubah). `DefaultLine` memakai `MolinaTheme.Gold`
+- [x] feat(files): tombol Buka beraksen emas, Terminal dan titik Debian memakai `MolinaTheme.Good`/`Warn`
+- [x] feat(files): `W7Thumb` thumbnail video di panel bawah; dekode di Dispatchers.IO, jeda 250 ms, LruCache 32 entri, kegagalan dicatat agar tak diulang
+- [x] feat(files): chip "Terakhir diputar" (aksen Cinema) dan "Diputar" di daftar berkas, bersumber dari `CinemaRecent` (maks. 8)
+- [x] Dampak: :app saja (ui/MolinaTheme, cinema/Win7Aero, Win7OpenDialog, W7BrowseDock, W7Thumb baru). Gradle, Manifest, JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah-sedang (produceState, MediaMetadataRetriever)
+- [ ] uji perangkat (Android 8): pilih mp4 lalu thumbnail muncul; mkv bisa gagal dan jatuh ke ikon putar; chip muncul setelah memutar berkas dari Penjelajah; warna dialog lain tidak berubah kecuali garis tombol utama
+- [ ] LANGKAH BERIKUT: thumbnail audio (cover art) lewat embeddedPicture, dan pencarian kilat di Penjelajah

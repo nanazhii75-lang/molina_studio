@@ -1,5 +1,6 @@
 package com.molina.studio.cinema
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -16,14 +18,21 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.molina.studio.ui.MolinaTheme
+import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -65,14 +74,35 @@ internal fun W7BrowseDock(
             "  \u00B7  " + SimpleDateFormat("dd/MM/yyyy HH.mm", locale).format(Date(modified))
     }
     val path = if (files.size == 1) dockTail(files[0].path, 48) else dockTail(files.firstOrNull()?.parent ?: "", 48)
+    val thumbFile = one?.takeIf { W7Thumb.isVideo(it) }
+    // Thumbnail dimuat di IO setelah jeda 250 ms agar ganti seleksi cepat tidak memicu dekode sia-sia
+    val thumb: ImageBitmap? by produceState<ImageBitmap?>(null, thumbFile?.path) {
+        value = null
+        if (thumbFile != null) {
+            delay(250)
+            value = W7Thumb.load(thumbFile)?.asImageBitmap()
+        }
+    }
     Column(Modifier.fillMaxWidth().padding(bottom = 2.dp)) {
         Row(Modifier.fillMaxWidth().height(34.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (thumbFile != null) {
+                Box(
+                    Modifier.size(width = 52.dp, height = 30.dp).clip(RoundedCornerShape(2.dp))
+                        .background(Win7.Input).border(1.dp, Win7.Hairline, RoundedCornerShape(2.dp)),
+                    Alignment.Center
+                ) {
+                    val bmp = thumb
+                    if (bmp != null) Image(bmp, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                    else Text("\u25B6", color = MolinaTheme.Cinema.copy(alpha = 0.7f), fontSize = 12.sp)
+                }
+                Spacer(Modifier.width(8.dp))
+            }
             Column(Modifier.weight(1f)) {
                 Text(title, color = Win7.Ink, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(meta, color = Win7.TextDim, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             if (debian != null) {
-                val tone = if (debian) Color(0xFF4CAF50) else Color(0xFFE0A800)
+                val tone = if (debian) MolinaTheme.Good else MolinaTheme.Warn
                 Spacer(Modifier.width(8.dp))
                 Box(Modifier.size(8.dp).background(tone, RoundedCornerShape(4.dp)))
                 Spacer(Modifier.width(4.dp))
@@ -87,8 +117,8 @@ internal fun W7BrowseDock(
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             DockButton(quickLabel, Modifier.weight(1f), true, false, null, onQuick)
             DockButton("Sisipkan", Modifier.weight(1f), insertEnabled, false, null, onInsert)
-            DockButton("Terminal", Modifier.weight(1.1f), terminalEnabled, false, Color(0xFF2E7D4F), onTerminal)
-            DockButton("Buka", Modifier.weight(0.9f), true, true, null, onOpen)
+            DockButton("Terminal", Modifier.weight(1.1f), terminalEnabled, false, MolinaTheme.Good, onTerminal)
+            DockButton("Buka", Modifier.weight(0.9f), true, true, MolinaTheme.Gold, onOpen)
         }
     }
 }

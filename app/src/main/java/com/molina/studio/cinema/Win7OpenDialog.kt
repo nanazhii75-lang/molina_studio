@@ -88,6 +88,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import com.molina.studio.ui.MolinaTheme
 import com.molina.core.common.TrashBin
 import com.molina.core.common.TrashItem
 import java.text.SimpleDateFormat
@@ -203,6 +204,8 @@ fun Win7OpenDialog(
     val vols = remember { w7Drives() + w7DebianPlaces(ctx, browse) }
     val volDirs = remember(vols) { vols.map { it.dir } }
     var granted by remember { mutableStateOf(w7HasStorage(ctx)) }
+    // [FILES-PLAYED] riwayat putar Cinema (terbaru di indeks 0) untuk chip di daftar; ikut tersegarkan lewat version
+    val playedRefs = remember(CinemaRecent.version) { CinemaRecent.load(ctx).map { w7Norm(it.ref) } }
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted = it }
     // Mode jelajah: tanpa startDir, mulai dari folder terakhir yang dibuka (bila masih ada), bukan selalu dari akar
     var dir by remember { mutableStateOf(startDir?.takeIf { it.isDirectory } ?: (if (browse) ExplorerRecent.last(ctx) else null) ?: vols.first().dir) }
@@ -708,7 +711,7 @@ fun Win7OpenDialog(
                         modifier = Modifier.weight(1f).fillMaxHeight(),
                         granted = granted, entries = entries, key = key, asc = asc, selected = selected,
                         onSort = { k -> if (key == k) asc = !asc else { key = k; asc = true } },
-                        multi = multi, picked = picked,
+                        multi = multi, picked = picked, recentRefs = playedRefs,
                         emptyNote = if (query.isNotBlank()) "Tidak ada hasil untuk \"" + query.trim() + "\"" else "Folder ini kosong.",
                         onOpen = { e ->
                             if (multi) picked = if (e.file.path in picked) picked - e.file.path else picked + e.file.path
@@ -936,6 +939,7 @@ private fun W7FileArea(
     selected: W7Entry?,
     multi: Boolean = false,
     picked: Set<String> = emptySet(),
+    recentRefs: List<String> = emptyList(),
     emptyNote: String = "Folder ini kosong.",
     onSort: (ExplorerList.Key) -> Unit,
     onOpen: (W7Entry) -> Unit,
@@ -965,7 +969,10 @@ private fun W7FileArea(
                 else -> LazyColumn(Modifier.fillMaxSize()) {
                     items(entries, key = { it.file.path }) { e ->
                         val on = e.file.path in picked
-                        W7EntryRow(e, if (multi) on else e == selected, wide, onOpen, if (multi) on else null, if (multi) onEnter else null)
+                        W7EntryRow(
+                            e, if (multi) on else e == selected, wide, onOpen, if (multi) on else null, if (multi) onEnter else null,
+                            played = if (e.isDir) -1 else recentRefs.indexOf(w7Norm(e.file.path))
+                        )
                     }
                 }
             }
@@ -993,7 +1000,10 @@ private fun W7Note(text: String, extra: @Composable ColumnScope.() -> Unit) {
 }
 
 @Composable
-private fun W7EntryRow(e: W7Entry, selected: Boolean, wide: Boolean, onOpen: (W7Entry) -> Unit, checked: Boolean? = null, onEnter: ((W7Entry) -> Unit)? = null) {
+private fun W7EntryRow(
+    e: W7Entry, selected: Boolean, wide: Boolean, onOpen: (W7Entry) -> Unit,
+    checked: Boolean? = null, onEnter: ((W7Entry) -> Unit)? = null, played: Int = -1
+) {
     val shape = RoundedCornerShape(2.dp)
     val video = e.file.extension.lowercase() !in W7_AUDIO
     Row(
@@ -1016,7 +1026,10 @@ private fun W7EntryRow(e: W7Entry, selected: Boolean, wide: Boolean, onOpen: (W7
         if (e.isDir) Win7Folder(20.dp) else Win7File(video, 20.dp)
         Spacer(Modifier.width(6.dp))
         Column(Modifier.weight(1f)) {
-            Text(e.name, color = Win7.Ink, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(e.name, color = Win7.Ink, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                if (played >= 0) W7PlayedChip(played)
+            }
             if (e.rel != null) Text(e.rel, color = Win7.TextDim, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             else if (!wide) Text(w7Date(e.modified), color = Win7.TextDim, fontSize = 10.sp, maxLines = 1)
         }
@@ -1477,4 +1490,20 @@ private fun W7ZipDialog(zip: File, onClose: () -> Unit, onExtract: () -> Unit) {
             Win7Button("Tutup", onClick = onClose)
         }
     }
+}
+
+private fun w7Norm(p: String): String =
+    if (p.startsWith("/sdcard/")) "/storage/emulated/0/" + p.removePrefix("/sdcard/") else p
+
+/** Chip riwayat putar: 0 = "Terakhir diputar" (aksen Cinema), lainnya = "Diputar" (redup). */
+@Composable
+private fun W7PlayedChip(rank: Int) {
+    val latest = rank == 0
+    val tone = if (latest) MolinaTheme.Cinema else Win7.TextDim
+    Text(
+        if (latest) "Terakhir diputar" else "Diputar", color = tone, fontSize = 9.sp, maxLines = 1,
+        modifier = Modifier.padding(start = 6.dp)
+            .border(1.dp, tone.copy(alpha = 0.55f), RoundedCornerShape(8.dp))
+            .padding(horizontal = 6.dp, vertical = 1.dp)
+    )
 }

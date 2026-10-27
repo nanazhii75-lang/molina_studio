@@ -27,30 +27,30 @@ import com.molina.studio.ui.MolinaTheme
 
 /** Token Windows 7 (Aero) untuk pemilih file lokal Molina Cinema. */
 internal object Win7 {
-    val FrameTop = Color(0xFF1A2230)
-    val FrameBottom = Color(0xFF0A0F16)
-    val FrameLine = Color(0xFF2E4A68)
-    val Face = Color(0xFF000000)
-    val NavBg = Color(0xFF07090D)
-    val NavHeader = Color(0xFF8FC4EE)
-    val Ink = Color(0xFFEAEFF5)
-    val TextDim = Color(0xFF9AA5B1)
-    val Line = Color(0xFF5A6675)
-    val Field = Color(0xFF3A4654)
-    val Hairline = Color(0xFF26303B)
-    val SelFill = Color(0xFF12263A)
-    val SelLine = Color(0xFF3C7FB1)
-    val Folder = Color(0xFFF3CF6E)
-    val FolderDark = Color(0xFFD9A93B)
-    val CloseTop = Color(0xFFE8A598)
-    val CloseBottom = Color(0xFFC4392B)
-    val BtnTop = Color(0xFF1E252E)
-    val BtnBottom = Color(0xFF10151B)
-    val BtnLine = Color(0xFF4A5666)
-    val DefaultLine = Color(0xFF4DA3FF)
-    val Input = Color(0xFF0F1318)
-    val BarTop = Color(0xFF14181E)
-    val BarBottom = Color(0xFF05070A)
+    val FrameTop = MolinaTheme.Explorer.FrameTop
+    val FrameBottom = MolinaTheme.Explorer.FrameBottom
+    val FrameLine = MolinaTheme.Explorer.FrameLine
+    val Face = MolinaTheme.Explorer.Face
+    val NavBg = MolinaTheme.Explorer.NavBg
+    val NavHeader = MolinaTheme.Explorer.NavHeader
+    val Ink = MolinaTheme.Explorer.Ink
+    val TextDim = MolinaTheme.Explorer.TextDim
+    val Line = MolinaTheme.Explorer.Line
+    val Field = MolinaTheme.Explorer.Field
+    val Hairline = MolinaTheme.Explorer.Hairline
+    val SelFill = MolinaTheme.Explorer.SelFill
+    val SelLine = MolinaTheme.Explorer.SelLine
+    val Folder = MolinaTheme.Explorer.Folder
+    val FolderDark = MolinaTheme.Explorer.FolderDark
+    val CloseTop = MolinaTheme.Explorer.CloseTop
+    val CloseBottom = MolinaTheme.Explorer.CloseBottom
+    val BtnTop = MolinaTheme.Explorer.BtnTop
+    val BtnBottom = MolinaTheme.Explorer.BtnBottom
+    val BtnLine = MolinaTheme.Explorer.BtnLine
+    val DefaultLine = MolinaTheme.Explorer.DefaultLine
+    val Input = MolinaTheme.Explorer.Input
+    val BarTop = MolinaTheme.Explorer.BarTop
+    val BarBottom = MolinaTheme.Explorer.BarBottom
 }
 
 @Composable
