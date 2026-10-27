@@ -175,27 +175,36 @@ object VideoBookmarks {
         }
     }
 
-    /** Gabungkan penanda dari berkas cadangan; posisi yang sudah ada (dalam 1 detik) dilewati. */
+    /** Seluruh penanda sebagai objek JSON (untuk cadangan gabungan). */
+    fun snapshot(ctx: Context): JSONObject = toJson(readAll(ctx))
+
+    /** Gabungkan [bookmarks] (kunci -> larik); posisi yang sudah ada (dalam 1 detik) dilewati. Mengembalikan jumlah baru. */
+    fun mergeFrom(ctx: Context, bookmarks: JSONObject): Int {
+        val incoming = parse(bookmarks)
+        val all = readAll(ctx)
+        var added = 0
+        for ((key, list) in incoming) {
+            val cur = all.remove(key) ?: mutableListOf()
+            for (m in list) {
+                if (cur.size >= MAX_PER_VIDEO) break
+                if (cur.none { abs(it.sec - m.sec) < MIN_GAP_SEC }) {
+                    cur.add(m)
+                    added++
+                }
+            }
+            cur.sortBy { it.sec }
+            all[key] = cur
+        }
+        if (added > 0) writeAll(ctx, all)
+        return added
+    }
+
+    /** Gabungkan penanda dari berkas cadangan (tombol Impor). */
     fun importFromFile(ctx: Context): String {
         val f = backupFile()
         if (!f.isFile) return "Berkas tidak ditemukan: ${MolinaDir.Backup.folderName}/$BACKUP_NAME"
         return try {
-            val incoming = parse(JSONObject(f.readText()).getJSONObject("bookmarks"))
-            val all = readAll(ctx)
-            var added = 0
-            for ((key, list) in incoming) {
-                val cur = all.remove(key) ?: mutableListOf()
-                for (m in list) {
-                    if (cur.size >= MAX_PER_VIDEO) break
-                    if (cur.none { abs(it.sec - m.sec) < MIN_GAP_SEC }) {
-                        cur.add(m)
-                        added++
-                    }
-                }
-                cur.sortBy { it.sec }
-                all[key] = cur
-            }
-            if (added > 0) writeAll(ctx, all)
+            val added = mergeFrom(ctx, JSONObject(f.readText()).getJSONObject("bookmarks"))
             "Diimpor $added penanda baru"
         } catch (e: Exception) {
             "Berkas cadangan tidak valid"

@@ -241,6 +241,39 @@
             tools:text="60 FPS"
             tools:visibility="visible" />
 
+        <LinearLayout
+            android:id="@+id/seekPreview"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_above="@id/controls"
+            android:layout_alignParentStart="true"
+            android:layout_marginBottom="6dp"
+            android:background="@drawable/bg_seek_preview"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:padding="3dp"
+            android:visibility="gone">
+
+            <ImageView
+                android:id="@+id/seekPreviewImage"
+                android:layout_width="160dp"
+                android:layout_height="90dp"
+                android:background="#000000"
+                android:importantForAccessibility="no"
+                android:scaleType="centerCrop" />
+
+            <TextView
+                android:id="@+id/seekPreviewText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:maxWidth="160dp"
+                android:paddingTop="2dp"
+                android:textColor="#ffffff"
+                android:textSize="12sp" />
+        </LinearLayout>
+
         <TextView
             android:id="@+id/gestureTextView"
             android:layout_width="match_parent"

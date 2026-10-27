@@ -171,25 +171,37 @@ internal object TerminalSnippets {
         }
     }
 
-    /** Gabungkan snippet dari berkas cadangan; perintah yang sudah ada dilewati. Maks. 200 snippet, 4000 karakter per perintah. */
-    fun importFromFile(ctx: Context): String {
+    /** Daftar snippet sebagai larik JSON (untuk cadangan gabungan). */
+    fun snapshot(ctx: Context): JSONArray {
         load(ctx)
+        val arr = JSONArray()
+        items.forEach { arr.put(JSONObject().put("n", it.name).put("c", it.cmd)) }
+        return arr
+    }
+
+    /** Gabungkan snippet dari [arr]; perintah yang sudah ada dilewati. Maks. 200 snippet, 4000 karakter per perintah. */
+    fun mergeFrom(ctx: Context, arr: JSONArray): Int {
+        load(ctx)
+        var added = 0
+        for (i in 0 until arr.length()) {
+            if (items.size >= 200) break
+            val o = arr.getJSONObject(i)
+            val n = o.optString("n").trim().take(60)
+            val c = o.optString("c").trim()
+            if (n.isEmpty() || c.isEmpty() || c.length > 4000) continue
+            if (items.any { it.cmd == c }) continue
+            items.add(Snippet(n, c))
+            added++
+        }
+        if (added > 0) save(ctx)
+        return added
+    }
+
+    fun importFromFile(ctx: Context): String {
         val f = readableBackup(ctx)
             ?: return "Berkas tidak ditemukan: ${MolinaDir.Backup.folderName}/molina-snippets.json"
         return try {
-            val arr = JSONObject(f.readText()).getJSONArray("snippets")
-            var added = 0
-            for (i in 0 until arr.length()) {
-                if (items.size >= 200) break
-                val o = arr.getJSONObject(i)
-                val n = o.optString("n").trim().take(60)
-                val c = o.optString("c").trim()
-                if (n.isEmpty() || c.isEmpty() || c.length > 4000) continue
-                if (items.any { it.cmd == c }) continue
-                items.add(Snippet(n, c))
-                added++
-            }
-            if (added > 0) save(ctx)
+            val added = mergeFrom(ctx, JSONObject(f.readText()).getJSONArray("snippets"))
             "Diimpor $added snippet baru"
         } catch (e: Exception) {
             "Berkas cadangan tidak valid"

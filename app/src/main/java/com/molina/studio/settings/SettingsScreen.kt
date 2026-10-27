@@ -121,6 +121,8 @@ private val INDEX = listOf(
     Hit("apt update", "Perbarui dan tingkatkan paket Debian (apt update && apt upgrade -y)", Page.System),
     Hit("apt upgrade", "Perbarui dan tingkatkan paket Debian (apt update && apt upgrade -y)", Page.System),
     Hit("Daftar tool terpasang", "Deteksi alat Molina di Debian beserta versinya", Page.System),
+    Hit("Cadangan dan pemulihan", "Cadangkan atau pulihkan penanda video, snippet, dan setelan (folder Backup)", Page.System),
+    Hit("Pulihkan dari Backup", "Pulihkan penanda video, snippet, dan setelan dari molina-backup.json", Page.System),
     Hit("Berkas", "Penjelajah Molina: telusuri, salin, pindah, kompres, hapus, kirim path ke Terminal", Page.Files),
     Hit("Penjelajah Molina", "Kelola berkas: salin, tempel, pindah, ubah nama, ZIP, favorit, properti", Page.Files),
     Hit("Unduhan", "Unduh video atau audio dari URL: antrean, riwayat, ulangi yang gagal", Page.Downloads),
@@ -152,6 +154,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     LaunchedEffect(page) { if (page == Page.Files) showExplorer = true }
     var apt by remember { mutableStateOf<AptJob?>(null) }
     var showTools by remember { mutableStateOf(false) }
+    var showBackup by remember { mutableStateOf(false) }
     val aptCtx = LocalContext.current
     remember { AptHistory.init(aptCtx) }
     remember { MolinaExplorer.attach(aptCtx) }
@@ -195,6 +198,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
         if (showRefresh) SystemRefreshDialog { showRefresh = false }
         apt?.let { job -> DebianAptDialog(job) { apt = null } }
         if (showTools) InstalledToolsDialog { showTools = false }
+        if (showBackup) BackupDialog { showBackup = false }
         if (showExplorer) Win7OpenDialog(
             onDismiss = { showExplorer = false; if (page == Page.Files) page = Page.Home },
             browse = true,
@@ -267,6 +271,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         Category("Debian")
                         W7Link({ W7IconAptSync() }, "Perbarui dan tingkatkan paket", AptHistory.subtitle(aptLast)) { apt = AptJob.UpdateUpgrade }
                         W7Link({ W7IconToolList() }, "Daftar tool terpasang", "Deteksi alat Molina di Debian beserta versinya") { showTools = true }
+                        W7Link({ W7IconToolList() }, "Cadangan dan pemulihan", "Penanda video, snippet, dan setelan dalam satu berkas Backup") { showBackup = true }
                         Spacer(Modifier.height(12.dp))
                         W7SystemSummary()
                     }

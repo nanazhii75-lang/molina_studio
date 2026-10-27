@@ -260,17 +260,19 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
             if (!fromUser)
                 return
             player.timePos = progress.toDouble() / SEEK_BAR_PRECISION
-            showMarkLabelWhileSeeking(progress.toDouble() / SEEK_BAR_PRECISION)
+            updateSeekPreview(progress.toDouble() / SEEK_BAR_PRECISION)
             // Note: don't call updatePlaybackPos() here either
         }
 
         override fun onStartTrackingTouch(seekBar: SeekBar) {
             userIsOperatingSeekbar = true
+            thumbnailer.prepare(localVideoPath())
         }
 
         override fun onStopTrackingTouch(seekBar: SeekBar) {
             userIsOperatingSeekbar = false
             hideMarkLabel.run()
+            hideSeekPreview()
             showControls() // re-trigger display timeout
         }
     }
@@ -543,6 +545,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
     }
 
     override fun onDestroy() {
+        thumbnailer.release()
         MpvLog.v(TAG, "Exiting.")
 
         // Suppress any further callbacks
@@ -2371,6 +2374,51 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         tv.text = markLabel(sec, nearestMark(sec, 0.5))
         tv.removeCallbacks(hideMarkLabel)
         tv.postDelayed(hideMarkLabel, 1500)
+    }
+
+    private val thumbnailer = SeekThumbnailer()
+
+    /** Path berkas lokal yang sedang diputar, atau null (stream / fd:// tidak mendukung pratinjau gambar). */
+    private fun localVideoPath(): String? {
+        val p = try { MPVLib.getPropertyString("path") } catch (e: Exception) { null } ?: return null
+        val f = if (p.startsWith("file://")) p.removePrefix("file://") else p
+        return if (f.startsWith("/") && java.io.File(f).isFile) f else null
+    }
+
+    /** Kartu pratinjau di atas bilah kontrol saat bilah seek diseret: bingkai (berkas lokal) + waktu/penanda. */
+    private fun updateSeekPreview(sec: Double) {
+        val box = binding.seekPreview
+        val img = binding.seekPreviewImage
+        binding.seekPreviewText.text = markLabel(sec, nearestMark(sec, 2.0))
+        val hasThumb = thumbnailer.available
+        img.visibility = if (hasThumb) View.VISIBLE else View.GONE
+        if (box.visibility != View.VISIBLE) box.visibility = View.VISIBLE
+        positionSeekPreview(box)
+        if (hasThumb) thumbnailer.request(sec) { bmp ->
+            if (bmp != null && box.visibility == View.VISIBLE) img.setImageBitmap(bmp)
+        }
+    }
+
+    /** Pusatkan kartu pada posisi jempol bilah seek, dibatasi dalam lebar layar. */
+    private fun positionSeekPreview(box: View) {
+        val bar = binding.playbackSeekbar
+        val outside = binding.outside
+        val total = bar.max
+        if (total <= 0) return
+        val a = IntArray(2)
+        val b = IntArray(2)
+        bar.getLocationInWindow(a)
+        outside.getLocationInWindow(b)
+        val span = bar.width - bar.paddingLeft - bar.paddingRight
+        val x = a[0] - b[0] + bar.paddingLeft + span * bar.progress.toFloat() / total
+        val w = if (box.width > 0) box.width else (164 * resources.displayMetrics.density).toInt()
+        val maxX = (outside.width - w).coerceAtLeast(0).toFloat()
+        box.translationX = (x - w / 2f).coerceIn(0f, maxX)
+    }
+
+    private fun hideSeekPreview() {
+        thumbnailer.cancel()
+        binding.seekPreview.visibility = View.GONE
     }
 
     private fun updatePlaybackStatus(paused: Boolean) {
