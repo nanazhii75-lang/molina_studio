@@ -53,6 +53,7 @@ private val W7LinkColor = Color(0xFF6CB4FF)
 /** Palet Aero Gelap: hitam pekat (OLED) dengan aksen biru Aero. */
 internal object W7D {
     val Bg = Color(0xFF000000)
+    val Accent = Color(0xFF6CB4FF)
     val Card = Color(0xFF0B0B0F)
     val BarTop = Color(0xFF14181E)
     val BarBottom = Color(0xFF05070A)

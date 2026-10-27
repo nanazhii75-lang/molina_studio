@@ -56,6 +56,7 @@ import com.molina.core.common.DownloadRequest
 import com.molina.core.common.LogRedact
 import com.molina.studio.cinema.CinemaActions
 import com.molina.studio.cinema.Win7OpenDialog
+import com.molina.studio.settings.W7D
 import com.molina.studio.settings.MolinaExplorer
 import com.molina.studio.ui.MolinaTheme
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -143,20 +144,11 @@ fun UnduhanScreen(modifier: Modifier = Modifier) {
     }
 
     LazyColumn(
-        modifier.fillMaxSize().background(MolinaTheme.Background).padding(horizontal = 16.dp),
+        modifier.fillMaxSize().background(W7D.Bg).padding(horizontal = 16.dp),
         state = listState,
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        item {
-            Column(Modifier.padding(top = 16.dp)) {
-                Text("Unduhan", color = MolinaTheme.OnBackground, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                Box(
-                    Modifier.padding(top = 6.dp).fillMaxWidth().height(2.dp).background(
-                        Brush.horizontalGradient(listOf(MolinaTheme.Gold, Color.Transparent))
-                    )
-                )
-            }
-        }
+        item { Box(Modifier.height(4.dp)) }
         item {
             OutlinedTextField(
                 value = urls,
@@ -167,10 +159,10 @@ fun UnduhanScreen(modifier: Modifier = Modifier) {
                 minLines = 2,
                 maxLines = 6,
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MolinaTheme.Gold,
-                    unfocusedBorderColor = MolinaTheme.CardLine,
-                    focusedLabelColor = MolinaTheme.Gold,
-                    cursorColor = MolinaTheme.Gold,
+                    focusedBorderColor = W7D.Accent,
+                    unfocusedBorderColor = W7D.Line,
+                    focusedLabelColor = W7D.Accent,
+                    cursorColor = W7D.Accent,
                 ),
             )
         }
@@ -187,10 +179,10 @@ fun UnduhanScreen(modifier: Modifier = Modifier) {
                         }
                     },
                     enabled = !run.running,
-                    border = BorderStroke(1.dp, MolinaTheme.Gold),
-                ) { Text("Tempel", color = MolinaTheme.Gold) }
+                    border = BorderStroke(1.dp, W7D.Accent),
+                ) { Text("Tempel", color = W7D.Accent) }
                 if (urls.isNotEmpty() && !run.running) {
-                    TextButton(onClick = { urls = ""; error = null }) { Text("Hapus", color = MolinaTheme.Muted) }
+                    TextButton(onClick = { urls = ""; error = null }) { Text("Hapus", color = W7D.TextDim) }
                 }
             }
         }
@@ -252,12 +244,12 @@ fun UnduhanScreen(modifier: Modifier = Modifier) {
                             }
                         },
                         enabled = count > 0,
-                        colors = ButtonDefaults.buttonColors(containerColor = MolinaTheme.Gold, contentColor = Color.Black),
+                        colors = ButtonDefaults.buttonColors(containerColor = W7D.Accent, contentColor = Color.Black),
                     ) { Text(if (count > 0) "Mulai unduh ($count)" else "Mulai unduh") }
                 }
                 if (!run.running && hasResult) {
                     TextButton(onClick = { DownloadRunner.clear(); error = null }) {
-                        Text("Kosongkan hasil", color = MolinaTheme.Muted)
+                        Text("Kosongkan hasil", color = W7D.TextDim)
                     }
                 }
             }
@@ -267,7 +259,7 @@ fun UnduhanScreen(modifier: Modifier = Modifier) {
             sess.fatalError?.let { fe -> item { Text(fe, color = MolinaTheme.Bad, fontSize = 13.sp) } }
             if (sess.fatalError == null && !sess.finished && !run.running && run.exitCode != null && run.exitCode != 0) {
                 items(run.stderrTail.takeLast(5)) { l ->
-                    Text(l, color = MolinaTheme.Muted, fontSize = 11.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text(l, color = W7D.TextDim, fontSize = 11.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }
             }
             items(sess.warnings.takeLast(3)) { w -> Text(w, color = MolinaTheme.Warn, fontSize = 12.sp) }
@@ -287,16 +279,16 @@ fun UnduhanScreen(modifier: Modifier = Modifier) {
                             if (dir == null) Toast.makeText(ctx, "Folder hasil ada di dalam Debian dan belum bisa dibuka dari sini.", Toast.LENGTH_LONG).show()
                             else openDir = dir
                         },
-                        border = BorderStroke(1.dp, MolinaTheme.Gold),
-                    ) { Text("Buka folder", color = MolinaTheme.Gold) }
+                        border = BorderStroke(1.dp, W7D.Accent),
+                    ) { Text("Buka folder", color = W7D.Accent) }
                 }
             }
             if (!run.running && retryUrls.isNotEmpty()) {
                 item {
                     OutlinedButton(
                         onClick = { afterStart(DownloadRunner.retry(ctx.applicationContext)) },
-                        border = BorderStroke(1.dp, MolinaTheme.Gold),
-                    ) { Text("Ulangi yang gagal (${retryUrls.size})", color = MolinaTheme.Gold) }
+                        border = BorderStroke(1.dp, W7D.Accent),
+                    ) { Text("Ulangi yang gagal (${retryUrls.size})", color = W7D.Accent) }
                 }
             }
         }
@@ -327,9 +319,9 @@ private fun Chip(label: String, selected: Boolean, enabled: Boolean, onClick: ()
         enabled = enabled,
         label = { Text(label) },
         colors = FilterChipDefaults.filterChipColors(
-            selectedContainerColor = MolinaTheme.Gold.copy(alpha = 0.22f),
-            selectedLabelColor = MolinaTheme.Gold,
-            labelColor = MolinaTheme.Muted,
+            selectedContainerColor = W7D.SelFill,
+            selectedLabelColor = W7D.Accent,
+            labelColor = W7D.TextDim,
         ),
     )
 }
@@ -343,7 +335,7 @@ private fun SessionSummary(running: Boolean, ok: Int, failed: Int, cancelled: Bo
         finished -> "Selesai: $ok berhasil, $failed gagal"
         else -> "Sesi berhenti"
     }
-    Text(text, color = MolinaTheme.OnBackground, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+    Text(text, color = W7D.Ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
 }
 
 @Composable
@@ -352,40 +344,40 @@ private fun ItemCard(ctx: Context, item: DownloadItemState, onRetry: (() -> Unit
     val title = item.title ?: LogRedact.target(item.url).ifEmpty { "Item ${item.index}" }.take(70)
     Column(
         Modifier.fillMaxWidth()
-            .background(MolinaTheme.CardBg, RoundedCornerShape(10.dp))
+            .background(W7D.Card, RoundedCornerShape(10.dp))
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Text(
-            "${item.index}. $title", color = MolinaTheme.OnBackground, fontSize = 14.sp,
+            "${item.index}. $title", color = W7D.Ink, fontSize = 14.sp,
             maxLines = 2, overflow = TextOverflow.Ellipsis,
         )
         val color = when (item.status) {
             DownloadItemStatus.DONE -> MolinaTheme.Good
             DownloadItemStatus.FAILED -> MolinaTheme.Bad
-            else -> MolinaTheme.Gold
+            else -> W7D.Accent
         }
         if (item.status != DownloadItemStatus.FAILED) {
             if (pct == null || item.status == DownloadItemStatus.PROCESSING) {
-                LinearProgressIndicator(Modifier.fillMaxWidth().height(4.dp), color = color, trackColor = MolinaTheme.CardLine)
+                LinearProgressIndicator(Modifier.fillMaxWidth().height(4.dp), color = color, trackColor = W7D.Line)
             } else {
                 LinearProgressIndicator(
                     progress = { (pct / 100.0).toFloat().coerceIn(0f, 1f) },
                     modifier = Modifier.fillMaxWidth().height(4.dp),
                     color = color,
-                    trackColor = MolinaTheme.CardLine,
+                    trackColor = W7D.Line,
                 )
             }
         }
-        Text(statusLine(item, pct), color = if (item.status == DownloadItemStatus.FAILED) MolinaTheme.Bad else MolinaTheme.Muted, fontSize = 12.sp)
+        Text(statusLine(item, pct), color = if (item.status == DownloadItemStatus.FAILED) MolinaTheme.Bad else W7D.TextDim, fontSize = 12.sp)
         if (item.status == DownloadItemStatus.FAILED && onRetry != null) {
-            TextButton(onClick = onRetry) { Text("Ulangi", color = MolinaTheme.Gold) }
+            TextButton(onClick = onRetry) { Text("Ulangi", color = W7D.Accent) }
         }
         if (item.status == DownloadItemStatus.DONE) {
             item.files.forEach { f ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        f.name + "  " + fmtSize(f.sizeBytes), color = MolinaTheme.OnBackground, fontSize = 12.sp,
+                        f.name + "  " + fmtSize(f.sizeBytes), color = W7D.Ink, fontSize = 12.sp,
                         maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f),
                     )
                     TextButton(onClick = { playFile(ctx, f.path) }) { Text("Putar", color = MolinaTheme.Cinema) }

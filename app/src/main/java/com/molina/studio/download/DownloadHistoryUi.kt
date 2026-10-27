@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import com.molina.core.common.DownloadHistoryEntry
 import com.molina.core.common.LogRedact
 import com.molina.studio.ui.MolinaTheme
+import com.molina.studio.settings.W7D
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -50,12 +51,12 @@ internal fun LazyListScope.historySection(
             TextButton(onClick = onToggle) {
                 Text(
                     "Riwayat (${entries.size}) " + if (open) "▲" else "▼",
-                    color = MolinaTheme.OnBackground, fontSize = 15.sp, fontWeight = FontWeight.Medium,
+                    color = W7D.Ink, fontSize = 15.sp, fontWeight = FontWeight.Medium,
                 )
             }
             if (open) {
                 Row(Modifier.weight(1f), horizontalArrangement = Arrangement.End) {
-                    TextButton(onClick = onClearAll) { Text("Hapus semua", color = MolinaTheme.Muted) }
+                    TextButton(onClick = onClearAll) { Text("Hapus semua", color = W7D.TextDim) }
                 }
             }
         }
@@ -86,14 +87,14 @@ private fun HistoryCard(
     val retryN = e.retryUrls().size
     Column(
         Modifier.fillMaxWidth()
-            .background(MolinaTheme.CardBg, RoundedCornerShape(10.dp))
+            .background(W7D.Card, RoundedCornerShape(10.dp))
             .clickable(onClick = onToggle)
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Text(
             fmtDate(e.at) + " · " + e.modeLabel(),
-            color = MolinaTheme.OnBackground, fontSize = 14.sp, fontWeight = FontWeight.Medium,
+            color = W7D.Ink, fontSize = 14.sp, fontWeight = FontWeight.Medium,
         )
         val status = buildString {
             append("${e.okCount} berhasil, ${e.failedCount} gagal")
@@ -106,11 +107,11 @@ private fun HistoryCard(
                 val name = (item.title ?: LogRedact.target(item.url)).ifEmpty { "(tanpa judul)" }.take(70)
                 Text(
                     (if (item.ok) "✓ " else "✗ ") + name,
-                    color = if (item.ok) MolinaTheme.OnBackground else MolinaTheme.Bad,
+                    color = if (item.ok) W7D.Ink else MolinaTheme.Bad,
                     fontSize = 12.sp, maxLines = 2, overflow = TextOverflow.Ellipsis,
                 )
                 if (!item.ok) item.error?.let { msg ->
-                    Text(msg, color = MolinaTheme.Muted, fontSize = 11.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text(msg, color = W7D.TextDim, fontSize = 11.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -118,10 +119,10 @@ private fun HistoryCard(
                     OutlinedButton(
                         onClick = onRetry,
                         enabled = !running,
-                        border = BorderStroke(1.dp, MolinaTheme.Gold),
-                    ) { Text("Ulangi yang gagal ($retryN)", color = MolinaTheme.Gold) }
+                        border = BorderStroke(1.dp, W7D.Accent),
+                    ) { Text("Ulangi yang gagal ($retryN)", color = W7D.Accent) }
                 }
-                TextButton(onClick = onDelete) { Text("Hapus", color = MolinaTheme.Muted) }
+                TextButton(onClick = onDelete) { Text("Hapus", color = W7D.TextDim) }
             }
         }
     }
@@ -134,7 +135,7 @@ internal fun ClearHistoryDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
         title = { Text("Hapus semua riwayat?") },
         text = { Text("Daftar sesi unduhan dan URL yang gagal akan dihapus dari perangkat. Berkas hasil unduhan tidak ikut terhapus.") },
         confirmButton = { TextButton(onClick = onConfirm) { Text("Hapus", color = MolinaTheme.Bad) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Batal", color = MolinaTheme.Muted) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Batal", color = W7D.TextDim) } },
     )
 }
 

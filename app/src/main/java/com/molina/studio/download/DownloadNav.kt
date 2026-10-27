@@ -19,6 +19,9 @@ internal object DownloadNav {
     /** Ada unduhan yang selesai saat tab Unduhan tidak dibuka: menyalakan lencana hijau sampai tab dibuka. */
     var unseen by mutableStateOf(false)
 
+    /** True selama halaman Unduhan di Settings tampil (dipakai MainActivity untuk lencana). */
+    var visible by mutableStateOf(false)
+
     fun request(urls: List<String>) {
         pendingUrls = (pendingUrls + urls).distinct()
     }

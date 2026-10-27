@@ -45,7 +45,6 @@ import androidx.compose.ui.graphics.Color
 
 private enum class Tab(val label: String, val glyph: String, val color: Color) {
     Mpv("mpv", "\u25B6", Color(0xFFB9A7E8)),          // lavender redup: bioskop
-    Download("Unduhan", "\u2193", Color(0xFF6FC3C0)),   // teal: unduhan
     Terminal("Terminal", ">_", Color(0xFF8FCBA6)),      // hijau sage: terminal
     Code("Code", "< >", Color(0xFFFFB300)),             // emas: editor
     Settings("Settings", "\u2699", Color(0xFFCDBFA3))  // champagne: pengaturan
@@ -193,12 +192,16 @@ class MainActivity : ComponentActivity() {
                 }
                 // Kartu hasil pencarian Cinema: Unduh mengirim URL ke tab Unduhan.
                 androidx.compose.runtime.LaunchedEffect(com.molina.studio.download.DownloadNav.pendingUrls) {
-                    if (com.molina.studio.download.DownloadNav.pendingUrls.isNotEmpty()) selected = Tab.Download.ordinal
+                    if (com.molina.studio.download.DownloadNav.pendingUrls.isNotEmpty()) {
+                        com.molina.studio.settings.SettingsNav.openDownloads = true
+                        selected = Tab.Settings.ordinal
+                    }
                 }
                 // Ketuk notifikasi Unduhan: pindah ke tab Unduhan.
                 androidx.compose.runtime.LaunchedEffect(com.molina.studio.download.DownloadNav.openTab) {
                     if (com.molina.studio.download.DownloadNav.openTab) {
-                        selected = Tab.Download.ordinal
+                        com.molina.studio.settings.SettingsNav.openDownloads = true
+                        selected = Tab.Settings.ordinal
                         com.molina.studio.download.DownloadNav.openTab = false
                     }
                 }
@@ -206,13 +209,10 @@ class MainActivity : ComponentActivity() {
                 val dl by com.molina.studio.download.DownloadRunner.state.collectAsState()
                 var dlWasRunning by remember { mutableStateOf(dl.running) }
                 androidx.compose.runtime.LaunchedEffect(dl.running) {
-                    if (dlWasRunning && !dl.running && selected != Tab.Download.ordinal) {
+                    if (dlWasRunning && !dl.running && !com.molina.studio.download.DownloadNav.visible) {
                         com.molina.studio.download.DownloadNav.unseen = true
                     }
                     dlWasRunning = dl.running
-                }
-                androidx.compose.runtime.LaunchedEffect(selected) {
-                    if (selected == Tab.Download.ordinal) com.molina.studio.download.DownloadNav.unseen = false
                 }
                 val htmlWebView by com.molina.studio.code.CodePrefs.htmlWebView.collectAsState()
                 SideEffect { codeSession.htmlWebView = htmlWebView }
@@ -236,7 +236,7 @@ class MainActivity : ComponentActivity() {
                                             selected = selected == i,
                                             onClick = { selected = i },
                                             icon = {
-                                                if (tab == Tab.Download && (dl.running || com.molina.studio.download.DownloadNav.unseen)) {
+                                                if (tab == Tab.Settings && (dl.running || com.molina.studio.download.DownloadNav.unseen)) {
                                                     androidx.compose.material3.BadgedBox(
                                                         badge = {
                                                             androidx.compose.material3.Badge(
@@ -277,10 +277,6 @@ class MainActivity : ComponentActivity() {
                         }
                         Tab.Mpv -> {
                             com.molina.studio.cinema.CinemaHome(Modifier.fillMaxSize().padding(pad))
-                            return@Scaffold
-                        }
-                        Tab.Download -> {
-                            com.molina.studio.download.UnduhanScreen(Modifier.fillMaxSize().padding(pad))
                             return@Scaffold
                         }
                         Tab.Settings -> {

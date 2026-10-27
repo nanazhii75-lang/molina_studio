@@ -54,15 +54,16 @@ import kotlin.math.roundToInt
 /** Permintaan navigasi dari luar Settings (mis. tombol ⚙ di drawer sesi terminal). */
 object SettingsNav {
     var openTerminal by mutableStateOf(false)
+    var openDownloads by mutableStateOf(false)
 }
 
 private enum class Page {
-    Home, System, Terminal, Debugging, TerminalIO, TerminalView, Tampilan, CrashReports, About, Log, Stream, Network, Scripts, Packages, Code, Files
+    Home, System, Terminal, Debugging, TerminalIO, TerminalView, Tampilan, CrashReports, About, Log, Stream, Network, Scripts, Packages, Code, Files, Downloads
 }
 
 private fun parentOf(p: Page): Page? = when (p) {
     Page.Home -> null
-    Page.System, Page.Scripts, Page.Packages, Page.Files -> Page.Home
+    Page.System, Page.Scripts, Page.Packages, Page.Files, Page.Downloads -> Page.Home
     Page.Stream -> Page.Packages
     Page.Debugging, Page.TerminalIO, Page.TerminalView, Page.Tampilan -> Page.Terminal
     Page.CrashReports -> Page.Debugging
@@ -86,6 +87,7 @@ private fun titleOf(p: Page): String = when (p) {
     Page.Code -> "Editor Code"
     Page.Packages -> "Paket"
     Page.Files -> "Berkas"
+    Page.Downloads -> "Unduhan"
 }
 
 private fun trailOf(p: Page): List<Page> = generateSequence(p) { parentOf(it) }.toList().reversed()
@@ -119,6 +121,7 @@ private val INDEX = listOf(
     Hit("Daftar tool terpasang", "Deteksi alat Molina di Debian beserta versinya", Page.System),
     Hit("Berkas", "Penjelajah Molina: telusuri, salin, pindah, kompres, hapus, kirim path ke Terminal", Page.Files),
     Hit("Penjelajah Molina", "Kelola berkas: salin, tempel, pindah, ubah nama, ZIP, favorit, properti", Page.Files),
+    Hit("Unduhan", "Unduh video atau audio dari URL: antrean, riwayat, ulangi yang gagal", Page.Downloads),
     Hit("About", "Versi dan lisensi", Page.About)
 )
 
@@ -153,6 +156,18 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             open(Page.Terminal)
             SettingsNav.openTerminal = false
         }
+    }
+    LaunchedEffect(SettingsNav.openDownloads) {
+        if (SettingsNav.openDownloads) {
+            open(Page.Downloads)
+            SettingsNav.openDownloads = false
+        }
+    }
+    // Penanda untuk lencana tab Settings: halaman Unduhan sedang dilihat.
+    androidx.compose.runtime.DisposableEffect(page == Page.Downloads) {
+        com.molina.studio.download.DownloadNav.visible = page == Page.Downloads
+        if (page == Page.Downloads) com.molina.studio.download.DownloadNav.unseen = false
+        onDispose { com.molina.studio.download.DownloadNav.visible = false }
     }
 
     val trail = trailOf(page)
@@ -195,6 +210,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
         when {
             searching -> SearchResults(query) { open(it) }
             page == Page.Log -> LogScreen(Modifier.fillMaxSize())
+            page == Page.Downloads -> com.molina.studio.download.UnduhanScreen(Modifier.fillMaxSize())
             else -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
                 W7Heading(if (page == Page.Home) "Sesuaikan setelan Molina" else titleOf(page))
                 when (page) {
@@ -222,6 +238,12 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                             title = "Berkas",
                             links = emptyList(),
                             onOpen = { open(Page.Files) }
+                        )
+                        W7CategoryTile(
+                            icon = { W7IconDownloadBig(52.dp) },
+                            title = "Unduhan",
+                            links = emptyList(),
+                            onOpen = { open(Page.Downloads) }
                         )
                     }
                     Page.System -> {
@@ -252,6 +274,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                     Page.CrashReports -> CrashReportsPage()
                     Page.About -> AboutPage()
                     Page.Log -> {}
+                    Page.Downloads -> {}
                     Page.Stream -> StreamEnginePage()
                     Page.Network -> NetworkSecurityPage()
                     Page.Scripts -> ScriptsPage()

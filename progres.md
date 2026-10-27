@@ -972,3 +972,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Verifikasi lokal: python3 scripts/telemetry_gate.py lulus (exit 0)
 - [x] Dampak: hanya scripts/telemetry_gate.py. Gradle, Manifest, JNI mpv tidak disentuh
 - [ ] Menunggu GitHub Actions hijau
+
+## 2026-10-27 - Unduhan pindah ke Settings, gaya Win7 hitam pekat [UI-DL-IN-SETTINGS]
+- [x] refactor(ui): tab Unduhan dihapus dari bilah bawah; Settings beranda mendapat ubin "Unduhan" (Page.Downloads) sejajar Sistem/Script execution/Paket/Berkas, dan masuk indeks pencarian
+- [x] feat(ui): UnduhanScreen + DownloadHistoryUi memakai palet W7D (hitam pekat, aksen biru Aero W7D.Accent); judul/garis emas dibuang (breadcrumb Settings sudah menjadi judul)
+- [x] refactor(nav): DownloadNav.visible baru; kartu Cinema dan notifikasi Unduhan membuka Settings > Unduhan lewat SettingsNav.openDownloads; lencana pindah ke tab Settings
+- [x] Dampak: :app (MainActivity, SettingsScreen, Win7SettingsUi, DownloadNav, UnduhanScreen, DownloadHistoryUi, DownloadTileIcon.kt baru). Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah-sedang (when(page) Settings kini punya Page.Downloads; LazyColumn Unduhan dipasang langsung tanpa verticalScroll induk)
+- [ ] uji perangkat (Android 8): bilah bawah 4 tab; Settings > Unduhan terbuka dan tombol kembali ke beranda; ketuk ↓ di kartu Cinema membuka Settings > Unduhan dengan URL terisi; mulai unduhan lalu pindah tab: lencana emas di Settings, hijau saat selesai; ketuk notifikasi membuka Settings > Unduhan; cari "unduh" di kotak cari
