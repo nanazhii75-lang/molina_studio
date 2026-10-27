@@ -115,6 +115,16 @@ fun UnduhanScreen(modifier: Modifier = Modifier) {
     val doneFiles = sess.items.flatMap { it.files }
     val hasResult = run.running || sess.items.isNotEmpty() || sess.fatalError != null || run.exitCode != null
     val count = DownloadUrls.split(urls).size
+    // [win7-summary2] kecepatan total item aktif, sisa waktu terlama, dan progres keseluruhan sesi.
+    val liveItems = sess.items.filter { it.status == DownloadItemStatus.RUNNING }
+    val liveSpeed = liveItems.sumOf { it.streams.values.firstOrNull { s -> s.speedBps != null }?.speedBps ?: 0L }
+    val liveEta = liveItems.mapNotNull { it.streams.values.firstOrNull { s -> s.etaSec != null }?.etaSec }.maxOrNull()
+    val overall = if (sess.items.isEmpty()) 0f else sess.items.map { x ->
+        when (x.status) {
+            DownloadItemStatus.DONE, DownloadItemStatus.FAILED -> 1f
+            else -> ((DownloadReducer.overallPercent(x) ?: 0.0) / 100.0).toFloat().coerceIn(0f, 1f)
+        }
+    }.average().toFloat()
 
     // URL kiriman dari layar lain (kartu hasil pencarian Cinema): digabung ke kolom, duplikat dilewati.
     val pending = DownloadNav.pendingUrls
@@ -193,6 +203,20 @@ fun UnduhanScreen(modifier: Modifier = Modifier) {
                             TextButton(onClick = { urls = ""; error = null }) { Text("Hapus", color = W7D.TextDim) }
                         }
                     }
+                    // [win7-preset] preset cepat; pilihan tetap bisa disesuaikan lewat chip di bawahnya.
+                    Text("Preset", color = W7D.TextDim, fontSize = 12.sp)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Chip("Cinema", video && height == 1080 && videoExt == "mp4", !run.running) {
+                            video = true; height = 1080; videoExt = "mp4"
+                        }
+                        Chip("Hemat", video && height == 480 && videoExt == "mp4", !run.running) {
+                            video = true; height = 480; videoExt = "mp4"
+                        }
+                        Chip("Musik", !video && audioFmt == "mp3" && bitrate == "320k", !run.running) {
+                            video = false; audioFmt = "mp3"; bitrate = "320k"
+                        }
+                    }
+                    Text("Cinema = 1080p MP4 · Hemat = 480p MP4 · Musik = MP3 320k", color = W7D.TextDim, fontSize = 11.sp)
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Chip("Video", video, !run.running) { video = true }
@@ -258,7 +282,7 @@ fun UnduhanScreen(modifier: Modifier = Modifier) {
             }
         }
         if (hasResult) {
-            item { SessionSummary(run.running, sess.ok, sess.failed, sess.cancelled, sess.finished, sess.items.size) }
+            item { SessionSummary(run.running, sess.ok, sess.failed, sess.cancelled, sess.finished, sess.items.size, liveSpeed, liveEta, overall) }
             sess.fatalError?.let { fe -> item { Text(fe, color = MolinaTheme.Bad, fontSize = 13.sp) } }
             if (sess.fatalError == null && !sess.finished && !run.running && run.exitCode != null && run.exitCode != 0) {
                 items(run.stderrTail.takeLast(5)) { l ->
@@ -326,7 +350,10 @@ private fun Chip(label: String, selected: Boolean, enabled: Boolean, onClick: ()
 }
 
 @Composable
-private fun SessionSummary(running: Boolean, ok: Int, failed: Int, cancelled: Boolean, finished: Boolean, total: Int) {
+private fun SessionSummary(
+    running: Boolean, ok: Int, failed: Int, cancelled: Boolean, finished: Boolean, total: Int,
+    speedBps: Long, etaSec: Long?, overall: Float,
+) { // [win7-summary2-fn]
     val text = when {
         running && total == 0 -> "Menyiapkan unduhan…"
         running -> "Berjalan: $total item"
@@ -340,13 +367,26 @@ private fun SessionSummary(running: Boolean, ok: Int, failed: Int, cancelled: Bo
         finished -> MolinaTheme.Good
         else -> W7D.TextDim
     }
-    Row(
+    Column(
         Modifier.fillMaxWidth().win7Card(dot).padding(horizontal = 12.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Box(Modifier.size(8.dp).clip(CircleShape).background(dot))
-        Spacer(Modifier.width(8.dp))
-        Text(text, color = W7D.Ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(8.dp).clip(CircleShape).background(dot))
+            Spacer(Modifier.width(8.dp))
+            Text(text, color = W7D.Ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+        }
+        if (running && total > 0) {
+            GlossBar(overall, Color(0xFF8FC4EE), Color(0xFF2D6DB5), height = 10.dp)
+            val live = buildString {
+                if (speedBps > 0L) append("Total ").append(fmtSize(speedBps)).append("/dtk")
+                if (etaSec != null) {
+                    if (length > 0) append(" · ")
+                    append("sisa ").append(fmtEta(etaSec))
+                }
+            }
+            if (live.isNotEmpty()) Text(live, color = W7D.TextDim, fontSize = 12.sp)
+        }
     }
 }
 

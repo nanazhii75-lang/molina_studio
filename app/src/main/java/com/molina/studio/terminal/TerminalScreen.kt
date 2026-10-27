@@ -93,6 +93,7 @@ private fun TerminalContent(modifier: Modifier, onOpenSettings: () -> Unit) {
 
     Box(modifier) {
     Column(Modifier.fillMaxSize()) {
+        TerminalHeader(onOpenSettings)
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
             if (rootfsState !is RootfsState.Ready) {
                 SetupPanel(
@@ -106,14 +107,20 @@ private fun TerminalContent(modifier: Modifier, onOpenSettings: () -> Unit) {
                 // Terminal Margin Adjustment: pusatkan kolom penuh, sisa lebar dibagi dua sisi.
                 val cell = remember(fontSp) { cellWidthPx(context, fontSp) }
                 val marginDp = if (TerminalPrefs.marginAdjustment && cell > 0f) {
-                    val w = constraints.maxWidth.toFloat()
+                    val w = constraints.maxWidth.toFloat() - 2f * with(density) { 6.dp.toPx() } // bingkai viewport 4dp + 1dp + 1dp
                     val rest = w - floor(w / cell) * cell
                     with(density) { (rest / 2f).toDp() }
                 } else 0.dp
                 AndroidView(
-                    modifier = Modifier.fillMaxSize().padding(horizontal = marginDp),
+                    modifier = Modifier.fillMaxSize()
+                        .padding(4.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .border(1.dp, Color(0xFF2E4A68), RoundedCornerShape(6.dp))
+                        .padding(1.dp)
+                        .padding(horizontal = marginDp),
                     factory = { ctx -> createTerminalView(ctx, mods) },
                     update = { v ->
+                        v.keepScreenOn = TerminalUi.keepScreenOn
                         val sp = TerminalPrefs.fontSp
                         if (v.tag != sp) {
                             v.tag = sp
