@@ -124,6 +124,7 @@ class MainActivity : ComponentActivity() {
 
     /** Ketuk notifikasi Unduhan membuka tab Unduhan. Extra dibuang agar tidak terulang saat Activity dibuat ulang. */
     private fun handleOpenTabIntent(i: android.content.Intent?) {
+        if (i?.component?.className?.endsWith(".CinemaLauncher") == true) com.molina.studio.cinema.CinemaNav.openTab = true
         val key = com.molina.studio.download.DownloadService.EXTRA_OPEN_TAB
         if (i?.getStringExtra(key) == com.molina.studio.download.DownloadService.OPEN_TAB_DOWNLOADS) {
             i.removeExtra(key)
@@ -159,6 +160,7 @@ class MainActivity : ComponentActivity() {
                     ).also {
                         codeSessionRef = it
                         it.scriptExecutor = com.molina.studio.code.ProotScriptExecutor(applicationContext)
+                        it.terminalSink = { text, execute -> com.molina.studio.code.CodeTerminalBridge.deliver(text, execute) }
                         it.scriptSink = com.molina.code.run.ScriptSink { share ->
                             val r = com.molina.studio.code.ScriptStore.upsertFromEditor(share)
                             com.molina.code.run.ScriptSendResult(r.ok, r.message)
@@ -203,6 +205,13 @@ class MainActivity : ComponentActivity() {
                         com.molina.studio.settings.SettingsNav.openDownloads = true
                         selected = Tab.Settings.ordinal
                         com.molina.studio.download.DownloadNav.openTab = false
+                    }
+                }
+                // Ikon launcher Molina Cinema: pindah ke tab Cinema.
+                androidx.compose.runtime.LaunchedEffect(com.molina.studio.cinema.CinemaNav.openTab) {
+                    if (com.molina.studio.cinema.CinemaNav.openTab) {
+                        selected = Tab.Mpv.ordinal
+                        com.molina.studio.cinema.CinemaNav.openTab = false
                     }
                 }
                 // Lencana tab Unduhan: emas saat berjalan, hijau saat selesai dan belum dilihat.

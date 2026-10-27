@@ -104,6 +104,14 @@ internal fun OverflowMenu(session: CodeSession, onDismiss: () -> Unit) {
                 session.sendToScripts()
                 onDismiss()
             },
+            MenuEntry("Sisipkan ke Terminal", enabled = hasText && session.terminalSink != null) {
+                session.sendToTerminal(false)
+                onDismiss()
+            },
+            MenuEntry("Jalankan di Terminal", enabled = hasText && session.terminalSink != null) {
+                session.sendToTerminal(true)
+                onDismiss()
+            },
             MenuEntry("Ekspor"),
             MenuEntry("Konversi berkas...")
         ),

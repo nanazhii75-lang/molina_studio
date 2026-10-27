@@ -250,6 +250,29 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
     /** Dipasang :app. Null = menu \"Kirim ke Script Execution\" redup. */
     var scriptSink: ScriptSink? = null
 
+    /** Dipasang :app. (teks, jalankan) -> pesan galat atau null. Null = menu Terminal redup. */
+    var terminalSink: ((String, Boolean) -> String?)? = null
+
+    /** Teks seleksi aktif, atau baris kursor bila tidak ada seleksi. Kosong bila tidak ada editor. */
+    internal fun selectionOrLine(): String {
+        val ed = active?.editor ?: return ""
+        return try {
+            val c = ed.cursor
+            if (c.isSelected) ed.text.substring(c.left, c.right) else ed.text.getLineString(c.leftLine)
+        } catch (e: Exception) {
+            ""
+        }
+    }
+
+    /** Kirim seleksi (atau baris kursor) ke Terminal; [execute] true = langsung Enter. */
+    fun sendToTerminal(execute: Boolean) {
+        val sink = terminalSink
+        if (sink == null) { toast("Terminal belum tersedia"); return }
+        val text = selectionOrLine().trimEnd('\n', '\r')
+        if (text.isBlank()) { toast("Tidak ada teks untuk dikirim"); return }
+        sink(text, execute)?.let { toast(it) }
+    }
+
     val active: EditorTab?
         get() = tabs.firstOrNull { it.id == activeId }
 

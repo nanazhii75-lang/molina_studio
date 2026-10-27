@@ -20,12 +20,26 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTask"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- Ikon launcher kedua: Molina Cinema membuka tab Cinema. MainActivity singleTask agar tidak ada dua instance. -->
+        <activity-alias
+            android:name=".CinemaLauncher"
+            android:exported="true"
+            android:icon="@mipmap/ic_cinema_launcher"
+            android:label="@string/cinema_launcher_label"
+            android:roundIcon="@mipmap/ic_cinema_launcher_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
         <service
             android:name=".terminal.TerminalService"
             android:exported="false" />
