@@ -163,6 +163,36 @@ internal object MolinaExplorer {
         return true
     }
 
+    /** Buka berkas dengan aplikasi lain lewat chooser sistem (FileProvider, izin baca sementara). */
+    fun openWith(ctx: Context, f: File): Boolean {
+        if (!f.isFile || !f.canRead()) {
+            Toast.makeText(ctx, "Berkas tidak bisa dibaca.", Toast.LENGTH_SHORT).show()
+            return false
+        }
+        return try {
+            val uri = androidx.core.content.FileProvider.getUriForFile(ctx, ctx.packageName + ".fileprovider", f)
+            val mime = android.webkit.MimeTypeMap.getSingleton()
+                .getMimeTypeFromExtension(f.extension.lowercase()) ?: "*/*"
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, mime)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            val chooser = Intent.createChooser(intent, "Buka dengan")
+            if (ctx !is android.app.Activity) chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            ctx.startActivity(chooser)
+            true
+        } catch (e: android.content.ActivityNotFoundException) {
+            Toast.makeText(ctx, "Tidak ada aplikasi yang bisa membuka jenis berkas ini.", Toast.LENGTH_LONG).show()
+            false
+        } catch (e: IllegalArgumentException) {
+            Toast.makeText(ctx, "Lokasi berkas ini tidak bisa dibuka dengan aplikasi lain.", Toast.LENGTH_LONG).show()
+            false
+        } catch (e: Exception) {
+            Toast.makeText(ctx, "Gagal membuka: " + (e.message ?: "tidak diketahui"), Toast.LENGTH_LONG).show()
+            false
+        }
+    }
+
     /** Bagikan berkas (bukan folder) lewat share sheet Android memakai FileProvider. */
     fun share(ctx: Context, files: List<File>): Boolean {
         val fs = files.filter { it.isFile && it.canRead() }.take(50)

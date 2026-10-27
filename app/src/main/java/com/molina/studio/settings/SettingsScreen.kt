@@ -201,6 +201,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                 }
             },
             onShare = { files -> MolinaExplorer.share(aptCtx, files) },
+            onOpenWith = { f -> MolinaExplorer.openWith(aptCtx, f) },
             onInsertPaths = { fs -> MolinaExplorer.insertPaths(aptCtx, fs) },
             isVisibleInDebian = { f -> MolinaExplorer.visibleInDebian(f) },
             onPlay = { files -> MolinaExplorer.play(aptCtx, files) },

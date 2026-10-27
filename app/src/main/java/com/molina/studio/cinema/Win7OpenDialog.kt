@@ -4,6 +4,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
@@ -108,7 +109,7 @@ private sealed class W7Sheet {
     class Delete(val files: List<File>, val permanent: Boolean = false) : W7Sheet()
     object NewDir : W7Sheet()
 }
-private enum class W7Ico { PLAY, CODE, SCRIPT, COPY, CUT, PASTE, RENAME, ZIP, UNZIP, DELETE, NEWDIR, STAR, STAR_OUT, INFO, SHARE }
+private enum class W7Ico { PLAY, CODE, SCRIPT, COPY, CUT, PASTE, RENAME, ZIP, UNZIP, DELETE, NEWDIR, STAR, STAR_OUT, INFO, SHARE, OPEN_WITH }
 
 private fun w7Names(l: List<File>): String = if (l.size == 1) l[0].name else l.size.toString() + " item"
 private fun w7StemEnd(name: String, dir: Boolean): Int =
@@ -178,6 +179,7 @@ fun Win7OpenDialog(
     onCopyPath: ((File) -> Unit)? = null,
     onOpenTerminal: ((File) -> Unit)? = null,
     onShare: ((List<File>) -> Boolean)? = null,
+    onOpenWith: ((File) -> Boolean)? = null,
     onInsertPaths: ((List<File>) -> Unit)? = null,
     isVisibleInDebian: ((File) -> Boolean)? = null,
     pickFolder: Boolean = false,
@@ -287,7 +289,34 @@ fun Win7OpenDialog(
 
     val roots = vols.map { it.dir.path }
     val canUp = dir.path !in roots && dir.parentFile != null
-    fun go(to: File) { dir = to; selected = null; fileName = ""; message = ""; query = ""; undo = null; if (browse) ExplorerRecent.push(ctx, to) } // [PICK-PERSIST] picked bertahan lintas folder
+    // [NAV-HISTORY] riwayat Mundur/Maju antar folder (maks. 50); tombol bulat di kiri atas = Mundur, bila kosong = Naik
+    val backStack = remember { mutableStateListOf<String>() }
+    val fwdStack = remember { mutableStateListOf<String>() }
+    fun go(to: File) {
+        if (to.path != dir.path) {
+            backStack.add(dir.path)
+            if (backStack.size > 50) backStack.removeAt(0)
+            fwdStack.clear()
+        }
+        dir = to; selected = null; fileName = ""; message = ""; query = ""; undo = null; if (browse) ExplorerRecent.push(ctx, to)
+    } // [PICK-PERSIST] picked bertahan lintas folder
+    fun jump(to: File) {
+        dir = to; selected = null; fileName = ""; message = ""; query = ""; undo = null; if (browse) ExplorerRecent.push(ctx, to)
+    }
+    fun goBack(): Boolean {
+        while (backStack.isNotEmpty()) {
+            val p = File(backStack.removeAt(backStack.size - 1))
+            if (p.isDirectory) { fwdStack.add(dir.path); jump(p); return true }
+        }
+        return false
+    }
+    fun goForward(): Boolean {
+        while (fwdStack.isNotEmpty()) {
+            val p = File(fwdStack.removeAt(fwdStack.size - 1))
+            if (p.isDirectory) { backStack.add(dir.path); jump(p); return true }
+        }
+        return false
+    }
     fun goUp(): Boolean {
         val parent = dir.parentFile
         if (!canUp || parent == null) return false
@@ -305,6 +334,7 @@ fun Win7OpenDialog(
             }
             f.extension.equals("zip", ignoreCase = true) -> sheet = W7Sheet.ZipView(f)
             code != null && ExplorerList.looksText(f) -> code(listOf(f))
+            onOpenWith != null && f.isFile -> onOpenWith?.invoke(f)
             else -> say("Tidak ada aplikasi Molina untuk membuka jenis berkas ini. Pakai menu Alat untuk menyalin atau mengompres.")
         }
     }
@@ -427,7 +457,7 @@ fun Win7OpenDialog(
             }
             Column(Modifier.weight(1f).fillMaxWidth().border(1.dp, Win7.FrameLine).background(Win7.Face)) {
                 Row(Modifier.fillMaxWidth().padding(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Win7BackOrb(canUp) { goUp() }
+                    Win7BackOrb(canUp || backStack.isNotEmpty()) { if (!goBack()) goUp() }
                     Spacer(Modifier.width(6.dp))
                     Row(
                         Modifier.weight(1f).height(26.dp).background(Win7.Input)
@@ -464,6 +494,7 @@ fun Win7OpenDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     W7Cmd("Naik", canUp) { goUp() }
+                    W7Cmd("Maju", fwdStack.isNotEmpty()) { goForward() }
                     W7Cmd("Segarkan", true) { tick++ }
                     Box {
                         W7Cmd("Urut \u25BE", true) { sortOpen = !sortOpen }
@@ -544,6 +575,10 @@ fun Win7OpenDialog(
                                             val r = withContext(Dispatchers.IO) { fn(one) }
                                             say(r.second, r.first)
                                         }
+                                    }
+                                    W7MenuItem(W7Ico.OPEN_WITH, "Buka dengan...", onOpenWith != null && one?.isFile == true) {
+                                        toolsOpen = false
+                                        one?.let { onOpenWith?.invoke(it) }
                                     }
                                     W7MenuItem(W7Ico.SHARE, "Bagikan", onShare != null && tg.any { it.isFile }) {
                                         toolsOpen = false
@@ -1046,6 +1081,10 @@ private fun W7MenuIcon(ico: W7Ico, enabled: Boolean) {
             W7Ico.SCRIPT -> {
                 box(1.5f, 2.5f, 13f, 11f)
                 line(4.5f, 6f, 7f, 8.2f); line(7f, 8.2f, 4.5f, 10.5f); line(8.5f, 10.5f, 11.5f, 10.5f)
+            }
+            W7Ico.OPEN_WITH -> {
+                line(2f, 4f, 2f, 13f); line(2f, 13f, 11f, 13f); line(11f, 13f, 11f, 9f); line(2f, 4f, 7f, 4f)
+                line(8f, 8f, 14f, 2f); line(10f, 2f, 14f, 2f); line(14f, 2f, 14f, 6f)
             }
             W7Ico.SHARE -> {
                 drawCircle(c, radius = 1.8f * u, center = Offset(12f * u, 3.5f * u), style = st)

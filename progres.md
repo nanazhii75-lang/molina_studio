@@ -1022,3 +1022,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] uji perangkat: Settings > Sistem > Penyimpanan: angka muncul tanpa macet UI; apt install paket lalu Bersihkan cache apt (angka turun, paket tetap jalan); Bersihkan cache aplikasi; hapus berkas di Berkas lalu Kosongkan Recycle Bin (angka Recycle Bin menjadi 0); sesi Terminal tetap normal; pencarian "penyimpanan" menemukan halaman
 - [ ] CATATAN: tahap B peta jalan (Penyimpanan dan Folder Molina) tumpang tindih dengan halaman ini; sisa B = lokasi default unduhan/konversi/trash
 - [ ] LANGKAH BERIKUT: cadangkan/pulihkan setelan, profil Terminal
+
+## 2026-10-27 - Penjelajah: Buka dengan aplikasi lain, riwayat Mundur/Maju [EXPLORER-OPENWITH-HISTORY]
+- [x] feat(explorer): berkas jenis tak dikenal (PDF, gambar, APK, dokumen) yang diketuk ulang kini dibuka lewat chooser sistem (ACTION_VIEW + FileProvider yang sudah ada), bukan lagi pesan "Tidak ada aplikasi Molina"; menu Alat > "Buka dengan..." untuk satu berkas apa pun. ZIP, media (mpv), dan teks (Code) tetap memakai jalur Molina
+- [x] feat(explorer): FileProvider kini juga mencakup beranda Debian (files/rootfs/debian/root) sehingga Bagikan dan Buka dengan bekerja untuk berkas di akar "Debian"
+- [x] feat(explorer): riwayat Mundur/Maju (maks. 50): tombol bulat kiri atas = Mundur bila ada riwayat, jika tidak Naik; perintah "Maju" di bilah alat; folder yang sudah hilang dilewati
+- [x] Dampak: cinema/Win7OpenDialog.kt, settings/ExplorerBridge.kt, settings/SettingsScreen.kt, res/xml/molina_file_paths.xml. AndroidManifest, Gradle, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah-sedang (when baru di smartOpen, fungsi lokal go/goBack/goForward memakai mutableStateListOf)
+- [ ] uji perangkat: ketuk PDF/gambar dua kali > chooser muncul; APK > installer; berkas tanpa aplikasi > toast; Alat > Buka dengan... pada satu berkas; berkas di akar Debian > Buka dengan dan Bagikan; masuk folder A > B > C lewat ketukan, tombol bulat kembali ke B lalu A; Maju kembali ke B; lompat lewat Favorit/Terakhir lalu Mundur kembali ke folder sebelumnya; hapus folder lalu Mundur melewati folder yang hilang
+- [ ] LANGKAH BERIKUT: daftar "Terbaru" (sudah di peta jalan sesi lain), lalu Folder Molina (lokasi default) di Penyimpanan
