@@ -103,7 +103,7 @@ fun SessionDrawer(open: Boolean, onClose: () -> Unit, onOpenSettings: () -> Unit
                 TerminalSessions.sessions.forEachIndexed { i, s ->
                     val selected = i == TerminalSessions.currentIndex
                     val title = remember(tick, s) {
-                        s.title?.trim()?.takeIf { it.isNotEmpty() } ?: "Debian"
+                        TerminalSessions.labelOf(s) ?: s.title?.trim()?.takeIf { it.isNotEmpty() } ?: "Debian"
                     }
                     Row(
                         Modifier.fillMaxWidth()

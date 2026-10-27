@@ -861,3 +861,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI). Risiko: sedang (Manifest provider baru, parameter composable berubah)
 - [ ] uji perangkat: pilih folder > Buka Terminal (prompt di folder itu, tab pindah, sesi lama utuh); pilih berkas > Buka Terminal (folder induk); folder di luar Debian > toast penjelasan; 5 sesi penuh > cd di sesi aktif; Alat > Bagikan 1 berkas ke aplikasi lain; Bagikan 3 berkas; pilih folder > Bagikan nonaktif; berkas di kartu SD > toast "di luar penyimpanan internal"
 - [ ] LANGKAH BERIKUT: ekstrak 7z/tar.gz, jelajah isi ZIP, riwayat folder
+
+## 2026-10-27 - Penjelajah: aksi cepat, ikon >_, nama sesi [EXPLORER-QUICKACT-LABEL]
+- [x] feat(explorer): tombol bawah kini Aksi cepat kontekstual | Sisipkan | >_ Terminal. Aksi cepat: media = Putar (mpv), berkas teks = Edit (Code), selain itu = Properti. "Salin path" pindah ke menu Alat
+- [x] feat(ui): Win7Button punya parameter accent; tombol Terminal berikon >_ hijau (senada tab Terminal)
+- [x] feat(term): sesi yang dibuka dari Penjelajah bernama folder tujuan di drawer sesi ("[3] molina-studio"); sesi biasa tetap memakai judul shell atau "Debian"
+- [x] Dampak: Win7Aero.kt, Win7OpenDialog.kt, TerminalSessions.kt, SessionDrawer.kt, ExplorerBridge.kt. Manifest, Gradle, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah-sedang (parameter composable baru, referensi `sheet`/`scope` di baris tombol)
+- [ ] uji perangkat: pilih video > tombol "Putar"; pilih .sh/.txt > "Edit" membuka Code; pilih folder atau berkas lain > "Properti"; Alat > Salin path; tombol ">_ Terminal" tidak terpotong; Terminal dari folder > drawer menampilkan nama folder; "Sisipkan (3)" pada seleksi banyak masih muat
+- [ ] LANGKAH BERIKUT: riwayat folder (5 terakhir) di Favorit

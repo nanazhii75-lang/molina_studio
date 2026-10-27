@@ -50,6 +50,11 @@ object TerminalSessions {
     /** Lingkup storage saat sesi dibuat: bind PRoot tetap selama sesi hidup, walau setelan berubah. */
     private val fullAccessBySession = java.util.Collections.synchronizedMap(java.util.WeakHashMap<TerminalSession, Boolean>())
 
+    /** Nama sesi dari tempat pembukaannya (mis. folder dari Penjelajah); null = tidak ada. */
+    private val labels = java.util.Collections.synchronizedMap(java.util.WeakHashMap<TerminalSession, String>())
+
+    fun labelOf(s: TerminalSession?): String? = if (s == null) null else labels[s]
+
     /** true/false = sesi dibuat dengan/tanpa Akses penyimpanan penuh; null = tidak diketahui. */
     fun fullAccessOf(s: TerminalSession?): Boolean? = if (s == null) null else fullAccessBySession[s]
 
@@ -75,11 +80,12 @@ object TerminalSessions {
 
     /** Sesi baru (NEW SESSION). null bila sudah mencapai batas [MAX_SESSIONS]. */
     @Synchronized
-    fun newSession(context: Context, guestCwd: String? = null): TerminalSession? {
+    fun newSession(context: Context, guestCwd: String? = null, label: String? = null): TerminalSession? {
         if (!canAdd()) return null
         val app = context.applicationContext
         appContext = app
         val s = debianShell(app, guestCwd)
+        if (!label.isNullOrBlank()) labels[s] = label.trim().take(40)
         sessions.add(s)
         select(sessions.lastIndex)
         LogBus.log("terminal", LogLevel.Info, "session", "Sesi Debian [${sessions.size}] dimulai")

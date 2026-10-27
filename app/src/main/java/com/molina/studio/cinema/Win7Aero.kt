@@ -59,6 +59,7 @@ internal fun Win7Button(
     modifier: Modifier = Modifier,
     isDefault: Boolean = false,
     enabled: Boolean = true,
+    accent: Color? = null,
     onClick: () -> Unit
 ) {
     val shape = RoundedCornerShape(3.dp)
@@ -70,7 +71,7 @@ internal fun Win7Button(
             .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 14.dp),
         Alignment.Center
-    ) { Text(label, color = if (enabled) Win7.Ink else Win7.TextDim, fontSize = 13.sp) }
+    ) { Text(label, color = if (enabled) (accent ?: Win7.Ink) else Win7.TextDim, fontSize = 13.sp) }
 }
 
 @Composable

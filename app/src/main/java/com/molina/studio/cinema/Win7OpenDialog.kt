@@ -580,6 +580,10 @@ fun Win7OpenDialog(
                                             favTick++
                                         }
                                     }
+                                    W7MenuItem(W7Ico.COPY, "Salin path", onCopyPath != null && (one != null || tg.isEmpty())) {
+                                        toolsOpen = false
+                                        onCopyPath?.invoke(one ?: dir)
+                                    }
                                     W7MenuItem(W7Ico.INFO, "Properti", true) {
                                         toolsOpen = false
                                         sheet = W7Sheet.Info(if (tg.isEmpty()) listOf(dir) else tg)
@@ -679,13 +683,31 @@ fun Win7OpenDialog(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Win7Button("Salin path", modifier = Modifier.weight(1f), enabled = onCopyPath != null, onClick = { onCopyPath?.invoke(target) })
                             val insertList = if (multi && picked.isNotEmpty()) picked.map { File(it) } else listOf(target)
+                            // Aksi cepat mengikuti seleksi: media -> Putar, berkas teks -> Edit, selain itu -> Properti
+                            val qMedia = onPlay != null && insertList.isNotEmpty() &&
+                                insertList.all { it.isFile && it.extension.lowercase() in W7_MEDIA }
+                            val qText = !qMedia && onOpenInCode != null && insertList.size == 1 &&
+                                insertList[0].isFile && ExplorerList.looksText(insertList[0])
+                            Win7Button(
+                                if (qMedia) "Putar" else if (qText) "Edit" else "Properti",
+                                modifier = Modifier.weight(1f),
+                                onClick = {
+                                    if (qMedia) {
+                                        val fn = onPlay
+                                        if (fn != null) scope.launch {
+                                            val ok = fn(insertList)
+                                            say(if (ok) "Memutar di mpv: " + w7Names(insertList) else "Tidak ada media yang bisa diputar", ok)
+                                        }
+                                    } else if (qText) onOpenInCode?.invoke(insertList)
+                                    else sheet = W7Sheet.Info(insertList)
+                                }
+                            )
                             Win7Button(
                                 "Sisipkan" + (if (insertList.size > 1) " (" + insertList.size + ")" else ""),
                                 modifier = Modifier.weight(1f), enabled = onInsertPaths != null, onClick = { onInsertPaths?.invoke(insertList) }
                             )
-                            Win7Button("Buka Terminal", modifier = Modifier.weight(1.3f), enabled = onOpenTerminal != null, onClick = { onOpenTerminal?.invoke(target) })
+                            Win7Button(">_ Terminal", modifier = Modifier.weight(1.2f), accent = Color(0xFF2E7D4F), enabled = onOpenTerminal != null, onClick = { onOpenTerminal?.invoke(target) })
                         }
                     }
                     if (busy) Row(Modifier.fillMaxWidth().padding(bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {

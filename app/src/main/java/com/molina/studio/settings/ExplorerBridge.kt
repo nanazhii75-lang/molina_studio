@@ -137,7 +137,7 @@ internal object MolinaExplorer {
             return false
         }
         val target = debianPath(dir)
-        val created = try { TerminalSessions.newSession(ctx, target) } catch (e: Exception) { null }
+        val created = try { TerminalSessions.newSession(ctx, target, target.substringAfterLast('/').ifEmpty { "sdcard" }) } catch (e: Exception) { null }
         if (created != null) {
             Toast.makeText(ctx, "Terminal dibuka di " + target, Toast.LENGTH_SHORT).show()
         } else if (TerminalSessions.currentSession?.emulator != null && visibleInDebian(dir)) {
