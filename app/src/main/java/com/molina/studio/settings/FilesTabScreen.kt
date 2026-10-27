@@ -1,7 +1,7 @@
 package com.molina.studio.settings
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -26,13 +26,14 @@ import com.molina.studio.cinema.Win7OpenDialog
  * layar ini menyisakan tombol untuk membukanya lagi. Dulu hidup di ubin Berkas Settings.
  */
 @Composable
-fun FilesTabScreen(modifier: Modifier = Modifier) {
+fun FilesTabScreen(modifier: Modifier = Modifier, onExit: () -> Unit = {}) {
     val ctx = LocalContext.current
     remember { MolinaExplorer.attach(ctx) }
     var show by remember { mutableStateOf(true) }
     if (show) Win7OpenDialog(
-        onDismiss = { show = false },
+        onDismiss = { show = false; onExit() },
         browse = true,
+        showClose = false,
         onCopyPath = { f -> MolinaExplorer.copyPath(ctx, f) },
         onOpenTerminal = { f -> if (MolinaExplorer.openTerminalHere(ctx, f)) show = false },
         onShare = { files -> MolinaExplorer.share(ctx, files) },
@@ -46,13 +47,8 @@ fun FilesTabScreen(modifier: Modifier = Modifier) {
         },
         onSendToScripts = { f -> MolinaExplorer.sendToScripts(f) }
     )
-    Column(modifier.verticalScroll(rememberScrollState()).padding(16.dp)) {
-        W7Heading("Berkas")
-        W7Link(
-            { Win7Folder(32.dp) }, "Penjelajah Molina",
-            "Telusuri, salin, pindah, kompres, hapus, atau kirim path ke Terminal"
-        ) { show = true }
-    }
+    // Tanpa kartu perantara: bila dialog ditutup (Back di root / pindah ke Terminal / Code), layar kosong.
+    Box(modifier)
 }
 
 /**

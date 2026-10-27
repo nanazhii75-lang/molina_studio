@@ -292,7 +292,7 @@ class MainActivity : ComponentActivity() {
                 ) { pad ->
                     when (Tab.entries[selected]) {
                         Tab.Files -> {
-                            com.molina.studio.settings.FilesTabScreen(Modifier.fillMaxSize().padding(pad))
+                            com.molina.studio.settings.FilesTabScreen(Modifier.fillMaxSize().padding(pad), onExit = { selected = Tab.Mpv.ordinal })
                             return@Scaffold
                         }
                         Tab.Mpv -> {

@@ -1197,3 +1197,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah (parameter default sebelum trailing lambda, import Canvas/geometry)
 - [ ] uji perangkat (Android 8): Settings > Terminal tanpa bilah atas; Back kembali ke beranda Settings; ikon Berkas biru tampil jelas, berubah redup saat tidak dipilih
 - [ ] LANGKAH BERIKUT: konfirmasi saat Back di Terminal bila ada proses berjalan; token warna tab di MolinaTheme
+
+## 2026-10-27 - Tab Berkas langsung membuka Penjelajah, tanpa tombol X [FILES-DIRECT-NO-CLOSE]
+- [x] refactor(files): `FilesTabScreen` tidak lagi menampilkan kartu perantara "Penjelajah Molina"; tab Berkas langsung membuka dialog explorer
+- [x] feat(files): `Win7OpenDialog` punya parameter `showClose` (default true). Tab Berkas memakai `showClose = false`, sehingga ikon X pojok kanan atas hilang; dialog lain (mpv Buka, Unduhan) tidak berubah
+- [x] feat(nav): Back di root explorer memanggil `onExit` dan kembali ke tab mpv (`MainActivity`)
+- [x] Dampak: :app saja (cinema/Win7OpenDialog, settings/FilesTabScreen, MainActivity). Gradle, Manifest, JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah (import Column tidak terpakai lagi diganti Box; import lain yang tak terpakai hanya warning)
+- [ ] uji perangkat (Android 8): tap Berkas > explorer langsung tampil tanpa kartu; tidak ada X; Back naik folder lalu di root pindah ke tab mpv; "Buka di Code" dan "Buka Terminal di sini" tetap pindah halaman; dialog Buka di mpv/Unduhan masih punya X
+- [ ] LANGKAH BERIKUT: ubah explorer dari Dialog menjadi konten tab biasa (nav bawah tetap terlihat) sehingga perpindahan tab tidak bergantung pada Back

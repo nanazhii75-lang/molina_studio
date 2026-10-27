@@ -176,6 +176,7 @@ fun Win7OpenDialog(
     onDismiss: () -> Unit,
     onPick: (File) -> Unit = {},
     browse: Boolean = false,
+    showClose: Boolean = true,
     onCopyPath: ((File) -> Unit)? = null,
     onOpenTerminal: ((File) -> Unit)? = null,
     onShare: ((List<File>) -> Boolean)? = null,
@@ -453,7 +454,7 @@ fun Win7OpenDialog(
                     Spacer(Modifier.width(6.dp))
                     Text(if (browse) "Penjelajah Molina" else if (pickFolder) "Buka folder" else "Buka", color = Win7.Ink, fontSize = 13.sp)
                 }
-                Win7Close(onDismiss)
+                if (showClose) Win7Close(onDismiss)
             }
             Column(Modifier.weight(1f).fillMaxWidth().border(1.dp, Win7.FrameLine).background(Win7.Face)) {
                 Row(Modifier.fillMaxWidth().padding(6.dp), verticalAlignment = Alignment.CenterVertically) {
