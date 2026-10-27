@@ -221,35 +221,36 @@ internal fun W7Heading(text: String) {
 /** Satu entri daftar ala Panel Kontrol: ikon, judul tautan biru, keterangan abu-abu. */
 @Composable
 internal fun W7Link(icon: @Composable () -> Unit, title: String, summary: String, onClick: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().padding(vertical = 2.dp).clip(RoundedCornerShape(3.dp))
-            .clickable(onClick = onClick).padding(8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        icon()
-        Spacer(Modifier.width(12.dp))
-        Column(Modifier.weight(1f)) {
-            Text(title, color = W7LinkColor, fontSize = 15.sp)
-            Text(summary, color = W7D.TextDim, fontSize = 12.sp)
+    Win7FrameBox(selected = false, onClick = onClick, modifier = Modifier.padding(vertical = 2.dp)) {
+        Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            icon()
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(title, color = W7LinkColor, fontSize = 15.sp)
+                Text(summary, color = W7D.TextDim, fontSize = 12.sp)
+            }
         }
     }
 }
 
-/** Ubin kategori beranda: ikon besar, judul, dan pintasan ke tugas umum. */
+/** Ubin kategori beranda Settings. [selected] = kategori terakhir dibuka: bingkai biru tipis ala Windows 7. */
 @Composable
 internal fun W7CategoryTile(
     icon: @Composable () -> Unit,
     title: String,
     links: List<Pair<String, () -> Unit>>,
-    onOpen: () -> Unit
+    onOpen: () -> Unit,
+    selected: Boolean = false
 ) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.Top) {
-        Box(Modifier.clickable(onClick = onOpen)) { icon() }
-        Spacer(Modifier.width(14.dp))
-        Column {
-            Text(title, color = W7LinkColor, fontSize = 18.sp, modifier = Modifier.clickable(onClick = onOpen))
-            links.forEach { l ->
-                Text(l.first, color = W7LinkColor, fontSize = 13.sp, modifier = Modifier.clickable(onClick = l.second).padding(top = 6.dp))
+    Win7FrameBox(selected = selected, onClick = onOpen, modifier = Modifier.padding(vertical = 4.dp)) {
+        Row(Modifier.fillMaxWidth().padding(10.dp), verticalAlignment = Alignment.Top) {
+            icon()
+            Spacer(Modifier.width(14.dp))
+            Column {
+                Text(title, color = W7LinkColor, fontSize = 18.sp)
+                links.forEach { l ->
+                    Text(l.first, color = W7LinkColor, fontSize = 13.sp, modifier = Modifier.clickable(onClick = l.second).padding(top = 6.dp))
+                }
             }
         }
     }

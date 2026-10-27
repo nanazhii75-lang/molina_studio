@@ -145,6 +145,7 @@ private val INDEX = listOf(
 fun SettingsScreen(modifier: Modifier = Modifier) {
     var page by rememberSaveable { mutableStateOf(Page.Home) }
     var query by rememberSaveable { mutableStateOf("") }
+    var lastTile by rememberSaveable { mutableStateOf<Page?>(null) }
     var showRefresh by remember { mutableStateOf(false) }
     val focus = LocalFocusManager.current
     // Lepas fokus (dan tutup keyboard) setiap kali halaman Settings berganti.
@@ -233,31 +234,36 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                             icon = { W7IconMonitor(52.dp) },
                             title = "Sistem",
                             links = emptyList(),
-                            onOpen = { open(Page.System) }
+                            selected = lastTile == Page.System,
+                            onOpen = { lastTile = Page.System; open(Page.System) }
                         )
                         W7CategoryTile(
                             icon = { W7IconScriptBig(52.dp) },
                             title = "Script execution",
                             links = emptyList(),
-                            onOpen = { open(Page.Scripts) }
+                            selected = lastTile == Page.Scripts,
+                            onOpen = { lastTile = Page.Scripts; open(Page.Scripts) }
                         )
                         W7CategoryTile(
                             icon = { W7IconPackageBig(52.dp) },
                             title = "Paket",
                             links = emptyList(),
-                            onOpen = { open(Page.Packages) }
+                            selected = lastTile == Page.Packages,
+                            onOpen = { lastTile = Page.Packages; open(Page.Packages) }
                         )
                         W7CategoryTile(
                             icon = { Win7Folder(52.dp) },
                             title = "Berkas",
                             links = emptyList(),
-                            onOpen = { open(Page.Files) }
+                            selected = lastTile == Page.Files,
+                            onOpen = { lastTile = Page.Files; open(Page.Files) }
                         )
                         W7CategoryTile(
                             icon = { W7IconDownloadBig(52.dp) },
                             title = "Unduhan",
                             links = emptyList(),
-                            onOpen = { open(Page.Downloads) }
+                            selected = lastTile == Page.Downloads,
+                            onOpen = { lastTile = Page.Downloads; open(Page.Downloads) }
                         )
                     }
                     Page.System -> {

@@ -6,7 +6,9 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.widget.Toast
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -61,6 +63,11 @@ internal fun ToolRunDialog(run: ToolRun, onClose: () -> Unit, onResult: (Int, St
     var output by remember { mutableStateOf("") }
     var status by remember { mutableStateOf("") }
     var handle by remember { mutableStateOf<RunHandle?>(null) }
+    val tracker = remember { RunProgressTracker() }
+    var phase by remember { mutableStateOf("Menyiapkan\u2026") }
+    var progress by remember { mutableStateOf<Float?>(null) }
+    var runState by remember { mutableStateOf(RunState.Running) }
+    var showDetail by remember { mutableStateOf(false) }
     val scroll = rememberScrollState()
     LaunchedEffect(output) { scroll.scrollTo(scroll.maxValue) }
     val keyLines = remember { mutableListOf<String>() }
@@ -88,10 +95,19 @@ internal fun ToolRunDialog(run: ToolRun, onClose: () -> Unit, onResult: (Int, St
             onChunk = {
                 output = (output + it.replace("\r", "")).takeLast(MAX_UI_CHARS)
                 collect(it)
+                tracker.feed(it)
+                phase = tracker.phase
+                progress = tracker.fraction
             },
             onDone = { r ->
                 running = false
                 status = describe(r)
+                runState = when {
+                    r.startError != null || r.timedOut -> RunState.Failed
+                    r.cancelled -> RunState.Stopped
+                    r.exitCode == 0 -> RunState.Ok
+                    else -> RunState.Failed
+                }
                 collect("\n")
                 if (r.startError == null && !r.cancelled && !r.timedOut && r.exitCode == 0) {
                     run.summarize?.invoke(keyLines.toList())?.let {
@@ -131,13 +147,17 @@ internal fun ToolRunDialog(run: ToolRun, onClose: () -> Unit, onResult: (Int, St
             title = { Text(run.title) },
             text = {
                 Column {
-                    Text(
-                        status, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                        style = MaterialTheme.typography.bodySmall
-                    )
+                    RunProgressPanel(phase, progress, runState, status)
                     Spacer(Modifier.height(8.dp))
-                    Box(Modifier.heightIn(max = 320.dp).verticalScroll(scroll)) {
-                        Text(output, fontFamily = FontFamily.Monospace, fontSize = 10.sp)
+                    Text(
+                        if (showDetail) "Sembunyikan rincian \u25B4" else "Tampilkan rincian \u25BE",
+                        color = MaterialTheme.colorScheme.primary, fontSize = 12.sp,
+                        modifier = Modifier.clickable { showDetail = !showDetail }.padding(vertical = 4.dp)
+                    )
+                    if (showDetail) {
+                        Box(Modifier.heightIn(max = 280.dp).verticalScroll(scroll)) {
+                            Text(output, fontFamily = FontFamily.Monospace, fontSize = 10.sp)
+                        }
                     }
                 }
             },

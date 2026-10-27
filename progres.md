@@ -1160,3 +1160,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI). Risiko: sedang (id `seekPreview*` pada view binding player.xml; `binding.outside`; `for ((k, v) in prefs.all)` + `when` dengan `else -> continue`; `catch (ignored: Exception)` kosong; Compose AlertDialog dengan Column di confirmButton)
 - [ ] uji perangkat (Android 8): putar video LOKAL > seret seekbar > kartu bingkai + waktu mengikuti jempol, hilang saat lepas; video YouTube/stream > kartu hanya teks; titik penanda dekat > label berawalan titik emas; Settings > Sistem > Cadangan dan pemulihan > Cadangkan > cek molina-backup.json; ubah beberapa setelan (font Terminal, Shield) > Pulihkan (konfirmasi dua langkah) > nilai kembali setelah mulai ulang; hapus data aplikasi > Pulihkan > penanda dan snippet kembali
 - [ ] LANGKAH BERIKUT: bingkai pratinjau untuk stream (sprite/storyboard) bila tersedia, pilih bagian yang dipulihkan (centang), cadangan gabungan otomatis harian
+
+## 2026-10-27 - Indikator progres dialog jalankan + bingkai Win7 ubin Settings [UI-PROGRES-FRAME]
+- [x] feat(settings): `RunProgressTracker` dan `RunProgressPanel` (GlossBar, fase, persen) di `ToolRunDialog`. Dipakai Debian update/upgrade, pasang/hapus paket, yt-dlp. Log mentah disembunyikan di balik "Tampilkan rincian"
+- [x] feat(settings): `Win7FrameBox`, bingkai biru tipis saat ditekan/terpilih. Dipakai `W7CategoryTile` (+ penanda kategori terakhir dibuka) dan `W7Link`
+- [x] Dampak: :app saja (settings/RunProgressUi.kt, Win7FrameUi.kt baru; ToolRunUi, Win7SettingsUi, SettingsScreen). Gradle, Manifest, JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah-sedang (Triple destructuring pada `when`, `clickable(indication = null)`, `rememberSaveable` untuk `Page?`)
+- [ ] uji perangkat (Android 8): Sistem > Perbarui dan tingkatkan paket > bilah biru bergerak, fase berganti, persen naik saat upgrade, berakhir hijau; matikan internet > merah; tekan Berhenti > kuning; ubin beranda: tekan > bingkai biru, kembali dari Sistem > ubin Sistem tetap berbingkai
+- [ ] LANGKAH BERIKUT: tampilkan ukuran unduhan di fase "Mengunduh paket", ubin Settings dengan ikon status (mis. jumlah paket bisa diupgrade)
