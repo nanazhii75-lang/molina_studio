@@ -124,7 +124,10 @@ class MainActivity : ComponentActivity() {
 
     /** Ketuk notifikasi Unduhan membuka tab Unduhan. Extra dibuang agar tidak terulang saat Activity dibuat ulang. */
     private fun handleOpenTabIntent(i: android.content.Intent?) {
-        if (i?.component?.className?.endsWith(".CinemaLauncher") == true) com.molina.studio.cinema.CinemaNav.openTab = true
+        if (i?.getStringExtra("molina_open_tab") == "cinema") {
+            i.removeExtra("molina_open_tab")
+            com.molina.studio.cinema.CinemaNav.openTab = true
+        }
         val key = com.molina.studio.download.DownloadService.EXTRA_OPEN_TAB
         if (i?.getStringExtra(key) == com.molina.studio.download.DownloadService.OPEN_TAB_DOWNLOADS) {
             i.removeExtra(key)

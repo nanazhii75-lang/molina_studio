@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="cinema_launcher_label">Molina Cinema</string>
+    <string name="shortcut_cinema_short">Cinema</string>
+    <string name="shortcut_cinema_long">Molina Cinema</string>
 </resources>

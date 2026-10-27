@@ -1,5 +1,7 @@
 package com.molina.studio.settings
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import android.content.Context
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -128,12 +130,14 @@ internal fun RgbFrame(modifier: Modifier = Modifier, animate: Boolean = true, co
 internal fun Win7GlassWindow(
     title: String,
     icon: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+    fillClient: Boolean = false,
     content: @Composable ColumnScope.() -> Unit
 ) {
     val outer = RoundedCornerShape(9.dp)
     val inner = RoundedCornerShape(3.dp)
     Column(
-        Modifier
+        modifier
             .fillMaxWidth()
             .clip(outer)
             .background(Brush.verticalGradient(listOf(GlassTop, GlassMid, GlassBottom)), outer)
@@ -154,9 +158,11 @@ internal fun Win7GlassWindow(
         Column(
             Modifier
                 .fillMaxWidth()
+                .then(if (fillClient) Modifier.weight(1f) else Modifier)
                 .clip(inner)
                 .background(Win7.Face)
                 .border(1.dp, Win7.FrameLine, inner)
+                .then(if (fillClient) Modifier.verticalScroll(rememberScrollState()) else Modifier)
                 .padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
             content = content

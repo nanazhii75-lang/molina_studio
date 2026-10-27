@@ -1086,3 +1086,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI). Risiko: sedang (singleTask mengubah perilaku peluncuran; ed.cursor.isSelected/left/right dan text.substring/getLineString milik sora-editor)
 - [ ] uji perangkat (Android 8): muncul dua ikon (Molina dan Molina Cinema); ikon Cinema membuka tab Cinema, ikon Molina membuka tab terakhir; ketuk ikon saat app sudah jalan tidak membuat layar ganda; notifikasi Unduhan masih membuka tab Unduhan; video diputar lalu ketuk ikon Molina > kembali ke pemutar. Code: pilih teks > Sisipkan ke Terminal menaruh teks di prompt tanpa jalan; tanpa seleksi mengirim baris kursor; Jalankan di Terminal mengeksekusi; teks 3 baris tidak jalan sebelum Enter; menu redup bila tidak ada teks
 - [ ] LANGKAH BERIKUT: tombol "Sisip dari Terminal ke Code" (salin keluaran), snippet dari seleksi Code (Simpan sebagai snippet), bookmark posisi video
+
+## 2026-10-27 - Satu ikon launcher + bingkai Cinema penuh sampai navigasi bawah [SATU-IKON-BINGKAI]
+- [x] fix(manifest): `<activity-alias .CinemaLauncher>` DIHAPUS (penyebab dua aplikasi "Molina Studio" dan "Molina Cinema"); `launchMode="singleTask"` dikembalikan seperti semula. Kini hanya SATU ikon launcher
+- [x] feat(brand): Molina Cinema jadi jalan pintas statis (tekan lama ikon > Cinema): `res/xml/molina_shortcuts.xml` + meta-data `android.app.shortcuts` pada MainActivity; MainActivity membaca extra `molina_open_tab=cinema`
+- [x] fix(cinema): bingkai RGB + jendela kaca beranda Cinema mengisi seluruh tinggi sampai tepat di atas navigasi bawah (Win7GlassWindow: parameter `modifier` dan `fillClient`; scroll dipindah ke area klien)
+- [x] Dampak: AndroidManifest.xml (alias dihapus, meta-data baru), :app (MainActivity.kt, settings/Win7Glass.kt, cinema/CinemaWin7Home.kt, res/xml/molina_shortcuts.xml baru, res/values/molina_cinema_launcher.xml). Gradle dan JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah-sedang (Modifier.weight di argumen Column, verticalScroll pada area klien berbobot)
+- [ ] uji perangkat (Android 8): hanya SATU ikon; tekan lama ikon menampilkan "Molina Cinema" dan membuka tab mpv; bingkai Cinema berakhir tepat di atas rail emas navigasi; layar kecil: isi jendela bisa digulir; Terminal Snippet, Monitor Sistem, Unduh tetap normal

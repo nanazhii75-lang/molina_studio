@@ -11,17 +11,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -70,9 +69,14 @@ internal fun CinemaWin7Body(
 ) {
     val ctx = LocalContext.current
     val recents = remember(CinemaRecent.version) { CinemaRecent.load(ctx) }
-    Column(modifier.background(MolinaTheme.Background).verticalScroll(rememberScrollState()).padding(12.dp)) {
-        RgbFrame(animate = live || busy) {
-            Win7GlassWindow(title = "Molina Cinema \u2013 Home Theater", icon = { TitleOrb() }) {
+    Column(modifier.background(MolinaTheme.Background).padding(12.dp)) {
+        RgbFrame(modifier = Modifier.weight(1f).fillMaxWidth(), animate = live || busy) {
+            Win7GlassWindow(
+                title = "Molina Cinema \u2013 Home Theater",
+                icon = { TitleOrb() },
+                modifier = Modifier.fillMaxSize(),
+                fillClient = true
+            ) {
                 BrandRow(live)
                 SearchBlock(input, onInput, onSubmit) { onInput(clipText(ctx)) }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
