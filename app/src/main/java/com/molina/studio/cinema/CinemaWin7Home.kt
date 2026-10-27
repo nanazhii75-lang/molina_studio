@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -77,15 +79,20 @@ internal fun CinemaWin7Body(
                 modifier = Modifier.fillMaxSize(),
                 fillClient = true
             ) {
-                BrandRow(live)
-                SearchBlock(input, onInput, onSubmit) { onInput(clipText(ctx)) }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Tile("\uD83D\uDCC4", "Berkas", Modifier.weight(1f), onFile)
-                    Tile("\uD83D\uDD17", "Tautan", Modifier.weight(1f), onLink)
-                    Tile("\u2699", "Setelan", Modifier.weight(1f), onSettings)
-                    Tile("\u21BB", "Segarkan", Modifier.weight(1f), onReset)
+                Column(
+                    Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    BrandRow(live)
+                    SearchBlock(input, onInput, onSubmit) { onInput(clipText(ctx)) }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Tile("\uD83D\uDCC4", "Berkas", Modifier.weight(1f), onFile)
+                        Tile("\uD83D\uDD17", "Tautan", Modifier.weight(1f), onLink)
+                        Tile("\u2699", "Setelan", Modifier.weight(1f), onSettings)
+                        Tile("\u21BB", "Segarkan", Modifier.weight(1f), onReset)
+                    }
+                    RecentList(recents, onRecent) { CinemaRecent.clear(ctx) }
                 }
-                RecentList(recents, onRecent) { CinemaRecent.clear(ctx) }
                 StatusStrip(info, busy)
             }
         }
@@ -207,6 +214,8 @@ private fun RecentList(items: List<CinemaRecent.Item>, onPick: (CinemaRecent.Ite
 @Composable
 private fun StatusStrip(info: String, busy: Boolean) {
     Column(Modifier.fillMaxWidth()) {
+        Box(Modifier.fillMaxWidth().height(1.dp).background(Win7.Hairline))
+        Spacer(Modifier.height(6.dp))
         if (busy) {
             GlossBar(fraction = null, top = OrbTop, bottom = OrbBottom, height = 10.dp)
             Spacer(Modifier.height(6.dp))

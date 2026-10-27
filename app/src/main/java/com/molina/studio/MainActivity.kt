@@ -124,9 +124,15 @@ class MainActivity : ComponentActivity() {
 
     /** Ketuk notifikasi Unduhan membuka tab Unduhan. Extra dibuang agar tidak terulang saat Activity dibuat ulang. */
     private fun handleOpenTabIntent(i: android.content.Intent?) {
-        if (i?.getStringExtra("molina_open_tab") == "cinema") {
+        val tabKey = i?.getStringExtra("molina_open_tab")
+        if (i != null && tabKey != null) {
             i.removeExtra("molina_open_tab")
-            com.molina.studio.cinema.CinemaNav.openTab = true
+            ShortcutNav.tab = when (tabKey) {
+                "cinema" -> Tab.Mpv.ordinal
+                "terminal" -> Tab.Terminal.ordinal
+                "code" -> Tab.Code.ordinal
+                else -> -1
+            }
         }
         val key = com.molina.studio.download.DownloadService.EXTRA_OPEN_TAB
         if (i?.getStringExtra(key) == com.molina.studio.download.DownloadService.OPEN_TAB_DOWNLOADS) {
@@ -210,12 +216,11 @@ class MainActivity : ComponentActivity() {
                         com.molina.studio.download.DownloadNav.openTab = false
                     }
                 }
-                // Ikon launcher Molina Cinema: pindah ke tab Cinema.
-                androidx.compose.runtime.LaunchedEffect(com.molina.studio.cinema.CinemaNav.openTab) {
-                    if (com.molina.studio.cinema.CinemaNav.openTab) {
-                        selected = Tab.Mpv.ordinal
-                        com.molina.studio.cinema.CinemaNav.openTab = false
-                    }
+                // Jalan pintas ikon (tekan lama): pindah ke tab Cinema, Terminal, atau Code.
+                androidx.compose.runtime.LaunchedEffect(ShortcutNav.tab) {
+                    val t = ShortcutNav.tab
+                    if (t in Tab.entries.indices) selected = t
+                    ShortcutNav.tab = -1
                 }
                 // Lencana tab Unduhan: emas saat berjalan, hijau saat selesai dan belum dilihat.
                 val dl by com.molina.studio.download.DownloadRunner.state.collectAsState()

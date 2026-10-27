@@ -1,7 +1,5 @@
 package com.molina.studio.settings
 
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import android.content.Context
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -162,7 +160,6 @@ internal fun Win7GlassWindow(
                 .clip(inner)
                 .background(Win7.Face)
                 .border(1.dp, Win7.FrameLine, inner)
-                .then(if (fillClient) Modifier.verticalScroll(rememberScrollState()) else Modifier)
                 .padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
             content = content

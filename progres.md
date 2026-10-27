@@ -1094,3 +1094,13 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: AndroidManifest.xml (alias dihapus, meta-data baru), :app (MainActivity.kt, settings/Win7Glass.kt, cinema/CinemaWin7Home.kt, res/xml/molina_shortcuts.xml baru, res/values/molina_cinema_launcher.xml). Gradle dan JNI mpv TIDAK disentuh
 - [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah-sedang (Modifier.weight di argumen Column, verticalScroll pada area klien berbobot)
 - [ ] uji perangkat (Android 8): hanya SATU ikon; tekan lama ikon menampilkan "Molina Cinema" dan membuka tab mpv; bingkai Cinema berakhir tepat di atas rail emas navigasi; layar kecil: isi jendela bisa digulir; Terminal Snippet, Monitor Sistem, Unduh tetap normal
+
+## 2026-10-27 - Jalan pintas Terminal/Code, StatusStrip dipaku, ikon utama bola Aero [PINTAS-STATUS-IKON]
+- [x] feat(brand): shortcut statis (tekan lama ikon) kini 3: Cinema, Terminal (ikon lama), Code (ikon `< >` emas baru: mipmap-anydpi-v26/ic_shortcut_code + drawable/ic_shortcut_code_foreground). Pola extra `molina_open_tab` = cinema | terminal | code
+- [x] refactor(nav): `ShortcutNav` (indeks tab) menggantikan `CinemaNav` (dihapus karena tak dipakai lagi); MainActivity memetakan extra ke Tab.Mpv/Terminal/Code
+- [x] feat(brand): ikon utama aplikasi di Manifest = bola Aero + segitiga emas (`ic_cinema_launcher`); ikon Terminal lama dipindah ke shortcut Terminal
+- [x] fix(cinema): StatusStrip dipaku di dasar jendela (dengan garis pemisah); isi di atasnya (Brand, cari, ubin, Terakhir diputar) bisa digulir. `Win7GlassWindow.fillClient` kini hanya memberi bobot tinggi, scroll diatur pemanggil
+- [x] Dampak: AndroidManifest.xml (icon/roundIcon aplikasi), :app (MainActivity.kt, ShortcutNav.kt baru, CinemaNav.kt dihapus, settings/Win7Glass.kt, cinema/CinemaWin7Home.kt, res/xml/molina_shortcuts.xml, res/values/molina_cinema_launcher.xml, 2 resource ikon baru). Gradle dan JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah-sedang (Modifier.weight pada Column bersarang dengan verticalScroll; `Tab` private dipakai di handleOpenTabIntent satu file)
+- [ ] uji perangkat (Android 8): ikon launcher kini bola biru emas (instal ulang bila ikon lama tersangkut cache); tekan lama menampilkan Cinema, Terminal, Code dan masing-masing membuka tab yang benar; status di dasar jendela Cinema selalu menempel, tidak ikut tergulir; layar kecil: bagian atas bisa digulir; notifikasi Unduhan tetap membuka tab Unduhan
+- [ ] LANGKAH BERIKUT: bookmark posisi video, tombol "Sisip dari Terminal ke Code", snippet dari seleksi Code
