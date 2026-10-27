@@ -83,6 +83,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import com.molina.core.common.TrashBin
+import com.molina.core.common.TrashItem
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -99,7 +101,7 @@ private sealed class W7Sheet {
     class Zip(val files: List<File>) : W7Sheet()
     class Password(val zip: File, val wrong: Boolean) : W7Sheet()
     class Info(val files: List<File>) : W7Sheet()
-    class Delete(val files: List<File>) : W7Sheet()
+    class Delete(val files: List<File>, val permanent: Boolean = false) : W7Sheet()
     object NewDir : W7Sheet()
 }
 private enum class W7Ico { PLAY, CODE, SCRIPT, COPY, CUT, PASTE, RENAME, ZIP, UNZIP, DELETE, NEWDIR, STAR, STAR_OUT, INFO, SHARE }
@@ -182,6 +184,7 @@ fun Win7OpenDialog(
         base + mine.map { W7Place(it.name.ifEmpty { it.path }, it) }
     }
     val vols = remember { w7Drives() }
+    val volDirs = remember(vols) { vols.map { it.dir } }
     var granted by remember { mutableStateOf(w7HasStorage(ctx)) }
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted = it }
     var dir by remember { mutableStateOf(startDir?.takeIf { it.isDirectory } ?: vols.first().dir) }
@@ -200,6 +203,8 @@ fun Win7OpenDialog(
     var selected by remember { mutableStateOf<W7Entry?>(null) }
     var fileName by remember { mutableStateOf("") }
     var message by remember { mutableStateOf("") }
+    var undo by remember { mutableStateOf<List<TrashItem>?>(null) }
+    var showBin by remember { mutableStateOf(false) }
     var comboOpen by remember { mutableStateOf(false) }
     // [FILEOPS-2] alat berkas Penjelajah: pilih banyak, salin, pindah, tempel, hapus, folder baru, ZIP/ekstrak, ubah nama, favorit, properti
     val scope = rememberCoroutineScope()
@@ -214,7 +219,7 @@ fun Win7OpenDialog(
     var progress by remember { mutableStateOf<Float?>(null) }
     val cancelFlag = remember { AtomicBoolean(false) }
     val guard = remember {
-        vols.map { it.dir.absolutePath }.toSet() +
+        vols.map { File(it.dir, TrashBin.DIR).absolutePath }.toSet() + vols.map { it.dir.absolutePath }.toSet() +
             File(Environment.getExternalStorageDirectory(), com.molina.core.common.MolinaPaths.APP_FOLDER).absolutePath
     }
     fun say(text: String, ok: Boolean = false) { message = text; messageOk = ok }
@@ -228,6 +233,7 @@ fun Win7OpenDialog(
         busy = true
         progress = null
         cancelFlag.set(false)
+        undo = null
         say("Memproses\u2026", true)
         scope.launch {
             val ctl = FileOps.Ctl(cancelFlag) { p -> progress = p }
@@ -240,6 +246,7 @@ fun Win7OpenDialog(
     }
 
     LaunchedEffect(Unit) { if (!granted) ask.launch(Manifest.permission.READ_EXTERNAL_STORAGE) }
+    LaunchedEffect(Unit) { if (browse) withContext(Dispatchers.IO) { runCatching { TrashBin.autoPurge(volDirs) } } }
     LaunchedEffect(key, asc, foldersFirst, showHidden, deepSearch) {
         ExplorerPrefs.save(ctx, ExplorerPrefs.Data(key, asc, foldersFirst, showHidden, deepSearch))
     }
@@ -257,7 +264,7 @@ fun Win7OpenDialog(
 
     val roots = vols.map { it.dir.path }
     val canUp = dir.path !in roots && dir.parentFile != null
-    fun go(to: File) { dir = to; selected = null; fileName = ""; message = ""; query = "" } // [PICK-PERSIST] picked bertahan lintas folder
+    fun go(to: File) { dir = to; selected = null; fileName = ""; message = ""; query = ""; undo = null } // [PICK-PERSIST] picked bertahan lintas folder
     fun goUp(): Boolean {
         val parent = dir.parentFile
         if (!canUp || parent == null) return false
@@ -289,6 +296,7 @@ fun Win7OpenDialog(
         }
     }
 
+    if (showBin) W7BinDialog(volDirs, { showBin = false }) { tick++ }
     when (val s = sheet) {
         is W7Sheet.Rename -> W7NameDialog(
             title = if (s.file.isDirectory) "Ubah nama folder" else "Ubah nama berkas",
@@ -306,9 +314,21 @@ fun Win7OpenDialog(
             val d = dir
             runOp(op = { "Folder dibuat: " + FileOps.mkdir(d, name).name })
         }
-        is W7Sheet.Delete -> W7ConfirmDialog(s.files, onCancel = { sheet = null }) {
+        is W7Sheet.Delete -> W7ConfirmDialog(s.files, s.permanent, onCancel = { sheet = null }) {
             sheet = null
-            runOp(op = { ctl -> "Dihapus: " + FileOps.deleteAll(s.files, guard, ctl) + " item" })
+            if (s.permanent) {
+                runOp(op = { ctl -> "Dihapus permanen: " + FileOps.deleteAll(s.files, guard, ctl) + " item" })
+            } else {
+                val moved = arrayOfNulls<List<TrashItem>>(1)
+                runOp(
+                    op = { _ ->
+                        val r = TrashBin.trash(s.files, volDirs, guard)
+                        moved[0] = r
+                        "Dipindahkan ke Recycle Bin: " + r.size + " item"
+                    },
+                    onDone = { undo = moved[0] }
+                )
+            }
         }
         is W7Sheet.Info -> W7InfoDialog(s.files, if (s.files.size == 1) isVisibleInDebian?.invoke(s.files[0]) else null) { sheet = null }
         is W7Sheet.Zip -> W7PasswordDialog(
@@ -560,6 +580,10 @@ fun Win7OpenDialog(
                                         toolsOpen = false
                                         if (tg.isNotEmpty()) sheet = W7Sheet.Delete(tg)
                                     }
+                                    W7MenuItem(W7Ico.DELETE, "Hapus permanen\u2026", tg.isNotEmpty()) {
+                                        toolsOpen = false
+                                        if (tg.isNotEmpty()) sheet = W7Sheet.Delete(tg, true)
+                                    }
                                     Box(Modifier.fillMaxWidth().height(1.dp).background(Win7.Hairline))
                                     W7MenuItem(W7Ico.NEWDIR, "Folder baru", true) {
                                         toolsOpen = false
@@ -600,7 +624,7 @@ fun Win7OpenDialog(
                 }
                 Box(Modifier.fillMaxWidth().height(1.dp).background(Win7.Hairline))
                 Row(Modifier.weight(1f).fillMaxWidth()) {
-                    W7NavPane(favs, vols, dir, Modifier.width(92.dp).fillMaxHeight()) { go(it) }
+                    W7NavPane(favs, vols, dir, Modifier.width(92.dp).fillMaxHeight(), onBin = if (browse) ({ showBin = true }) else null) { go(it) }
                     Box(Modifier.width(1.dp).fillMaxHeight().background(Win7.Hairline))
                     W7FileArea(
                         modifier = Modifier.weight(1f).fillMaxHeight(),
@@ -728,6 +752,11 @@ fun Win7OpenDialog(
                     }
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Text(message, color = if (messageOk) Color(0xFF4CAF50) else Color(0xFFFF8A80), fontSize = 11.sp, modifier = Modifier.weight(1f).padding(end = 8.dp))
+                        val undoItems = undo
+                        if (undoItems != null && !busy) W7Cmd("Urungkan", true) {
+                            undo = null
+                            runOp(op = { _ -> "Dipulihkan: " + TrashBin.restore(undoItems, volDirs).size + " item" })
+                        }
                         Win7Button(
                             if (pickFolder) "Pilih folder" else "Buka", isDefault = true,
                             enabled = if (pickFolder) granted else fileName.isNotBlank(),
@@ -751,13 +780,17 @@ private fun W7Cmd(label: String, enabled: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun W7NavPane(favs: List<W7Place>, vols: List<W7Place>, dir: File, modifier: Modifier, onGo: (File) -> Unit) {
+private fun W7NavPane(favs: List<W7Place>, vols: List<W7Place>, dir: File, modifier: Modifier, onBin: (() -> Unit)? = null, onGo: (File) -> Unit) {
     Column(modifier.background(Win7.NavBg).verticalScroll(rememberScrollState()).padding(vertical = 6.dp)) {
         W7NavHeader("Favorit", true)
         favs.forEach { p -> W7NavItem(p.label, dir == p.dir, { if (p.molina) Win7MolinaFolder(16.dp) else Win7Folder(16.dp) }) { onGo(p.dir) } }
         Spacer(Modifier.height(8.dp))
         W7NavHeader("Komputer", false)
         vols.forEach { p -> W7NavItem(p.label, dir == p.dir, { Win7Drive(16.dp) }) { onGo(p.dir) } }
+        if (onBin != null) {
+            Spacer(Modifier.height(8.dp))
+            W7NavItem("Sampah", false, { Win7BinIcon(16.dp) }) { onBin() }
+        }
     }
 }
 
@@ -989,7 +1022,7 @@ private fun W7MenuIcon(ico: W7Ico, enabled: Boolean) {
 }
 
 @Composable
-private fun W7Panel(title: String, onDismiss: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
+internal fun W7Panel(title: String, onDismiss: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
     val shape = RoundedCornerShape(8.dp)
     Dialog(onDismissRequest = onDismiss) {
         Column(
@@ -1104,12 +1137,13 @@ private fun W7PasswordDialog(
 }
 
 @Composable
-private fun W7ConfirmDialog(files: List<File>, onCancel: () -> Unit, onOk: () -> Unit) {
+private fun W7ConfirmDialog(files: List<File>, permanent: Boolean, onCancel: () -> Unit, onOk: () -> Unit) {
     val hasDir = files.any { it.isDirectory }
-    W7Panel("Hapus", onCancel) {
+    val verb = if (permanent) "Hapus permanen" else "Pindahkan ke Recycle Bin"
+    W7Panel(if (permanent) "Hapus permanen" else "Recycle Bin", onCancel) {
         Text(
-            if (files.size == 1) "Hapus \"" + files[0].name + "\"" + (if (hasDir) " beserta seluruh isinya?" else "?")
-            else "Hapus " + files.size + " item terpilih" + (if (hasDir) " beserta isi folder?" else "?"),
+            if (files.size == 1) verb + ": \"" + files[0].name + "\"" + (if (hasDir) " beserta seluruh isinya?" else "?")
+            else verb + ": " + files.size + " item terpilih" + (if (hasDir) " beserta isi folder?" else "?"),
             color = Win7.Ink, fontSize = 13.sp
         )
         if (files.size > 1) {
@@ -1118,10 +1152,11 @@ private fun W7ConfirmDialog(files: List<File>, onCancel: () -> Unit, onOk: () ->
             if (files.size > 4) Text("\u2022 \u2026 dan " + (files.size - 4) + " lainnya", color = Win7.TextDim, fontSize = 12.sp)
         }
         Spacer(Modifier.height(8.dp))
-        Text("Penghapusan tidak dapat dibatalkan.", color = Color(0xFFFF8A80), fontSize = 12.sp)
+        if (permanent) Text("Penghapusan permanen tidak dapat dibatalkan.", color = Color(0xFFFF8A80), fontSize = 12.sp)
+        else Text("Bisa dipulihkan dari Recycle Bin selama " + TrashBin.RETAIN_DAYS + " hari.", color = Win7.TextDim, fontSize = 12.sp)
         Spacer(Modifier.height(12.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-            Win7Button("Hapus", isDefault = true) { onOk() }
+            Win7Button(if (permanent) "Hapus permanen" else "Pindahkan", isDefault = true) { onOk() }
             Spacer(Modifier.width(8.dp))
             Win7Button("Batal", onClick = onCancel)
         }

@@ -987,3 +987,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] C: Konverter di bawah Unduhan (FFmpeg via Debian PRoot, preset, antrean, Unduh > Konversi > Putar)
 - [ ] D: Cadangkan/Pulihkan setelan (ZIP AES), E: Kesehatan sistem
 - [ ] Semua bergaya Win7 hitam pekat (W7D); tanpa izin/host baru
+
+## 2026-10-27 - Tahap A: Recycle Bin + Urungkan di Berkas [RECYCLE-BIN-A]
+- [x] feat(core): TrashBin.kt (:core:common, JVM murni): .molina-trash per volume (rename atomik, info.properties UTF-8, .nomedia), trash semua-atau-tidak, list/restore (nama bentrok " (1)", folder asal dibuat ulang)/purge/empty/autoPurge 30 hari/usage; tahan data rusak, nama "..", origin palsu, item di luar bin
+- [x] test: scripts/core-tests/run_trash.sh (kotlinc 2.1.20): 28 pemeriksaan LULUS
+- [x] feat(ui): Win7RecycleBin.kt (ikon + jendela Recycle Bin); Win7OpenDialog: Hapus -> Recycle Bin, "Hapus permanen...", tombol Urungkan, item "Sampah" di panel kiri, auto-purge saat Berkas dibuka, .molina-trash masuk guard; W7Panel jadi internal
+- [x] Dampak: :core:common (TrashBin.kt baru), :app (cinema/Win7RecycleBin.kt baru, Win7OpenDialog.kt). Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah-sedang (named arg + trailing lambda pada W7NavPane; runOp dengan onDone)
+- [ ] uji perangkat (Android 8): hapus lalu Urungkan; folder bersarang; nama bentrok saat pulih; Hapus permanen; Kosongkan; kartu SD; folder Molina tetap tertolak
+- [ ] LANGKAH BERIKUT: daftar "Terbaru" di Berkas, lalu tahap B (Penyimpanan + Folder Molina, termasuk pemakaian Recycle Bin)
