@@ -39,6 +39,7 @@ import com.molina.code.run.RunResult
 import com.molina.core.common.AppLog
 import com.molina.core.common.LogLevel
 import com.molina.studio.code.ProotScriptExecutor
+import kotlinx.coroutines.delay
 
 /** Satu skrip yang dijalankan di Debian PRoot lewat dialog keluaran. [confirm] = minta persetujuan dulu. */
 internal class ToolRun(
@@ -68,6 +69,8 @@ internal fun ToolRunDialog(run: ToolRun, onClose: () -> Unit, onResult: (Int, St
     var progress by remember { mutableStateOf<Float?>(null) }
     var runState by remember { mutableStateOf(RunState.Running) }
     var showDetail by remember { mutableStateOf(false) }
+    var elapsed by remember { mutableStateOf(0) }
+    LaunchedEffect(running) { while (running) { delay(1000); elapsed++ } }
     val scroll = rememberScrollState()
     LaunchedEffect(output) { scroll.scrollTo(scroll.maxValue) }
     val keyLines = remember { mutableListOf<String>() }
@@ -147,7 +150,7 @@ internal fun ToolRunDialog(run: ToolRun, onClose: () -> Unit, onResult: (Int, St
             title = { Text(run.title) },
             text = {
                 Column {
-                    RunProgressPanel(phase, progress, runState, status)
+                    RunProgressPanel(phase, progress, runState, status, elapsed)
                     Spacer(Modifier.height(8.dp))
                     Text(
                         if (showDetail) "Sembunyikan rincian \u25B4" else "Tampilkan rincian \u25BE",

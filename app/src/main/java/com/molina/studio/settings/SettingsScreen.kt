@@ -160,6 +160,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     remember { AptHistory.init(aptCtx) }
     remember { MolinaExplorer.attach(aptCtx) }
     val aptLast by AptHistory.last.collectAsState()
+    val aptPending by AptHistory.pending.collectAsState()
     fun open(p: Page) { query = ""; page = p }
     BackHandler(enabled = query.isNotBlank() || page != Page.Home) {
         if (query.isNotBlank()) query = "" else page = parentOf(page) ?: Page.Home
@@ -235,6 +236,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                             title = "Sistem",
                             links = emptyList(),
                             selected = lastTile == Page.System,
+                            badge = if (aptPending > 0) aptPending.toString() else null,
                             onOpen = { lastTile = Page.System; open(Page.System) }
                         )
                         W7CategoryTile(
@@ -275,7 +277,9 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         W7Link({ W7IconMonitor(32.dp) }, "Monitor Sistem", "Unduh, unggah, CPU, dan RAM secara langsung") { open(Page.Monitor) }
                         W7Link({ W7IconInfo() }, "About", "Versi dan lisensi") { open(Page.About) }
                         Category("Debian")
+                        W7Link({ W7IconAptSync() }, "Periksa pembaruan paket", AptHistory.checkSubtitle(aptPending)) { apt = AptJob.CheckUpdates }
                         W7Link({ W7IconAptSync() }, "Perbarui dan tingkatkan paket", AptHistory.subtitle(aptLast)) { apt = AptJob.UpdateUpgrade }
+                        W7Link({ W7IconToolList() }, "Bersihkan cache dan paket yatim", "autoremove dan apt clean: menambah ruang kosong Debian") { apt = AptJob.CleanUp }
                         W7Link({ W7IconToolList() }, "Daftar tool terpasang", "Deteksi alat Molina di Debian beserta versinya") { showTools = true }
                         W7Link({ W7IconToolList() }, "Cadangan dan pemulihan", "Penanda video, snippet, dan setelan dalam satu berkas Backup") { showBackup = true }
                         Spacer(Modifier.height(12.dp))

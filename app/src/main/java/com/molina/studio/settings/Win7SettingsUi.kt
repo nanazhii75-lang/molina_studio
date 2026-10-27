@@ -240,18 +240,20 @@ internal fun W7CategoryTile(
     title: String,
     links: List<Pair<String, () -> Unit>>,
     onOpen: () -> Unit,
-    selected: Boolean = false
+    selected: Boolean = false,
+    badge: String? = null
 ) {
     Win7FrameBox(selected = selected, onClick = onOpen, modifier = Modifier.padding(vertical = 4.dp)) {
         Row(Modifier.fillMaxWidth().padding(10.dp), verticalAlignment = Alignment.Top) {
             icon()
             Spacer(Modifier.width(14.dp))
-            Column {
+            Column(Modifier.weight(1f)) {
                 Text(title, color = W7LinkColor, fontSize = 18.sp)
                 links.forEach { l ->
                     Text(l.first, color = W7LinkColor, fontSize = 13.sp, modifier = Modifier.clickable(onClick = l.second).padding(top = 6.dp))
                 }
             }
+            if (badge != null) W7Badge(badge)
         }
     }
 }

@@ -77,7 +77,7 @@ internal class RunProgressTracker {
 
 /** Panel progres ala Windows 7: fase, persen, bilah glossy berwarna sesuai status, lalu ringkasan status. */
 @Composable
-internal fun RunProgressPanel(phase: String, fraction: Float?, state: RunState, status: String) {
+internal fun RunProgressPanel(phase: String, fraction: Float?, state: RunState, status: String, elapsedSec: Int = 0) {
     val (top, bottom, accent) = when (state) {
         RunState.Running -> Triple(Color(0xFF8FC4EE), Color(0xFF2D6DB5), Color(0xFF3C7FB1))
         RunState.Ok -> Triple(Color(0xFF7BE87A), Color(0xFF1E9E1A), Color(0xFF1E9E1A))
@@ -92,8 +92,10 @@ internal fun RunProgressPanel(phase: String, fraction: Float?, state: RunState, 
                 color = Win7.Ink, fontSize = 13.sp, fontWeight = FontWeight.Medium,
                 maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f)
             )
-            if (state == RunState.Running && fraction != null) {
-                Text("${(fraction * 100).toInt()}%", color = Win7.NavHeader, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
+            if (state == RunState.Running) {
+                val pct = if (fraction != null) "${(fraction * 100).toInt()}% \u00B7 " else ""
+                val clock = "${elapsedSec / 60}:${(elapsedSec % 60).toString().padStart(2, '0')}"
+                Text(pct + clock, color = Win7.NavHeader, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
             }
         }
         Spacer(Modifier.height(8.dp))

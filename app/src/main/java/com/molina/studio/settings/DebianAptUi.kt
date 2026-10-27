@@ -20,6 +20,18 @@ internal enum class AptJob(val title: String, val command: String, val timeoutMs
         "Memperbarui daftar paket Debian, lalu meningkatkan semua paket tanpa bertanya. " +
             "Butuh internet, bisa mengunduh banyak data dan memakan beberapa menit. " +
             "Upgrade hanya berjalan jika update berhasil."
+    ),
+    CheckUpdates(
+        "Periksa pembaruan paket",
+        "apt update -o APT::Sandbox::User=root && (apt list --upgradable 2>/dev/null | grep -c 'upgradable from' || true)",
+        10 * 60_000L,
+        "Memperbarui daftar paket lalu menghitung paket yang bisa ditingkatkan. Tidak memasang apa pun."
+    ),
+    CleanUp(
+        "Bersihkan cache dan paket yatim",
+        "apt-get autoremove -y -o APT::Sandbox::User=root && apt-get clean",
+        10 * 60_000L,
+        "Menghapus paket yang tidak lagi dibutuhkan (autoremove) dan cache unduhan apt. Aman dijalankan kapan saja dan menambah ruang kosong Debian."
     )
 }
 
@@ -42,13 +54,28 @@ private fun aptSummary(lines: List<String>): String? {
     return if (lines.any { it.contains("up to date", ignoreCase = true) }) "Sistem sudah terbaru." else null
 }
 
+private val COUNT_LINE = Regex("""^\d+$""")
+
+private fun countSummary(lines: List<String>): String? =
+    lines.lastOrNull()?.toIntOrNull()?.let { if (it == 0) "Sistem sudah terbaru." else "$it paket dapat ditingkatkan." }
+
 @Composable
 internal fun DebianAptDialog(job: AptJob, onClose: () -> Unit) {
     val ctx = LocalContext.current
+    val check = job == AptJob.CheckUpdates
+    val summarize: (List<String>) -> String? = if (check) ::countSummary else ::aptSummary
     ToolRunDialog(
-        ToolRun("Debian: ${job.title}", job.command, job.timeoutMs, job.note, true, APT_KEY_LINES, ::aptSummary),
+        ToolRun("Debian: ${job.title}", job.command, job.timeoutMs, job.note, !check, if (check) COUNT_LINE else APT_KEY_LINES, summarize),
         onClose = onClose
-    ) { code, _ -> if (code == 0) AptHistory.mark(ctx) }
+    ) { code, out ->
+        if (code != 0) return@ToolRunDialog
+        when (job) {
+            AptJob.UpdateUpgrade -> { AptHistory.mark(ctx); AptHistory.setPending(ctx, 0) }
+            AptJob.CheckUpdates -> out.lineSequence().map { it.trim() }.lastOrNull { COUNT_LINE.matches(it) }
+                ?.toIntOrNull()?.let { AptHistory.setPending(ctx, it) }
+            AptJob.CleanUp -> Unit
+        }
+    }
 }
 
 /** Waktu terakhir "perbarui dan tingkatkan" berhasil (SharedPreferences), ditampilkan di menu Debian. */
@@ -57,13 +84,19 @@ internal object AptHistory {
     private const val KEY = "last_ok"
     private val _last = MutableStateFlow(0L)
     val last: StateFlow<Long> = _last.asStateFlow()
+    private const val KEY_PENDING = "pending"
+    private val _pending = MutableStateFlow(-1)
+    /** Jumlah paket yang bisa ditingkatkan dari pemeriksaan terakhir; -1 = belum pernah diperiksa. */
+    val pending: StateFlow<Int> = _pending.asStateFlow()
     private var loaded = false
 
     @Synchronized
     fun init(ctx: Context) {
         if (loaded) return
         loaded = true
-        _last.value = ctx.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getLong(KEY, 0L)
+        val sp = ctx.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        _last.value = sp.getLong(KEY, 0L)
+        _pending.value = sp.getInt(KEY_PENDING, -1)
     }
 
     @Synchronized
@@ -71,6 +104,18 @@ internal object AptHistory {
         val now = System.currentTimeMillis()
         ctx.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putLong(KEY, now).apply()
         _last.value = now
+    }
+
+    @Synchronized
+    fun setPending(ctx: Context, n: Int) {
+        ctx.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putInt(KEY_PENDING, n).apply()
+        _pending.value = n
+    }
+
+    fun checkSubtitle(n: Int): String = when {
+        n < 0 -> "Cek apakah ada paket Debian yang bisa ditingkatkan"
+        n == 0 -> "Sistem terbaru"
+        else -> "$n paket menunggu ditingkatkan"
     }
 
     fun subtitle(at: Long): String =

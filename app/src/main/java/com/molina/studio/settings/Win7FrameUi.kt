@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.matchParentSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -19,7 +20,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 /**
  * Kotak klik dengan bingkai tipis ala Windows 7: bingkai abu tipis saat diam; saat ditekan atau
@@ -56,5 +59,20 @@ internal fun Win7FrameBox(
     ) {
         Box(Modifier.matchParentSize().padding(1.dp).border(1.dp, Color.White.copy(alpha = 0.10f * t), inner))
         content()
+    }
+}
+
+/** Lencana bulat merah glossy (jumlah paket menunggu, dsb.) ala Windows 7. */
+@Composable
+internal fun W7Badge(text: String) {
+    val shape = RoundedCornerShape(10.dp)
+    Box(
+        Modifier
+            .clip(shape)
+            .background(Brush.verticalGradient(listOf(Color(0xFFFF8A80), Color(0xFFC4392B))), shape)
+            .border(1.dp, Color(0x55000000), shape)
+            .padding(horizontal = 8.dp, vertical = 2.dp)
+    ) {
+        Text(text, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
     }
 }

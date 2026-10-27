@@ -1168,3 +1168,13 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah-sedang (Triple destructuring pada `when`, `clickable(indication = null)`, `rememberSaveable` untuk `Page?`)
 - [ ] uji perangkat (Android 8): Sistem > Perbarui dan tingkatkan paket > bilah biru bergerak, fase berganti, persen naik saat upgrade, berakhir hijau; matikan internet > merah; tekan Berhenti > kuning; ubin beranda: tekan > bingkai biru, kembali dari Sistem > ubin Sistem tetap berbingkai
 - [ ] LANGKAH BERIKUT: tampilkan ukuran unduhan di fase "Mengunduh paket", ubin Settings dengan ikon status (mis. jumlah paket bisa diupgrade)
+
+## 2026-10-27 - Periksa pembaruan paket, lencana ubin Sistem, bersihkan cache apt, pewaktu progres [APT-CHECK-BADGE-CLEAN]
+- [x] feat(settings): `AptJob.CheckUpdates` (apt update + hitung `apt list --upgradable`, tanpa konfirmasi) dan `AptHistory.pending` (SharedPreferences molina_apt). Berhasil upgrade mengatur pending=0
+- [x] feat(settings): `W7Badge` merah glossy di ubin Sistem beranda saat pending > 0
+- [x] feat(settings): `AptJob.CleanUp` (apt-get autoremove -y + apt-get clean) di Settings > Sistem > Debian
+- [x] feat(settings): pewaktu `m:ss` di `RunProgressPanel` (ticker 1 dtk di ToolRunDialog), ditampilkan bersama persen
+- [x] Dampak: :app saja (DebianAptUi, ToolRunUi, RunProgressUi, Win7FrameUi, Win7SettingsUi, SettingsScreen). Gradle, Manifest, JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah-sedang (`return@ToolRunDialog` di lambda trailing, referensi fungsi `::countSummary` bertipe eksplisit, `Column(Modifier.weight(1f))` di ubin)
+- [ ] uji perangkat (Android 8): Sistem > Periksa pembaruan paket > dialog langsung jalan, selesai menampilkan "N paket dapat ditingkatkan" > beranda: lencana N di ubin Sistem; Perbarui dan tingkatkan > lencana hilang; Bersihkan cache > selesai hijau; waktu berjalan di panel bertambah tiap detik
+- [ ] LANGKAH BERIKUT: periksa otomatis maks. 1x/24 jam saat Wi-Fi, tampilkan ukuran unduhan di fase "Mengunduh paket", lencana serupa untuk pembaruan yt-dlp
