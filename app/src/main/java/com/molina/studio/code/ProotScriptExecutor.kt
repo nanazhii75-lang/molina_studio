@@ -20,6 +20,7 @@ import com.molina.studio.terminal.TerminalSessions
 import java.io.File
 import java.io.InputStream
 import java.io.InputStreamReader
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
@@ -27,16 +28,20 @@ import java.util.concurrent.atomic.AtomicLong
 
 /**
  * Menjalankan skrip dari editor Code di Debian PRoot milik Molina Terminal. Aturan:
- * - satu skrip pada satu waktu,
+ * - satu skrip pada satu waktu per jalur (Lane): Code dan Settings memakai CODE, halaman Unduhan memakai DOWNLOAD,
+ *   sehingga unduhan panjang tidak memblokir editor dan Penyegaran sistem tidak membatalkannya,
  * - isi editor ditulis ke berkas sementara di rootfs (/tmp/molina-run) dan dihapus sesudahnya,
  * - batas waktu dan batas keluaran; seluruh pohon proses dimatikan bila dibatalkan atau lewat waktu,
  * - isi skrip tidak pernah masuk log (hanya kode keluar dan lamanya).
  */
-internal class ProotScriptExecutor(context: Context) : ScriptExecutor {
+internal class ProotScriptExecutor(context: Context, private val lane: Lane = Lane.CODE) : ScriptExecutor {
+    enum class Lane { CODE, DOWNLOAD }
+
     private val app = context.applicationContext
 
     override fun start(request: RunRequest, listener: RunListener): RunHandle {
         val handle = Handle()
+        val busy = busyFlags.getValue(lane)
         if (!busy.compareAndSet(false, true)) {
             listener.onFinished(failed("Masih ada skrip yang berjalan."))
             return handle
@@ -47,13 +52,13 @@ internal class ProotScriptExecutor(context: Context) : ScriptExecutor {
             } catch (e: Exception) {
                 listener.onFinished(failed("Gagal menjalankan: ${e.javaClass.simpleName}"))
             } finally {
-                activeHandle = null
+                active.remove(lane)
                 busy.set(false)
             }
         }, "molina-script")
         worker.isDaemon = true
         handle.thread = worker
-        activeHandle = handle
+        active[lane] = handle
         worker.start()
         return handle
     }
@@ -147,8 +152,8 @@ internal class ProotScriptExecutor(context: Context) : ScriptExecutor {
         val pid = AtomicInteger(-1)
         val sent = AtomicLong(0L)
         val truncated = AtomicBoolean(false)
-        val outThread = pump(proc.inputStream, false, true, out, pid, sent, truncated)
-        val errThread = pump(proc.errorStream, true, false, out, pid, sent, truncated)
+        val outThread = pump(proc.inputStream, false, true, out, pid, sent, truncated, req.maxOutputChars)
+        val errThread = pump(proc.errorStream, true, false, out, pid, sent, truncated, req.maxOutputChars)
 
         var finished = false
         var timedOut = false
@@ -193,7 +198,7 @@ internal class ProotScriptExecutor(context: Context) : ScriptExecutor {
     /**
      * Baca [input] sebagai UTF-8 dan teruskan ke [out]. Pada stdout, baris pertama adalah PID dari
      * pembungkus sh (lihat YtdlpCommand.SH_WRAPPER): dicatat, tidak ditampilkan. Kelebihan keluaran
-     * (> MAX_OUTPUT_CHARS) dibuang tetapi aliran tetap dikuras agar proses tidak macet.
+     * (> [limit]) dibuang tetapi aliran tetap dikuras agar proses tidak macet.
      */
     private fun pump(
         input: InputStream,
@@ -203,6 +208,7 @@ internal class ProotScriptExecutor(context: Context) : ScriptExecutor {
         pid: AtomicInteger,
         sent: AtomicLong,
         truncated: AtomicBoolean,
+        limit: Long,
     ): Thread {
         val t = Thread({
             try {
@@ -231,7 +237,7 @@ internal class ProotScriptExecutor(context: Context) : ScriptExecutor {
                         head.setLength(0)
                         if (text.isEmpty()) continue
                     }
-                    val room = MAX_OUTPUT_CHARS - sent.get()
+                    val room = limit - sent.get()
                     if (room <= 0) {
                         truncated.set(true)
                         continue
@@ -253,16 +259,19 @@ internal class ProotScriptExecutor(context: Context) : ScriptExecutor {
     }
 
     companion object {
-        private const val MAX_OUTPUT_CHARS = 1_000_000L
-        private val busy = AtomicBoolean(false)
-        @Volatile private var activeHandle: Handle? = null
+        private val busyFlags: Map<Lane, AtomicBoolean> = Lane.values().associateWith { AtomicBoolean(false) }
+        private val active = ConcurrentHashMap<Lane, Handle>()
 
-        /** True bila ada skrip Code yang sedang berjalan (untuk Penyegaran sistem). */
-        fun isRunning(): Boolean = busy.get()
+        /** True bila ada skrip Code yang sedang berjalan (untuk Penyegaran sistem). Jalur unduhan tidak dihitung. */
+        fun isRunning(): Boolean = isRunning(Lane.CODE)
 
-        /** Batalkan skrip yang berjalan; mengembalikan 1 bila ada yang dibatalkan. */
-        fun cancelActive(): Int {
-            val h = activeHandle ?: return 0
+        fun isRunning(lane: Lane): Boolean = busyFlags.getValue(lane).get()
+
+        /** Batalkan skrip Code yang berjalan; mengembalikan 1 bila ada yang dibatalkan. */
+        fun cancelActive(): Int = cancelActive(Lane.CODE)
+
+        fun cancelActive(lane: Lane): Int {
+            val h = active[lane] ?: return 0
             h.cancel()
             return 1
         }

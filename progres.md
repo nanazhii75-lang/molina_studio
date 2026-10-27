@@ -902,3 +902,13 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah-sedang (jalur exec PRoot dipakai bersama editor Code)
 - [ ] uji perangkat: Code > jalankan .sh dan .py seperti biasa (tanpa regresi); Settings > tool run (setup) masih jalan; Dibatalkan/Timeout tetap berfungsi
 - [ ] LANGKAH BERIKUT: langkah 2 DownloadRunner (state flow dari --json, naikkan batas keluaran), lalu foreground service dan UnduhanScreen
+
+## 2026-10-27 - Unduhan native langkah 2: DownloadRunner (state flow dari --json) [DL-STEP2-RUNNER]
+- [x] feat(core): DownloadCommand (DownloadRequest -> argv `--json --mode ... -- URL...`, validasi: http/https saja, maks 50 URL, tanpa karakter kontrol, opsi dibatasi, folder harus absolut) dan DownloadFeed (potongan stdout/stderr -> DownloadRunState; buffer terpisah per aliran, baris >64K dibuang, stderr disamarkan LogRedact maks 20 baris, sesi yang berhenti tanpa summary dituntaskan: dibatalkan/mati/gagal mulai)
+- [x] feat(code): RunRequest.maxOutputChars (bawaan 1.000.000 = perilaku lama); ProotScriptExecutor punya jalur (Lane) CODE dan DOWNLOAD: unduhan panjang tidak memblokir editor Code/Settings, dan Penyegaran sistem (isRunning/cancelActive tanpa argumen = CODE) tidak membatalkan unduhan
+- [x] feat(download): DownloadRunner (:app) memakai skrip bawaan assets (bukan salinan Scripts/ yang bisa diedit), StateFlow<DownloadRunState>, start/cancel/clear; URL tidak pernah masuk log
+- [x] test: scripts/core-tests/run_feed.sh (kotlinc 2.1.20): 36 pemeriksaan termasuk keluaran nyata molina_dl.py (dipecah 1 karakter, CRLF), alur lengkap, pembatalan, proses mati, penolakan input
+- [x] Dampak: :core:common (DownloadCommand.kt, DownloadFeed.kt), :feature:code (run/ScriptExecutor.kt), :app (code/ProotScriptExecutor.kt, download/DownloadRunner.kt baru). Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: sedang (ProotScriptExecutor memakai peta lane, jalur yang sama dipakai editor Code)
+- [ ] uji perangkat: Code > jalankan .sh/.py seperti biasa; Penyegaran sistem tetap membatalkan skrip Code; (setelah UI ada) unduhan berjalan sambil menjalankan skrip Code; pembatalan menghentikan proses yt-dlp/ffmpeg
+- [ ] LANGKAH BERIKUT: langkah 3 foreground service (dataSync, notifikasi overallPercent, Manifest berubah), lalu langkah 4 UnduhanScreen

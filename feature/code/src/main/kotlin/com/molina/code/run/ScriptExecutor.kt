@@ -24,7 +24,9 @@ class RunRequest(
     /** Argumen skrip (argv[1..]), diteruskan apa adanya tanpa shell. Tidak pernah dicatat di log. */
     val args: List<String> = emptyList(),
     /** Variabel lingkungan tambahan di guest (mis. MOLINA_ROOT). Divalidasi oleh ScriptCommand.validate. */
-    val env: Map<String, String> = emptyMap()
+    val env: Map<String, String> = emptyMap(),
+    /** Batas total karakter keluaran yang diteruskan ke listener; kelebihannya dibuang (aliran tetap dikuras). */
+    val maxOutputChars: Long = 1_000_000L
 )
 
 interface RunListener {
