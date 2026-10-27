@@ -996,3 +996,13 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah-sedang (named arg + trailing lambda pada W7NavPane; runOp dengan onDone)
 - [ ] uji perangkat (Android 8): hapus lalu Urungkan; folder bersarang; nama bentrok saat pulih; Hapus permanen; Kosongkan; kartu SD; folder Molina tetap tertolak
 - [ ] LANGKAH BERIKUT: daftar "Terbaru" di Berkas, lalu tahap B (Penyimpanan + Folder Molina, termasuk pemakaian Recycle Bin)
+
+## 2026-10-27 - Penjelajah: buka ZIP + diagnosis kegagalan [ZIP-VIEW]
+- [x] fix(explorer): mengetuk berkas .zip (ketuk ulang atau tombol aksi cepat) dulu hanya menampilkan "Tidak ada aplikasi Molina untuk membuka jenis berkas ini" (smartOpen tidak mengenal ZIP) dan aksi cepat jatuh ke "Properti"; kini membuka dialog isi ZIP (daftar entri, jumlah, total ukuran, penanda AES) dengan tombol Ekstrak
+- [x] feat(explorer): FileOps.listZip (zip4j, cadangan java.util.zip) membaca isi tanpa mengekstrak, termasuk ZIP berkata sandi; ZIP 0 byte/rusak diberi pesan jelas
+- [x] fix(explorer): pesan error kini menyebut jenis exception dan ZIP rusak/tak didukung (dulu "Gagal mengekstrak"/"Operasi gagal." tanpa sebab); kegagalan operasi dicatat ke Settings > Log (sumber "penjelajah", tag FileOps) lengkap dengan 8 baris tumpukan
+- [x] Dampak: :app saja (cinema/FileOps.kt, cinema/Win7OpenDialog.kt). Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi (CI). Risiko: rendah-sedang (cabang `when`/sheet baru, dialog Compose)
+- [ ] uji perangkat: ketuk berkas .zip (pilih lalu ketuk lagi) > dialog isi ZIP muncul > Ekstrak > folder hasil muncul; ZIP AES > penanda AES > Ekstrak meminta kata sandi; ZIP salah/rusak > pesan jelas; bila ada kegagalan, salin baris dari Settings > Log (sumber penjelajah)
+- [ ] CATATAN: ZIP berkata sandi memakai AES-256 (WinZip); banyak aplikasi bawaan Android/pengelola berkas TIDAK bisa membukanya (butuh 7-Zip, ZArchiver, WinZip). ZIP biasa (tanpa sandi) kompatibel di mana saja
+- [ ] LANGKAH BERIKUT: ekstrak sebagian (pilih entri), ekstrak ke folder lain, uji perangkat ZIP besar (progres)
