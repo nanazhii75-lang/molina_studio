@@ -912,3 +912,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI). Risiko: sedang (ProotScriptExecutor memakai peta lane, jalur yang sama dipakai editor Code)
 - [ ] uji perangkat: Code > jalankan .sh/.py seperti biasa; Penyegaran sistem tetap membatalkan skrip Code; (setelah UI ada) unduhan berjalan sambil menjalankan skrip Code; pembatalan menghentikan proses yt-dlp/ffmpeg
 - [ ] LANGKAH BERIKUT: langkah 3 foreground service (dataSync, notifikasi overallPercent, Manifest berubah), lalu langkah 4 UnduhanScreen
+
+## 2026-10-27 - Unduhan native langkah 3: DownloadService foreground (notifikasi persen) [DL-STEP3-SERVICE]
+- [x] CI #167 (langkah 2: DownloadRunner/DownloadFeed/jalur DOWNLOAD) hijau
+- [x] feat(download): DownloadService (foreground, dataSync): mengamati DownloadRunner.state, notifikasi persen gabungan + "n/total selesai" + aksi Batalkan, notifikasi ringkasan saat selesai (tanpa URL), wake lock berbatas waktu, berhenti sendiri (stopSelf(startId) aman terhadap unduhan beruntun)
+- [x] DownloadRunner.start() menyalakan service setelah sesi berjalan; start dari latar (Android 12+) ditolak sistem dibungkus runCatching: unduhan tetap jalan tanpa notifikasi
+- [x] Manifest: service .download.DownloadService (foregroundServiceType=dataSync) + izin FOREGROUND_SERVICE_DATA_SYNC (tidak wajib di targetSdk 28, disiapkan untuk kenaikan target)
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: sedang (Manifest berubah). JNI mpv tidak disentuh
+- [ ] uji perangkat (Android 8): setelah UI ada, mulai unduhan lalu tekan Home: notifikasi muncul dan persen bergerak; "Batalkan" menghentikan unduhan; notifikasi ringkasan muncul saat selesai
+- [ ] LANGKAH BERIKUT: langkah 4 UnduhanScreen (Compose, daftar item, bar emas, tombol mulai/batalkan, hasil)

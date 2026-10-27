@@ -90,6 +90,7 @@ internal object DownloadRunner {
         })
         // onFinished bisa datang sebelum start() kembali (mis. jalur sibuk): jangan simpan handle usang.
         synchronized(lock) { if (feed === f && _state.value.running) handle = h }
+        if (_state.value.running) DownloadService.ensureRunning(app)
         return null
     }
 
