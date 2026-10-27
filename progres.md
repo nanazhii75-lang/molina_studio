@@ -1234,3 +1234,16 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah
 - [ ] uji perangkat (Android 8): pilih mp3 yang punya cover lalu cover tampil; mp3 tanpa cover menampilkan ikon nada
 - [ ] LANGKAH BERIKUT: antrean "Putar semua di folder ini" dari panel bawah
+
+## 2026-10-28 - Antrean putar, urutan terakhir diputar, detail media [FILES-QUEUE]
+- [x] feat(files): menu Alat: Putar semua di daftar ini (N) dan Putar mulai dari item ini, mengikuti urutan tampil; playlist m3u/pls/cue dikecualikan
+- [x] feat(files): Urutan terakhir diputar dulu (stabil, folder tetap di atas, sumber CinemaRecent)
+- [x] feat(files): W7MediaInfo menambah Judul/Artis/Album/Durasi/Resolusi/Bitrate/Format di Properti (Dispatchers.IO)
+- [x] Dampak: :app saja. Gradle, Manifest, JNI mpv TIDAK disentuh
+- [ ] uji perangkat: antrean 5+ lagu; mulai dari item ke-3; Properti mp4/mp3 menampilkan durasi
+
+## 2026-10-28 - Urutan terakhir diputar dulu menjadi persisten [FILES-PERSIST]
+- [x] feat(files): ExplorerPrefs.Data.playedFirst (default false) disimpan di molina_explorer kunci played_first
+- [x] Dampak: :app saja (ExplorerPrefs, Win7OpenDialog). Gradle, Manifest, JNI mpv TIDAK disentuh
+- [ ] uji perangkat: aktifkan urutan, tutup lalu buka Penjelajah, pilihan tetap aktif
+- [ ] LANGKAH BERIKUT: cek hasil CI semua patch files-*, lalu uji perangkat gabungan

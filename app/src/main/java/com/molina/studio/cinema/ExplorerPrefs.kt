@@ -11,7 +11,8 @@ internal object ExplorerPrefs {
         val asc: Boolean,
         val foldersFirst: Boolean,
         val showHidden: Boolean,
-        val deep: Boolean
+        val deep: Boolean,
+        val playedFirst: Boolean = false
     )
 
     private fun p(ctx: Context) = ctx.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -25,7 +26,7 @@ internal object ExplorerPrefs {
         }
         return Data(
             key, s.getBoolean("sort_asc", true), s.getBoolean("folders_first", true),
-            s.getBoolean("show_hidden", false), s.getBoolean("deep_search", false)
+            s.getBoolean("show_hidden", false), s.getBoolean("deep_search", false), s.getBoolean("played_first", false)
         )
     }
 
@@ -33,6 +34,6 @@ internal object ExplorerPrefs {
         p(ctx).edit()
             .putString("sort_key", d.key.name).putBoolean("sort_asc", d.asc)
             .putBoolean("folders_first", d.foldersFirst).putBoolean("show_hidden", d.showHidden)
-            .putBoolean("deep_search", d.deep).apply()
+            .putBoolean("deep_search", d.deep).putBoolean("played_first", d.playedFirst).apply()
     }
 }

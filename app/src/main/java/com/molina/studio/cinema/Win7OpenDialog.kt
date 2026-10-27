@@ -118,6 +118,7 @@ private fun w7StemEnd(name: String, dir: Boolean): Int =
     if (dir) name.length else name.lastIndexOf('.').let { if (it > 0) it else name.length }
 
 private val W7_ID = Locale("id", "ID")
+private val W7_LISTS = setOf("m3u", "m3u8", "pls", "cue")
 private val W7_AUDIO = setOf("mp3", "m4a", "aac", "flac", "wav", "ogg", "oga", "opus", "wma", "ac3", "dts", "mka")
 private val W7_MEDIA = W7_AUDIO + setOf(
     "mp4", "mkv", "webm", "avi", "mov", "m4v", "3gp", "ts", "m2ts", "mts", "flv", "wmv",
@@ -221,6 +222,7 @@ fun Win7OpenDialog(
     var foldersFirst by remember { mutableStateOf(savedSort.foldersFirst) }
     var showHidden by remember { mutableStateOf(savedSort.showHidden) }
     var deepSearch by remember { mutableStateOf(savedSort.deep) }
+    var playedFirst by remember { mutableStateOf(savedSort.playedFirst) }
     var query by remember { mutableStateOf("") }
     var sortOpen by remember { mutableStateOf(false) }
     var tick by remember { mutableStateOf(0) }
@@ -279,8 +281,8 @@ fun Win7OpenDialog(
 
     LaunchedEffect(Unit) { if (!granted) ask.launch(Manifest.permission.READ_EXTERNAL_STORAGE) }
     LaunchedEffect(Unit) { if (browse) withContext(Dispatchers.IO) { runCatching { TrashBin.autoPurge(volDirs) } } }
-    LaunchedEffect(key, asc, foldersFirst, showHidden, deepSearch) {
-        ExplorerPrefs.save(ctx, ExplorerPrefs.Data(key, asc, foldersFirst, showHidden, deepSearch))
+    LaunchedEffect(key, asc, foldersFirst, showHidden, deepSearch, playedFirst) {
+        ExplorerPrefs.save(ctx, ExplorerPrefs.Data(key, asc, foldersFirst, showHidden, deepSearch, playedFirst))
     }
     LaunchedEffect(dir, kind, key, asc, tick, granted, query, foldersFirst, showHidden, deepSearch) {
         if (!granted) return@LaunchedEffect
@@ -292,6 +294,13 @@ fun Win7OpenDialog(
         if (deep && message.startsWith("Mencari")) say("")
         entries = r?.first
         if (r != null && r.second) say("Hasil dibatasi " + ExplorerList.MAX_RESULTS + " teratas. Persempit kata kunci.")
+    }
+
+    // [FILES-QUEUE] urutan tampil; opsi "terakhir diputar dulu" bersifat stabil (folder tetap di atas, sisanya urutan asal)
+    val shown = remember(entries, playedFirst, playedRefs) {
+        val es = entries
+        if (es == null || !playedFirst) es
+        else es.sortedWith(compareBy<W7Entry>({ if (it.isDir) 0 else 1 }, { if (it.isDir) 0 else playedRefs.indexOf(w7Norm(it.file.path)).let { i -> if (i < 0) 99 else i } }))
     }
 
     val roots = vols.map { it.dir.path }
@@ -572,6 +581,31 @@ fun Win7OpenDialog(
                                             say(if (ok) "Memutar di mpv: " + w7Names(tg) else "Tidak ada media yang bisa diputar", ok)
                                         }
                                     }
+                                    val qAll = (shown ?: emptyList()).filter { !it.isDir && it.file.extension.lowercase() in W7_MEDIA && it.file.extension.lowercase() !in W7_LISTS }.map { it.file }
+                                    val qFrom = one?.takeIf { it.isFile }?.let { sel ->
+                                        val i = qAll.indexOf(sel)
+                                        if (i >= 0) qAll.drop(i) + qAll.take(i) else null
+                                    }
+                                    W7MenuItem(W7Ico.PLAY, "Putar semua di daftar ini (" + qAll.size + ")", onPlay != null && qAll.size > 1) {
+                                        toolsOpen = false
+                                        val fn = onPlay
+                                        if (fn != null) scope.launch {
+                                            val ok = fn(qAll)
+                                            say(if (ok) "Memutar antrean " + qAll.size + " berkas di mpv" else "Tidak ada media yang bisa diputar", ok)
+                                        }
+                                    }
+                                    W7MenuItem(W7Ico.PLAY, "Putar mulai dari item ini", onPlay != null && qFrom != null && qFrom.size > 1) {
+                                        toolsOpen = false
+                                        val fn = onPlay
+                                        if (fn != null && qFrom != null) scope.launch {
+                                            val ok = fn(qFrom)
+                                            say(if (ok) "Memutar " + qFrom.size + " berkas mulai dari " + qFrom[0].name else "Tidak ada media yang bisa diputar", ok)
+                                        }
+                                    }
+                                    W7MenuItem(W7Ico.PLAY, if (playedFirst) "Urutan: normal" else "Urutan: terakhir diputar dulu", playedRefs.isNotEmpty() || playedFirst) {
+                                        toolsOpen = false
+                                        playedFirst = !playedFirst
+                                    }
                                     W7MenuItem(W7Ico.CODE, "Buka di Code", onOpenInCode != null && tg.any { it.isFile }) {
                                         toolsOpen = false
                                         val fn = onOpenInCode
@@ -709,7 +743,7 @@ fun Win7OpenDialog(
                     Box(Modifier.width(1.dp).fillMaxHeight().background(Win7.Hairline))
                     W7FileArea(
                         modifier = Modifier.weight(1f).fillMaxHeight(),
-                        granted = granted, entries = entries, key = key, asc = asc, selected = selected,
+                        granted = granted, entries = shown, key = key, asc = asc, selected = selected,
                         onSort = { k -> if (key == k) asc = !asc else { key = k; asc = true } },
                         multi = multi, picked = picked, recentRefs = playedRefs,
                         emptyNote = if (query.isNotBlank()) "Tidak ada hasil untuk \"" + query.trim() + "\"" else "Folder ini kosong.",
@@ -1324,6 +1358,10 @@ private fun W7InfoDialog(files: List<File>, debian: Boolean?, onDismiss: () -> U
                 if (p.isDir) W7InfoRow("Isi", p.files.toString() + " berkas, " + p.folders + " folder")
                 W7InfoRow("Diubah", w7Date(p.modified))
                 W7InfoRow("Izin", (if (p.canRead) "Baca" else "Tanpa baca") + ", " + (if (p.canWrite) "Tulis" else "Tanpa tulis"))
+                if (!p.isDir && !p.symlink && W7Thumb.hasThumb(first)) {
+                    val media by produceState<List<Pair<String, String>>?>(null, first.path) { value = W7MediaInfo.read(first) }
+                    media?.forEach { W7InfoRow(it.first, it.second) }
+                }
                 if (!p.isDir && !p.symlink) {
                     val h = sha
                     if (h != null) {
