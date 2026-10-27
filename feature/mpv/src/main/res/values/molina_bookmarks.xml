@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="action_bookmarks">Penanda posisi</string>
-    <string name="bookmark_title">Penanda posisi (tekan lama = hapus)</string>
+    <string name="bookmark_title">Penanda posisi (tekan lama = ubah nama / hapus)</string>
     <string name="bookmark_empty">Belum ada penanda untuk video ini.</string>
     <string name="bookmark_add">Tandai %1$s</string>
     <string name="bookmark_clear">Hapus semua</string>
@@ -10,4 +10,9 @@
     <string name="bookmark_exists">Posisi ini sudah ditandai</string>
     <string name="bookmark_removed">Penanda dihapus</string>
     <string name="bookmark_cleared">Semua penanda dihapus</string>
+    <string name="bookmark_rename">Ubah nama</string>
+    <string name="bookmark_delete">Hapus</string>
+    <string name="bookmark_rename_title">Nama penanda</string>
+    <string name="bookmark_name_hint">Contoh: Adegan favorit (kosong = hanya waktu)</string>
+    <string name="bookmark_renamed">Nama penanda disimpan</string>
 </resources>

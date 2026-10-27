@@ -1878,14 +1878,17 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         }
         val now = MPVLib.getPropertyDouble("time-pos") ?: 0.0
         val marks = VideoBookmarks.list(this, key)
-        val labels = marks.map { Utils.prettyTime(it.roundToInt()) }.toTypedArray()
+        val labels = marks.map { m ->
+            val t = Utils.prettyTime(m.sec.roundToInt())
+            if (m.name.isBlank()) t else "$t  \u00B7  ${m.name}"
+        }.toTypedArray()
         val builder = AlertDialog.Builder(this, R.style.AppTheme_PlayerDialog)
         builder.setTitle(R.string.bookmark_title)
         if (labels.isEmpty()) {
             builder.setMessage(R.string.bookmark_empty)
         } else {
             builder.setItems(labels) { d, i ->
-                MPVLib.command(arrayOf("seek", marks[i].toString(), "absolute"))
+                MPVLib.command(arrayOf("seek", marks[i].sec.toString(), "absolute"))
                 d.dismiss()
             }
             builder.setNeutralButton(R.string.bookmark_clear) { _, _ ->
@@ -1901,13 +1904,41 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
             )
         }
         builder.setNegativeButton(android.R.string.cancel, null)
-        builder.setOnDismissListener { restoreState() }
+        var handoff = false
+        builder.setOnDismissListener { if (!handoff) restoreState() }
         val dialog = builder.create()
         dialog.show()
         dialog.listView?.setOnItemLongClickListener { _, _, i, _ ->
-            VideoBookmarks.removeAt(this, key, i)
-            showToast(getString(R.string.bookmark_removed), true)
+            handoff = true
             dialog.dismiss()
+            val acts = arrayOf(getString(R.string.bookmark_rename), getString(R.string.bookmark_delete))
+            AlertDialog.Builder(this, R.style.AppTheme_PlayerDialog)
+                .setItems(acts) { _, which ->
+                    if (which == 0) {
+                        val input = android.widget.EditText(this)
+                        input.setText(marks[i].name)
+                        input.setSelection(input.text.length)
+                        input.hint = getString(R.string.bookmark_name_hint)
+                        input.maxLines = 1
+                        input.inputType = android.text.InputType.TYPE_CLASS_TEXT
+                        AlertDialog.Builder(this, R.style.AppTheme_PlayerDialog)
+                            .setTitle(R.string.bookmark_rename_title)
+                            .setView(input)
+                            .setPositiveButton(android.R.string.ok) { _, _ ->
+                                VideoBookmarks.rename(this, key, i, input.text.toString())
+                                showToast(getString(R.string.bookmark_renamed), true)
+                            }
+                            .setNegativeButton(android.R.string.cancel, null)
+                            .setOnDismissListener { restoreState() }
+                            .show()
+                    } else {
+                        VideoBookmarks.removeAt(this, key, i)
+                        showToast(getString(R.string.bookmark_removed), true)
+                        restoreState()
+                    }
+                }
+                .setOnCancelListener { restoreState() }
+                .show()
             true
         }
     }

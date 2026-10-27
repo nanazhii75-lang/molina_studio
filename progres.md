@@ -1114,3 +1114,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI). Risiko: sedang (sora-editor 0.23.6 `CodeEditor.insertText(CharSequence, Int)`; `AlertDialog.listView` bisa null; Win7Button dengan parameter modifier posisional)
 - [ ] uji perangkat (Android 8): putar video lokal > menu setelan > bookmark: Tandai, tutup, buka lagi, penanda muncul urut waktu, ketuk melompat, tekan lama menghapus; video YouTube via Cinema: penanda tersimpan dan muncul lagi pada putaran berikutnya dengan tautan yang sama; Terminal: jalankan perintah, menu > Sisip keluaran ke Code > 50 baris: teks masuk di kursor tab Code, tab berpindah, titik "belum disimpan" menyala; coba saat tab Code belum pernah dibuka; Code: pilih teks > menu > Simpan sebagai snippet > muncul di Terminal > Snippet perintah; snippet banyak baris: Sisip tidak menjalankan, Jalan menjalankan
 - [ ] LANGKAH BERIKUT: daftar penanda bernama (ubah nama), penanda di bilah seek, tombol "Salin keluaran perintah terakhir" ke Code, impor/ekspor snippet
+
+## 2026-10-27 - Penanda bernama + konfirmasi CI/uji fase sebelumnya [BOOKMARK-NAMA]
+- [x] Konfirmasi pengguna: fase [BOOKMARK-SISIP-SNIPPET] (commit 16819e0) build CI SUKSES dan sudah diuji di perangkat
+- [x] feat(mpv): penanda bernama. Tekan lama penanda > pilih "Ubah nama" (dialog input, maks. 40 karakter, kosong = hapus nama) atau "Hapus". Daftar menampilkan "mm:ss  .  nama". `Mark(sec, name)` menggantikan Double di `VideoBookmarks`; format simpan lama (angka) tetap terbaca, penanda tanpa nama tetap disimpan sebagai angka
+- [x] Dampak: :feature:mpv (VideoBookmarks.kt, MPVActivity.openBookmarks, molina_bookmarks.xml). Gradle, Manifest, JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah (`when` pada `arr.get(i)` JSONObject/Number; AlertDialog bersarang + restoreState)
+- [ ] uji perangkat (Android 8): tandai posisi > tekan lama > Ubah nama > nama muncul di daftar; kosongkan nama > kembali hanya waktu; tekan lama > Hapus; penanda lama (sebelum update) tetap muncul; video terjeda saat dialog dan lanjut setelah ditutup
+- [ ] LANGKAH BERIKUT: penanda di bilah seek, tombol "Salin keluaran perintah terakhir" ke Code, impor/ekspor snippet
