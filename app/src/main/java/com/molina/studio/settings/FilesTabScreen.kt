@@ -29,26 +29,21 @@ import com.molina.studio.cinema.Win7OpenDialog
 fun FilesTabScreen(modifier: Modifier = Modifier, onExit: () -> Unit = {}) {
     val ctx = LocalContext.current
     remember { MolinaExplorer.attach(ctx) }
-    var show by remember { mutableStateOf(true) }
-    if (show) Win7OpenDialog(
-        onDismiss = { show = false; onExit() },
+    Win7OpenDialog(
+        onDismiss = onExit,
         browse = true,
-        showClose = false,
+        asScreen = true,
+        screenModifier = modifier,
         onCopyPath = { f -> MolinaExplorer.copyPath(ctx, f) },
-        onOpenTerminal = { f -> if (MolinaExplorer.openTerminalHere(ctx, f)) show = false },
+        onOpenTerminal = { f -> MolinaExplorer.openTerminalHere(ctx, f) },
         onShare = { files -> MolinaExplorer.share(ctx, files) },
         onOpenWith = { f -> MolinaExplorer.openWith(ctx, f) },
         onInsertPaths = { fs -> MolinaExplorer.insertPaths(ctx, fs) },
         isVisibleInDebian = { f -> MolinaExplorer.visibleInDebian(f) },
         onPlay = { files -> MolinaExplorer.play(ctx, files) },
-        onOpenInCode = { files ->
-            show = false
-            MolinaExplorer.openInCode(ctx, files)
-        },
+        onOpenInCode = { files -> MolinaExplorer.openInCode(ctx, files) },
         onSendToScripts = { f -> MolinaExplorer.sendToScripts(f) }
     )
-    // Tanpa kartu perantara: bila dialog ditutup (Back di root / pindah ke Terminal / Code), layar kosong.
-    Box(modifier)
 }
 
 /**

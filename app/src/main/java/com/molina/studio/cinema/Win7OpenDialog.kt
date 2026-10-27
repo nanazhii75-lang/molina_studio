@@ -21,6 +21,7 @@ import android.content.pm.PackageManager
 import android.os.Environment
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -177,6 +178,8 @@ fun Win7OpenDialog(
     onPick: (File) -> Unit = {},
     browse: Boolean = false,
     showClose: Boolean = true,
+    asScreen: Boolean = false,
+    screenModifier: Modifier = Modifier,
     onCopyPath: ((File) -> Unit)? = null,
     onOpenTerminal: ((File) -> Unit)? = null,
     onShare: ((List<File>) -> Boolean)? = null,
@@ -422,10 +425,15 @@ fun Win7OpenDialog(
     }
 
     val frame = RoundedCornerShape(8.dp)
-    Dialog(
-        onDismissRequest = { if (multi) { multi = false; picked = emptySet() } else if (!goUp()) onDismiss() },
-        properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnClickOutside = false)
-    ) {
+    // Keterangan hasil operasi melayang di atas daftar dan hilang sendiri (tidak menyita tinggi panel bawah)
+    LaunchedEffect(message) {
+        if (message.isNotBlank()) {
+            delay(if (undo != null) 9000L else (3500L + message.length * 30L).coerceAtMost(9000L))
+            message = ""
+        }
+    }
+    val backAction: () -> Unit = { if (multi) { multi = false; picked = emptySet() } else if (!goUp()) onDismiss() }
+    val content: @Composable () -> Unit = {
         // [FILEOPS-2] keyboard tidak boleh muncul sendiri saat Penjelajah dibuka
         val dlgFocus = LocalFocusManager.current
         val dlgView = LocalView.current
@@ -442,13 +450,13 @@ fun Win7OpenDialog(
             (ctx.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager)?.hideSoftInputFromWindow(dlgView.windowToken, 0)
         }
         Column(
-            Modifier.fillMaxSize().padding(horizontal = 8.dp, vertical = 24.dp)
+            (if (asScreen) screenModifier.fillMaxSize().padding(4.dp) else Modifier.fillMaxSize().padding(horizontal = 8.dp, vertical = 24.dp))
                 .clip(frame)
                 .background(Brush.verticalGradient(listOf(Win7.FrameTop, Win7.FrameBottom)), frame)
                 .border(1.dp, Win7.FrameLine, frame)
                 .padding(start = 6.dp, end = 6.dp, bottom = 6.dp)
         ) {
-            Row(Modifier.fillMaxWidth().height(26.dp), verticalAlignment = Alignment.Top) {
+            if (!asScreen) Row(Modifier.fillMaxWidth().height(26.dp), verticalAlignment = Alignment.Top) {
                 Row(Modifier.weight(1f).padding(top = 5.dp, start = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                     Win7Folder(16.dp)
                     Spacer(Modifier.width(6.dp))
@@ -692,7 +700,8 @@ fun Win7OpenDialog(
                     }
                 }
                 Box(Modifier.fillMaxWidth().height(1.dp).background(Win7.Hairline))
-                Row(Modifier.weight(1f).fillMaxWidth()) {
+                Box(Modifier.weight(1f).fillMaxWidth()) {
+                Row(Modifier.fillMaxSize()) {
                     W7NavPane(favs, vols, dir, Modifier.width(92.dp).fillMaxHeight(), onBin = if (browse) ({ showBin = true }) else null, recents = recents) { go(it) }
                     Box(Modifier.width(1.dp).fillMaxHeight().background(Win7.Hairline))
                     W7FileArea(
@@ -711,6 +720,21 @@ fun Win7OpenDialog(
                         onEnter = { e -> go(e.file) },
                         onAsk = { ask.launch(Manifest.permission.READ_EXTERNAL_STORAGE) }
                     )
+                }
+                if (message.isNotBlank()) W7Toast(
+                    message, messageOk,
+                    actionLabel = if (undo != null && !busy) "Urungkan" else null,
+                    onAction = {
+                        val undoItems = undo
+                        if (undoItems != null) {
+                            undo = null
+                            message = ""
+                            runOp(op = { _ -> "Dipulihkan: " + TrashBin.restore(undoItems, volDirs).size + " item" })
+                        }
+                    },
+                    onDismiss = { message = "" },
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                )
                 }
                 Box(Modifier.fillMaxWidth().height(1.dp).background(Win7.Hairline))
                 Column(Modifier.fillMaxWidth().padding(8.dp)) {
@@ -823,23 +847,50 @@ fun Win7OpenDialog(
                         )
                     }
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text(message, color = if (messageOk) Color(0xFF4CAF50) else Color(0xFFFF8A80), fontSize = 11.sp, modifier = Modifier.weight(1f).padding(end = 8.dp))
-                        val undoItems = undo
-                        if (undoItems != null && !busy) W7Cmd("Urungkan", true) {
-                            undo = null
-                            runOp(op = { _ -> "Dipulihkan: " + TrashBin.restore(undoItems, volDirs).size + " item" })
-                        }
+                        Spacer(Modifier.weight(1f))
                         Win7Button(
                             if (pickFolder) "Pilih folder" else "Buka", isDefault = true,
                             enabled = if (pickFolder) granted else fileName.isNotBlank(),
                             onClick = { if (pickFolder) onPickFolder(dir) else confirm() }
                         )
-                        Spacer(Modifier.width(8.dp))
-                        Win7Button("Batal", onClick = onDismiss)
+                        if (!asScreen) {
+                            Spacer(Modifier.width(8.dp))
+                            Win7Button("Batal", onClick = onDismiss)
+                        }
                     }
                 }
             }
         }
+    }
+    if (asScreen) {
+        BackHandler(onBack = backAction)
+        content()
+    } else Dialog(
+        onDismissRequest = backAction,
+        properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnClickOutside = false)
+    ) { content() }
+}
+
+/** Keterangan hasil operasi: melayang di atas daftar berkas, maks. 3 baris, hilang sendiri atau saat diketuk. */
+@Composable
+private fun W7Toast(
+    text: String, ok: Boolean, actionLabel: String?, onAction: () -> Unit, onDismiss: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val shape = RoundedCornerShape(6.dp)
+    val tone = if (ok) Color(0xFF4CAF50) else Color(0xFFFF8A80)
+    Row(
+        modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp)
+            .clip(shape).background(Color(0xF2202830), shape).border(1.dp, tone.copy(alpha = 0.6f), shape)
+            .clickable(onClick = onDismiss).padding(start = 10.dp, top = 6.dp, bottom = 6.dp, end = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text("\u25CF ", color = tone, fontSize = 11.sp)
+        Text(
+            text, color = Color(0xFFEFF3F6), fontSize = 12.sp, maxLines = 3,
+            overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f)
+        )
+        if (actionLabel != null) W7Cmd(actionLabel, true, onAction)
     }
 }
 
