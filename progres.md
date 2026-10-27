@@ -921,3 +921,13 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI). Risiko: sedang (Manifest berubah). JNI mpv tidak disentuh
 - [ ] uji perangkat (Android 8): setelah UI ada, mulai unduhan lalu tekan Home: notifikasi muncul dan persen bergerak; "Batalkan" menghentikan unduhan; notifikasi ringkasan muncul saat selesai
 - [ ] LANGKAH BERIKUT: langkah 4 UnduhanScreen (Compose, daftar item, bar emas, tombol mulai/batalkan, hasil)
+
+## 2026-10-27 - Unduhan native langkah 4: tab Unduhan (UnduhanScreen) [DL-STEP4-SCREEN]
+- [x] feat(download): UnduhanScreen (Compose) sebagai tab baru "Unduhan" (setelah mpv): kolom URL multi-baris, tombol Tempel dari clipboard, pilihan Video (Terbaik/1080p/720p/480p, MP4/MKV) atau Audio (MP3/M4A/FLAC, 128k/192k/320k), Mulai/Batalkan, Kosongkan hasil
+- [x] Progres per item: bar emas (hijau saat selesai, merah saat gagal), kecepatan dan sisa waktu, tahap pemrosesan, pesan galat per item, peringatan dan galat global
+- [x] Setelah selesai: tombol Putar per berkas (CinemaActions.playPath, path Debian /sdcard dipetakan ke Android) dan Buka folder (Penjelajah terbuka di folder hasil lewat parameter baru Win7OpenDialog.startDir)
+- [x] Hasil sesi terakhir tetap tampil sampai Kosongkan (DownloadRunner.clear()); unduhan baru menggantikannya
+- [x] Dampak: :app (download/UnduhanScreen.kt baru, cinema/Win7OpenDialog.kt +parameter startDir, MainActivity.kt +tab). Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah-sedang (nav bawah kini 5 tab; Win7OpenDialog dipakai Settings dan Cinema, parameter baru berbawaan null)
+- [ ] uji perangkat (Android 8): tempel URL, mulai, tekan Home (notifikasi persen), batalkan, lanjutkan dengan URL sama; setelah selesai: Putar membuka Molina Player, Buka folder membuka Penjelajah di folder hasil; Settings > Penjelajah dan tab mpv tetap normal
+- [ ] LANGKAH BERIKUT (opsional): tombol "Unduh" dari kartu hasil pencarian Cinema ke tab Unduhan, uji unit untuk pemetaan path dan format ukuran

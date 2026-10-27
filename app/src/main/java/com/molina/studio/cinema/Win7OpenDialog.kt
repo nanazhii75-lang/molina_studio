@@ -171,7 +171,8 @@ fun Win7OpenDialog(
     onPickFolder: (File) -> Unit = {},
     onPlay: (suspend (List<File>) -> Boolean)? = null,
     onOpenInCode: ((List<File>) -> Unit)? = null,
-    onSendToScripts: ((File) -> Pair<Boolean, String>)? = null
+    onSendToScripts: ((File) -> Pair<Boolean, String>)? = null,
+    startDir: File? = null
 ) {
     val ctx = LocalContext.current
     var favTick by remember { mutableStateOf(0) } // [FILEOPS-1]
@@ -183,7 +184,7 @@ fun Win7OpenDialog(
     val vols = remember { w7Drives() }
     var granted by remember { mutableStateOf(w7HasStorage(ctx)) }
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted = it }
-    var dir by remember { mutableStateOf(vols.first().dir) }
+    var dir by remember { mutableStateOf(startDir?.takeIf { it.isDirectory } ?: vols.first().dir) }
     var kind by remember { mutableStateOf(if (browse) W7Kind.ALL else W7Kind.MEDIA) }
     // [EXPLORER-SEARCH] pencarian nama + sortir yang diingat
     val savedSort = remember { ExplorerPrefs.load(ctx) }

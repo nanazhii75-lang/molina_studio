@@ -45,6 +45,7 @@ import androidx.compose.ui.graphics.Color
 
 private enum class Tab(val label: String, val glyph: String, val color: Color) {
     Mpv("mpv", "\u25B6", Color(0xFFB9A7E8)),          // lavender redup: bioskop
+    Download("Unduhan", "\u2193", Color(0xFF6FC3C0)),   // teal: unduhan
     Terminal("Terminal", ">_", Color(0xFF8FCBA6)),      // hijau sage: terminal
     Code("Code", "< >", Color(0xFFFFB300)),             // emas: editor
     Settings("Settings", "\u2699", Color(0xFFCDBFA3))  // champagne: pengaturan
@@ -223,6 +224,10 @@ class MainActivity : ComponentActivity() {
                         }
                         Tab.Mpv -> {
                             com.molina.studio.cinema.CinemaHome(Modifier.fillMaxSize().padding(pad))
+                            return@Scaffold
+                        }
+                        Tab.Download -> {
+                            com.molina.studio.download.UnduhanScreen(Modifier.fillMaxSize().padding(pad))
                             return@Scaffold
                         }
                         Tab.Settings -> {
