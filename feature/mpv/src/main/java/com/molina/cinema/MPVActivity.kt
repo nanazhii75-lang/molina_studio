@@ -260,6 +260,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
             if (!fromUser)
                 return
             player.timePos = progress.toDouble() / SEEK_BAR_PRECISION
+            showMarkLabelWhileSeeking(progress.toDouble() / SEEK_BAR_PRECISION)
             // Note: don't call updatePlaybackPos() here either
         }
 
@@ -269,6 +270,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
 
         override fun onStopTrackingTouch(seekBar: SeekBar) {
             userIsOperatingSeekbar = false
+            hideMarkLabel.run()
             showControls() // re-trigger display timeout
         }
     }
@@ -385,6 +387,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
             cycleDecoderBtn.setOnLongClickListener { pickDecoder(); true }
 
             playbackSeekbar.setOnSeekBarChangeListener(seekBarChangeListener)
+            playbackSeekbar.onMarkTap = { sec -> jumpToMark(sec) }
         }
 
         player.setOnTouchListener { _, e ->
@@ -2314,8 +2317,49 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
     /** Titik emas penanda di bilah seek; kosong untuk stream tanpa kunci penanda. */
     private fun refreshSeekMarks() {
         val key = try { bookmarkKey() } catch (e: Exception) { null }
-        val secs = if (key == null) emptyList() else VideoBookmarks.list(this, key).map { it.sec }
-        binding.playbackSeekbar.setMarks(secs, SEEK_BAR_PRECISION)
+        seekMarks = if (key == null) emptyList() else VideoBookmarks.list(this, key)
+        binding.playbackSeekbar.setMarks(seekMarks.map { it.sec }, SEEK_BAR_PRECISION)
+    }
+
+    private var seekMarks: List<Mark> = emptyList()
+    private var markLabelShown = false
+    private val hideMarkLabel = Runnable {
+        if (markLabelShown) {
+            markLabelShown = false
+            binding.gestureTextView.visibility = View.GONE
+        }
+    }
+
+    private fun nearestMark(sec: Double, within: Double): Mark? =
+        seekMarks.minByOrNull { Math.abs(it.sec - sec) }?.takeIf { Math.abs(it.sec - sec) <= within }
+
+    private fun markLabel(sec: Double, m: Mark?): String {
+        val t = Utils.prettyTime(sec.roundToInt())
+        return if (m == null || m.name.isBlank()) t else "$t  \u00B7  ${m.name}"
+    }
+
+    /** Saat bilah seek diseret melewati penanda bernama (+-2 detik): tampilkan "mm:ss . nama" di label gestur. */
+    private fun showMarkLabelWhileSeeking(sec: Double) {
+        val m = nearestMark(sec, 2.0)?.takeIf { it.name.isNotBlank() }
+        if (m == null) {
+            hideMarkLabel.run()
+            return
+        }
+        val tv = binding.gestureTextView
+        markLabelShown = true
+        tv.visibility = View.VISIBLE
+        tv.text = markLabel(sec, m)
+    }
+
+    /** Ketuk titik penanda di bilah seek: lompat tepat ke posisinya dan tampilkan labelnya sebentar. */
+    private fun jumpToMark(sec: Double) {
+        player.timePos = sec
+        val tv = binding.gestureTextView
+        markLabelShown = true
+        tv.visibility = View.VISIBLE
+        tv.text = markLabel(sec, nearestMark(sec, 0.5))
+        tv.removeCallbacks(hideMarkLabel)
+        tv.postDelayed(hideMarkLabel, 1500)
     }
 
     private fun updatePlaybackStatus(paused: Boolean) {

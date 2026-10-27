@@ -71,7 +71,7 @@ internal object TerminalSnippets {
         if (loaded) return
         loaded = true
         val raw = ctx.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY, null)
-        val list = if (raw == null) defaults() else try {
+        val list = if (raw == null) restoreOrDefaults(ctx) else try {
             val arr = JSONArray(raw)
             (0 until arr.length()).map { i ->
                 val o = arr.getJSONObject(i)
@@ -88,6 +88,7 @@ internal object TerminalSnippets {
         val arr = JSONArray()
         items.forEach { arr.put(JSONObject().put("n", it.name).put("c", it.cmd)) }
         ctx.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY, arr.toString()).apply()
+        autoBackup(ctx)
     }
 
     fun add(ctx: Context, name: String, cmd: String) {
@@ -104,6 +105,46 @@ internal object TerminalSnippets {
         val n = name.trim().ifEmpty { "Snippet" }
         add(ctx, n, c)
         return "Snippet disimpan: $n"
+    }
+
+    private val io = java.util.concurrent.Executors.newSingleThreadExecutor()
+
+    private fun snapshotJson(): String {
+        val arr = JSONArray()
+        items.forEach { arr.put(JSONObject().put("n", it.name).put("c", it.cmd)) }
+        return JSONObject().put("app", "molina-terminal").put("version", 1).put("snippets", arr).toString(2) + "\n"
+    }
+
+    /** Cadangan otomatis tiap daftar berubah, ke berkas yang sama dengan Ekspor; ditulis di thread latar. */
+    private fun autoBackup(ctx: Context) {
+        val json = snapshotJson()
+        val f = backupFile(ctx)
+        io.execute {
+            try {
+                f.parentFile?.mkdirs()
+                f.writeText(json)
+            } catch (e: Exception) {
+                // izin penyimpanan belum ada: abaikan, Ekspor manual tetap tersedia
+            }
+        }
+    }
+
+    /** Prefs kosong (pasang baru / data aplikasi dihapus): pulihkan dari cadangan bila ada, selain itu bawaan. */
+    private fun restoreOrDefaults(ctx: Context): List<Snippet> {
+        return try {
+            val f = backupFile(ctx)
+            if (!f.isFile) return defaults()
+            val arr = JSONObject(f.readText()).getJSONArray("snippets")
+            val out = (0 until arr.length()).mapNotNull { i ->
+                val o = arr.getJSONObject(i)
+                val n = o.optString("n").trim().take(60)
+                val c = o.optString("c").trim()
+                if (n.isEmpty() || c.isEmpty() || c.length > 4000) null else Snippet(n, c)
+            }.take(200)
+            if (out.isEmpty()) defaults() else out
+        } catch (e: Exception) {
+            defaults()
+        }
     }
 
     /** Berkas cadangan di folder aplikasi: /sdcard/Molina/molina-snippets.json (terlihat juga dari Debian). */

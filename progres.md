@@ -1131,3 +1131,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah-sedang (override `onDraw` SeekBar dengan @Synchronized; regex prompt pada string mentah; Win7Button tanpa modifier)
 - [ ] uji perangkat (Android 8): beri 2-3 penanda pada video > titik emas muncul di seekbar pada posisi benar, titik hilang saat Hapus semua, video tanpa penanda tidak tergambar apa pun; Terminal: jalankan `ls` > menu > Salin keluaran terakhir ke Code > hanya keluaran `ls` yang masuk (tanpa prompt); jalankan perintah tanpa keluaran > toast "tidak ditemukan"; Snippet > Ekspor > cek /sdcard/Molina/molina-snippets.json; hapus satu snippet > Impor > kembali muncul tanpa duplikat
 - [ ] LANGKAH BERIKUT: ketuk titik di bilah seek untuk lompat ke penanda, cadangan otomatis snippet saat berubah, tampilkan nama penanda di label posisi saat menyeret
+
+## 2026-10-27 - Ketuk titik penanda, cadangan otomatis snippet, nama penanda di label seek [TAP-AUTOBACKUP-LABEL]
+- [x] feat(mpv): ketukan singkat pada titik emas di bilah seek (radius 16dp, tanpa geser) lompat tepat ke penanda dan menampilkan labelnya 1,5 detik; geseran biasa tidak berubah. `MarkedSeekBar.onMarkTap`, `MPVActivity.jumpToMark`
+- [x] feat(mpv): saat bilah seek diseret melewati penanda bernama (+-2 detik), label gestur menampilkan "mm:ss . nama"; label disembunyikan saat lepas/menjauh (`showMarkLabelWhileSeeking`, `hideMarkLabel`)
+- [x] feat(term): cadangan otomatis snippet. Tiap daftar berubah (tambah/hapus/simpan dari Code) ditulis ke /sdcard/Molina/molina-snippets.json lewat executor satu thread. Saat prefs kosong (pasang baru / data aplikasi dihapus) daftar dipulihkan dari berkas itu, selain itu memakai bawaan. Ekspor/Impor manual tetap ada
+- [x] Dampak: :feature:mpv (MarkedSeekBar.kt, MPVActivity), :app (TerminalSnippets). Gradle, Manifest, JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah (override onTouchEvent SeekBar; lambda `Runnable` yang memakai `binding`; `return` di dalam `try` pada restoreOrDefaults)
+- [ ] uji perangkat (Android 8): ketuk titik emas > lompat tepat ke posisi + label muncul; geser dari atas titik tetap bisa seek normal; beri nama penanda lalu seret melewatinya > label berisi nama; Snippet: tambah satu > cek berkas JSON ikut berubah; hapus data aplikasi (atau pasang ulang) > buka Snippet > daftar kembali dari cadangan
+- [ ] LANGKAH BERIKUT: tanda emas penanda di label durasi/preview, urutan ulang snippet, cadangan penanda video (ekspor/impor) ke folder Molina
