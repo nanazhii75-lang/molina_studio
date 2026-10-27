@@ -61,7 +61,14 @@ internal object FileOps {
 
     private fun isLink(f: File): Boolean = try { Files.isSymbolicLink(f.toPath()) } catch (e: Exception) { false }
     private fun present(f: File): Boolean = f.exists() || isLink(f)
-    private fun asIo(e: Exception, fallback: String): IOException = if (e is IOException) e else IOException(e.message ?: fallback)
+    /** Ubah exception apa pun jadi IOException berpesan jelas (jenis error ikut disebut agar bisa didiagnosis). */
+    private fun asIo(e: Exception, fallback: String): IOException = when {
+        e is NeedPassword || e is WrongPassword -> e as IOException
+        e is java.util.zip.ZipException || e is Z4jException ->
+            IOException("ZIP rusak, tidak lengkap, atau formatnya tidak didukung (" + (e.message ?: e.javaClass.simpleName) + ")", e)
+        e is IOException -> e
+        else -> IOException(fallback + ": " + (e.message ?: e.javaClass.simpleName), e)
+    }
 
     /** True bila [child] sama dengan [parent] atau berada di dalamnya (jalur kanonik). */
     fun isInside(parent: File, child: File): Boolean {
@@ -313,6 +320,51 @@ internal object FileOps {
     /** [ZIP-AES] True bila [zip] punya entri terenkripsi (butuh kata sandi untuk diekstrak). */
     fun isEncryptedZip(zip: File): Boolean =
         try { zip.isFile && Z4jZipFile(zip).isEncrypted() } catch (e: Exception) { false }
+
+    class ZipEntryInfo(val name: String, val size: Long, val isDir: Boolean)
+    class ZipListing(
+        val entries: List<ZipEntryInfo>,
+        val files: Int,
+        val folders: Int,
+        val totalSize: Long,
+        val encrypted: Boolean,
+        val truncated: Boolean
+    )
+
+    const val ZIP_LIST_MAX = 300
+
+    /**
+     * Daftar isi [zip] tanpa mengekstrak (ZIP berkata sandi pun bisa karena nama entri tidak dienkripsi).
+     * Memakai zip4j, lalu java.util.zip sebagai cadangan. Gagal = IOException berpesan jelas.
+     */
+    fun listZip(zip: File): ZipListing {
+        if (!zip.isFile) throw IOException("Berkas ZIP tidak ditemukan")
+        if (zip.length() == 0L) throw IOException("Berkas ZIP kosong (0 byte): pembuatannya mungkin terhenti. Kompres ulang.")
+        val items = ArrayList<ZipEntryInfo>()
+        var files = 0
+        var folders = 0
+        var total = 0L
+        var enc = false
+        var truncated = false
+        fun add(name: String, size: Long, dir: Boolean) {
+            if (dir) folders++ else { files++; if (size > 0) total += size }
+            if (items.size < ZIP_LIST_MAX) items.add(ZipEntryInfo(name, size, dir)) else truncated = true
+        }
+        try {
+            for (h in Z4jZipFile(zip).getFileHeaders()) {
+                if (h.isEncrypted()) enc = true
+                add(h.getFileName(), h.getUncompressedSize(), h.isDirectory())
+            }
+        } catch (e: Exception) {
+            items.clear(); files = 0; folders = 0; total = 0L; enc = false; truncated = false
+            try {
+                ZipFile(zip).use { zf -> for (en in zf.entries().toList()) add(en.name, en.size, en.isDirectory) }
+            } catch (e2: Exception) {
+                throw IOException("ZIP rusak, tidak lengkap, atau bukan berkas ZIP (" + (e.message ?: e.javaClass.simpleName) + ")", e2)
+            }
+        }
+        return ZipListing(items, files, folders, total, enc, truncated)
+    }
 
     private fun addZip(z: ZipOutputStream, f: File, path: String, skip: File, ctl: Ctl) {
         ctl.check()

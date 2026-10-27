@@ -50,6 +50,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.molina.core.common.LogLevel
+import com.molina.studio.log.LogBus
 import androidx.compose.foundation.horizontalScroll
 import kotlinx.coroutines.isActive
 import androidx.compose.foundation.Canvas
@@ -100,6 +102,7 @@ private sealed class W7Sheet {
     class Rename(val file: File) : W7Sheet()
     class Zip(val files: List<File>) : W7Sheet()
     class Password(val zip: File, val wrong: Boolean) : W7Sheet()
+    class ZipView(val zip: File) : W7Sheet() // [ZIP-VIEW]
     class Info(val files: List<File>) : W7Sheet()
     class Delete(val files: List<File>, val permanent: Boolean = false) : W7Sheet()
     object NewDir : W7Sheet()
@@ -241,7 +244,14 @@ fun Win7OpenDialog(
             busy = false
             progress = null
             r.onSuccess { say(it, true); onDone(); selected = null; picked = emptySet(); fileName = ""; tick++ }
-                .onFailure { say(it.message ?: "Operasi gagal."); tick++; onFail(it) }
+                .onFailure {
+                    say(it.message ?: ("Operasi gagal (" + it.javaClass.simpleName + ")"))
+                    if (it !is FileOps.NeedPassword && it !is FileOps.WrongPassword && it.message != "Dibatalkan") {
+                        LogBus.log("penjelajah", LogLevel.Error, "FileOps", w7Trace(it))
+                    }
+                    tick++
+                    onFail(it)
+                }
         }
     }
 
@@ -280,6 +290,7 @@ fun Win7OpenDialog(
                 val ok = play(listOf(f))
                 say(if (ok) "Memutar di mpv: " + f.name else "Gagal memutar " + f.name, ok)
             }
+            f.extension.equals("zip", ignoreCase = true) -> sheet = W7Sheet.ZipView(f)
             code != null && ExplorerList.looksText(f) -> code(listOf(f))
             else -> say("Tidak ada aplikasi Molina untuk membuka jenis berkas ini. Pakai menu Alat untuk menyalin atau mengompres.")
         }
@@ -352,6 +363,15 @@ fun Win7OpenDialog(
             runOp(
                 op = { ctl -> "Diekstrak ke: " + FileOps.unzip(z, d, ctl, pw).name },
                 onFail = { if (it is FileOps.WrongPassword) sheet = W7Sheet.Password(z, true) }
+            )
+        }
+        is W7Sheet.ZipView -> W7ZipDialog(s.zip, onClose = { sheet = null }) {
+            sheet = null
+            val z = s.zip
+            val d = z.parentFile?.takeIf { it.isDirectory } ?: dir
+            runOp(
+                op = { ctl -> "Diekstrak ke: " + FileOps.unzip(z, d, ctl).name },
+                onFail = { if (it is FileOps.NeedPassword) { say(""); sheet = W7Sheet.Password(z, false) } }
             )
         }
         null -> Unit
@@ -719,8 +739,10 @@ fun Win7OpenDialog(
                                 insertList.all { it.isFile && it.extension.lowercase() in W7_MEDIA }
                             val qText = !qMedia && onOpenInCode != null && insertList.size == 1 &&
                                 insertList[0].isFile && ExplorerList.looksText(insertList[0])
+                            val qZip = !qMedia && !qText && insertList.size == 1 && insertList[0].isFile &&
+                                insertList[0].extension.equals("zip", ignoreCase = true)
                             Win7Button(
-                                if (qMedia) "Putar" else if (qText) "Edit" else "Properti",
+                                if (qMedia) "Putar" else if (qText) "Edit" else if (qZip) "Buka ZIP" else "Properti",
                                 modifier = Modifier.weight(1f),
                                 onClick = {
                                     if (qMedia) {
@@ -730,6 +752,7 @@ fun Win7OpenDialog(
                                             say(if (ok) "Memutar di mpv: " + w7Names(insertList) else "Tidak ada media yang bisa diputar", ok)
                                         }
                                     } else if (qText) onOpenInCode?.invoke(insertList)
+                                    else if (qZip) sheet = W7Sheet.ZipView(insertList[0])
                                     else sheet = W7Sheet.Info(insertList)
                                 }
                             )
@@ -1304,5 +1327,64 @@ private fun W7ChoiceItem(mark: String, label: String, onClick: () -> Unit) {
     ) {
         Text(mark, color = Win7.NavHeader, fontSize = 12.sp, modifier = Modifier.width(26.dp))
         Text(label, color = Win7.Ink, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+/** Jenis error + 8 baris tumpukan pertama, untuk Settings > Log (membantu mendiagnosis kegagalan di perangkat). */
+private fun w7Trace(t: Throwable): String =
+    t.javaClass.name + ": " + (t.message ?: "-") + "\n" + t.stackTrace.take(8).joinToString("\n") { "  at " + it }
+
+/** [ZIP-VIEW] Isi ZIP tanpa mengekstrak; tombol Ekstrak memakai alur yang sama dengan menu Alat (termasuk kata sandi). */
+@Composable
+private fun W7ZipDialog(zip: File, onClose: () -> Unit, onExtract: () -> Unit) {
+    var listing by remember(zip) { mutableStateOf<FileOps.ZipListing?>(null) }
+    var err by remember(zip) { mutableStateOf<String?>(null) }
+    LaunchedEffect(zip) {
+        val r = withContext(Dispatchers.IO) { runCatching { FileOps.listZip(zip) } }
+        listing = r.getOrNull()
+        err = r.exceptionOrNull()?.let { it.message ?: it.javaClass.simpleName }
+    }
+    W7Panel("ZIP: " + zip.name, onClose) {
+        val l = listing
+        val e = err
+        when {
+            e != null -> Text(e, color = Color(0xFFFF8A80), fontSize = 12.sp)
+            l == null -> Text("Membaca isi ZIP\u2026", color = Win7.TextDim, fontSize = 12.sp)
+            else -> {
+                Text(
+                    l.files.toString() + " berkas, " + l.folders + " folder \u2022 " + FileOps.readable(l.totalSize) + " (tanpa kompresi)",
+                    color = Win7.Ink, fontSize = 12.sp
+                )
+                if (l.encrypted) {
+                    Spacer(Modifier.height(4.dp))
+                    Text("Terenkripsi AES: kata sandi diminta saat mengekstrak.", color = Color(0xFFE0A800), fontSize = 12.sp)
+                }
+                Spacer(Modifier.height(8.dp))
+                Column(
+                    Modifier.fillMaxWidth().heightIn(max = 260.dp).background(Win7.Input)
+                        .border(1.dp, Win7.Field).verticalScroll(rememberScrollState())
+                ) {
+                    l.entries.forEach { en ->
+                        Row(Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                en.name, color = if (en.isDir) Win7.NavHeader else Win7.Ink, fontSize = 12.sp, maxLines = 1,
+                                overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f)
+                            )
+                            if (!en.isDir) Text(FileOps.readable(en.size), color = Win7.TextDim, fontSize = 11.sp, modifier = Modifier.padding(start = 8.dp))
+                        }
+                    }
+                    if (l.truncated) Text(
+                        "\u2026 hanya " + FileOps.ZIP_LIST_MAX + " entri pertama ditampilkan",
+                        color = Win7.TextDim, fontSize = 11.sp, modifier = Modifier.padding(6.dp)
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+            Win7Button("Ekstrak", isDefault = true, enabled = listing != null) { onExtract() }
+            Spacer(Modifier.width(8.dp))
+            Win7Button("Tutup", onClick = onClose)
+        }
     }
 }
