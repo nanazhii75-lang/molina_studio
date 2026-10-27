@@ -95,6 +95,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
             when (p) {
                 is Prepared.Ready -> {
                     p.title?.let { streamTitles[p.url] = it }
+                    streamSources[p.url] = raw
                     MPVLib.command(MpvLoad.loadfileArgs(p.url, flag, headers + p.headers, p.title))
                     appendResolved(p, headers)
                     onLoaded()
@@ -138,6 +139,9 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
     // URL stream -> judul, untuk dialog playlist (nama berkas stream tidak informatif).
     private val streamTitles = HashMap<String, String>()
 
+    /** URL stream hasil resolve -> tautan asal yang stabil; kunci Penanda posisi. */
+    private val streamSources = HashMap<String, String>()
+
     /** Baris "belum siap" di dialog playlist: sisa hasil pencarian yang belum di-resolve. */
     private fun pendingRows(): List<PendingRow> {
         val q = rolling ?: return emptyList()
@@ -170,6 +174,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
                     is Prepared.Ready -> {
                         val title = p.title ?: q.title(i).ifEmpty { null }
                         title?.let { streamTitles[p.url] = it }
+                        streamSources[p.url] = q.url(i)
                         MPVLib.command(MpvLoad.loadfileArgs(p.url, MpvLoad.APPEND, p.headers, title))
                         q.succeeded()
                         PlaybackLog.onPrefetched(i + 1, title.orEmpty())
@@ -203,6 +208,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
                     is Prepared.Ready -> {
                         val title = p.title ?: q.title(i).ifEmpty { null }
                         title?.let { streamTitles[p.url] = it }
+                        streamSources[p.url] = q.url(i)
                         MPVLib.command(MpvLoad.loadfileArgs(p.url, MpvLoad.APPEND, p.headers, title))
                         q.succeeded()
                         PlaybackLog.onPrefetched(i + 1, title.orEmpty())
@@ -484,6 +490,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
                 when (p) {
                     is Prepared.Ready -> {
                         p.title?.let { streamTitles[p.url] = it }
+                        streamSources[p.url] = filepath
                         player.playWhenReady(p.url, startHeaders + p.headers, p.title) { appendResolved(p, startHeaders) }
                     }
                     is Prepared.Failed -> {
@@ -1853,6 +1860,58 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         if (docked) dialog.dockTo(android.view.Gravity.BOTTOM or android.view.Gravity.END, 72, 12)
     }
 
+    /** Kunci penanda: berkas lokal atau tautan asal; null untuk stream hasil resolve tanpa tautan asal yang stabil. */
+    private fun bookmarkKey(): String? {
+        val path = MPVLib.getPropertyString("path") ?: return null
+        streamSources[path]?.let { return it }
+        if (path.startsWith("http", ignoreCase = true) && path.contains("googlevideo.com")) return null
+        return path
+    }
+
+    /** Dialog Penanda posisi: ketuk = lompat, tekan lama = hapus, tombol Tandai = simpan posisi sekarang. */
+    private fun openBookmarks(restoreState: StateRestoreCallback) {
+        val key = bookmarkKey()
+        if (key == null) {
+            showToast(getString(R.string.bookmark_unavailable), true)
+            restoreState()
+            return
+        }
+        val now = MPVLib.getPropertyDouble("time-pos") ?: 0.0
+        val marks = VideoBookmarks.list(this, key)
+        val labels = marks.map { Utils.prettyTime(it.roundToInt()) }.toTypedArray()
+        val builder = AlertDialog.Builder(this, R.style.AppTheme_PlayerDialog)
+        builder.setTitle(R.string.bookmark_title)
+        if (labels.isEmpty()) {
+            builder.setMessage(R.string.bookmark_empty)
+        } else {
+            builder.setItems(labels) { d, i ->
+                MPVLib.command(arrayOf("seek", marks[i].toString(), "absolute"))
+                d.dismiss()
+            }
+            builder.setNeutralButton(R.string.bookmark_clear) { _, _ ->
+                VideoBookmarks.clear(this, key)
+                showToast(getString(R.string.bookmark_cleared), true)
+            }
+        }
+        builder.setPositiveButton(getString(R.string.bookmark_add, Utils.prettyTime(now.roundToInt()))) { _, _ ->
+            val added = VideoBookmarks.add(this, key, now)
+            showToast(
+                if (added) getString(R.string.bookmark_added, Utils.prettyTime(now.roundToInt()))
+                else getString(R.string.bookmark_exists), true
+            )
+        }
+        builder.setNegativeButton(android.R.string.cancel, null)
+        builder.setOnDismissListener { restoreState() }
+        val dialog = builder.create()
+        dialog.show()
+        dialog.listView?.setOnItemLongClickListener { _, _, i, _ ->
+            VideoBookmarks.removeAt(this, key, i)
+            showToast(getString(R.string.bookmark_removed), true)
+            dialog.dismiss()
+            true
+        }
+    }
+
     private fun openTopMenu() {
         val restoreState = pauseForDialog()
 
@@ -1861,6 +1920,9 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         val buttons: MutableList<MenuItem> = mutableListOf(
                 MenuItem(R.id.playlistBtn) {
                     openPlaylistMenu(restoreState); false
+                },
+                MenuItem(R.id.bookmarkBtn) {
+                    openBookmarks(restoreState); false
                 },
                 MenuItem(R.id.backgroundBtn) {
                     // restoring state may (un)pause so do that first

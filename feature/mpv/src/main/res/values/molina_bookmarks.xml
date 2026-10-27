@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="action_bookmarks">Penanda posisi</string>
+    <string name="bookmark_title">Penanda posisi (tekan lama = hapus)</string>
+    <string name="bookmark_empty">Belum ada penanda untuk video ini.</string>
+    <string name="bookmark_add">Tandai %1$s</string>
+    <string name="bookmark_clear">Hapus semua</string>
+    <string name="bookmark_unavailable">Penanda tidak tersedia untuk stream ini</string>
+    <string name="bookmark_added">Penanda ditambahkan: %1$s</string>
+    <string name="bookmark_exists">Posisi ini sudah ditandai</string>
+    <string name="bookmark_removed">Penanda dihapus</string>
+    <string name="bookmark_cleared">Semua penanda dihapus</string>
+</resources>

@@ -112,6 +112,10 @@ internal fun OverflowMenu(session: CodeSession, onDismiss: () -> Unit) {
                 session.sendToTerminal(true)
                 onDismiss()
             },
+            MenuEntry("Simpan sebagai snippet", enabled = hasText && session.snippetSink != null) {
+                session.saveSelectionAsSnippet()
+                onDismiss()
+            },
             MenuEntry("Ekspor"),
             MenuEntry("Konversi berkas...")
         ),

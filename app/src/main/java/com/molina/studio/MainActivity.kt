@@ -170,13 +170,15 @@ class MainActivity : ComponentActivity() {
                         codeSessionRef = it
                         it.scriptExecutor = com.molina.studio.code.ProotScriptExecutor(applicationContext)
                         it.terminalSink = { text, execute -> com.molina.studio.code.CodeTerminalBridge.deliver(text, execute) }
+                        it.snippetSink = { name, cmd -> com.molina.studio.terminal.TerminalSnippets.addFromCode(applicationContext, name, cmd) }
+                        com.molina.studio.code.CodeInbox.session = it
                         it.scriptSink = com.molina.code.run.ScriptSink { share ->
                             val r = com.molina.studio.code.ScriptStore.upsertFromEditor(share)
                             com.molina.code.run.ScriptSendResult(r.ok, r.message)
                         }
                     }
                 }
-                DisposableEffect(codeSession) { onDispose { codeSession.releaseAll() } }
+                DisposableEffect(codeSession) { onDispose { com.molina.studio.code.CodeInbox.session = null; codeSession.releaseAll() } }
                 // Script execution (Settings) menjalankan skrip di Molina Terminal: pindah ke tab Terminal.
                 androidx.compose.runtime.LaunchedEffect(com.molina.studio.code.ScriptNav.openTerminal) {
                     if (com.molina.studio.code.ScriptNav.openTerminal) {

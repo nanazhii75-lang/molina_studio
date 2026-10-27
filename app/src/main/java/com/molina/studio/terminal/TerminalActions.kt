@@ -12,6 +12,19 @@ object TerminalActions {
         TerminalSessions.currentSession?.write(b, 0, b.size)
     }
 
+    /** Tulis teks ke prompt tanpa Enter. Teks banyak baris lewat paste agar tidak langsung dijalankan. */
+    fun insert(text: String) {
+        if ('\n' in text) TerminalSessions.currentSession?.emulator?.paste(text) else send(text)
+    }
+
+    /** Keluaran terminal: [maxLines] baris terakhir (null = semua); baris kosong di ujung dibuang. */
+    fun outputText(maxLines: Int?): String {
+        val all = TerminalSessions.currentSession?.emulator?.screen?.transcriptText ?: return ""
+        val lines = all.trimEnd().lines()
+        val picked = if (maxLines == null || lines.size <= maxLines) lines else lines.takeLast(maxLines)
+        return picked.joinToString("\n")
+    }
+
     fun sendKey(keyCode: Int) {
         val em = TerminalSessions.currentSession?.emulator ?: return
         KeyHandler.getCode(keyCode, 0, em.isCursorKeysApplicationMode, em.isKeypadApplicationMode)

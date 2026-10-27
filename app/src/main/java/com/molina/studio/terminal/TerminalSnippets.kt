@@ -91,6 +91,17 @@ internal object TerminalSnippets {
         save(ctx)
     }
 
+    /** Dari menu Code (seleksi/baris kursor): simpan sebagai snippet. Mengembalikan pesan untuk toast. */
+    fun addFromCode(ctx: Context, name: String, cmd: String): String {
+        load(ctx)
+        val c = cmd.trim()
+        if (c.isEmpty()) return "Tidak ada teks untuk disimpan"
+        if (items.any { it.cmd == c }) return "Snippet sudah ada"
+        val n = name.trim().ifEmpty { "Snippet" }
+        add(ctx, n, c)
+        return "Snippet disimpan: $n"
+    }
+
     fun removeAt(ctx: Context, index: Int) {
         if (index in items.indices) {
             items.removeAt(index)
@@ -138,8 +149,8 @@ internal fun SnippetDialog(onDismiss: () -> Unit) {
                                     maxLines = 2, overflow = TextOverflow.Ellipsis
                                 )
                             }
-                            SnipBtn("Sisip") { TerminalActions.send(s.cmd); onDismiss() }
-                            SnipBtn("Jalan") { TerminalActions.send(s.cmd + "\r"); onDismiss() }
+                            SnipBtn("Sisip") { TerminalActions.insert(s.cmd); onDismiss() }
+                            SnipBtn("Jalan") { TerminalActions.insert(s.cmd); TerminalActions.send("\r"); onDismiss() }
                             Text(
                                 "\u2715", color = Win7.TextDim, fontSize = 13.sp,
                                 modifier = Modifier.clickable { TerminalSnippets.removeAt(ctx, i) }.padding(8.dp)

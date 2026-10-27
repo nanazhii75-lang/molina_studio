@@ -105,6 +105,7 @@ internal fun TerminalHeader(onOpenSettings: () -> Unit) {
     val keepOn = TerminalUi.keepScreenOn
     var menu by remember { mutableStateOf(false) }
     var snippets by remember { mutableStateOf(false) }
+    var toCode by remember { mutableStateOf(false) }
 
     Row(
         Modifier
@@ -146,6 +147,7 @@ internal fun TerminalHeader(onOpenSettings: () -> Unit) {
         Box {
             HdrBtn("\u22EE") { menu = true }
             if (snippets) SnippetDialog { snippets = false }
+            if (toCode) SendToCodeDialog { toCode = false }
             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                 DropdownMenuItem(
                     text = { Text("Hentikan proses (Ctrl+C)") },
@@ -169,6 +171,10 @@ internal fun TerminalHeader(onOpenSettings: () -> Unit) {
                 DropdownMenuItem(
                     text = { Text("Snippet perintah") },
                     onClick = { menu = false; snippets = true }
+                )
+                DropdownMenuItem(
+                    text = { Text("Sisip keluaran ke Code") },
+                    onClick = { menu = false; toCode = true }
                 )
                 DropdownMenuItem(
                     text = { Text("Pengaturan") },

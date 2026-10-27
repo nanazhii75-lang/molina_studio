@@ -75,6 +75,9 @@ class EditorTab internal constructor(val id: Int, initialTitle: String) {
     /** Teks hasil pemulihan yang menunggu editor dibuat. */
     internal var pendingText: String? = null
 
+    /** Teks dari Terminal yang menunggu editor dibuat (lihat CodeSession.insertAtCursor). */
+    internal var queuedInsert: String? = null
+
     /** Dipasang sesi: dipanggil tiap perubahan status isi untuk menjadwalkan autosave draf. */
     internal var onEdited: (() -> Unit)? = null
 
@@ -93,7 +96,7 @@ class EditorTab internal constructor(val id: Int, initialTitle: String) {
 
     /** Tab kosong yang belum pernah disentuh; boleh dipakai ulang saat membuka berkas. */
     internal fun isPristine(): Boolean {
-        if (file != null || dirty || loading) return false
+        if (file != null || dirty || loading || queuedInsert != null) return false
         val len = editor?.text?.length ?: (pendingText?.length ?: 0)
         return len == 0
     }
@@ -271,6 +274,42 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
         val text = selectionOrLine().trimEnd('\n', '\r')
         if (text.isBlank()) { toast("Tidak ada teks untuk dikirim"); return }
         sink(text, execute)?.let { toast(it) }
+    }
+
+    /** Dipasang :app. (nama, isi) -> pesan hasil untuk toast. Null = menu Simpan sebagai snippet redup. */
+    var snippetSink: ((String, String) -> String)? = null
+
+    /** Simpan seleksi (atau baris kursor) sebagai snippet Terminal. Nama = baris pertama yang tidak kosong. */
+    fun saveSelectionAsSnippet() {
+        val sink = snippetSink
+        if (sink == null) { toast("Snippet belum tersedia"); return }
+        val text = selectionOrLine().trimEnd('\n', '\r')
+        if (text.isBlank()) { toast("Tidak ada teks untuk disimpan"); return }
+        if (text.length > 4000) { toast("Teks terlalu panjang untuk snippet (maks. 4000 karakter)"); return }
+        val name = text.lineSequence().map { it.trim() }.firstOrNull { it.isNotEmpty() }.orEmpty().take(40)
+        toast(sink(name, text))
+    }
+
+    /**
+     * Sisipkan teks di posisi kursor tab aktif (mengganti seleksi bila ada). Mengembalikan pesan galat atau null.
+     * Bila editor tab belum dibuat (tab Code belum pernah tampil), teks diantrekan dan disisipkan saat editor dibuat.
+     */
+    fun insertAtCursor(text: String): String? {
+        val tab = active ?: return "Tidak ada tab editor"
+        if (tab.loading) return "Editor sedang memuat"
+        if (tab.readOnly) return "Tab ini hanya-baca"
+        val clean = text.replace("\r\n", "\n").replace('\r', '\n')
+        val ed = tab.editor
+        if (ed == null) {
+            tab.queuedInsert = (tab.queuedInsert ?: "") + clean
+            return null
+        }
+        return try {
+            ed.insertText(clean, clean.length)
+            null
+        } catch (e: Exception) {
+            "Gagal menyisipkan teks"
+        }
     }
 
     val active: EditorTab?

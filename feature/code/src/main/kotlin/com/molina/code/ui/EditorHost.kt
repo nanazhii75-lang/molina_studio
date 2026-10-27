@@ -73,6 +73,11 @@ internal fun EditorTab.editorOrCreate(context: Context): CodeEditor {
     // Penghitung find bar: hasil pencarian selesai atau kursor pindah (indeks hasil aktif)
     ed.subscribeEvent(PublishSearchResultEvent::class.java) { _, _ -> ed.post { findRevision++ } }
     ed.subscribeEvent(SelectionChangeEvent::class.java) { _, _ -> ed.post { findRevision++ } }
+    // Teks dari Terminal yang diantrekan saat editor belum ada: disisipkan sebagai edit (menandai dirty + draf)
+    queuedInsert?.let { q ->
+        queuedInsert = null
+        ed.post { runCatching { ed.insertText(q, q.length) } }
+    }
     editor = ed
     return ed
 }
