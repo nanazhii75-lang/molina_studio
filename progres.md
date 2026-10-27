@@ -1254,3 +1254,8 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: :app saja (cinema/W7FileIcon baru, cinema/Win7OpenDialog 1 baris). Gradle, Manifest, JNI mpv TIDAK disentuh. Win7File lama tetap dipakai CinemaWin7Home
 - [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah
 - [ ] uji perangkat (Android 8): label tiga huruf terbaca di ikon 22 dp; font besar sistem tidak memotong label
+
+## 2026-10-28 - Ikon jenis berkas di panel bawah [FILES-DOCKICON]
+- [x] feat(files): panel bawah menampilkan W7FileIcon (28 dp) atau ikon folder (26 dp) di kiri nama; media bertumbnail tetap memakai thumbnail
+- [x] Dampak: :app saja (cinema/W7BrowseDock). Gradle, Manifest, JNI mpv TIDAK disentuh
+- [ ] uji perangkat: pilih py/xml/zip lalu ikon sesuai; pilih folder lalu ikon folder; pilih mp4 lalu thumbnail

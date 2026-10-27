@@ -97,6 +97,10 @@ internal fun W7BrowseDock(
                 }
                 Spacer(Modifier.width(8.dp))
             }
+            if (thumbFile == null && one != null) {
+                if (one.isDirectory) Win7Folder(26.dp) else W7FileIcon(one.extension, 28.dp)
+                Spacer(Modifier.width(8.dp))
+            }
             Column(Modifier.weight(1f)) {
                 Text(title, color = Win7.Ink, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(meta, color = Win7.TextDim, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
