@@ -72,7 +72,7 @@ internal fun EditorToolbar(
         onDispose { cm.removePrimaryClipChangedListener(listener) }
     }
 
-    Column(Modifier.fillMaxWidth().background(CodeColors.Surface2)) {
+    Column(Modifier.fillMaxWidth().win7Toolbar()) {
         // Rail emas: gradient transparan -> gold 40% -> transparan
         Box(
             Modifier
@@ -80,7 +80,7 @@ internal fun EditorToolbar(
                 .height(CodeDimens.RailHeight)
                 .background(
                     Brush.horizontalGradient(
-                        listOf(Color.Transparent, CodeColors.RailPeak, Color.Transparent)
+                        listOf(Color.Transparent, Win7Code.RailBlue, Color.Transparent)
                     )
                 )
         )

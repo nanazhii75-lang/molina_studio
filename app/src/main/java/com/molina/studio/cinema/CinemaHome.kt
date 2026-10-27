@@ -80,37 +80,43 @@ fun CinemaHome(modifier: Modifier = Modifier) {
         }
     }
 
-    Column(
-        modifier.background(MolinaTheme.Background).padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        val live by BackgroundPlaybackState.active.collectAsState()
-        if (live) {
-            LiveBadge()
-            Spacer(Modifier.height(8.dp))
-        }
-        Text("Pencarian YouTube", color = MolinaTheme.Muted, fontSize = 14.sp)
-        Column(
-            Modifier.weight(1f).fillMaxWidth(),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) { CinemaLogo(info.ifEmpty { HINT }) }
-        Row(Modifier.fillMaxWidth(), Arrangement.SpaceEvenly) {
-            CinemaAction("\uD83D\uDCC4", "File") { openChooser = true }
-            CinemaAction("\uD83D\uDD17", "Tautan") { dialog = true }
-            CinemaAction("\u2699", "Setelan") { if (!CinemaActions.openSettings(ctx)) info = "Setelan gagal dibuka." }
-            CinemaAction("\u21BB", "Reset") {
-                input = ""
-                results = emptyList()
-                showResults = false
-                info = "Menyegarkan\u2026"
-                scope.launch {
-                    val r = withContext(Dispatchers.Default) { MemoryRefresh.run(!live) }
-                    info = MemoryRefresh.describe(r)
-                }
-            }
+    fun submit(raw: String) {
+        when (val r = CinemaActions.classify(raw)) {
+            is CinemaActions.Input.Direct -> info = if (CinemaActions.play(ctx, r.uri)) "" else FAIL
+            CinemaActions.Input.Query -> search(raw.trim())
+            CinemaActions.Input.Invalid -> info = "Tautan tidak didukung. Pakai http, https, rtsp, atau rtmp."
+            CinemaActions.Input.Empty -> Unit
         }
     }
+
+    val live by BackgroundPlaybackState.active.collectAsState()
+    CinemaWin7Body(
+        modifier = modifier,
+        info = info.ifEmpty { HINT },
+        busy = searching,
+        live = live,
+        input = input,
+        onInput = { input = it },
+        onSubmit = { submit(input) },
+        onFile = { openChooser = true },
+        onLink = { dialog = true },
+        onSettings = { if (!CinemaActions.openSettings(ctx)) info = "Setelan gagal dibuka." },
+        onReset = {
+            input = ""
+            results = emptyList()
+            showResults = false
+            info = "Menyegarkan\u2026"
+            scope.launch {
+                val r = withContext(Dispatchers.Default) { MemoryRefresh.run(!live) }
+                info = MemoryRefresh.describe(r)
+            }
+        },
+        onRecent = { r ->
+            if (r.ref.startsWith("/")) {
+                if (!CinemaActions.playPath(ctx, r.ref)) info = FAIL
+            } else submit(r.ref)
+        }
+    )
     if (dialog) MolinaFrameDialog(
         title = "Tautan atau judul",
         confirmLabel = "Buka",

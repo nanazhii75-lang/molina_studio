@@ -79,6 +79,7 @@ fun CodeScreen(session: CodeSession, modifier: Modifier = Modifier) {
                 if (tab.dirty) pendingClose = tab else session.close(tab.id)
             }
             EditorHost(session, Modifier.weight(1f).fillMaxWidth())
+            session.active?.let { CodeStatusBar(it) }
             if (session.find.open) {
                 session.active?.let { FindBar(session, it) }
             }
@@ -124,7 +125,7 @@ fun CodeScreen(session: CodeSession, modifier: Modifier = Modifier) {
                 .align(Alignment.CenterStart)
                 .fillMaxHeight()
                 .width(CodeDimens.EdgeSwipeWidth)
-                .padding(top = CodeDimens.HeaderHeight + CodeDimens.TabBarHeight, bottom = CodeDimens.ToolbarHeight)
+                .padding(top = CodeDimens.HeaderHeight + CodeDimens.TabBarHeight, bottom = CodeDimens.ToolbarHeight + Win7Code.StatusHeight)
         )
         DirectoryPanel(session)
         // Halaman penuh: Tinjauan (Markdown/JSON/HTML) atau Keluaran skrip (.sh/.py), menutupi editor sampai ditutup.
@@ -182,7 +183,7 @@ private fun PathHeader(session: CodeSession) {
         Modifier
             .fillMaxWidth()
             .height(CodeDimens.HeaderHeight)
-            .background(CodeColors.Surface1),
+            .win7Aero(),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
@@ -199,7 +200,7 @@ private fun PathHeader(session: CodeSession) {
             modifier = Modifier.weight(1f).clickable { session.dir.openPanel() },
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            style = TextStyle(color = CodeColors.TextSecondary, fontSize = CodeDimens.PathTextSize)
+            style = TextStyle(color = Win7Code.Ink, fontSize = CodeDimens.PathTextSize)
         )
         if (tab != null) StatusChip(tab)
         Box(
@@ -224,10 +225,10 @@ private fun StatusChip(tab: EditorTab) {
     val label: String
     val color: androidx.compose.ui.graphics.Color
     when {
-        tab.loading -> { label = "Memuat"; color = CodeColors.IconDim }
+        tab.loading -> { label = "Memuat"; color = Win7Code.InkDim }
         tab.dirty -> { label = "Diubah"; color = CodeColors.Danger }
-        tab.file != null -> { label = "Tersimpan"; color = CodeColors.IconDim }
-        else -> { label = "Baru"; color = CodeColors.IconDim }
+        tab.file != null -> { label = "Tersimpan"; color = Win7Code.InkDim }
+        else -> { label = "Baru"; color = Win7Code.InkDim }
     }
     Row(Modifier.padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically) {
         if (!tab.loading) {
@@ -268,7 +269,7 @@ private fun EditorTabBar(session: CodeSession, onRequestClose: (EditorTab) -> Un
         Modifier
             .fillMaxWidth()
             .height(CodeDimens.TabBarHeight)
-            .background(CodeColors.Surface1)
+            .background(Win7Code.TabBarBrush)
             .onSizeChanged { viewport = it.width }
             .horizontalScroll(scroll)
     ) {
@@ -314,7 +315,7 @@ private fun TabItem(
             .height(CodeDimens.TabBarHeight)
             .widthIn(min = CodeDimens.TabMinWidth, max = CodeDimens.TabMaxWidth)
             .onGloballyPositioned { onBounds(it.positionInParent().x.toInt(), it.size.width) }
-            .background(if (active) CodeColors.EditorBg else CodeColors.Surface1)
+            .win7Tab(active)
             .clickable(onClick = onSelect)
     ) {
         if (active) {
@@ -323,7 +324,7 @@ private fun TabItem(
                     .align(Alignment.TopStart)
                     .fillMaxWidth()
                     .height(CodeDimens.TabTopLine)
-                    .background(CodeColors.Gold)
+                    .background(Win7Code.TabLine)
             )
         }
         Row(

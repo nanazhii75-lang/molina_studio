@@ -40,18 +40,23 @@ internal object CinemaActions {
         return if (t.contains("://")) Input.Invalid else Input.Query
     }
 
-    fun play(ctx: Context, uri: Uri): Boolean = start(
-        ctx,
-        Intent(Intent.ACTION_VIEW, uri)
-            .setClassName(ctx.packageName, PLAYER)
-            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-    )
+    fun play(ctx: Context, uri: Uri): Boolean {
+        val ok = start(
+            ctx,
+            Intent(Intent.ACTION_VIEW, uri)
+                .setClassName(ctx.packageName, PLAYER)
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        )
+        if (ok) CinemaRecent.add(ctx, uri.toString(), null)
+        return ok
+    }
 
     /**
      * Putar hasil yang diketuk dan jadikan hasil lain sebagai playlist (urutan sama dengan daftar).
      * Bila kurang dari 2 hasil valid, jatuh ke pemutaran tunggal.
      */
     fun playResults(ctx: Context, items: List<StreamSearchItem>, picked: StreamSearchItem): Boolean {
+        CinemaRecent.add(ctx, picked.pageUrl, picked.title)
         val list = items.filter { PlaylistPlan.isWatchUrl(it.pageUrl) }.take(PlaylistPlan.MAX_ITEMS)
         val idx = list.indexOfFirst { it.pageUrl == picked.pageUrl }
         val uri = Uri.parse(picked.pageUrl)
@@ -67,10 +72,11 @@ internal object CinemaActions {
     }
 
     /** Putar berkas lokal lewat extra "filepath" (tanpa file://). Validasi path ada di MPVActivity. */
-    fun playPath(ctx: Context, path: String): Boolean = start(
-        ctx,
-        Intent().setClassName(ctx.packageName, PLAYER).putExtra("filepath", path)
-    )
+    fun playPath(ctx: Context, path: String): Boolean {
+        val ok = start(ctx, Intent().setClassName(ctx.packageName, PLAYER).putExtra("filepath", path))
+        if (ok) CinemaRecent.add(ctx, path, null)
+        return ok
+    }
 
     /** Putar folder sebagai playlist: [firstPath] = berkas media pertama (MpvFolder.firstMediaIn). */
     fun playFolder(ctx: Context, firstPath: String): Boolean = start(
