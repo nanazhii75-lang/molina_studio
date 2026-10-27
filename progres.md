@@ -1178,3 +1178,4 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah-sedang (`return@ToolRunDialog` di lambda trailing, referensi fungsi `::countSummary` bertipe eksplisit, `Column(Modifier.weight(1f))` di ubin)
 - [ ] uji perangkat (Android 8): Sistem > Periksa pembaruan paket > dialog langsung jalan, selesai menampilkan "N paket dapat ditingkatkan" > beranda: lencana N di ubin Sistem; Perbarui dan tingkatkan > lencana hilang; Bersihkan cache > selesai hijau; waktu berjalan di panel bertambah tiap detik
 - [ ] LANGKAH BERIKUT: periksa otomatis maks. 1x/24 jam saat Wi-Fi, tampilkan ukuran unduhan di fase "Mengunduh paket", lencana serupa untuk pembaruan yt-dlp
+- [x] Fix build: hapus import matchParentSize (member BoxScope) di Win7FrameUi.kt
