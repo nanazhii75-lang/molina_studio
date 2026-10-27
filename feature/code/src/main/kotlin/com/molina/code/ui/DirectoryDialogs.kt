@@ -73,6 +73,7 @@ internal class ActionItem(
     val label: String,
     val danger: Boolean = false,
     val separatorBefore: Boolean = false,
+    val icon: MenuIcon? = null, // [CODE-MENUICON]
     val onClick: () -> Unit
 )
 
@@ -216,37 +217,37 @@ internal fun buildFileActions(session: CodeSession, ctx: Context, f: File): List
     val isDir = f.isDirectory
     return buildList {
         if (isDir) {
-            add(ActionItem("Jadikan folder utama") {
+            add(ActionItem("Jadikan folder utama", icon = MenuIcon.FolderUp) {
                 session.fileDialog = null
                 dir.changeRoot(f)
             })
         } else {
-            add(ActionItem("Buka") {
+            add(ActionItem("Buka", icon = MenuIcon.Open) {
                 session.fileDialog = null
                 session.openFile(f)
             })
         }
         val target = if (isDir) f else (f.parentFile ?: f)
-        add(ActionItem("File baru di sini") { session.fileDialog = FileDialog.NewFile(target) })
-        add(ActionItem("Folder baru di sini") { session.fileDialog = FileDialog.NewFolder(target) })
-        add(ActionItem("Ganti nama") { session.fileDialog = FileDialog.Rename(f) })
-        add(ActionItem("Salin nama") {
+        add(ActionItem("File baru di sini", icon = MenuIcon.New) { session.fileDialog = FileDialog.NewFile(target) })
+        add(ActionItem("Folder baru di sini", icon = MenuIcon.NewFolder) { session.fileDialog = FileDialog.NewFolder(target) })
+        add(ActionItem("Ganti nama", icon = MenuIcon.Rename) { session.fileDialog = FileDialog.Rename(f) })
+        add(ActionItem("Salin nama", icon = MenuIcon.Copy) {
             copyToClipboard(ctx, f.name)
             session.toast("Nama disalin")
             session.fileDialog = null
         })
-        add(ActionItem("Salin path") {
+        add(ActionItem("Salin path", icon = MenuIcon.Copy) {
             copyToClipboard(ctx, f.path)
             session.toast("Path disalin")
             session.fileDialog = null
         })
         if (!dir.open) {
-            add(ActionItem("Tampilkan di panel") {
+            add(ActionItem("Tampilkan di panel", icon = MenuIcon.Reveal) {
                 session.fileDialog = null
                 dir.reveal(f)
             })
         }
-        add(ActionItem("Hapus", danger = true, separatorBefore = true) { session.fileDialog = FileDialog.Delete(f) })
+        add(ActionItem("Hapus", danger = true, separatorBefore = true, icon = MenuIcon.Delete) { session.fileDialog = FileDialog.Delete(f) })
     }
 }
 
@@ -331,20 +332,22 @@ private fun CompactActionMenu(title: String, items: List<ActionItem>) {
                         .height(CodeDimens.Hairline).background(CodeColors.Hairline)
                 )
             }
-            Box(
+            Row(
                 Modifier.fillMaxWidth().height(40.dp)
                     .clickable(onClick = item.onClick)
                     .padding(horizontal = 16.dp),
-                contentAlignment = Alignment.CenterStart
+                verticalAlignment = Alignment.CenterVertically
             ) {
+                val ic = item.icon // [CODE-MENUICON]
+                val tone = if (item.danger) CodeColors.Danger else CodeColors.IconDefault
+                if (ic != null) Canvas(Modifier.size(CodeDimens.MenuIconSize)) { drawMenuIcon(ic, tone) }
+                else Spacer(Modifier.width(CodeDimens.MenuIconSize))
+                Spacer(Modifier.width(12.dp))
                 BasicText(
                     text = item.label,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    style = TextStyle(
-                        color = if (item.danger) CodeColors.Danger else CodeColors.IconDefault,
-                        fontSize = 14.sp
-                    )
+                    style = TextStyle(color = tone, fontSize = 14.sp)
                 )
             }
         }

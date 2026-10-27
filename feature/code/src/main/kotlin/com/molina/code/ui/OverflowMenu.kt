@@ -3,6 +3,7 @@ package com.molina.code.ui
 import android.content.Context
 import android.content.Intent
 import android.widget.Toast
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -47,6 +48,7 @@ internal class MenuEntry(
     val label: String,
     val enabled: Boolean = false,
     val checked: Boolean? = null,
+    val icon: MenuIcon? = null, // [CODE-MENUICON]
     val onClick: () -> Unit = {}
 )
 
@@ -67,31 +69,31 @@ internal fun OverflowMenu(session: CodeSession, onDismiss: () -> Unit) {
 
     val groups = listOf(
         listOf(
-            MenuEntry("Baru", enabled = true) { session.newTab(); onDismiss() },
-            MenuEntry("Simpan sebagai", enabled = tab != null && !tab.loading) {
+            MenuEntry("Baru", enabled = true, icon = MenuIcon.New) { session.newTab(); onDismiss() },
+            MenuEntry("Simpan sebagai", enabled = tab != null && !tab.loading, icon = MenuIcon.SaveAs) {
                 session.saveAsActive()
                 onDismiss()
             },
-            MenuEntry("Buka", enabled = true) {
+            MenuEntry("Buka", enabled = true, icon = MenuIcon.Open) {
                 session.picker = PickerRequest(PickMode.File, session.defaultOpenDir(), "Buka berkas") { session.openFile(it) }
                 onDismiss()
             },
-            MenuEntry("Muat ulang", enabled = tab?.file != null && !tab.loading) {
+            MenuEntry("Muat ulang", enabled = tab?.file != null && !tab.loading, icon = MenuIcon.Reload) {
                 session.reloadActive()
                 session.dir.refresh()
                 onDismiss()
             },
-            MenuEntry("Aksi file", enabled = tab?.file != null) {
+            MenuEntry("Aksi file", enabled = tab?.file != null, icon = MenuIcon.Actions) {
                 tab?.file?.let { session.fileDialog = FileDialog.Menu(it) }
                 onDismiss()
             }
         ),
         listOf(
-            MenuEntry("Cari", enabled = tab != null) { session.openFind(); onDismiss() },
-            MenuEntry("Pergi ke baris", enabled = tab != null) { session.gotoOpen = true; onDismiss() }
+            MenuEntry("Cari", enabled = tab != null, icon = MenuIcon.Find) { session.openFind(); onDismiss() },
+            MenuEntry("Pergi ke baris", enabled = tab != null, icon = MenuIcon.GoToLine) { session.gotoOpen = true; onDismiss() }
         ),
         listOf(
-            MenuEntry("Bagikan", enabled = hasText) {
+            MenuEntry("Bagikan", enabled = hasText, icon = MenuIcon.Share) {
                 val text = ed?.text?.toString().orEmpty()
                 if (text.length > MAX_SHARE_CHARS) {
                     Toast.makeText(ctx, "Teks terlalu besar untuk dibagikan", Toast.LENGTH_SHORT).show()
@@ -100,43 +102,43 @@ internal fun OverflowMenu(session: CodeSession, onDismiss: () -> Unit) {
                 }
                 onDismiss()
             },
-            MenuEntry("Kirim ke Script Execution", enabled = hasText && session.scriptSink != null) {
+            MenuEntry("Kirim ke Script Execution", enabled = hasText && session.scriptSink != null, icon = MenuIcon.Script) {
                 session.sendToScripts()
                 onDismiss()
             },
-            MenuEntry("Sisipkan ke Terminal", enabled = hasText && session.terminalSink != null) {
+            MenuEntry("Sisipkan ke Terminal", enabled = hasText && session.terminalSink != null, icon = MenuIcon.Insert) {
                 session.sendToTerminal(false)
                 onDismiss()
             },
-            MenuEntry("Jalankan di Terminal", enabled = hasText && session.terminalSink != null) {
+            MenuEntry("Jalankan di Terminal", enabled = hasText && session.terminalSink != null, icon = MenuIcon.Run) {
                 session.sendToTerminal(true)
                 onDismiss()
             },
-            MenuEntry("Simpan sebagai snippet", enabled = hasText && session.snippetSink != null) {
+            MenuEntry("Simpan sebagai snippet", enabled = hasText && session.snippetSink != null, icon = MenuIcon.Snippet) {
                 session.saveSelectionAsSnippet()
                 onDismiss()
             },
-            MenuEntry("Ekspor"),
-            MenuEntry("Konversi berkas...")
+            MenuEntry("Ekspor", icon = MenuIcon.Export),
+            MenuEntry("Konversi berkas...", icon = MenuIcon.Convert)
         ),
         listOf(
-            MenuEntry("Syntax"),
-            MenuEntry("Enkode: UTF-8 (terkunci)"),
-            MenuEntry("Akhir baris: ${tab?.eol?.label ?: "LF"}", enabled = tab != null && !tab.loading) {
+            MenuEntry("Syntax", icon = MenuIcon.Syntax),
+            MenuEntry("Enkode: UTF-8 (terkunci)", icon = MenuIcon.Encoding),
+            MenuEntry("Akhir baris: ${tab?.eol?.label ?: "LF"}", enabled = tab != null && !tab.loading, icon = MenuIcon.Eol) {
                 tab?.let {
                     it.eol = it.eol.other()
                     it.recomputeDirty()
                     session.scheduleDraft()
                 }
             },
-            MenuEntry("Gaya Visual"),
-            MenuEntry("Pembungkus kata", enabled = tab != null, checked = tab?.wordWrap ?: true) {
+            MenuEntry("Gaya Visual", icon = MenuIcon.Palette),
+            MenuEntry("Pembungkus kata", enabled = tab != null, checked = tab?.wordWrap ?: true, icon = MenuIcon.Wrap) {
                 tab?.let {
                     it.wordWrap = !it.wordWrap
                     it.editor?.setWordwrap(it.wordWrap)
                 }
             },
-            MenuEntry("Hanya baca", enabled = tab != null, checked = tab?.readOnly ?: false) {
+            MenuEntry("Hanya baca", enabled = tab != null, checked = tab?.readOnly ?: false, icon = MenuIcon.ReadOnly) {
                 tab?.let {
                     it.readOnly = !it.readOnly
                     it.editor?.setEditable(!it.readOnly && !it.loading)
@@ -144,7 +146,7 @@ internal fun OverflowMenu(session: CodeSession, onDismiss: () -> Unit) {
             }
         ),
         listOf(
-            MenuEntry("Statistik", enabled = ed != null) {
+            MenuEntry("Statistik", enabled = ed != null, icon = MenuIcon.Stats) {
                 ed?.let {
                     Toast.makeText(
                         ctx, "${it.text.lineCount} baris, ${it.text.length} karakter", Toast.LENGTH_SHORT
@@ -152,7 +154,7 @@ internal fun OverflowMenu(session: CodeSession, onDismiss: () -> Unit) {
                 }
                 onDismiss()
             },
-            MenuEntry("Lakukan")
+            MenuEntry("Lakukan", icon = MenuIcon.Redo)
         )
     )
 
@@ -205,6 +207,10 @@ private fun MenuRow(e: MenuEntry) {
             .alpha(if (e.enabled) 1f else CodeColors.DisabledAlpha),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        val ic = e.icon // [CODE-MENUICON]
+        if (ic != null) Canvas(Modifier.size(CodeDimens.MenuIconSize)) { drawMenuIcon(ic, CodeColors.IconDefault) }
+        else Spacer(Modifier.width(CodeDimens.MenuIconSize))
+        Spacer(Modifier.width(12.dp))
         BasicText(
             text = e.label,
             modifier = Modifier.weight(1f),

@@ -1288,3 +1288,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI). Risiko: sedang (zip4j removeFiles/addFolder + setRootFolderNameInZip, ExcludeFileFilter, dialog sandi tingkat 3)
 - [ ] uji perangkat (Android 8): salin berkas di Penjelajah lalu buka ZIP lalu Tempel; Tempel folder; nama sama (diganti); ZIP berkata sandi benar/salah; Hapus berkas dan folder (dua ketukan); cek zipbak/<nama>.zip.bak
 
+## 2026-10-28 - Ikon kecil di menu titik tiga dan Aksi file modul Code [CODE-MENUICON]
+- [x] feat(code): `MenuIcons.kt` baru: 28 ikon garis kisi 24x24 (Save/Find/Paste/Play/Lock/Redo memakai ulang ToolbarIcons), tanpa dependency ikon
+- [x] feat(code): `MenuEntry` dan `ActionItem` punya parameter `icon`; baris tanpa ikon tetap rata teksnya (ruang ikon dicadangkan)
+- [x] feat(code): menu titik tiga (OverflowMenu) dan menu Aksi file/tree (CompactActionMenu) menampilkan ikon 18 dp warna champagne; Hapus tetap merah
+- [x] Dampak: :feature:code saja. Gradle, Manifest, JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah-sedang (drawArc/Size di MenuIcons.kt)
+- [ ] uji perangkat (Android 8): ikon terbaca di 18 dp, baris redup (disabled) ikut redup, teks sejajar, ikon Hapus merah, menu tree dan menu Aksi file sama
+
