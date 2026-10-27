@@ -966,3 +966,9 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah-sedang (UnduhanScreen: LazyColumn kini punya state, ItemCard tanda tangan bertambah parameter berbawaan; AlertDialog Material3; DownloadRunner: jalur onFinished kini mencatat riwayat)
 - [ ] uji perangkat (Android 8): unduh 3 URL dengan 1 URL salah > item gagal punya "Ulangi" > ketuk: hanya item itu diulang dengan mode/kualitas sama dan layar menggulir ke atas; "Ulangi yang gagal (n)"; batalkan sesi di tengah > Ulangi mengunduh sisanya (item tak sempat mulai ikut); tutup paksa aplikasi > buka lagi > Riwayat tetap ada; buka Riwayat > ketuk kartu > rincian; Ulangi dari kartu lama memakai mode/kualitas kartu itu (bukan pilihan formulir saat ini); Ulangi saat unduhan berjalan: tombol nonaktif; Hapus satu dan Hapus semua (konfirmasi); "Kosongkan hasil" tidak menghapus riwayat dan tidak menampilkan Ulangi untuk sesi lama
 - [ ] LANGKAH BERIKUT (opsional): tombol Putar pada item berhasil di riwayat (cek berkas masih ada), salin URL item gagal, pelacakan antrean multi-sesi
+
+## 2026-10-27 - Fix CI: telemetry gate menolak FOREGROUND_SERVICE_DATA_SYNC [FIX-GATE-DATASYNC]
+- [x] fix(ci): scripts/telemetry_gate.py: izin android.permission.FOREGROUND_SERVICE_DATA_SYNC masuk ALLOWED_PERMISSIONS (dipakai DownloadService, izin normal, bukan telemetri). Penyebab: commit 58c503a menambah izin di Manifest tanpa memperbarui allowlist
+- [x] Verifikasi lokal: python3 scripts/telemetry_gate.py lulus (exit 0)
+- [x] Dampak: hanya scripts/telemetry_gate.py. Gradle, Manifest, JNI mpv tidak disentuh
+- [ ] Menunggu GitHub Actions hijau
