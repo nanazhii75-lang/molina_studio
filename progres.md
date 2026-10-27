@@ -1189,3 +1189,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah-sedang (`when` dengan blok pada `handleOpenTabIntent`, `Page.TerminalApp -> {}` pada `when` penuh, glyph U+25A4 di font Android 8)
 - [ ] uji perangkat (Android 8): nav bawah menampilkan Berkas di posisi lama Terminal; Berkas > Penjelajah terbuka otomatis, tutup > tombol "Penjelajah Molina"; Settings beranda > ubin Terminal > sesi Debian jalan, keyboard muncul, gear > preferensi Terminal; Penjelajah > "Buka Terminal di sini" > pindah ke Settings > Terminal dengan cwd benar; Script execution > Jalankan > pindah ke Settings > Terminal; tekan lama ikon app > Terminal > Settings > Terminal
 - [ ] LANGKAH BERIKUT: tombol Back di Settings > Terminal sekarang kembali ke beranda Settings (bukan keluar app); pertimbangkan sembunyikan bilah breadcrumb Settings saat halaman Terminal agar ruang terminal lebih luas
+
+## 2026-10-27 - Header Settings disembunyikan di Terminal dan ikon tab Berkas [FILES-TAB-ICON-HIDE-HEADER]
+- [x] feat(settings): `Win7SettingsWindow` punya parameter `showHeader` (default true). Halaman `Page.TerminalApp` menyembunyikan breadcrumb dan kotak cari agar ruang terminal lebih luas. Back sistem tetap kembali ke beranda Settings; gear Terminal tetap membuka preferensi
+- [x] fix(nav): tab Berkas memakai `TabFolderIcon` (Canvas, mengikuti warna tab) menggantikan glyph U+25A4 yang berisiko tampil kotak kosong di font Android 8
+- [x] Dampak: :app saja (settings/Win7SettingsUi, settings/SettingsScreen, settings/FilesTabScreen, MainActivity). Gradle, Manifest, JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah (parameter default sebelum trailing lambda, import Canvas/geometry)
+- [ ] uji perangkat (Android 8): Settings > Terminal tanpa bilah atas; Back kembali ke beranda Settings; ikon Berkas biru tampil jelas, berubah redup saat tidak dipilih
+- [ ] LANGKAH BERIKUT: konfirmasi saat Back di Terminal bila ada proses berjalan; token warna tab di MolinaTheme

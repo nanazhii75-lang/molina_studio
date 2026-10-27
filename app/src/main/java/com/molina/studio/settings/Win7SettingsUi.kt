@@ -94,6 +94,7 @@ internal fun Win7SettingsWindow(
     onQuery: (String) -> Unit,
     dark: Boolean,
     actions: @Composable () -> Unit,
+    showHeader: Boolean = true,
     content: @Composable () -> Unit
 ) {
     val outer = MaterialTheme.colorScheme
@@ -102,7 +103,7 @@ internal fun Win7SettingsWindow(
     MaterialTheme(colorScheme = Win7Scheme, typography = typo, shapes = shapes) {
         Surface(modifier, color = W7D.Bg, contentColor = W7D.Ink) {
             Column(Modifier.fillMaxSize()) {
-                W7Header(crumbs, canUp, onUp, onCrumb, query, onQuery, actions)
+                if (showHeader) W7Header(crumbs, canUp, onUp, onCrumb, query, onQuery, actions)
                 Box(Modifier.weight(1f).fillMaxWidth()) {
                     if (dark) {
                         MaterialTheme(colorScheme = outer, typography = typo, shapes = shapes) {

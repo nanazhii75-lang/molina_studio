@@ -197,7 +197,8 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
         query = query,
         onQuery = { query = it },
         dark = !searching && (page == Page.Log || page == Page.Tampilan),
-        actions = { RefreshIconButton { showRefresh = true } }
+        actions = { RefreshIconButton { showRefresh = true } },
+        showHeader = searching || page != Page.TerminalApp
     ) {
         if (showRefresh) SystemRefreshDialog { showRefresh = false }
         apt?.let { job -> DebianAptDialog(job) { apt = null } }

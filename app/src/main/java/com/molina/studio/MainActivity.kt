@@ -269,6 +269,8 @@ class MainActivity : ComponentActivity() {
                                                             )
                                                         }
                                                     ) { Text(tab.glyph, fontWeight = FontWeight.Bold) }
+                                                } else if (tab == Tab.Files) {
+                                                    com.molina.studio.settings.TabFolderIcon(androidx.compose.material3.LocalContentColor.current)
                                                 } else {
                                                     Text(tab.glyph, fontWeight = FontWeight.Bold)
                                                 }
