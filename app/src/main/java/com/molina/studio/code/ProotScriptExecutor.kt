@@ -77,7 +77,7 @@ internal class ProotScriptExecutor(context: Context, private val lane: Lane = La
         ScriptCommand.validate(req.args, req.env)?.let { return failed(it) }
         val rootfsDir = RootfsManager.rootfsDir(app)
         if (!File(rootfsDir, "usr/bin/env").exists()) {
-            return failed("Debian belum terpasang. Buka tab Terminal untuk menyiapkannya.")
+            return failed("Debian belum terpasang. Buka Settings > Terminal untuk menyiapkannya.")
         }
         if (req.plan.needsPython && !File(rootfsDir, "usr/bin/python3").exists()) {
             return failed("python3 belum ada di Debian. ${YtdlpCommand.INSTALL_PYTHON_HINT}")

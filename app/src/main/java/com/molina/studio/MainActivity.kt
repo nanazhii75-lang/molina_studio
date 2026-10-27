@@ -45,7 +45,7 @@ import androidx.compose.ui.graphics.Color
 
 private enum class Tab(val label: String, val glyph: String, val color: Color) {
     Mpv("mpv", "\u25B6", Color(0xFFB9A7E8)),          // lavender redup: bioskop
-    Terminal("Terminal", ">_", Color(0xFF8FCBA6)),      // hijau sage: terminal
+    Files("Berkas", "\u25A4", Color(0xFF7FB2E5)),       // biru lembut: penjelajah berkas (Terminal kini di Settings)
     Code("Code", "< >", Color(0xFFFFB300)),             // emas: editor
     Settings("Settings", "\u2699", Color(0xFFCDBFA3))  // champagne: pengaturan
 }
@@ -129,7 +129,11 @@ class MainActivity : ComponentActivity() {
             i.removeExtra("molina_open_tab")
             ShortcutNav.tab = when (tabKey) {
                 "cinema" -> Tab.Mpv.ordinal
-                "terminal" -> Tab.Terminal.ordinal
+                "terminal" -> {
+                    com.molina.studio.settings.SettingsNav.openTerminalApp = true
+                    Tab.Settings.ordinal
+                }
+                "files" -> Tab.Files.ordinal
                 "code" -> Tab.Code.ordinal
                 else -> -1
             }
@@ -179,10 +183,11 @@ class MainActivity : ComponentActivity() {
                     }
                 }
                 DisposableEffect(codeSession) { onDispose { com.molina.studio.code.CodeInbox.session = null; codeSession.releaseAll() } }
-                // Script execution (Settings) menjalankan skrip di Molina Terminal: pindah ke tab Terminal.
+                // Script execution (Settings) menjalankan skrip di Molina Terminal: pindah ke Settings > Terminal.
                 androidx.compose.runtime.LaunchedEffect(com.molina.studio.code.ScriptNav.openTerminal) {
                     if (com.molina.studio.code.ScriptNav.openTerminal) {
-                        selected = Tab.Terminal.ordinal
+                        com.molina.studio.settings.SettingsNav.openTerminalApp = true
+                        selected = Tab.Settings.ordinal
                         com.molina.studio.code.ScriptNav.openTerminal = false
                     }
                 }
@@ -284,14 +289,8 @@ class MainActivity : ComponentActivity() {
                     }
                 ) { pad ->
                     when (Tab.entries[selected]) {
-                        Tab.Terminal -> {
-                            com.molina.studio.terminal.TerminalScreen(
-                                Modifier.fillMaxSize().padding(pad),
-                                onOpenSettings = {
-                                    com.molina.studio.settings.SettingsNav.openTerminal = true
-                                    selected = Tab.Settings.ordinal
-                                }
-                            )
+                        Tab.Files -> {
+                            com.molina.studio.settings.FilesTabScreen(Modifier.fillMaxSize().padding(pad))
                             return@Scaffold
                         }
                         Tab.Mpv -> {

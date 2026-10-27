@@ -14,7 +14,7 @@ internal object CodeTerminalBridge {
     fun deliver(text: String, execute: Boolean): String? {
         if (text.length > MAX_CHARS) return "Teks terlalu panjang untuk dikirim ke Terminal"
         val em = TerminalSessions.currentSession?.emulator
-            ?: return "Terminal belum siap. Buka tab Terminal sekali dulu."
+            ?: return "Terminal belum siap. Buka Settings > Terminal sekali dulu."
         if (em.isAlternateBufferActive) return "Terminal sedang menjalankan program layar penuh"
         em.paste(text)
         if (execute) TerminalActions.send("\r")

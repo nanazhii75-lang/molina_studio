@@ -1,0 +1,50 @@
+package com.molina.studio.settings
+
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import com.molina.studio.cinema.Win7Folder
+import com.molina.studio.cinema.Win7OpenDialog
+
+/**
+ * Isi tab Berkas (nav bawah). Penjelajah Molina dibuka otomatis saat tab dipilih; bila ditutup,
+ * layar ini menyisakan tombol untuk membukanya lagi. Dulu hidup di ubin Berkas Settings.
+ */
+@Composable
+fun FilesTabScreen(modifier: Modifier = Modifier) {
+    val ctx = LocalContext.current
+    remember { MolinaExplorer.attach(ctx) }
+    var show by remember { mutableStateOf(true) }
+    if (show) Win7OpenDialog(
+        onDismiss = { show = false },
+        browse = true,
+        onCopyPath = { f -> MolinaExplorer.copyPath(ctx, f) },
+        onOpenTerminal = { f -> if (MolinaExplorer.openTerminalHere(ctx, f)) show = false },
+        onShare = { files -> MolinaExplorer.share(ctx, files) },
+        onOpenWith = { f -> MolinaExplorer.openWith(ctx, f) },
+        onInsertPaths = { fs -> MolinaExplorer.insertPaths(ctx, fs) },
+        isVisibleInDebian = { f -> MolinaExplorer.visibleInDebian(f) },
+        onPlay = { files -> MolinaExplorer.play(ctx, files) },
+        onOpenInCode = { files ->
+            show = false
+            MolinaExplorer.openInCode(ctx, files)
+        },
+        onSendToScripts = { f -> MolinaExplorer.sendToScripts(f) }
+    )
+    Column(modifier.verticalScroll(rememberScrollState()).padding(16.dp)) {
+        W7Heading("Berkas")
+        W7Link(
+            { Win7Folder(32.dp) }, "Penjelajah Molina",
+            "Telusuri, salin, pindah, kompres, hapus, atau kirim path ke Terminal"
+        ) { show = true }
+    }
+}

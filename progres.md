@@ -1179,3 +1179,13 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] uji perangkat (Android 8): Sistem > Periksa pembaruan paket > dialog langsung jalan, selesai menampilkan "N paket dapat ditingkatkan" > beranda: lencana N di ubin Sistem; Perbarui dan tingkatkan > lencana hilang; Bersihkan cache > selesai hijau; waktu berjalan di panel bertambah tiap detik
 - [ ] LANGKAH BERIKUT: periksa otomatis maks. 1x/24 jam saat Wi-Fi, tampilkan ukuran unduhan di fase "Mengunduh paket", lencana serupa untuk pembaruan yt-dlp
 - [x] Fix build: hapus import matchParentSize (member BoxScope) di Win7FrameUi.kt
+
+## 2026-10-27 - Tukar Berkas dan Terminal: nav bawah dan ubin Settings [SWAP-FILES-TERMINAL]
+- [x] refactor(nav): `Tab.Terminal` diganti `Tab.Files` ("Berkas") di posisi nav bawah yang sama (indeks 1), jadi `ShortcutNav.TAB_CODE=2` tetap benar. Urutan: mpv | Berkas | Code | Settings
+- [x] feat(settings): ubin beranda Settings ke-4 kini "Terminal" (menggantikan Berkas), membuka `Page.TerminalApp` yang menampilkan `TerminalScreen` penuh. Tombol gear di Terminal membuka Settings > Sistem > Terminal (preferensi). `Page.Files` dihapus
+- [x] feat(files): `FilesTabScreen` (settings/FilesTabScreen.kt) membuka Penjelajah Molina otomatis saat tab Berkas dipilih; bila ditutup tersedia tombol untuk membukanya lagi
+- [x] refactor(nav): `SettingsNav.openTerminalApp`; `ScriptNav.openTerminal` (Script execution, Code, Penjelajah "Buka Terminal di sini") dan jalan pintas ikon "terminal" kini pindah ke Settings > Terminal. Tambah jalan pintas extra "files"
+- [x] Dampak: :app saja (MainActivity, settings/SettingsScreen, settings/FilesTabScreen baru, ShortcutNav, pesan di CodeTerminalBridge/ProotScriptExecutor/ScriptRunner). Gradle, Manifest, JNI mpv TIDAK disentuh. Sesi Terminal tetap di `TerminalSessions` (singleton) sehingga tidak putus saat pindah halaman
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah-sedang (`when` dengan blok pada `handleOpenTabIntent`, `Page.TerminalApp -> {}` pada `when` penuh, glyph U+25A4 di font Android 8)
+- [ ] uji perangkat (Android 8): nav bawah menampilkan Berkas di posisi lama Terminal; Berkas > Penjelajah terbuka otomatis, tutup > tombol "Penjelajah Molina"; Settings beranda > ubin Terminal > sesi Debian jalan, keyboard muncul, gear > preferensi Terminal; Penjelajah > "Buka Terminal di sini" > pindah ke Settings > Terminal dengan cwd benar; Script execution > Jalankan > pindah ke Settings > Terminal; tekan lama ikon app > Terminal > Settings > Terminal
+- [ ] LANGKAH BERIKUT: tombol Back di Settings > Terminal sekarang kembali ke beranda Settings (bukan keluar app); pertimbangkan sembunyikan bilah breadcrumb Settings saat halaman Terminal agar ruang terminal lebih luas

@@ -42,8 +42,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.molina.studio.log.LogScreen
-import com.molina.studio.cinema.Win7Folder
-import com.molina.studio.cinema.Win7OpenDialog
 import com.molina.studio.terminal.CrashReporter
 import com.molina.studio.terminal.LogcatReporter
 import com.molina.studio.terminal.PromptTheme
@@ -55,15 +53,17 @@ import kotlin.math.roundToInt
 object SettingsNav {
     var openTerminal by mutableStateOf(false)
     var openDownloads by mutableStateOf(false)
+    /** Buka halaman Terminal (sesi Debian) di dalam Settings; dulu tab nav bawah. */
+    var openTerminalApp by mutableStateOf(false)
 }
 
 private enum class Page {
-    Home, System, Terminal, Debugging, TerminalIO, TerminalView, Tampilan, CrashReports, About, Log, Stream, Network, Scripts, Packages, Code, Files, Downloads, Storage, Monitor
+    Home, System, Terminal, Debugging, TerminalIO, TerminalView, Tampilan, CrashReports, About, Log, Stream, Network, Scripts, Packages, Code, TerminalApp, Downloads, Storage, Monitor
 }
 
 private fun parentOf(p: Page): Page? = when (p) {
     Page.Home -> null
-    Page.System, Page.Scripts, Page.Packages, Page.Files, Page.Downloads -> Page.Home
+    Page.System, Page.Scripts, Page.Packages, Page.TerminalApp, Page.Downloads -> Page.Home
     Page.Stream -> Page.Packages
     Page.Debugging, Page.TerminalIO, Page.TerminalView, Page.Tampilan -> Page.Terminal
     Page.CrashReports -> Page.Debugging
@@ -86,7 +86,7 @@ private fun titleOf(p: Page): String = when (p) {
     Page.Scripts -> "Script execution"
     Page.Code -> "Editor Code"
     Page.Packages -> "Paket"
-    Page.Files -> "Berkas"
+    Page.TerminalApp -> "Terminal"
     Page.Downloads -> "Unduhan"
     Page.Storage -> "Penyimpanan"
     Page.Monitor -> "Monitor Sistem"
@@ -123,8 +123,7 @@ private val INDEX = listOf(
     Hit("Daftar tool terpasang", "Deteksi alat Molina di Debian beserta versinya", Page.System),
     Hit("Cadangan dan pemulihan", "Cadangkan atau pulihkan penanda video, snippet, dan setelan (folder Backup)", Page.System),
     Hit("Pulihkan dari Backup", "Pulihkan penanda video, snippet, dan setelan dari molina-backup.json", Page.System),
-    Hit("Berkas", "Penjelajah Molina: telusuri, salin, pindah, kompres, hapus, kirim path ke Terminal", Page.Files),
-    Hit("Penjelajah Molina", "Kelola berkas: salin, tempel, pindah, ubah nama, ZIP, favorit, properti", Page.Files),
+    Hit("Terminal (sesi)", "Buka sesi Debian PRoot di Molina Terminal", Page.TerminalApp),
     Hit("Unduhan", "Unduh video atau audio dari URL: antrean, riwayat, ulangi yang gagal", Page.Downloads),
     Hit("Penyimpanan", "Ukuran Debian, cache, Recycle Bin, folder kerja, dan bersihkan ruang", Page.Storage),
     Hit("Bersihkan cache", "Hapus cache apt dan cache aplikasi", Page.Storage),
@@ -150,9 +149,6 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     val focus = LocalFocusManager.current
     // Lepas fokus (dan tutup keyboard) setiap kali halaman Settings berganti.
     LaunchedEffect(page) { focus.clearFocus() }
-    // Ubin Berkas di beranda langsung membuka Penjelajah Molina.
-    var showExplorer by remember { mutableStateOf(false) }
-    LaunchedEffect(page) { if (page == Page.Files) showExplorer = true }
     var apt by remember { mutableStateOf<AptJob?>(null) }
     var showTools by remember { mutableStateOf(false) }
     var showBackup by remember { mutableStateOf(false) }
@@ -169,6 +165,12 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
         if (SettingsNav.openTerminal) {
             open(Page.Terminal)
             SettingsNav.openTerminal = false
+        }
+    }
+    LaunchedEffect(SettingsNav.openTerminalApp) {
+        if (SettingsNav.openTerminalApp) {
+            open(Page.TerminalApp)
+            SettingsNav.openTerminalApp = false
         }
     }
     LaunchedEffect(SettingsNav.openDownloads) {
@@ -201,32 +203,14 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
         apt?.let { job -> DebianAptDialog(job) { apt = null } }
         if (showTools) InstalledToolsDialog { showTools = false }
         if (showBackup) BackupDialog { showBackup = false }
-        if (showExplorer) Win7OpenDialog(
-            onDismiss = { showExplorer = false; if (page == Page.Files) page = Page.Home },
-            browse = true,
-            onCopyPath = { f -> MolinaExplorer.copyPath(aptCtx, f) },
-            onOpenTerminal = { f ->
-                if (MolinaExplorer.openTerminalHere(aptCtx, f)) {
-                    showExplorer = false
-                    if (page == Page.Files) page = Page.Home
-                }
-            },
-            onShare = { files -> MolinaExplorer.share(aptCtx, files) },
-            onOpenWith = { f -> MolinaExplorer.openWith(aptCtx, f) },
-            onInsertPaths = { fs -> MolinaExplorer.insertPaths(aptCtx, fs) },
-            isVisibleInDebian = { f -> MolinaExplorer.visibleInDebian(f) },
-            onPlay = { files -> MolinaExplorer.play(aptCtx, files) },
-            onOpenInCode = { files ->
-                showExplorer = false
-                if (page == Page.Files) page = Page.Home
-                MolinaExplorer.openInCode(aptCtx, files)
-            },
-            onSendToScripts = { f -> MolinaExplorer.sendToScripts(f) }
-        )
         when {
             searching -> SearchResults(query) { open(it) }
             page == Page.Log -> LogScreen(Modifier.fillMaxSize())
             page == Page.Downloads -> com.molina.studio.download.UnduhanScreen(Modifier.fillMaxSize())
+            page == Page.TerminalApp -> com.molina.studio.terminal.TerminalScreen(
+                Modifier.fillMaxSize(),
+                onOpenSettings = { open(Page.Terminal) }
+            )
             else -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
                 W7Heading(if (page == Page.Home) "Sesuaikan setelan Molina" else titleOf(page))
                 when (page) {
@@ -254,11 +238,11 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                             onOpen = { lastTile = Page.Packages; open(Page.Packages) }
                         )
                         W7CategoryTile(
-                            icon = { Win7Folder(52.dp) },
-                            title = "Berkas",
+                            icon = { W7IconTerminal() },
+                            title = "Terminal",
                             links = emptyList(),
-                            selected = lastTile == Page.Files,
-                            onOpen = { lastTile = Page.Files; open(Page.Files) }
+                            selected = lastTile == Page.TerminalApp,
+                            onOpen = { lastTile = Page.TerminalApp; open(Page.TerminalApp) }
                         )
                         W7CategoryTile(
                             icon = { W7IconDownloadBig(52.dp) },
@@ -309,7 +293,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                     Page.Packages -> PackagesPage(onOpenYtdlp = { open(Page.Stream) })
                     Page.Storage -> StoragePage()
                     Page.Monitor -> SystemMonitorPage()
-                    Page.Files -> W7Link({ Win7Folder(32.dp) }, "Penjelajah Molina", "Telusuri, salin, pindah, kompres, hapus, atau kirim path ke Terminal") { showExplorer = true }
+                    Page.TerminalApp -> {}
                 }
             }
         }

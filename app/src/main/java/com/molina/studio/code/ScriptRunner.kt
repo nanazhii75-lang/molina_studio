@@ -54,7 +54,7 @@ object ScriptRunner {
         val app = ctx.applicationContext
         RootfsManager.refresh(app)
         if (RootfsManager.state.value !is RootfsState.Ready) {
-            return "Debian belum terpasang. Pasang lebih dulu lewat tab Terminal"
+            return "Debian belum terpasang. Pasang lebih dulu lewat Settings > Terminal"
         }
         val text = ScriptLaunch.normalizeEol(item.body)
         if (text.isBlank()) return "Isi skrip kosong"
