@@ -125,8 +125,7 @@ internal fun SaveAsDialog(session: CodeSession, req: SaveAsRequest) {
                 .fillMaxWidth(0.92f)
                 .widthIn(max = 360.dp)
                 .heightIn(max = maxHeight)
-                .background(CodeColors.SurfaceDialog, shape)
-                .border(CodeDimens.Hairline, CodeColors.Hairline, shape)
+                .win7DialogFrame(shape)
                 .verticalScroll(rememberScrollState())
                 .padding(20.dp)
         ) {

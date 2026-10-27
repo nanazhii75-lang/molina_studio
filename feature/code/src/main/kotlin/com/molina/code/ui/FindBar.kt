@@ -286,8 +286,7 @@ private fun FindOptionsDialog(find: FindState, onDismiss: () -> Unit) {
         Column(
             Modifier
                 .widthIn(max = 320.dp)
-                .background(CodeColors.SurfaceDialog, shape)
-                .border(CodeDimens.Hairline, CodeColors.Hairline, shape)
+                .win7DialogFrame(shape)
                 .padding(20.dp)
         ) {
             BasicText(
@@ -372,8 +371,7 @@ internal fun GotoLineDialog(tab: EditorTab, onDismiss: () -> Unit) {
         Column(
             Modifier
                 .widthIn(max = 320.dp)
-                .background(CodeColors.SurfaceDialog, shape)
-                .border(CodeDimens.Hairline, CodeColors.Hairline, shape)
+                .win7DialogFrame(shape)
                 .padding(20.dp)
         ) {
             BasicText(

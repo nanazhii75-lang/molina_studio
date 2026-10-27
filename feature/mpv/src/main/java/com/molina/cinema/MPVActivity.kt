@@ -358,6 +358,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
             playBtn.setOnClickListener { player.cyclePause() }
             cycleDecoderBtn.setOnClickListener { player.cycleHwdec() }
             cycleSpeedBtn.setOnClickListener { cycleSpeed() }
+            abLoopBtn.setOnClickListener { cycleAbLoop() }
             topLockBtn.setOnClickListener { lockUI() }
             shieldBadge.setOnClickListener { showShieldInfo() }
             topPiPBtn.setOnClickListener { goIntoPiP() }
@@ -932,6 +933,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
 
     /** Make controls visible, also controls the timeout until they fade. */
     private fun showControls() {
+        updateAbLoopButton()
         if (lockedUI) {
             MpvLog.w(TAG, "cannot show UI in locked mode")
             return
@@ -1743,6 +1745,29 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         player.cycleSpeed()
     }
 
+    /** Loop A-B bawaan mpv: perintah ab-loop berputar A, B, mati. */
+    private fun cycleAbLoop() {
+        MPVLib.command(arrayOf("ab-loop"))
+        updateAbLoopButton(announce = true)
+    }
+
+    /** Label: tanpa titik = A-B putih, hanya A = "A-", keduanya = A-B emas. */
+    private fun updateAbLoopButton(announce: Boolean = false) {
+        val a = MPVLib.getPropertyString("ab-loop-a")
+        val b = MPVLib.getPropertyString("ab-loop-b")
+        val hasA = a != null && a != "no"
+        val hasB = b != null && b != "no"
+        binding.abLoopBtn.text = if (hasA && !hasB) "A-" else "A-B"
+        binding.abLoopBtn.setTextColor(if (hasA && hasB) 0xFFFFB300.toInt() else 0xFFFFFFFF.toInt())
+        if (announce) {
+            showToast(when {
+                hasA && hasB -> "Loop A-B aktif"
+                hasA -> "Titik A ditandai"
+                else -> "Loop A-B dimatikan"
+            }, cancel = true)
+        }
+    }
+
     private fun pickSpeed() {
         // TODO: replace this with SliderPickerDialog
         val picker = SpeedPickerDialog()
@@ -2100,9 +2125,9 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
 
     private fun updateAudioUI() {
         val audioButtons = arrayOf(R.id.prevBtn, R.id.cycleAudioBtn, R.id.playBtn,
-                R.id.cycleSpeedBtn, R.id.nextBtn)
+                R.id.cycleSpeedBtn, R.id.abLoopBtn, R.id.nextBtn)
         val videoButtons = arrayOf(R.id.cycleAudioBtn, R.id.cycleSubsBtn, R.id.playBtn,
-                R.id.cycleDecoderBtn, R.id.cycleSpeedBtn)
+                R.id.cycleDecoderBtn, R.id.cycleSpeedBtn, R.id.abLoopBtn)
 
         val shouldUseAudioUI = isPlayingAudioOnly()
         if (shouldUseAudioUI == useAudioUI)

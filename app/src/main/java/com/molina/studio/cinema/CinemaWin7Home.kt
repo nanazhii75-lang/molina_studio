@@ -2,6 +2,7 @@ package com.molina.studio.cinema
 
 import android.content.ClipboardManager
 import android.content.Context
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -40,6 +41,8 @@ import androidx.compose.ui.unit.sp
 import com.molina.studio.settings.GlossBar
 import com.molina.studio.settings.RgbFrame
 import com.molina.studio.settings.Win7GlassWindow
+import androidx.compose.ui.res.painterResource
+import com.molina.studio.R
 import com.molina.studio.ui.MolinaTheme
 
 private val OrbTop = Color(0xFF8FC4EE)
@@ -104,12 +107,7 @@ private fun TitleOrb() {
 @Composable
 private fun BrandRow(live: Boolean) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            Modifier.size(52.dp).clip(CircleShape)
-                .background(Brush.verticalGradient(listOf(OrbTop, OrbBottom, Color(0xFF14263F))), CircleShape)
-                .border(1.dp, Color(0x99BFE0FF), CircleShape),
-            Alignment.Center
-        ) { Text("\u25B6", color = Color.White, fontSize = 22.sp) }
+        Image(painterResource(R.drawable.ic_cinema_orb), contentDescription = null, modifier = Modifier.size(56.dp))
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text("Molina", color = MolinaTheme.Gold, fontSize = 24.sp, fontWeight = FontWeight.Bold)

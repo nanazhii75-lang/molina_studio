@@ -104,6 +104,7 @@ internal fun TerminalHeader(onOpenSettings: () -> Unit) {
     val fontSp = TerminalPrefs.fontSp
     val keepOn = TerminalUi.keepScreenOn
     var menu by remember { mutableStateOf(false) }
+    var snippets by remember { mutableStateOf(false) }
 
     Row(
         Modifier
@@ -144,6 +145,7 @@ internal fun TerminalHeader(onOpenSettings: () -> Unit) {
         }
         Box {
             HdrBtn("\u22EE") { menu = true }
+            if (snippets) SnippetDialog { snippets = false }
             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                 DropdownMenuItem(
                     text = { Text("Hentikan proses (Ctrl+C)") },
@@ -163,6 +165,10 @@ internal fun TerminalHeader(onOpenSettings: () -> Unit) {
                             Toast.LENGTH_LONG
                         ).show()
                     }
+                )
+                DropdownMenuItem(
+                    text = { Text("Snippet perintah") },
+                    onClick = { menu = false; snippets = true }
                 )
                 DropdownMenuItem(
                     text = { Text("Pengaturan") },

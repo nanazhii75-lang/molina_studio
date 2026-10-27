@@ -361,7 +361,7 @@ private fun TabItem(
     }
 }
 
-/** Konfirmasi tutup tab dirty: Batal, Buang, atau Simpan lalu tutup. */
+/** Konfirmasi tutup tab dirty (gaya Win7): Simpan, Buang, atau Batal. */
 @Composable
 private fun ConfirmCloseDialog(
     title: String,
@@ -369,41 +369,29 @@ private fun ConfirmCloseDialog(
     onDiscard: () -> Unit,
     onCancel: () -> Unit
 ) {
-    val shape = RoundedCornerShape(CodeDimens.DialogCorner)
+    val shape = RoundedCornerShape(9.dp)
     Dialog(onDismissRequest = onCancel) {
-        Column(
-            Modifier
-                .widthIn(max = 320.dp)
-                .background(CodeColors.SurfaceDialog, shape)
-                .border(CodeDimens.Hairline, CodeColors.Hairline, shape)
-                .padding(20.dp)
-        ) {
-            BasicText(
-                text = "Tutup tab?",
-                style = TextStyle(color = CodeColors.Gold, fontSize = CodeDimens.DialogTitleSize)
-            )
-            Spacer(Modifier.height(12.dp))
-            BasicText(
-                text = "\"$title\" belum disimpan. Simpan sebelum menutup?",
-                style = TextStyle(color = CodeColors.TextPrimary, fontSize = 14.sp)
-            )
-            Spacer(Modifier.height(16.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = androidx.compose.foundation.layout.Arrangement.End) {
+        Column(Modifier.widthIn(max = 340.dp).win7DialogFrame(shape)) {
+            Win7DialogTitleBar("Molina Code", onCancel)
+            Column(Modifier.padding(16.dp)) {
                 BasicText(
-                    text = "BATAL",
-                    modifier = Modifier.clickable(onClick = onCancel).padding(12.dp),
-                    style = TextStyle(color = CodeColors.LabelChampagne, fontSize = 14.sp)
+                    text = "Simpan perubahan?",
+                    style = TextStyle(color = Win7Code.Ink, fontSize = 16.sp)
                 )
+                Spacer(Modifier.height(8.dp))
                 BasicText(
-                    text = "BUANG",
-                    modifier = Modifier.clickable(onClick = onDiscard).padding(12.dp),
-                    style = TextStyle(color = CodeColors.Danger, fontSize = 14.sp)
+                    text = "\"$title\" belum disimpan. Simpan sebelum menutup?",
+                    style = TextStyle(color = CodeColors.TextPrimary, fontSize = 14.sp)
                 )
-                BasicText(
-                    text = "SIMPAN",
-                    modifier = Modifier.clickable(onClick = onSave).padding(12.dp),
-                    style = TextStyle(color = CodeColors.Gold, fontSize = 14.sp)
-                )
+                Spacer(Modifier.height(16.dp))
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp, Alignment.End)
+                ) {
+                    Win7DialogButton("Batal", onCancel)
+                    Win7DialogButton("Buang", onDiscard, accent = CodeColors.Danger)
+                    Win7DialogButton("Simpan", onSave, isDefault = true)
+                }
             }
         }
     }

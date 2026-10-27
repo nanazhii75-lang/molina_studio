@@ -172,8 +172,7 @@ private fun DialogCard(modifier: Modifier = Modifier, content: @Composable Colum
     val shape = RoundedCornerShape(CodeDimens.DialogCorner)
     Column(
         modifier
-            .background(CodeColors.SurfaceDialog, shape)
-            .border(CodeDimens.Hairline, CodeColors.Hairline, shape)
+            .win7DialogFrame(shape)
             .padding(20.dp),
         content = content
     )
