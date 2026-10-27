@@ -738,6 +738,38 @@ fun Win7OpenDialog(
                 }
                 Box(Modifier.fillMaxWidth().height(1.dp).background(Win7.Hairline))
                 Column(Modifier.fillMaxWidth().padding(8.dp)) {
+                    if (browse) {
+                        val dkTarget = selected?.file ?: dir
+                        val dkFiles = if (multi && picked.isNotEmpty()) picked.map { File(it) } else listOf(dkTarget)
+                        val dkMedia = onPlay != null && dkFiles.isNotEmpty() && dkFiles.all { it.isFile && it.extension.lowercase() in W7_MEDIA }
+                        val dkText = !dkMedia && onOpenInCode != null && dkFiles.size == 1 && dkFiles[0].isFile && ExplorerList.looksText(dkFiles[0])
+                        val dkZip = !dkMedia && !dkText && dkFiles.size == 1 && dkFiles[0].isFile && dkFiles[0].extension.equals("zip", ignoreCase = true)
+                        W7BrowseDock(
+                            files = dkFiles,
+                            isDir = if (selected == null || multi) null else selected!!.isDir,
+                            size = selected?.size ?: 0L,
+                            modified = selected?.modified ?: 0L,
+                            debian = if (dkFiles.size == 1) isVisibleInDebian?.invoke(dkFiles[0]) else null,
+                            quickLabel = if (dkMedia) "Putar" else if (dkText) "Edit" else if (dkZip) "Buka ZIP" else "Properti",
+                            insertEnabled = onInsertPaths != null,
+                            terminalEnabled = onOpenTerminal != null,
+                            onQuick = {
+                                if (dkMedia) {
+                                    val fn = onPlay
+                                    if (fn != null) scope.launch {
+                                        val ok = fn(dkFiles)
+                                        say(if (ok) "Memutar di mpv: " + w7Names(dkFiles) else "Tidak ada media yang bisa diputar", ok)
+                                    }
+                                } else if (dkText) onOpenInCode?.invoke(dkFiles)
+                                else if (dkZip) sheet = W7Sheet.ZipView(dkFiles[0])
+                                else sheet = W7Sheet.Info(dkFiles)
+                            },
+                            onInsert = { onInsertPaths?.invoke(dkFiles) },
+                            onTerminal = { onOpenTerminal?.invoke(dkTarget) },
+                            onOpen = { if (dkTarget.isDirectory) go(dkTarget) else smartOpen(dkTarget) },
+                            onCopyPath = { onCopyPath?.invoke(dkTarget); say("Path disalin", true) }
+                        )
+                    } else {
                     if (pickFolder) Text(
                         "Folder: " + dir.path, color = Win7.Ink, fontSize = 12.sp, maxLines = 2,
                         overflow = TextOverflow.Ellipsis, modifier = Modifier.fillMaxWidth()
@@ -784,57 +816,6 @@ fun Win7OpenDialog(
                         }
                     }
                     Spacer(Modifier.height(8.dp))
-                    if (browse) {
-                        val target = selected?.file ?: dir
-                        Row(Modifier.fillMaxWidth().padding(bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                target.path, color = Win7.TextDim, fontSize = 11.sp, maxLines = 1,
-                                overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f)
-                            )
-                            if (isVisibleInDebian != null) {
-                                val vis = isVisibleInDebian.invoke(target)
-                                Spacer(Modifier.width(6.dp))
-                                Text(
-                                    if (vis) "\u25CF Terlihat di Debian" else "\u25CB Di luar Debian",
-                                    color = if (vis) Color(0xFF4CAF50) else Color(0xFFE0A800),
-                                    fontSize = 10.sp, maxLines = 1
-                                )
-                            }
-                        }
-                        Row(
-                            Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            val insertList = if (multi && picked.isNotEmpty()) picked.map { File(it) } else listOf(target)
-                            // Aksi cepat mengikuti seleksi: media -> Putar, berkas teks -> Edit, selain itu -> Properti
-                            val qMedia = onPlay != null && insertList.isNotEmpty() &&
-                                insertList.all { it.isFile && it.extension.lowercase() in W7_MEDIA }
-                            val qText = !qMedia && onOpenInCode != null && insertList.size == 1 &&
-                                insertList[0].isFile && ExplorerList.looksText(insertList[0])
-                            val qZip = !qMedia && !qText && insertList.size == 1 && insertList[0].isFile &&
-                                insertList[0].extension.equals("zip", ignoreCase = true)
-                            Win7Button(
-                                if (qMedia) "Putar" else if (qText) "Edit" else if (qZip) "Buka ZIP" else "Properti",
-                                modifier = Modifier.weight(1f),
-                                onClick = {
-                                    if (qMedia) {
-                                        val fn = onPlay
-                                        if (fn != null) scope.launch {
-                                            val ok = fn(insertList)
-                                            say(if (ok) "Memutar di mpv: " + w7Names(insertList) else "Tidak ada media yang bisa diputar", ok)
-                                        }
-                                    } else if (qText) onOpenInCode?.invoke(insertList)
-                                    else if (qZip) sheet = W7Sheet.ZipView(insertList[0])
-                                    else sheet = W7Sheet.Info(insertList)
-                                }
-                            )
-                            Win7Button(
-                                "Sisipkan" + (if (insertList.size > 1) " (" + insertList.size + ")" else ""),
-                                modifier = Modifier.weight(1f), enabled = onInsertPaths != null, onClick = { onInsertPaths?.invoke(insertList) }
-                            )
-                            Win7Button(">_ Terminal", modifier = Modifier.weight(1.2f), accent = Color(0xFF2E7D4F), enabled = onOpenTerminal != null, onClick = { onOpenTerminal?.invoke(target) })
-                        }
                     }
                     if (busy) Row(Modifier.fillMaxWidth().padding(bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                         Box(Modifier.weight(1f).height(6.dp).background(Win7.Hairline)) {
@@ -846,7 +827,7 @@ fun Win7OpenDialog(
                             modifier = Modifier.clickable { cancelFlag.set(true) }.padding(start = 10.dp, top = 4.dp, bottom = 4.dp)
                         )
                     }
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    if (!browse) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Spacer(Modifier.weight(1f))
                         Win7Button(
                             if (pickFolder) "Pilih folder" else "Buka", isDefault = true,

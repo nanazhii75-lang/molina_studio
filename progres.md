@@ -1207,3 +1207,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] uji perangkat (Android 8): tap Berkas > explorer langsung tampil tanpa kartu; tidak ada X; Back naik folder lalu di root pindah ke tab mpv; "Buka di Code" dan "Buka Terminal di sini" tetap pindah halaman; dialog Buka di mpv/Unduhan masih punya X
 - [ ] LANGKAH BERIKUT: ubah explorer dari Dialog menjadi konten tab biasa (nav bawah tetap terlihat) sehingga perpindahan tab tidak bergantung pada Back
 - [x] refactor(files): tab Berkas langsung membuka Penjelajah (tanpa kartu & tombol X); Win7OpenDialog mendukung mode asScreen
+
+## 2026-10-28 - Panel bawah Penjelajah dirancang ulang [FILES-DOCK]
+- [x] feat(files): `W7BrowseDock` menggantikan baris path/status, tombol aksi, kolom Nama file, combo jenis, dan Buka/Batal untuk mode jelajah
+- [x] Tinggi panel tetap; nama dipotong di tengah, path mempertahankan ujung kanan dan bisa diketuk untuk menyalin, status Debian berupa titik berwarna
+- [x] Dampak: :app saja (cinema/Win7OpenDialog, cinema/W7BrowseDock). Gradle, Manifest, JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah
+- [ ] uji perangkat (Android 8): nama/path sangat panjang tidak mengubah tinggi panel; Putar/Edit/Buka ZIP/Properti sesuai seleksi; multi-pilih menampilkan jumlah item; Buka pada folder masuk ke folder
+- [ ] LANGKAH BERIKUT: pencarian kilat di Penjelajah dan pratinjau thumbnail video di panel

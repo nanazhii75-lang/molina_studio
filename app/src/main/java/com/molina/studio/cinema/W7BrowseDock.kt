@@ -1,0 +1,122 @@
+package com.molina.studio.cinema
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
+/**
+ * [FILES-DOCK] Panel bawah Penjelajah (mode jelajah): tinggi TETAP, semua teks satu baris.
+ * Baris 1: nama (ellipsis di tengah, ekstensi tetap terbaca) + status Debian ringkas di kanan.
+ * Baris 2: ukuran dan tanggal. Baris 3: path (ujung kanan dipertahankan; ketuk untuk menyalin).
+ * Baris 4: aksi (Aksi cepat, Sisipkan, Terminal, Buka) dengan bobot sama, tanpa lebar minimum.
+ */
+@Composable
+internal fun W7BrowseDock(
+    files: List<java.io.File>,
+    isDir: Boolean?,
+    size: Long,
+    modified: Long,
+    debian: Boolean?,
+    quickLabel: String,
+    insertEnabled: Boolean,
+    terminalEnabled: Boolean,
+    onQuick: () -> Unit,
+    onInsert: () -> Unit,
+    onTerminal: () -> Unit,
+    onOpen: () -> Unit,
+    onCopyPath: () -> Unit
+) {
+    val locale = Locale("id", "ID")
+    val one = files.singleOrNull()
+    val title = when {
+        files.size > 1 -> files.size.toString() + " item dipilih"
+        one != null -> dockMid(one.name.ifEmpty { one.path }, 34)
+        else -> ""
+    }
+    val meta = when {
+        files.size > 1 -> "Ketuk Properti untuk ukuran total"
+        isDir == null -> "Folder saat ini"
+        isDir -> "Folder  \u00B7  " + SimpleDateFormat("dd/MM/yyyy HH.mm", locale).format(Date(modified))
+        else -> String.format(locale, "%,d KB", maxOf(1L, (size + 1023) / 1024)) +
+            "  \u00B7  " + SimpleDateFormat("dd/MM/yyyy HH.mm", locale).format(Date(modified))
+    }
+    val path = if (files.size == 1) dockTail(files[0].path, 48) else dockTail(files.firstOrNull()?.parent ?: "", 48)
+    Column(Modifier.fillMaxWidth().padding(bottom = 2.dp)) {
+        Row(Modifier.fillMaxWidth().height(34.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(title, color = Win7.Ink, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(meta, color = Win7.TextDim, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            if (debian != null) {
+                val tone = if (debian) Color(0xFF4CAF50) else Color(0xFFE0A800)
+                Spacer(Modifier.width(8.dp))
+                Box(Modifier.size(8.dp).background(tone, RoundedCornerShape(4.dp)))
+                Spacer(Modifier.width(4.dp))
+                Text(if (debian) "Debian" else "Luar", color = tone, fontSize = 10.sp, maxLines = 1)
+            }
+        }
+        Text(
+            path, color = Win7.TextDim, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Clip,
+            modifier = Modifier.fillMaxWidth().height(16.dp).clickable(onClick = onCopyPath)
+        )
+        Spacer(Modifier.height(4.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            DockButton(quickLabel, Modifier.weight(1f), true, false, null, onQuick)
+            DockButton("Sisipkan", Modifier.weight(1f), insertEnabled, false, null, onInsert)
+            DockButton("Terminal", Modifier.weight(1.1f), terminalEnabled, false, Color(0xFF2E7D4F), onTerminal)
+            DockButton("Buka", Modifier.weight(0.9f), true, true, null, onOpen)
+        }
+    }
+}
+
+@Composable
+private fun DockButton(label: String, modifier: Modifier, enabled: Boolean, primary: Boolean, accent: Color?, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(3.dp)
+    Box(
+        modifier.height(30.dp).clip(shape)
+            .background(Brush.verticalGradient(listOf(Win7.BtnTop, Win7.BtnBottom)), shape)
+            .border(1.dp, if (primary && enabled) Win7.DefaultLine else Win7.BtnLine, shape)
+            .clickable(enabled = enabled, onClick = onClick).padding(horizontal = 4.dp),
+        Alignment.Center
+    ) {
+        Text(
+            label, color = if (enabled) (accent ?: Win7.Ink) else Win7.TextDim, fontSize = 12.sp,
+            maxLines = 1, overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+/** Potong di tengah supaya ekstensi tetap terlihat: "film_panjang...mu.mkv". */
+private fun dockMid(s: String, max: Int): String {
+    if (s.length <= max) return s
+    val head = (max - 1) * 2 / 3
+    val tail = max - 1 - head
+    return s.substring(0, head) + "\u2026" + s.substring(s.length - tail)
+}
+
+/** Pertahankan ujung path (bagian paling informatif). */
+private fun dockTail(s: String, max: Int): String = if (s.length <= max) s else "\u2026" + s.substring(s.length - (max - 1))
