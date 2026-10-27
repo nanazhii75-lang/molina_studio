@@ -9,6 +9,7 @@ import com.molina.code.run.RunResult
 import com.molina.core.common.AppLog
 import com.molina.core.common.DownloadCommand
 import com.molina.core.common.DownloadFeed
+import com.molina.core.common.DownloadHistory
 import com.molina.core.common.DownloadRequest
 import com.molina.core.common.DownloadRunState
 import com.molina.core.common.LogLevel
@@ -34,6 +35,9 @@ internal object DownloadRunner {
     private var feed: DownloadFeed? = null
     private var handle: RunHandle? = null
 
+    /** Permintaan sesi terakhir: dasar tombol Ulangi (mode/kualitas sama). Dikosongkan oleh [clear]. */
+    @Volatile private var lastReq: DownloadRequest? = null
+
     fun isRunning(): Boolean = _state.value.running
 
     /** @return pesan galat siap tampil, atau null bila sesi unduhan dimulai. */
@@ -49,6 +53,7 @@ internal object DownloadRunner {
         synchronized(lock) {
             if (_state.value.running) return "Masih ada unduhan yang berjalan."
             feed = f
+            lastReq = req
             handle = null
             _state.value = f.state
         }
@@ -74,6 +79,8 @@ internal object DownloadRunner {
                 val done = synchronized(lock) {
                     if (feed !== f) return
                     f.finish(result.cancelled, result.exitCode, result.startError)
+                    // Catat ke riwayat SEBELUM state selesai terbit agar UI tidak sempat menyembunyikan entri yang salah.
+                    DownloadHistory.build(System.currentTimeMillis(), req, f.state.session)?.let { DownloadHistoryStore.add(it) }
                     _state.value = f.state
                     handle = null
                     f.state
@@ -100,11 +107,31 @@ internal object DownloadRunner {
         h?.cancel()
     }
 
+    /** URL yang bisa diulang dari sesi terakhir (gagal, tak selesai, atau tak sempat mulai). Kosong saat berjalan/dikosongkan. */
+    fun retryUrls(): List<String> {
+        val req = lastReq ?: return emptyList()
+        val st = _state.value
+        if (st.running) return emptyList()
+        return DownloadHistory.build(0L, req, st.session)?.retryUrls().orEmpty()
+    }
+
+    /**
+     * Ulangi sesi terakhir dengan mode/kualitas yang sama. [only] = satu URL saja; null = semua yang belum berhasil.
+     * @return pesan galat siap tampil, atau null bila sesi baru dimulai.
+     */
+    fun retry(ctx: Context, only: String? = null): String? {
+        val req = lastReq ?: return "Tidak ada unduhan untuk diulang."
+        val urls = if (only != null) listOf(only) else retryUrls()
+        if (urls.isEmpty()) return "Tidak ada unduhan untuk diulang."
+        return start(ctx, req.copy(urls = urls))
+    }
+
     /** Kosongkan hasil sesi yang sudah selesai (tidak berpengaruh saat masih berjalan). */
     fun clear() {
         synchronized(lock) {
             if (!_state.value.running) {
                 feed = null
+                lastReq = null
                 _state.value = DownloadRunState()
             }
         }

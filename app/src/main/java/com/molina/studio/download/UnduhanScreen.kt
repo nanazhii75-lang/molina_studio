@@ -58,6 +58,9 @@ import com.molina.studio.cinema.CinemaActions
 import com.molina.studio.cinema.Win7OpenDialog
 import com.molina.studio.settings.MolinaExplorer
 import com.molina.studio.ui.MolinaTheme
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import java.io.File
 import java.util.Locale
 
@@ -81,6 +84,21 @@ fun UnduhanScreen(modifier: Modifier = Modifier) {
     var bitrate by remember { DownloadForm.bitrate }
     var error by remember { mutableStateOf<String?>(null) }
     var openDir by remember { mutableStateOf<File?>(null) }
+
+    // Riwayat sesi lama + Ulangi. Riwayat baru terbuka bila diketuk; satu kartu terbuka pada satu waktu.
+    val history by DownloadHistoryStore.entries.collectAsState()
+    var historyOpen by remember { mutableStateOf(false) }
+    var openAt by remember { mutableStateOf<Long?>(null) }
+    var confirmClear by remember { mutableStateOf(false) }
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+    val retryUrls = if (run.running) emptyList<String>() else DownloadRunner.retryUrls()
+
+    /** Hasil start/ulangi: galat -> Toast; sukses -> gulir ke atas supaya progres sesi baru terlihat. */
+    fun afterStart(msg: String?) {
+        if (msg != null) Toast.makeText(ctx, msg, Toast.LENGTH_LONG).show()
+        else scope.launch { listState.animateScrollToItem(0) }
+    }
 
     val doneFiles = sess.items.flatMap { it.files }
     val hasResult = run.running || sess.items.isNotEmpty() || sess.fatalError != null || run.exitCode != null
@@ -117,8 +135,16 @@ fun UnduhanScreen(modifier: Modifier = Modifier) {
         )
     }
 
+    if (confirmClear) {
+        ClearHistoryDialog(
+            onConfirm = { DownloadHistoryStore.clear(); openAt = null; confirmClear = false },
+            onDismiss = { confirmClear = false },
+        )
+    }
+
     LazyColumn(
         modifier.fillMaxSize().background(MolinaTheme.Background).padding(horizontal = 16.dp),
+        state = listState,
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         item {
@@ -245,7 +271,14 @@ fun UnduhanScreen(modifier: Modifier = Modifier) {
                 }
             }
             items(sess.warnings.takeLast(3)) { w -> Text(w, color = MolinaTheme.Warn, fontSize = 12.sp) }
-            items(sess.items, key = { it.index }) { item -> ItemCard(ctx, item) }
+            items(sess.items, key = { it.index }) { item ->
+                ItemCard(
+                    ctx, item,
+                    onRetry = if (!run.running && item.status == DownloadItemStatus.FAILED && item.url.isNotEmpty()) {
+                        { afterStart(DownloadRunner.retry(ctx.applicationContext, item.url)) }
+                    } else null,
+                )
+            }
             if (!run.running && doneFiles.isNotEmpty()) {
                 item {
                     OutlinedButton(
@@ -258,7 +291,30 @@ fun UnduhanScreen(modifier: Modifier = Modifier) {
                     ) { Text("Buka folder", color = MolinaTheme.Gold) }
                 }
             }
+            if (!run.running && retryUrls.isNotEmpty()) {
+                item {
+                    OutlinedButton(
+                        onClick = { afterStart(DownloadRunner.retry(ctx.applicationContext)) },
+                        border = BorderStroke(1.dp, MolinaTheme.Gold),
+                    ) { Text("Ulangi yang gagal (${retryUrls.size})", color = MolinaTheme.Gold) }
+                }
+            }
         }
+        // Sesi terbaru sudah tampil di atas (hasil sesi) bila hasilnya belum dikosongkan: jangan digandakan.
+        historySection(
+            entries = if (hasResult && !run.running) history.drop(1) else history,
+            running = run.running,
+            open = historyOpen,
+            onToggle = { historyOpen = !historyOpen },
+            openAt = openAt,
+            onToggleEntry = { at -> openAt = if (openAt == at) null else at },
+            onRetry = { e -> afterStart(DownloadRunner.start(ctx.applicationContext, e.retryRequest())) },
+            onDelete = { e ->
+                if (openAt == e.at) openAt = null
+                DownloadHistoryStore.remove(e.at)
+            },
+            onClearAll = { confirmClear = true },
+        )
         item { Box(Modifier.height(24.dp)) }
     }
 }
@@ -291,7 +347,7 @@ private fun SessionSummary(running: Boolean, ok: Int, failed: Int, cancelled: Bo
 }
 
 @Composable
-private fun ItemCard(ctx: Context, item: DownloadItemState) {
+private fun ItemCard(ctx: Context, item: DownloadItemState, onRetry: (() -> Unit)? = null) {
     val pct = DownloadReducer.overallPercent(item)
     val title = item.title ?: LogRedact.target(item.url).ifEmpty { "Item ${item.index}" }.take(70)
     Column(
@@ -322,6 +378,9 @@ private fun ItemCard(ctx: Context, item: DownloadItemState) {
             }
         }
         Text(statusLine(item, pct), color = if (item.status == DownloadItemStatus.FAILED) MolinaTheme.Bad else MolinaTheme.Muted, fontSize = 12.sp)
+        if (item.status == DownloadItemStatus.FAILED && onRetry != null) {
+            TextButton(onClick = onRetry) { Text("Ulangi", color = MolinaTheme.Gold) }
+        }
         if (item.status == DownloadItemStatus.DONE) {
             item.files.forEach { f ->
                 Row(verticalAlignment = Alignment.CenterVertically) {

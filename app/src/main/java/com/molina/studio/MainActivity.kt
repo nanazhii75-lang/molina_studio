@@ -147,6 +147,7 @@ class MainActivity : ComponentActivity() {
             com.molina.studio.terminal.TerminalPrefs.logcatReporter
         )
         com.molina.studio.download.DownloadPrefs.restore(applicationContext)
+        com.molina.studio.download.DownloadHistoryStore.init(applicationContext)
         if (savedInstanceState == null) handleOpenTabIntent(intent)
         AppExit.attach(this)
         setContent {
