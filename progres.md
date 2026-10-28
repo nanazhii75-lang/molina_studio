@@ -1686,3 +1686,8 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] ui(explorer): tombol teks Naik dan Maju dihapus dari bilah alat; Mundur/Naik tetap lewat tombol bulat kiri atas. Sisa: Segarkan, Urut, Alat
 - [x] Dampak: hanya :app (Win7OpenDialog.kt). goForward() kini tak dipanggil (peringatan unused). Manifest, Gradle, JNI mpv TIDAK disentuh
 - [ ] BELUM dikompilasi (CI) dan belum diuji di perangkat
+
+## 2026-10-28 - Perbaikan build: W7HelpPanel hilang [HELP-PANEL]
+- [x] fix(explorer): W7HelpPanel dipanggil di Mode Pilih (baris 802) dan dialog ZIP (baris 1853) tetapi definisinya tidak ikut ter-commit di 3eddb0b; kini ditambahkan di Win7OpenDialog.kt (judul, ringkasan, daftar istilah-penjelasan yang bisa digulir, tombol Tutup)
+- [x] Dampak: hanya :app (Win7OpenDialog.kt). Manifest, Gradle, JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi (CI); cek CI hijau, lalu uji ikon "?" di Mode Pilih dan bantuan di dialog ZIP
