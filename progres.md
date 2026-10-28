@@ -1470,3 +1470,13 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI): sisi Compose hanya dicek sintaks. Risiko: rendah-sedang (`related.forEach { (name, n) -> }`, `SearchSort.values()`, `horizontalScroll(rememberScrollState())` di dalam `if`)
 - [ ] uji perangkat (Android 8): cari kata di beranda > chip Terbaru aktif, video terbaru di nomor 001; ketuk Terlama > urutan terbalik; ketuk chip kanal > daftar tersaring; putar item > dialog playlist di pemutar berurutan sama
 - [ ] KETERBATASAN: sumber yt-dlp mode flat sering tanpa tanggal, hasilnya masuk "tanpa tanggal" di akhir; tanggal teks YouTube ("3 weeks ago") kasar sehingga hasil sewaktu mengikuti urutan relevansi. Pencarian di dialog playlist PEMUTAR (layout XML) belum diberi chip urutan/kanal
+
+## 2026-10-28 - Hasil pencarian Cinema: saran "Cari juga" + kanal terkait maks 3 [SEARCH-RELATED-QUERIES]
+- [x] feat(core): `SearchOrder.relatedQueries(items, query)` menurunkan saran pencarian dari judul hasil (kata/dua kata berurutan yang ada di >= 2 judul, tanpa kata kueri dan kata umum; hasil berupa kueri utuh "kueri + frasa"). Tanpa panggilan jaringan baru
+- [x] style(core): `SearchOrder.related` (kanal terkait) batas bawaan 4 -> 3
+- [x] feat(cinema): baris chip "Cari juga" di dialog Hasil pencarian; ketuk = isi kolom pencarian beranda dan cari ulang (`onSearch` -> `search(s)`); Home menyimpan `lastQuery`
+- [x] Uji JVM: scripts/core-tests/run_search_order.sh bertambah 6 pengecekan (frasa/kata, batas, kueri kosong, tanpa pengulangan, daftar kosong, kanal maks 3)
+- [x] Dampak: :core:common (SearchOrder.kt), :app cinema (CinemaResults, CinemaHome). Gradle, Manifest, JNI mpv TIDAK disentuh. Wajib setelah patch_search_sort.py
+- [ ] BELUM dikompilasi Gradle (CI): sisi Compose hanya dicek sintaks. Risiko: rendah (parameter baru berdefault, smart cast `onSearch` di lambda)
+- [ ] uji perangkat (Android 8): cari "lagu" > chip "Cari juga" muncul (mis. "lagu terbaru"); ketuk > hasil dimuat ulang dan kolom beranda terisi; kanal terkait tampil maks 3
+- [ ] KETERBATASAN: saran dari judul hasil saja (bukan sugesti mesin pencari), jadi kualitasnya mengikuti judul; kata umum yang belum ada di daftar kata henti bisa muncul

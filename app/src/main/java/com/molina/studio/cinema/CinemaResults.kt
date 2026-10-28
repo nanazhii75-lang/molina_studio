@@ -98,6 +98,8 @@ internal fun SearchResultsDialog(
     results: List<StreamSearchItem>,
     onPick: (List<StreamSearchItem>, StreamSearchItem) -> Unit,
     onDismiss: () -> Unit,
+    searchQuery: String = "",
+    onSearch: ((String) -> Unit)? = null,
 ) {
     val ctx = LocalContext.current
     var sort by remember { mutableStateOf(SearchSort.NEWEST) } // [RESULTS-SORT] bawaan: terbaru dulu
@@ -105,6 +107,7 @@ internal fun SearchResultsDialog(
     val entries = remember(ordered) { ordered.mapIndexed { i, r -> ResultEntry(i + 1, r) } }
     val related = remember(results) { SearchOrder.related(results) }
     val undated = remember(results) { results.count { RelativeTime.estimateAtMs(it) == null } }
+    val suggestions = remember(results, searchQuery) { SearchOrder.relatedQueries(results, searchQuery) }
     var query by remember { mutableStateOf("") }
     var searchOpen by remember { mutableStateOf(false) }
     var selected by remember { mutableIntStateOf(1) }
@@ -209,6 +212,16 @@ internal fun SearchResultsDialog(
                             if (on) { query = ""; searchOpen = false } else { query = name; searchOpen = true }
                         }
                     }
+                }
+
+                // [RESULTS-SUGGEST] pencarian terkait: kata kunci dari judul hasil, ketuk = cari lagi
+                if (onSearch != null && suggestions.isNotEmpty()) Row(
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 2.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("Cari juga", color = MolinaTheme.Muted, fontSize = 12.sp)
+                    suggestions.forEach { s -> ResultChip(s, false) { onSearch(s) } }
                 }
 
                 if (searchOpen) OutlinedTextField(

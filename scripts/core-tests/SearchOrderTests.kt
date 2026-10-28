@@ -53,6 +53,19 @@ fun main() {
     check("related: batas jumlah", SearchOrder.related(r, limit = 1) == listOf("X" to 3))
     check("related: kosong bila tak ada pengulangan", SearchOrder.related(listOf(item("1", up = "A"), item("2", up = "B"))).isEmpty())
 
+    // saran kata kunci terkait
+    val titlesQ = listOf("Lagu Pop Terbaru 2026", "Kumpulan Lagu Pop Terbaru", "Lagu Dangdut Koplo", "Lagu Dangdut Koplo Terbaru", "Official Video Lagu Rock")
+        .map { t -> StreamSearchItem("https://example.com/" + t.replace(' ', '-'), t, null, null, null, null, null) }
+    check("relatedQueries: frasa dan kata, tanpa kata kueri/umum",
+        SearchOrder.relatedQueries(titlesQ, "lagu") == listOf("lagu terbaru", "lagu pop terbaru", "lagu dangdut koplo"))
+    check("relatedQueries: batas jumlah", SearchOrder.relatedQueries(titlesQ, "lagu", limit = 1) == listOf("lagu terbaru"))
+    check("relatedQueries: kueri kosong tanpa awalan", SearchOrder.relatedQueries(titlesQ, "").first() == "lagu")
+    check("relatedQueries: tidak ada pengulangan -> kosong",
+        SearchOrder.relatedQueries(listOf(StreamSearchItem("https://e/1", "Satu Dua", null, null, null, null, null)), "x").isEmpty())
+    check("relatedQueries: daftar kosong", SearchOrder.relatedQueries(emptyList(), "lagu").isEmpty())
+    val ch = listOf("A", "B", "C", "D").flatMap { c -> listOf(item(c + "1", up = c), item(c + "2", up = c)) }
+    check("related: batas bawaan 3 kanal", SearchOrder.related(ch).size == 3)
+
     println(if (fails == 0) "\nSEMUA LOLOS" else "\n$fails GAGAL")
     if (fails > 0) System.exit(1)
 }

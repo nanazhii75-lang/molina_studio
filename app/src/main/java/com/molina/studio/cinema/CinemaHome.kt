@@ -56,6 +56,7 @@ fun CinemaHome(modifier: Modifier = Modifier) {
     var input by rememberSaveable { mutableStateOf("") }
     var searching by remember { mutableStateOf(false) }
     var results by remember { mutableStateOf<List<StreamSearchItem>>(emptyList()) }
+    var lastQuery by remember { mutableStateOf("") }
     var showResults by remember { mutableStateOf(false) }
     var openLocal by rememberSaveable { mutableStateOf(false) }
     var openChooser by rememberSaveable { mutableStateOf(false) }
@@ -80,6 +81,7 @@ fun CinemaHome(modifier: Modifier = Modifier) {
                 } else {
                     info = ""
                     results = outcome.value
+                    lastQuery = q
                     showResults = true
                 }
             }
@@ -189,6 +191,8 @@ fun CinemaHome(modifier: Modifier = Modifier) {
     if (showResults) SearchResultsDialog(
         results = results,
         onDismiss = { showResults = false },
+        searchQuery = lastQuery,
+        onSearch = { s -> input = s; showResults = false; search(s) },
         onPick = { list, r ->
             showResults = false
             val d = CinemaActions.classify(r.pageUrl)
