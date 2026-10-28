@@ -11,6 +11,10 @@ import com.molina.core.common.AppVisibility
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
@@ -26,7 +30,8 @@ data class StatsSnapshot(
     val ramMb: Int = 0,
     val totalRamMb: Int = 0,
     val cpuLevel: Level = Level.Normal,
-    val ramLevel: Level = Level.Normal
+    val ramLevel: Level = Level.Normal,
+    val netPerUid: Boolean = true // false = jaringan dihitung total perangkat (per-aplikasi tak didukung)
 ) {
     val rxText: String get() = speed(rxBps)
     val txText: String get() = speed(txBps)
@@ -60,69 +65,85 @@ object SystemStats {
 
     private const val MB = 1024L * 1024L
 
-    fun flow(context: Context): Flow<StatsSnapshot> = flow {
+    // [MONITOR-REALTIME] Pencuplik ringan tiap detik (hanya baca counter); kerja berat (pindai PID, PSS)
+    // dipindah ke coroutine terpisah supaya tidak menunda emisi. Waktu dt diambil tepat saat counter dibaca.
+    fun flow(context: Context): Flow<StatsSnapshot> = channelFlow {
         val am = context.applicationContext.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         val uid = Process.myUid()
         val clk = Os.sysconf(OsConstants._SC_CLK_TCK).coerceAtLeast(1L)
         val cores = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
         val totalMb = (ActivityManager.MemoryInfo().also { am.getMemoryInfo(it) }.totalMem / MB).toInt()
+        // Per-UID bila didukung perangkat; jika tidak, jatuh ke total seluruh perangkat (bukan nol terus).
+        val perUid = TrafficStats.getUidRxBytes(uid) >= 0L
+        fun rxNow(): Long = if (perUid) TrafficStats.getUidRxBytes(uid) else TrafficStats.getTotalRxBytes()
+        fun txNow(): Long = if (perUid) TrafficStats.getUidTxBytes(uid) else TrafficStats.getTotalTxBytes()
 
         while (true) {
             AppVisibility.foreground.first { it } // tidur sampai aplikasi terlihat lagi
 
-            var pids = ownPids(uid)
-            var lastRx = TrafficStats.getUidRxBytes(uid)
-            var lastTx = TrafficStats.getUidTxBytes(uid)
-            var lastTicks = pids.sumOf { cpuTicks(it) }
-            var lastAt = SystemClock.elapsedRealtime()
-            var lastCpu = 0
-            var cpuHold = 0
-            var ramMb = pssMb(am, pids)
-            var ramHold = 0
-            var tick = 0
-
-            while (AppVisibility.foreground.value) {
-                delay(1000)
-                tick++
-                val now = SystemClock.elapsedRealtime()
-                val dt = (now - lastAt).coerceAtLeast(1L) / 1000.0
-                lastAt = now
-                if (tick % 3 == 0) pids = ownPids(uid)
-
-                val ticks = pids.sumOf { cpuTicks(it) }
-                val cpu = ((ticks - lastTicks).coerceAtLeast(0L) / clk.toDouble() / dt * 100.0 / cores)
-                    .toInt().coerceIn(0, 100)
-                lastTicks = ticks
-                if (cpuHold > 0) cpuHold--
-                if (cpu - lastCpu >= CPU_SPIKE_POINTS) cpuHold = HOLD_TICKS
-                lastCpu = cpu
-
-                val rx = TrafficStats.getUidRxBytes(uid)
-                val tx = TrafficStats.getUidTxBytes(uid)
-                val rxBps = if (rx >= 0 && lastRx >= 0) ((rx - lastRx) / dt).toLong().coerceAtLeast(0) else 0L
-                val txBps = if (tx >= 0 && lastTx >= 0) ((tx - lastTx) / dt).toLong().coerceAtLeast(0) else 0L
-                lastRx = rx
-                lastTx = tx
-
-                if (ramHold > 0) ramHold--
-                if (tick % 5 == 0) {
-                    val m = pssMb(am, pids)
-                    if (m - ramMb >= RAM_SPIKE_MB) ramHold = HOLD_TICKS
-                    ramMb = m
+            val pidsRef = AtomicReference<List<Int>>(ownPids(uid))
+            val ramRef = AtomicInteger(pssMb(am, pidsRef.get()))
+            val ramHold = AtomicInteger(0)
+            val heavy = launch {
+                var n = 0
+                while (true) {
+                    delay(1000)
+                    n++
+                    if (n % 3 == 0) pidsRef.set(ownPids(uid))
+                    if (n % 5 == 0) {
+                        val m = pssMb(am, pidsRef.get())
+                        if (m - ramRef.get() >= RAM_SPIKE_MB) ramHold.set(HOLD_TICKS)
+                        ramRef.set(m)
+                    }
                 }
+            }
+            try {
+                var lastAt = SystemClock.elapsedRealtime()
+                var lastRx = rxNow()
+                var lastTx = txNow()
+                var lastTicks = pidsRef.get().sumOf { cpuTicks(it) }
+                var lastCpu = 0
+                var cpuHold = 0
 
-                val cpuLevel = when {
-                    cpu >= CPU_HIGH -> Level.High
-                    cpu >= CPU_WARN || cpuHold > 0 -> Level.Warn
-                    else -> Level.Normal
+                while (AppVisibility.foreground.value) {
+                    delay(1000)
+                    val now = SystemClock.elapsedRealtime()
+                    val rx = rxNow()
+                    val tx = txNow()
+                    val dt = (now - lastAt).coerceAtLeast(1L) / 1000.0
+                    lastAt = now
+
+                    val rxBps = if (rx >= 0 && lastRx >= 0) ((rx - lastRx) / dt).toLong().coerceAtLeast(0) else 0L
+                    val txBps = if (tx >= 0 && lastTx >= 0) ((tx - lastTx) / dt).toLong().coerceAtLeast(0) else 0L
+                    lastRx = rx
+                    lastTx = tx
+
+                    val ticks = pidsRef.get().sumOf { cpuTicks(it) }
+                    val cpu = ((ticks - lastTicks).coerceAtLeast(0L) / clk.toDouble() / dt * 100.0 / cores)
+                        .toInt().coerceIn(0, 100)
+                    lastTicks = ticks
+                    if (cpuHold > 0) cpuHold--
+                    if (cpu - lastCpu >= CPU_SPIKE_POINTS) cpuHold = HOLD_TICKS
+                    lastCpu = cpu
+
+                    if (ramHold.get() > 0) ramHold.decrementAndGet()
+                    val ramMb = ramRef.get()
+
+                    val cpuLevel = when {
+                        cpu >= CPU_HIGH -> Level.High
+                        cpu >= CPU_WARN || cpuHold > 0 -> Level.Warn
+                        else -> Level.Normal
+                    }
+                    val ramPct = if (totalMb > 0) ramMb * 100 / totalMb else 0
+                    val ramLevel = when {
+                        ramPct >= RAM_HIGH_PCT -> Level.High
+                        ramPct >= RAM_WARN_PCT || ramHold.get() > 0 -> Level.Warn
+                        else -> Level.Normal
+                    }
+                    send(StatsSnapshot(rxBps, txBps, cpu, ramMb, totalMb, cpuLevel, ramLevel, perUid))
                 }
-                val ramPct = if (totalMb > 0) ramMb * 100 / totalMb else 0
-                val ramLevel = when {
-                    ramPct >= RAM_HIGH_PCT -> Level.High
-                    ramPct >= RAM_WARN_PCT || ramHold > 0 -> Level.Warn
-                    else -> Level.Normal
-                }
-                emit(StatsSnapshot(rxBps, txBps, cpu, ramMb, totalMb, cpuLevel, ramLevel))
+            } finally {
+                heavy.cancel()
             }
         }
     }.flowOn(Dispatchers.IO)

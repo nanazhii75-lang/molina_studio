@@ -66,6 +66,8 @@ internal fun SystemMonitorPage() {
     var stats by remember { mutableStateOf(StatsSnapshot()) }
     val cpuHist = remember { mutableStateListOf<Int>() }
     val ramHist = remember { mutableStateListOf<Int>() }
+    val rxHist = remember { mutableStateListOf<Int>() } // [MONITOR-REALTIME]
+    val txHist = remember { mutableStateListOf<Int>() }
     // Dikumpulkan langsung (bukan collectAsState) agar tiap sampel masuk riwayat walau nilainya sama.
     LaunchedEffect(ctx) {
         SystemStats.flow(ctx).collect { s ->
@@ -74,6 +76,10 @@ internal fun SystemMonitorPage() {
             ramHist.add(if (s.totalRamMb > 0) s.ramMb * 100 / s.totalRamMb else 0)
             if (cpuHist.size > HISTORY_POINTS) cpuHist.removeAt(0)
             if (ramHist.size > HISTORY_POINTS) ramHist.removeAt(0)
+            rxHist.add((netFraction(s.rxBps) * 100f).toInt())
+            txHist.add((netFraction(s.txBps) * 100f).toInt())
+            if (rxHist.size > HISTORY_POINTS) rxHist.removeAt(0)
+            if (txHist.size > HISTORY_POINTS) txHist.removeAt(0)
         }
     }
     val cpuC = levelColors(stats.cpuLevel)
@@ -90,7 +96,10 @@ internal fun SystemMonitorPage() {
             Text("Riwayat 60 detik", color = Win7.TextDim, fontSize = 12.sp)
             Sparkline(cpuHist, cpuC.second, maxPoints = HISTORY_POINTS)
             Sparkline(ramHist, ramC.second, maxPoints = HISTORY_POINTS)
-            Text("Atas: CPU %, bawah: RAM % dari total perangkat.", color = Win7.TextDim, fontSize = 11.sp)
+            Sparkline(rxHist, Color(0xFF2D6DB5), maxPoints = HISTORY_POINTS)
+            Sparkline(txHist, Color(0xFFB3261E), maxPoints = HISTORY_POINTS)
+            Text("Dari atas: CPU %, RAM % dari total perangkat, unduh, unggah (skala logaritmik).", color = Win7.TextDim, fontSize = 11.sp)
+            if (!stats.netPerUid) Text("Jaringan: total seluruh perangkat (hitungan per-aplikasi tidak didukung perangkat ini).", color = Color(0xFFE0A800), fontSize = 11.sp)
         }
     }
     Spacer(Modifier.height(10.dp))
