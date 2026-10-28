@@ -1676,3 +1676,8 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: hanya :app (SettingsScreen.kt, AboutUi.kt, HubStatusUi.kt). Manifest, Gradle, JNI mpv TIDAK disentuh
 - [ ] BELUM dikompilasi (CI) dan belum diuji di perangkat. Uji: Sistem > Info urut Status, Versi dan perangkat, Diagnostik, Lisensi; "Molina Terminal" tidak terpotong; libmpv terisi setelah memutar video; back dari Log kembali ke Info
 - [ ] Catatan: "v0.118.0" di baris Molina Terminal ditulis manual; W7SystemSummary kini tidak dipakai (boleh dibersihkan)
+
+## 2026-10-28 - Panel kiri Penjelajah jadi drawer geser di potret [NAV-SWIPE]
+- [x] ui(explorer): Favorit/Terakhir/Komputer (W7NavPane) tersembunyi di potret; buka lewat swipe tepi kiri atau tombol ☰, tutup lewat swipe kiri, ketuk scrim, Back, atau pilih folder. Landscape tetap dock 92dp
+- [x] Dampak: hanya :app (Win7OpenDialog.kt). Manifest, Gradle, JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi (CI) dan belum diuji di perangkat

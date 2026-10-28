@@ -43,6 +43,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
+import android.content.res.Configuration
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -214,6 +218,10 @@ fun Win7OpenDialog(
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted = it }
     // Mode jelajah: tanpa startDir, mulai dari folder terakhir yang dibuka (bila masih ada), bukan selalu dari akar
     var dir by remember { mutableStateOf(startDir?.takeIf { it.isDirectory } ?: (if (browse) ExplorerRecent.last(ctx) else null) ?: vols.first().dir) }
+    // [NAV-SWIPE] panel kiri: dock di landscape, drawer geser di potret
+    val portrait = LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT
+    var navOpen by remember { mutableStateOf(false) }
+    BackHandler(enabled = portrait && navOpen) { navOpen = false }
     val recents = remember(dir) {
         if (browse) ExplorerRecent.load(ctx).filter { r -> r != dir && vols.none { it.dir == r } && favs.none { it.dir == r } }.take(5)
         else emptyList()
@@ -489,6 +497,7 @@ fun Win7OpenDialog(
             Column(Modifier.weight(1f).fillMaxWidth().border(1.dp, Win7.FrameLine).background(Win7.Face)) {
                 Row(Modifier.fillMaxWidth().padding(6.dp), verticalAlignment = Alignment.CenterVertically) {
                     Win7BackOrb(canUp || backStack.isNotEmpty()) { if (!goBack()) goUp() }
+                    if (portrait) W7Cmd("\u2630", true) { navOpen = !navOpen }
                     Spacer(Modifier.width(6.dp))
                     Row(
                         Modifier.weight(1f).height(26.dp).background(Win7.Input)
@@ -749,8 +758,10 @@ fun Win7OpenDialog(
                 Box(Modifier.fillMaxWidth().height(1.dp).background(Win7.Hairline))
                 Box(Modifier.weight(1f).fillMaxWidth()) {
                 Row(Modifier.fillMaxSize()) {
-                    W7NavPane(favs, vols, dir, Modifier.width(92.dp).fillMaxHeight(), onBin = if (browse) ({ showBin = true }) else null, recents = recents) { go(it) }
-                    Box(Modifier.width(1.dp).fillMaxHeight().background(Win7.Hairline))
+                    if (!portrait) {
+                        W7NavPane(favs, vols, dir, Modifier.width(92.dp).fillMaxHeight(), onBin = if (browse) ({ showBin = true }) else null, recents = recents) { go(it) }
+                        Box(Modifier.width(1.dp).fillMaxHeight().background(Win7.Hairline))
+                    }
                     W7FileArea(
                         modifier = Modifier.weight(1f).fillMaxHeight(),
                         granted = granted, entries = shown, key = key, asc = asc, selected = selected,
@@ -767,6 +778,27 @@ fun Win7OpenDialog(
                         onEnter = { e -> go(e.file) },
                         onAsk = { ask.launch(Manifest.permission.READ_EXTERNAL_STORAGE) }
                     )
+                }
+                if (portrait) {
+                    Box(Modifier.align(Alignment.CenterStart).width(16.dp).fillMaxHeight().pointerInput(Unit) {
+                        detectHorizontalDragGestures { _, dx -> if (dx > 6f) navOpen = true }
+                    })
+                    if (navOpen) Box(Modifier.fillMaxSize().background(Color(0x66000000)).pointerInput(Unit) {
+                        detectTapGestures { navOpen = false }
+                    })
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = navOpen, modifier = Modifier.align(Alignment.CenterStart),
+                        enter = androidx.compose.animation.slideInHorizontally { -it },
+                        exit = androidx.compose.animation.slideOutHorizontally { -it }
+                    ) {
+                        W7NavPane(
+                            favs, vols, dir,
+                            Modifier.width(200.dp).fillMaxHeight().pointerInput(Unit) {
+                                detectHorizontalDragGestures { _, dx -> if (dx < -8f) navOpen = false }
+                            },
+                            onBin = if (browse) ({ navOpen = false; showBin = true }) else null, recents = recents
+                        ) { navOpen = false; go(it) }
+                    }
                 }
                 if (message.isNotBlank()) W7Toast(
                     message, messageOk,
