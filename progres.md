@@ -1437,3 +1437,9 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] uji perangkat (Android 8): salin .m3u ke /sdcard/Molina/Media/IPTV, buka Saluran > Berkas > ketuk berkas > saluran tampil; tutup lalu buka lagi > sumber berkas termuat otomatis; ubah isi berkas lalu Muat > terbaca ulang; folder kosong/izin ditolak > pesan; Hapus > chip hilang, berkas tetap ada
 - [ ] KETERBATASAN: hanya entri stream jarak jauh (http/https/rtsp/rtmp) yang jadi saluran; entri jalur lokal (mis. /sdcard/video.mp4) dilewati kebijakan URL. Subfolder tidak dipindai. Encoding selain UTF-8 bisa menampilkan nama rusak
 - [ ] LANGKAH BERIKUT: pemindai subfolder opsional, tombol "Buka folder IPTV" di Penjelajah, cache disk + offline, favorit saluran
+
+## 2026-10-28 - Code: ikon X tab ke tepi kanan [CODE-TABCLOSE-EDGE]
+- [x] style(code): `TabItem` di CodeScreen.kt, baris tab `fillMaxWidth()` + judul `weight(1f)`; ikon X kini di tepi kanan tab, bukan menempel di judul. Lebar tab kini seragam (maks 180dp)
+- [x] Dampak: CodeScreen.kt dua baris saja. Gradle, Manifest, JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: sangat rendah
+- [ ] uji perangkat (Android 8): X di tepi kanan tab aktif dan tidak aktif; judul panjang terpotong "…" tanpa menimpa X; buka banyak tab, bilah tab tetap bisa digeser; ketuk X menutup tab
