@@ -48,6 +48,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.molina.code.preview.CommandBlockSpec // [CODE-CMDBLOCK]
 import com.molina.code.preview.ScriptLaunch
 import com.molina.studio.code.CodeNav
 import com.molina.studio.code.CodeOpenRequest
@@ -134,12 +135,18 @@ internal fun ScriptsPage() {
             onDismissRequest = { toRun = null },
             title = { Text("Jalankan di Molina Terminal?") },
             text = {
+              Column {
                 Text(
                     "\"${item.title}\" (${ScriptLaunch.countLines(item.body)} baris) ditulis ke Debian, lalu diketik " +
                         "ke terminal dengan chmod +x dan Enter, persis seperti Anda mengetiknya sendiri.\n\n" +
                         "Periksa isinya bila bukan skrip buatan Anda. Pilih SESI BARU bila sesi aktif sedang " +
                         "menjalankan sesuatu."
                 )
+                Spacer(Modifier.height(10.dp))
+                Text("Awal skrip (tidak menjamin sisanya aman):", fontSize = 12.sp)
+                Spacer(Modifier.height(4.dp))
+                CommandBlock(CommandBlockSpec.clip(item.body, withCount = true))
+              }
             },
             confirmButton = {
                 Row {
@@ -255,13 +262,7 @@ private fun ScriptAccordion(
                 Text("Dari: $from", color = W7D.TextDim, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(bottom = 8.dp))
             }
             val code = remember(item.body) { codePreview(item.body) }
-            Box(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(5.dp)).background(W7D.Field)
-                    .border(1.dp, W7D.Hairline, RoundedCornerShape(5.dp))
-                    .horizontalScroll(rememberScrollState()).padding(10.dp)
-            ) {
-                Text(code, color = W7D.Ink, fontSize = 11.5.sp, lineHeight = 16.sp, fontFamily = FontFamily.Monospace, softWrap = false)
-            }
+            CommandBlock(code)
             Spacer(Modifier.height(8.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
                 ActionText("EDIT", Blue, onClick = onEdit)

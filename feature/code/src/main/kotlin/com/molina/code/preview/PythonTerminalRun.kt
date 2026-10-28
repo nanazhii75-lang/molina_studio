@@ -82,9 +82,7 @@ object PythonTerminalRun {
         return "(cd ${ScriptLaunch.shellQuote(dir)} && ${lang.interpreter} ${ScriptLaunch.shellQuote(name)})"
     }
 
-    /** Pratinjau singkat perintah untuk dialog: maksimal [maxLines] baris, sisanya "...". */
-    fun preview(command: String, maxLines: Int = 4): String {
-        val lines = command.lines()
-        return if (lines.size <= maxLines) command else lines.take(maxLines).joinToString("\n") + "\n..."
-    }
+    /** Pratinjau singkat perintah untuk dialog (aturan potong seragam: [CommandBlockSpec.clip]). */
+    fun preview(command: String, maxLines: Int = CommandBlockSpec.PREVIEW_MAX_LINES): String =
+        CommandBlockSpec.clip(command, maxLines)
 }

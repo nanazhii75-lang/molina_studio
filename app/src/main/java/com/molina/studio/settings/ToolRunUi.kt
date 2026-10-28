@@ -137,7 +137,7 @@ internal fun ToolRunDialog(run: ToolRun, onClose: () -> Unit, onResult: (Int, St
                     Text("Perintah yang dijalankan:", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(4.dp))
                     Box(Modifier.heightIn(max = 160.dp).verticalScroll(rememberScrollState())) {
-                        Text(run.script, fontFamily = FontFamily.Monospace, fontSize = 11.sp)
+                        CommandBlock(run.script) // [CODE-CMDBLOCK]
                     }
                 }
             },

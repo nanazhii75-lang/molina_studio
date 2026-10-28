@@ -37,6 +37,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.molina.code.preview.CommandBlockSpec
 import com.molina.code.preview.PythonTerminalRun
 import com.molina.code.preview.TerminalRunLang
 
@@ -47,7 +48,7 @@ private const val MAX_HEREDOC_CHARS = 20_000
 /**
  * [CODE-PYRUN2] Dialog "Jalankan di Terminal" untuk .py dan .sh. Opsi 1: bungkus isi dengan heredoc (tanpa berkas).
  * Opsi 2: interpreter + nama berkas; pengguna cukup mengisi nama, ekstensi dideteksi/ditambah otomatis.
- * Pratinjau perintah selalu tampil; pilihan terakhir diingat dan bisa dijadikan "langsung" tanpa dialog.
+ * Pratinjau perintah (CommandBlockSpec, seragam dengan layar :app) selalu tampil; pilihan terakhir diingat dan bisa dijadikan "langsung" tanpa dialog.
  */
 @Composable
 internal fun PythonRunDialog(session: CodeSession, tab: EditorTab, onDismiss: () -> Unit) {
@@ -139,10 +140,16 @@ internal fun PythonRunDialog(session: CodeSession, tab: EditorTab, onDismiss: ()
                 text = preview,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(CodeColors.IconDim.copy(alpha = 0.15f), RoundedCornerShape(6.dp))
-                    .padding(8.dp),
-                maxLines = 5,
-                style = TextStyle(color = CodeColors.TextPrimary, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
+                    .background(CodeColors.IconDim.copy(alpha = 0.15f), RoundedCornerShape(CommandBlockSpec.CORNER_DP.dp))
+                    .border(CommandBlockSpec.BORDER_DP.dp, CodeColors.IconDim.copy(alpha = 0.35f), RoundedCornerShape(CommandBlockSpec.CORNER_DP.dp))
+                    .padding(CommandBlockSpec.PADDING_DP.dp),
+                maxLines = CommandBlockSpec.PREVIEW_MAX_LINES + 1,
+                style = TextStyle(
+                    color = CodeColors.TextPrimary,
+                    fontSize = CommandBlockSpec.FONT_SP.sp,
+                    lineHeight = CommandBlockSpec.LINE_HEIGHT_SP.sp,
+                    fontFamily = FontFamily.Monospace
+                )
             )
 
             Spacer(Modifier.height(12.dp))

@@ -1572,3 +1572,14 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: :feature:code (PythonTerminalRun + enum TerminalRunLang, RunStore baru, PythonRunDialog, CodeSession, OverflowMenu), :app (MainActivity: SharedPreferences molina_code_run). Gradle, Manifest, JNI mpv TIDAK disentuh
 - [ ] BELUM dikompilasi Gradle (CI): risiko sedang (dialog Compose, objek RunStore anonim di MainActivity)
 - [ ] uji perangkat (Android 8): .sh dan .py membuka dialog; centang "Ingat pilihan" lalu Jalankan lagi tanpa dialog; menu "Dialog jalankan" mengembalikan dialog; pilihan bertahan setelah aplikasi dibuka ulang
+
+## 2026-10-28 - Pratinjau perintah/skrip seragam di aksi Terminal [CODE-CMDBLOCK]
+- [x] refactor(ui): spesifikasi tunggal CommandBlockSpec (monospace 11,5sp, tinggi baris 16sp, sudut 5dp, tepi 1dp, padding 10dp, aturan potong pratinjau) di :feature:code, murni tanpa Compose sehingga bisa diuji JVM
+- [x] refactor(ui): komponen CommandBlock di :app (palet W7D) menggantikan blok inline Script Execution (tampilan tetap sama persis) dan teks polos di konfirmasi ToolRunDialog (kini berlatar, bertepi, geser horizontal)
+- [x] feat(ui): konfirmasi "Jalankan di Molina Terminal?" (Script Execution) kini menampilkan awal skrip + "(+N baris lagi)"; sebelumnya skrip dijalankan tanpa pratinjau isi
+- [x] refactor(code): pratinjau di dialog Jalankan di Terminal memakai spesifikasi yang sama (palet CodeColors)
+- [x] test: run_python_run.sh diperluas (clip: pendek, baris panjang, sisa baris, CRLF)
+- [x] Dampak: :feature:code (CommandBlockSpec, PythonTerminalRun, PythonRunDialog), :app (CommandBlock baru, ScriptExecutionUi, ToolRunUi). Gradle, Manifest, JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi Gradle (CI): risiko sedang (Column baru di dialog Script Execution; impor lama jadi tak terpakai hanya peringatan)
+- [ ] uji perangkat (Android 8): Settings > Script Execution: kartu skrip tampil sama seperti sebelumnya; ketuk jalankan: dialog menampilkan awal skrip; Paket/alat dengan konfirmasi: blok perintah berlatar gelap
+- [ ] KETERBATASAN: Snippet Terminal (daftar baris) dan keluaran log tidak diubah karena berupa daftar/aliran, bukan blok perintah

@@ -1,3 +1,4 @@
+import com.molina.code.preview.CommandBlockSpec
 import com.molina.code.preview.PythonTerminalRun as P
 
 private var fails = 0
@@ -46,6 +47,14 @@ fun main() {
     check("sh pembatas bentrok", P.heredoc("a\nSHEOF\n", SH) == "bash << 'SHEOF_1'\na\nSHEOF\nSHEOF_1")
     check("sh fileCommand", P.fileCommand("/sdcard/a/d.sh", SH) == "(cd '/sdcard/a' && bash 'd.sh')")
     check("py tetap default", P.heredoc("print(1)", PY) == P.heredoc("print(1)") && P.fileCommand("/a/b.py", PY) == P.fileCommand("/a/b.py"))
+
+    // [CODE-CMDBLOCK] aturan potong pratinjau seragam
+    check("clip pendek apa adanya", CommandBlockSpec.clip("a\nb\n") == "a\nb")
+    check("clip baris panjang", CommandBlockSpec.clip("x".repeat(130)) == "x".repeat(120) + "...")
+    check("clip sisa baris", CommandBlockSpec.clip("1\n2\n3\n4\n5\n6", 4) == "1\n2\n3\n4\n...")
+    check("clip sisa dengan hitungan", CommandBlockSpec.clip("1\n2\n3\n4\n5\n6", 4, withCount = true) == "1\n2\n3\n4\n... (+2 baris lagi)")
+    check("clip CRLF", CommandBlockSpec.clip("a\r\nb\r\n") == "a\nb")
+    check("preview mendelegasikan ke clip", P.preview("1\n2\n3\n4\n5") == CommandBlockSpec.clip("1\n2\n3\n4\n5"))
 
     if (fails > 0) { println("$fails GAGAL"); System.exit(1) } else println("SEMUA LULUS")
 }
