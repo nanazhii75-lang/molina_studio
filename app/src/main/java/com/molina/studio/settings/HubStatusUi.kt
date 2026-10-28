@@ -115,7 +115,7 @@ internal fun HubCard(title: String, rows: List<HubRow>, dots: Boolean = true) {
                 }
                 Text(
                     r.label, color = W7D.TextDim, fontSize = 12.sp,
-                    modifier = Modifier.width(if (dots) 112.dp else 96.dp)
+                    modifier = Modifier.width(112.dp)
                 )
                 Text(r.value, color = W7D.Ink, fontSize = 12.sp, modifier = Modifier.weight(1f))
             }

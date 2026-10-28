@@ -60,7 +60,7 @@ object SettingsNav {
 }
 
 private enum class Page {
-    Home, System, Terminal, Debugging, TerminalIO, TerminalView, Tampilan, CrashReports, About, Log, Stream, Network, Scripts, Packages, Code, TerminalApp, Downloads, Storage, Monitor, Automation, Player, Stats, Info
+    Home, System, Terminal, Debugging, TerminalIO, TerminalView, Tampilan, CrashReports, Log, Stream, Network, Scripts, Packages, Code, TerminalApp, Downloads, Storage, Monitor, Automation, Player, Stats, Info
 }
 
 private fun parentOf(p: Page): Page? = when (p) {
@@ -69,6 +69,7 @@ private fun parentOf(p: Page): Page? = when (p) {
     Page.Stream -> Page.Packages
     Page.Debugging, Page.TerminalIO, Page.TerminalView, Page.Tampilan -> Page.Terminal
     Page.CrashReports -> Page.Debugging
+    Page.Log, Page.Monitor -> Page.Info // [INFO-PAGE]
     else -> Page.System
 }
 
@@ -81,7 +82,6 @@ private fun titleOf(p: Page): String = when (p) {
     Page.TerminalView -> "Terminal View"
     Page.Tampilan -> "Tampilan Molina"
     Page.CrashReports -> "Crash Reporter"
-    Page.About -> "About"
     Page.Log -> "Log"
     Page.Stream -> "Mesin cadangan (yt-dlp)"
     Page.Network -> "Keamanan dan privasi"
@@ -130,7 +130,7 @@ private val INDEX = listOf(
     Hit("Cadangan dan pemulihan", "Cadangkan atau pulihkan penanda video, snippet, dan setelan (folder Backup)", Page.System),
     Hit("Pulihkan dari Backup", "Pulihkan penanda video, snippet, dan setelan dari molina-backup.json", Page.System),
     Hit("Profil setelan", "Simpan setelan sebagai profil bernama (mis. Nonton, Dev, Hemat Baterai) dan ganti dengan satu ketukan", Page.System),
-    Hit("Diagnostik sekali klik", "Bangun ZIP diagnostik (perangkat, versi mpv/yt-dlp, status PRoot, laporan bug, crash) dan bagikan", Page.System),
+    Hit("Diagnostik sekali klik", "Bangun ZIP diagnostik (perangkat, versi mpv/yt-dlp, status PRoot, laporan bug, crash) dan bagikan", Page.Info),
     Hit("Terminal (sesi)", "Buka sesi Debian PRoot di Molina Terminal", Page.TerminalApp),
     Hit("Unduhan", "Unduh video atau audio dari URL: antrean, riwayat, ulangi yang gagal", Page.Downloads),
     Hit("Penyimpanan", "Ukuran Debian, cache, Recycle Bin, folder kerja, dan bersihkan ruang", Page.Storage),
@@ -149,12 +149,13 @@ private val INDEX = listOf(
     Hit("Ingat posisi putar", "Lanjutkan video dari posisi terakhir", Page.Player),
     Hit("Dekoder perangkat keras", "MediaCodec untuk pemutar mpv", Page.Player),
     Hit("Sumber IPTV", "Daftar playlist saluran dan Folder IPTV", Page.Player),
-    Hit("Laporan bug", "Ekspor log gabungan dan per kelompok ke folder Export", Page.System),
-    Hit("About", "Versi, perangkat, status, dan lisensi", Page.About),
-    Hit("Salin info debug", "Salin ringkasan versi dan status untuk laporan bug", Page.About),
+    Hit("Laporan bug", "Ekspor log gabungan dan per kelompok ke folder Export", Page.Info),
+    Hit("About", "Versi, perangkat, status, dan lisensi (kini di Sistem > Info)", Page.Info),
+    Hit("Salin info debug", "Salin ringkasan versi dan status untuk laporan bug", Page.Info),
     Hit("Info", "Status Molina dan informasi dasar perangkat", Page.Info),
     Hit("Status Molina", "Ringkasan Debian, paket, yt-dlp, dan cadangan di Sistem > Info", Page.Info),
-    Hit("Informasi perangkat", "Versi Molina Studio, Android, perangkat, arsitektur, dan RAM", Page.Info)
+    Hit("Informasi perangkat", "Versi Molina Studio, Android, perangkat, arsitektur, dan RAM", Page.Info),
+    Hit("Versi libmpv", "Versi Molina Terminal, Molina Cinema, libmpv, dan FFmpeg", Page.Info)
 )
 
 /**
@@ -306,15 +307,11 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         )
                     }
                     Page.System -> {
-                        W7Link({ W7IconInfo() }, "Info", "Status Molina dan informasi dasar perangkat") { open(Page.Info) } // [INFO-PAGE]
+                        W7Link({ W7IconInfo() }, "Info", "Status Molina, versi, perangkat, dan diagnostik") { open(Page.Info) } // [INFO-PAGE]
                         W7Link({ W7IconTerminal() }, "Terminal", "Molina Terminal: debugging, I/O, tampilan") { open(Page.Terminal) }
                         W7Link({ W7IconTerminal() }, "Editor Code", "Pratinjau HTML: renderer native atau WebView") { open(Page.Code) }
-                        W7Link({ W7IconLog() }, "Log", "Log aktivitas mpv, Terminal, dan sistem") { open(Page.Log) }
-                        W7Link({ W7IconLog() }, "Laporan bug", "Gabungan kronologis dan per kelompok (Cinema, Terminal, Sistem, Logcat, Crash) ke folder Export") { BugReport.export(aptCtx) }
                         W7Link({ W7IconShield() }, "Keamanan dan privasi", "Kebijakan URL, jaringan lokal (LAN), layar privat") { open(Page.Network) }
                         W7Link({ W7IconToolList() }, "Penyimpanan", "Ukuran Debian, cache, Recycle Bin, dan bersihkan ruang") { open(Page.Storage) }
-                        W7Link({ W7IconMonitor(32.dp) }, "Monitor Sistem", "Unduh, unggah, CPU, dan RAM secara langsung") { open(Page.Monitor) }
-                        W7Link({ W7IconInfo() }, "About", "Versi dan lisensi") { open(Page.About) }
                         W7Link({ W7IconAptSync() }, "Otomasi dan pembaruan", "Pembaruan otomatis (Wi-Fi), cadangan harian, lencana yt-dlp") { open(Page.Automation) }
                         Category("Debian")
                         W7Link({ W7IconAptSync() }, "Periksa pembaruan paket", AptHistory.checkSubtitle(aptPending)) { apt = AptJob.CheckUpdates }
@@ -323,18 +320,16 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         W7Link({ W7IconToolList() }, "Daftar tool terpasang", "Deteksi alat Molina di Debian beserta versinya") { showTools = true }
                         W7Link({ W7IconToolList() }, "Cadangan dan pemulihan", "Penanda video, snippet, dan setelan dalam satu berkas Backup") { showBackup = true }
                         W7Link({ W7IconToolList() }, "Profil setelan", "Simpan dan ganti kumpulan setelan dengan satu ketukan") { showProfiles = true }
-                        W7Link({ W7IconLog() }, "Diagnostik sekali klik", "Satu ZIP: perangkat, versi, status PRoot, laporan bug, crash (URL disamarkan)") { showDiag = true }
                     }
-                    Page.Info -> { // [INFO-PAGE] Status Molina + informasi dasar perangkat
-                        W7HubStatusCard(
-                            aptPending = aptPending,
-                            auto = autoSt,
-                            onSystem = { open(Page.System) },
-                            onPackages = { lastTile = Page.Packages; open(Page.Packages) },
-                            onAutomation = { open(Page.Automation) }
-                        )
-                        W7SystemSummary()
-                    }
+                    Page.Info -> HubInfoPage( // [INFO-PAGE] rumah informasi diagnostik; gabungan About lama
+                        onSystem = { open(Page.System) },
+                        onPackages = { lastTile = Page.Packages; open(Page.Packages) },
+                        onAutomation = { open(Page.Automation) },
+                        onDiagnostics = { showDiag = true },
+                        onBugReport = { BugReport.export(aptCtx) },
+                        onLog = { open(Page.Log) },
+                        onMonitor = { open(Page.Monitor) }
+                    )
                     Page.Terminal -> {
                         SettingsItem("Debugging", "Preferences for debugging") { page = Page.Debugging }
                         SettingsItem("Terminal I/O", "Preferences for terminal I/O") { page = Page.TerminalIO }
@@ -349,7 +344,6 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                     Page.TerminalView -> TerminalViewPage()
                     Page.Tampilan -> TampilanPage()
                     Page.CrashReports -> CrashReportsPage()
-                    Page.About -> HubAboutPage()
                     Page.Log -> {}
                     Page.Downloads -> {}
                     Page.Stats -> WatchStatsPage()

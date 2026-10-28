@@ -1668,3 +1668,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: hanya :app (SettingsScreen.kt, HubStatusUi.kt). Manifest, Gradle, JNI mpv TIDAK disentuh
 - [ ] BELUM dikompilasi (CI) dan belum diuji di perangkat. Uji: beranda tanpa kartu status; Sistem > Info menampilkan status dan info perangkat; ketuk baris yt-dlp membuka Paket; pencarian "status" membuka Info
 - [ ] Usulan: halaman About masih punya kartu Status Molina sendiri (duplikat); tunggu keputusan
+
+## 2026-10-28 - Info jadi rumah diagnostik, About digabung [INFO-PAGE]
+- [x] refactor(settings): halaman About dihapus (Page.About) dan digabung ke Sistem > Info (HubInfoPage di AboutUi.kt). Kartu Status Molina kini hanya di Info
+- [x] feat(settings): Info memuat baris Molina Terminal (versi + emulator Termux v0.118.0) dan Molina Cinema (versi + libmpv), FFmpeg, RAM; kartu info perangkat lama dilebur ke sini
+- [x] refactor(settings): Diagnostik sekali klik, Laporan bug, Log, Monitor Sistem dipindah dari Sistem ke Info; tombol back Log/Monitor kembali ke Info; indeks pencarian diperbarui
+- [x] Dampak: hanya :app (SettingsScreen.kt, AboutUi.kt, HubStatusUi.kt). Manifest, Gradle, JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi (CI) dan belum diuji di perangkat. Uji: Sistem > Info urut Status, Versi dan perangkat, Diagnostik, Lisensi; "Molina Terminal" tidak terpotong; libmpv terisi setelah memutar video; back dari Log kembali ke Info
+- [ ] Catatan: "v0.118.0" di baris Molina Terminal ditulis manual; W7SystemSummary kini tidak dipakai (boleh dibersihkan)
