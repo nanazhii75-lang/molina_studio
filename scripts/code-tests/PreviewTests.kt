@@ -490,6 +490,8 @@ Penutup.
     eq("cmd shebang", ScriptLaunch.terminalCommand("/root/x.sh", bashPlan, "#!/bin/bash\necho"), "chmod +x '/root/x.sh' && '/root/x.sh'")
     eq("cmd python", ScriptLaunch.terminalCommand("/root/x.py", pyPlan, "print(1)"), "chmod +x '/root/x.py' && /usr/bin/python3 '/root/x.py'")
     check("cmd single line", '\n' !in ScriptLaunch.terminalCommand("/root/x.sh", bashPlan, "echo\nhi"))
+    eq("cmd args", ScriptLaunch.terminalCommand("/root/x.sh", bashPlan, "echo hi", " --a \"b c\" "), "chmod +x '/root/x.sh' && /bin/bash '/root/x.sh' --a \"b c\"")
+    check("cmd args no newline", '\n' !in ScriptLaunch.terminalCommand("/root/x.sh", bashPlan, "echo", "a\nrm -rf x"))
     repeat(2000) { // fuzz: nama berkas selalu aman
         val alphabet = "abcXYZ019 ./\\;'\"\$`|&\n\t-_\u00e9".toList()
         val t = String(CharArray(rnd0.nextInt(0, 60)) { alphabet[rnd0.nextInt(alphabet.size)] })

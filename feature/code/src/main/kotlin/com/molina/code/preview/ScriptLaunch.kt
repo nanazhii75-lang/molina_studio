@@ -60,8 +60,9 @@ object ScriptLaunch {
      * Satu baris perintah untuk diketik (tanpa Enter). Selalu `chmod +x` lebih dulu. Bila skrip punya
      * shebang, jalankan langsung agar interpreternya dihormati; bila tidak, pakai interpreter dari [plan].
      */
-    fun terminalCommand(guestPath: String, plan: RunPlan, text: String): String {
+    fun terminalCommand(guestPath: String, plan: RunPlan, text: String, args: String = ""): String {
         val p = shellQuote(guestPath)
-        return if (hasShebang(text)) "chmod +x $p && $p" else "chmod +x $p && ${plan.interpreter} $p"
+        val a = args.filter { it >= ' ' }.trim().let { if (it.isEmpty()) "" else " $it" }
+        return if (hasShebang(text)) "chmod +x $p && $p$a" else "chmod +x $p && ${plan.interpreter} $p$a"
     }
 }

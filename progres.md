@@ -1636,3 +1636,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: :feature:mpv (WatchStats.kt baru, 6 baris di MPVActivity), :app (WatchStatsUi.kt baru, SettingsScreen). Manifest dan Gradle TIDAK disentuh
 - [ ] BELUM dikompilasi (CI) dan belum diuji di perangkat. Uji: putar video 1 menit, jeda 30 dtk, lanjut; Settings > Statistik tontonan: Hari ini sekitar 1 mnt; matikan saklar lalu putar lagi: angka tidak naik; Hapus lalu nol
 - [ ] KETERBATASAN: jam dinding (buffering ikut terhitung, kecepatan putar tidak memengaruhi); segmen belum ditutup hilang bila proses dibunuh paksa; statistik belum ikut cadangan gabungan (usulan berikutnya)
+
+## 2026-10-28 - Script Execution paket B: favorit, cari, argumen, percaya [SCRIPT-PACK-B]
+- [x] feat(script): ScriptItem punya favorite, args, trusted (default aman, JSON lama tetap terbaca; ikut cadangan lewat snapshot/mergeFrom). Bintang emas di Settings; favorit di urutan atas Settings dan Pemilih skrip; kolom cari muncul bila lebih dari 6 skrip
+- [x] feat(script): tombol OPSI: argumen (satu baris gaya prompt shell, karakter kontrol dibuang, maks 300) ditambahkan ke perintah lewat ScriptLaunch.terminalCommand(args); dialog konfirmasi menampilkan argumen
+- [x] feat(script): saklar "Percaya skrip ini" melewati konfirmasi HANYA untuk ketukan dalam aplikasi (segitiga Settings, Pemilih skrip). Pintasan layar utama SENGAJA tetap selalu konfirmasi karena Activity bisa menerima extra dari aplikasi lain
+- [x] test: dua kasus baru di scripts/code-tests/PreviewTests.kt (argumen dan tanpa baris baru); belum dijalankan lokal
+- [x] Dampak: :app (ScriptStore, ScriptRunner, ScriptPickerUi, ScriptExecutionUi), :feature:code (ScriptLaunch, parameter default sehingga pemanggil lama aman). Manifest, Gradle, JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi (CI) dan belum diuji di perangkat. Uji: bintang lalu urutan naik; OPSI argumen "a b" lalu jalankan: terlihat di dialog dan terminal; aktifkan Percaya lalu ketuk segitiga: langsung jalan; pintasan tetap konfirmasi
+- [ ] BELUM: status exit code terakhir (butuh membaca keluaran terminal; dipisah ke paket tersendiri)

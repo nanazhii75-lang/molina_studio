@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -56,6 +57,7 @@ import com.molina.studio.code.ScriptItem
 import com.molina.studio.ScriptShortcuts
 import com.molina.studio.code.ScriptRunDialog
 import com.molina.studio.code.ScriptRunner
+import com.molina.studio.code.runIfTrusted
 import com.molina.studio.code.ScriptStore
 import com.molina.studio.terminal.TerminalSessions
 import com.molina.studio.ui.MolinaTheme
@@ -81,6 +83,13 @@ internal fun ScriptsPage() {
     var toRun by remember { mutableStateOf<ScriptItem?>(null) }
     var noteOf by remember { mutableStateOf<ScriptItem?>(null) }
     var adding by remember { mutableStateOf(false) }
+    var optsOf by remember { mutableStateOf<ScriptItem?>(null) }
+    var query by rememberSaveable { mutableStateOf("") }
+    val shown = remember(items, query) {
+        val q = query.trim()
+        items.filter { q.isEmpty() || it.title.contains(q, ignoreCase = true) || it.note.contains(q, ignoreCase = true) }
+            .sortedByDescending { it.favorite }
+    }
 
     Text(
         "Ketuk segitiga untuk menjalankan di Molina Terminal, ketuk judul untuk detail. EDIT membuka skrip di " +
@@ -101,14 +110,21 @@ internal fun ScriptsPage() {
             color = W7D.TextDim, fontSize = 13.sp, modifier = Modifier.padding(vertical = 12.dp)
         )
     }
-    items.forEach { item ->
+    if (items.size > 6) {
+        W7Field(query, { query = it.take(60) }, singleLine = true)
+        Spacer(Modifier.height(8.dp))
+        if (shown.isEmpty()) Text("Tidak ada skrip yang cocok.", color = W7D.TextDim, fontSize = 13.sp)
+    }
+    shown.forEach { item ->
         key(item.id) {
             ScriptAccordion(
                 item = item,
                 expanded = expandedId == item.id,
                 ctx = ctx,
                 onToggle = { expandedId = if (expandedId == item.id) null else item.id },
-                onRun = { toRun = item },
+                onRun = { if (!runIfTrusted(ctx, item)) { toRun = item } },
+                onFav = { ScriptStore.setFavorite(item.id, !item.favorite) },
+                onOpts = { optsOf = item },
                 onEdit = {
                     CodeNav.pending = CodeOpenRequest(item.title, item.sourceKey ?: "script:${item.id}", item.body)
                 },
@@ -129,6 +145,41 @@ internal fun ScriptsPage() {
         }
     }
     toRun?.let { item -> ScriptRunDialog(item) { toRun = null } }
+    optsOf?.let { item ->
+        var args by remember(item.id) { mutableStateOf(item.args) }
+        var trust by remember(item.id) { mutableStateOf(item.trusted) }
+        AlertDialog(
+            onDismissRequest = { optsOf = null },
+            title = { Text("Opsi skrip") },
+            text = {
+                Column {
+                    Text("Argumen, ditulis seperti di prompt shell (mis. --cepat \"a b\"):", fontSize = 13.sp)
+                    Spacer(Modifier.height(6.dp))
+                    W7Field(args, { args = it.filter { c -> c >= ' ' }.take(ScriptStore.MAX_ARGS) }, singleLine = true)
+                    Spacer(Modifier.height(12.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Percaya skrip ini", fontSize = 14.sp)
+                            Text(
+                                "Ketuk segitiga di Settings atau Pemilih skrip langsung menjalankan tanpa konfirmasi. " +
+                                    "Pintasan layar utama tetap meminta konfirmasi.",
+                                fontSize = 11.sp
+                            )
+                        }
+                        Switch(checked = trust, onCheckedChange = { trust = it })
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    optsOf = null
+                    ScriptStore.setOptions(item.id, args, trust)
+                    toast(ctx, "Opsi \"${item.title}\" disimpan")
+                }) { Text("SIMPAN") }
+            },
+            dismissButton = { TextButton(onClick = { optsOf = null }) { Text("BATAL") } }
+        )
+    }
     noteOf?.let { item ->
         var text by remember(item.id) { mutableStateOf(item.note) }
         AlertDialog(
@@ -194,6 +245,8 @@ private fun ScriptAccordion(
     onEdit: () -> Unit,
     onNote: () -> Unit,
     onPin: () -> Unit,
+    onFav: () -> Unit,
+    onOpts: () -> Unit,
     onDelete: () -> Unit
 ) {
     val shape = RoundedCornerShape(6.dp)
@@ -204,10 +257,15 @@ private fun ScriptAccordion(
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(
+                if (item.favorite) "\u2605" else "\u2606",
+                color = if (item.favorite) MolinaTheme.Gold else W7D.TextDim, fontSize = 20.sp,
+                modifier = Modifier.clickable(onClick = onFav).padding(start = 12.dp, top = 10.dp, bottom = 10.dp, end = 4.dp)
+            )
+            Text(
                 item.title, color = W7D.Ink, fontSize = 15.sp, fontWeight = FontWeight.Bold,
                 maxLines = 1, overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f).clickable(onClick = onToggle)
-                    .padding(start = 12.dp, top = 14.dp, bottom = 14.dp, end = 8.dp)
+                    .padding(start = 4.dp, top = 14.dp, bottom = 14.dp, end = 8.dp)
             )
             Box(Modifier.size(48.dp).clickable(onClick = onRun), contentAlignment = Alignment.Center) {
                 Canvas(Modifier.size(18.dp)) {
@@ -241,6 +299,7 @@ private fun ScriptAccordion(
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
                 ActionText("EDIT", Blue, onClick = onEdit)
                 ActionText("CATATAN", W7D.Ink, onClick = onNote)
+                ActionText("OPSI", W7D.Ink, onClick = onOpts)
                 ActionText("PINTASAN", W7D.Ink, onClick = onPin)
                 ActionText("SALIN", W7D.Ink) {
                     val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager

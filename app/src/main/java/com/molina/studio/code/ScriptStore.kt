@@ -21,7 +21,10 @@ data class ScriptItem(
     val sourceKey: String?,
     val createdAt: Long,
     val updatedAt: Long,
-    val lastRunAt: Long
+    val lastRunAt: Long,
+    val favorite: Boolean = false,
+    val args: String = "",
+    val trusted: Boolean = false
 )
 
 /** Hasil operasi toko skrip; [message] siap ditampilkan sebagai Toast. */
@@ -34,6 +37,7 @@ class ScriptResult(val ok: Boolean, val message: String, val id: String? = null)
  */
 object ScriptStore {
     const val MAX_SCRIPTS = 50
+    const val MAX_ARGS = 300
     private const val MAX_BODY_CHARS = 300_000
     private const val FILE = "script-execution.json"
     private val SAFE_ID = Regex("[A-Za-z0-9]{1,16}")
@@ -121,7 +125,8 @@ object ScriptStore {
             val source = if (o.isNull("source")) null else o.optString("source").ifEmpty { null }
             list = list + ScriptItem(
                 id, title, o.optString("note", "").take(ScriptLaunch.MAX_NOTE), body, source,
-                o.optLong("created"), o.optLong("updated"), o.optLong("lastRun")
+                o.optLong("created"), o.optLong("updated"), o.optLong("lastRun"),
+                o.optBoolean("fav"), o.optString("args").filter { it >= ' ' }.take(MAX_ARGS), o.optBoolean("trust")
             )
             added++
         }
@@ -135,6 +140,18 @@ object ScriptStore {
         if (list.none { it.id == id }) return false
         publish(list.filterNot { it.id == id })
         return true
+    }
+
+    @Synchronized
+    fun setFavorite(id: String, on: Boolean) {
+        publish(_items.value.map { if (it.id == id) it.copy(favorite = on) else it })
+    }
+
+    /** Argumen (satu baris, gaya prompt shell) dan saklar "percaya" (lewati konfirmasi untuk ketukan dalam aplikasi). */
+    @Synchronized
+    fun setOptions(id: String, args: String, trusted: Boolean) {
+        val a = args.filter { it >= ' ' }.trim().take(MAX_ARGS)
+        publish(_items.value.map { if (it.id == id) it.copy(args = a, trusted = trusted) else it })
     }
 
     @Synchronized
@@ -177,6 +194,7 @@ object ScriptStore {
                     .put("id", s.id).put("title", s.title).put("note", s.note).put("body", s.body)
                     .put("source", s.sourceKey ?: JSONObject.NULL)
                     .put("created", s.createdAt).put("updated", s.updatedAt).put("lastRun", s.lastRunAt)
+                    .put("fav", s.favorite).put("args", s.args).put("trust", s.trusted)
             )
         }
         return JSONObject().put("v", 1).put("items", arr).toString()
@@ -213,7 +231,10 @@ object ScriptStore {
                             sourceKey = if (o.isNull("source")) null else o.optString("source"),
                             createdAt = o.optLong("created"),
                             updatedAt = o.optLong("updated"),
-                            lastRunAt = o.optLong("lastRun")
+                            lastRunAt = o.optLong("lastRun"),
+                            favorite = o.optBoolean("fav"),
+                            args = o.optString("args").filter { it >= ' ' }.take(MAX_ARGS),
+                            trusted = o.optBoolean("trust")
                         )
                     )
                 }

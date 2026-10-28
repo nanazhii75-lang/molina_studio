@@ -63,6 +63,10 @@ internal fun ScriptRunDialog(item: ScriptItem, onDismiss: () -> Unit) {
                         "Periksa isinya bila bukan skrip buatan Anda. Pilih SESI BARU bila sesi aktif sedang " +
                         "menjalankan sesuatu."
                 )
+                if (item.args.isNotBlank()) {
+                    Spacer(Modifier.height(8.dp))
+                    Text("Argumen: ${item.args}", fontSize = 12.sp)
+                }
                 Spacer(Modifier.height(10.dp))
                 Text("Awal skrip (tidak menjamin sisanya aman):", fontSize = 12.sp)
                 Spacer(Modifier.height(4.dp))
@@ -77,6 +81,18 @@ internal fun ScriptRunDialog(item: ScriptItem, onDismiss: () -> Unit) {
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("BATAL") } }
     )
+}
+
+/**
+ * Ketukan DALAM aplikasi (Settings, Pemilih): skrip bertanda "percaya" langsung jalan di sesi aktif, selain itu
+ * dialog konfirmasi. Jalur luar (pintasan layar utama) TIDAK memakai ini dan selalu meminta konfirmasi.
+ * Mengembalikan true bila sudah dijalankan langsung.
+ */
+internal fun runIfTrusted(ctx: android.content.Context, item: ScriptItem): Boolean {
+    if (!item.trusted) return false
+    val err = ScriptRunner.run(ctx, item, false)
+    if (err != null) Toast.makeText(ctx, err, Toast.LENGTH_SHORT).show()
+    return true
 }
 
 /** Menampilkan konfirmasi untuk skrip yang diminta dari luar (pintasan layar utama). Pasang sekali di MainActivity. */
@@ -105,8 +121,9 @@ internal fun ScriptPickerDialog(onDismiss: () -> Unit) {
     val sorted = remember(all, query) {
         val q = query.trim()
         all.filter { q.isEmpty() || it.title.contains(q, ignoreCase = true) || it.note.contains(q, ignoreCase = true) }
-            .sortedWith(compareByDescending<ScriptItem> { it.lastRunAt }.thenByDescending { it.updatedAt })
+            .sortedWith(compareByDescending<ScriptItem> { it.favorite }.thenByDescending { it.lastRunAt }.thenByDescending { it.updatedAt })
     }
+    val ctx = LocalContext.current
     toRun?.let { item ->
         ScriptRunDialog(item) { toRun = null; onDismiss() }
         return
@@ -133,11 +150,11 @@ internal fun ScriptPickerDialog(onDismiss: () -> Unit) {
                 LazyColumn(Modifier.heightIn(max = 320.dp)) {
                     items(sorted, key = { it.id }) { s ->
                         Row(
-                            Modifier.fillMaxWidth().clickable { toRun = s }.padding(vertical = 10.dp),
+                            Modifier.fillMaxWidth().clickable { if (runIfTrusted(ctx, s)) { onDismiss() } else { toRun = s } }.padding(vertical = 10.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(Modifier.weight(1f)) {
-                                Text(s.title, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text((if (s.favorite) "\u2605 " else "") + s.title, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 Text(lastRunText(s), fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                             Text("\u25B6", color = MolinaTheme.Gold, fontSize = 18.sp, modifier = Modifier.padding(start = 8.dp).size(24.dp))

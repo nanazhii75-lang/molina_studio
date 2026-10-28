@@ -79,7 +79,7 @@ object ScriptRunner {
         } else {
             TerminalSessions.ensureSession(app)
         }
-        val command = ScriptLaunch.terminalCommand("$GUEST_DIR/$name", plan, text)
+        val command = ScriptLaunch.terminalCommand("$GUEST_DIR/$name", plan, text, item.args)
         typeWhenReady(session, command)
         ScriptStore.markRun(item.id)
         LogBus.log("terminal", LogLevel.Info, "script", "Script Execution: \"${item.title}\" dikirim ke sesi terminal")
