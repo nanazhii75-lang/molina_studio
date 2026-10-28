@@ -91,6 +91,8 @@ internal fun menuGroups(session: CodeSession, ctx: Context, onDismiss: () -> Uni
         ),
         listOf(
             MenuEntry("Cari", enabled = tab != null, icon = MenuIcon.Find) { session.openFind(); onDismiss() },
+            MenuEntry("Cari di berkas", enabled = true, icon = MenuIcon.FindFiles) { session.findFilesOpen = true; onDismiss() }, // [CODE-SEARCH]
+            MenuEntry("Struktur berkas", enabled = tab != null, icon = MenuIcon.Outline) { session.outlineOpen = true; onDismiss() },
             MenuEntry("Pergi ke baris", enabled = tab != null, icon = MenuIcon.GoToLine) { session.gotoOpen = true; onDismiss() }
         ),
         listOf(

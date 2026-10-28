@@ -148,6 +148,8 @@ fun CodeScreen(session: CodeSession, modifier: Modifier = Modifier) {
     }
 
     if (session.paletteOpen) CommandPalette(session) { session.paletteOpen = false } // [CODE-PALETTE]
+    if (session.findFilesOpen) FindInFilesDialog(session) { session.findFilesOpen = false } // [CODE-SEARCH]
+    if (session.outlineOpen) session.active?.let { OutlineDialog(it) { session.outlineOpen = false } }
 
     session.saveAs?.let { SaveAsDialog(session, it) }
 

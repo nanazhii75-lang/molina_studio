@@ -1306,3 +1306,14 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] uji perangkat (Android 8): buka palet lalu ketik "cari", nama tab, nama berkas; Enter; jalankan .py yang error lalu ketuk tautan File "x", line N; jalankan .sh dengan error baris N; folder besar tidak membuat palet lag
 - [ ] LANGKAH BERIKUT: Find in Files (grep di PRoot), Outline per berkas, penanda perubahan di gutter, scratch file/live template, tombol Play di gutter
 
+## 2026-10-28 - Find in Files dan Struktur berkas (Outline) [CODE-SEARCH]
+- [x] feat(code): "Cari di berkas" (menu titik tiga dan Palet Perintah): cari isi berkas teks di folder utama, opsi Aa (huruf besar/kecil) dan .* (regex), hasil dikelompokkan per berkas dengan sorotan emas; ketuk baris membuka berkas dan melompat ke baris/kolom lewat `openLocation`
+- [x] Mesin murni Kotlin (tanpa PRoot) di Dispatchers.IO: berkas dari `PaletteScan` (maks. 4000), lewati biner (NUL di 4 KB pertama) dan berkas > 1 MB, satu hasil per baris, maks. 50 per berkas dan 500 total, debounce 300 ms, dibatalkan saat query berubah
+- [x] feat(code): "Struktur berkas": daftar kelas/fungsi/judul Markdown tab aktif (kt, kts, java, py, js/ts, sh, md) berbasis regex, indent jadi kedalaman, ketuk untuk melompat
+- [x] Dampak: :feature:code saja (FindInFiles.kt, Outline.kt baru). Gradle, Manifest, JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: sedang (isActive di dalam withContext, LazyColumn items, regex Kotlin raw string dengan interpolasi MODS_KT)
+- [ ] uji perangkat (Android 8): cari kata umum di folder besar (tidak lag, bisa diubah saat jalan); regex tidak valid memberi pesan; ketuk hasil membuka berkas dan melompat; Outline pada .kt, .py, .sh, .md
+- [ ] CATATAN: regex pengguna yang berat (backtracking) hanya bisa dibatalkan antar berkas; baris dipotong 2000 karakter untuk meredam
+- [ ] LANGKAH BERIKUT: penanda perubahan di gutter, scratch file dan Live Template, tombol Play di gutter
+
+- [ ] PUSH TERTUNDA: pull/push gagal (DNS: Could not resolve host github.com). Commit lokal menunggu jaringan, lalu pull --rebase dan push agar CI jalan

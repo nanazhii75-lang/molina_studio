@@ -200,6 +200,10 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
     /** [CODE-PALETTE] Palet Perintah terbuka. */
     var paletteOpen by mutableStateOf(false)
 
+    /** [CODE-SEARCH] Dialog Cari di berkas dan Struktur berkas terbuka. */
+    var findFilesOpen by mutableStateOf(false)
+    var outlineOpen by mutableStateOf(false)
+
     /** Dialog Simpan sebagai yang sedang terbuka (null = tertutup). */
     var saveAs by mutableStateOf<SaveAsRequest?>(null)
         private set
