@@ -35,7 +35,7 @@ private class StorageInfo(
     val free: Long, val total: Long
 )
 
-private fun fmtBytes(b: Long): String = when {
+internal fun fmtBytes(b: Long): String = when {
     b >= (1L shl 30) -> String.format(Locale.US, "%.2f GB", b / 1073741824.0)
     b >= (1L shl 20) -> String.format(Locale.US, "%.1f MB", b / 1048576.0)
     b >= (1L shl 10) -> String.format(Locale.US, "%d KB", b shr 10)
@@ -43,7 +43,7 @@ private fun fmtBytes(b: Long): String = when {
 }
 
 /** Ukuran total folder; symlink tidak diikuti. Berhenti lebih awal bila [cancelled]. */
-private fun dirSize(root: File, cancelled: () -> Boolean): Long {
+internal fun dirSize(root: File, cancelled: () -> Boolean): Long {
     var total = 0L
     val stack = ArrayDeque<File>()
     stack.addLast(root)
@@ -59,7 +59,7 @@ private fun dirSize(root: File, cancelled: () -> Boolean): Long {
 }
 
 /** Hapus berkas/folder tanpa mengikuti symlink. */
-private fun wipe(f: File) {
+internal fun wipe(f: File) {
     try {
         if (!Files.isSymbolicLink(f.toPath()) && f.isDirectory) f.listFiles()?.forEach { wipe(it) }
         f.delete()
@@ -67,10 +67,10 @@ private fun wipe(f: File) {
     }
 }
 
-private fun aptArchives(ctx: android.content.Context) = File(RootfsManager.rootfsDir(ctx), "var/cache/apt/archives")
+internal fun aptArchives(ctx: android.content.Context) = File(RootfsManager.rootfsDir(ctx), "var/cache/apt/archives")
 
 /** Akar yang punya Recycle Bin (.molina-trash): penyimpanan internal, kartu SD, dan beranda Debian. */
-private fun trashVolumes(ctx: android.content.Context): List<File> {
+internal fun trashVolumes(ctx: android.content.Context): List<File> {
     val out = mutableListOf(Environment.getExternalStorageDirectory())
     File("/storage").listFiles()?.forEach {
         if (it.isDirectory && it.canRead() && it.name != "emulated" && it.name != "self") out.add(it)
@@ -82,7 +82,7 @@ private fun trashVolumes(ctx: android.content.Context): List<File> {
 
 private fun measure(ctx: android.content.Context, cancelled: () -> Boolean): StorageInfo {
     val ws = File(Environment.getExternalStorageDirectory(), TerminalSessions.WORKSPACE_DIR)
-    val appCache = (ctx.cacheDir.listFiles() ?: emptyArray()).filter { it.name != "proot-tmp" }
+    val appCache = (ctx.cacheDir.listFiles() ?: emptyArray()).filter { it.name != "proot-tmp" && !it.name.startsWith("debian-rootfs.tar.gz") }
         .sumOf { dirSize(it, cancelled) }
     val st = StatFs(ctx.filesDir.absolutePath)
     return StorageInfo(
@@ -107,7 +107,7 @@ private fun cleanApt(ctx: android.content.Context): Long {
 
 /** Hapus cache aplikasi kecuali proot-tmp (dipakai sesi Terminal yang sedang berjalan). */
 private fun cleanAppCache(ctx: android.content.Context): Long {
-    val kids = (ctx.cacheDir.listFiles() ?: emptyArray()).filter { it.name != "proot-tmp" }
+    val kids = (ctx.cacheDir.listFiles() ?: emptyArray()).filter { it.name != "proot-tmp" && !it.name.startsWith("debian-rootfs.tar.gz") }
     val before = kids.sumOf { dirSize(it) { false } }
     kids.forEach { wipe(it) }
     return before
@@ -133,6 +133,7 @@ internal fun StoragePage() {
     var info by remember { mutableStateOf<StorageInfo?>(null) }
     var msg by remember { mutableStateOf("") }
     var confirmBin by remember { mutableStateOf(false) }
+    var showCenter by remember { mutableStateOf(false) }
     LaunchedEffect(tick) {
         info = null
         info = withContext(Dispatchers.IO) { measure(ctx) { !isActive } }
@@ -150,6 +151,10 @@ internal fun StoragePage() {
         StorageRow("Recycle Bin", fmtBytes(i.trash))
     }
     Category("Bersihkan")
+    SettingsItem(
+        "Pusat Pembersihan Cerdas",
+        "Pilih kategori, lihat estimasi ruang, lalu bersihkan sekaligus: cache, sisa unduhan, laporan lama, file sementara."
+    ) { showCenter = true }
     SettingsItem(
         "Bersihkan cache apt",
         "Hapus .deb unduhan di Debian. Paket terpasang tidak terpengaruh. Jangan dijalankan saat apt sedang berjalan."
@@ -193,6 +198,7 @@ internal fun StoragePage() {
             dismissButton = { TextButton(onClick = { confirmBin = false }) { Text("Batal") } }
         )
     }
+    if (showCenter) CleanupDialog { showCenter = false; tick++ }
     if (msg.isNotEmpty()) {
         Text(
             msg, modifier = Modifier.padding(top = 8.dp),

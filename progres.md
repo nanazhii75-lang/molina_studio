@@ -1649,3 +1649,4 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - 2026-10-28: feat(settings): Profil setelan (ProfileManager + ProfileUi, satu JSON per profil di Backup/profiles, tanpa mengubah format molina-backup.json).
 - 2026-10-28: feat(settings): Diagnostik sekali klik (DiagnosticsManager + DiagnosticsUi): ZIP ringkasan, laporan bug, crash ke Documents/Export, URL disamarkan, simpan 3 terbaru.
 - 2026-10-28: feat(settings): Diagnostik: SHA-256 tiap berkas di ringkasan.txt, SHA-256 ZIP di berkas .sha256 (format sha256sum) dan ikut teks berbagi.
+- 2026-10-28: feat(settings): Pusat Pembersihan Cerdas (CleanupManager + CleanupUi) di Penyimpanan: 7 kategori dengan estimasi byte dan konfirmasi; laporan Export > 7 hari, crash lama (3 terbaru dijaga), sisa unduhan Debian; fix: cache aplikasi tidak lagi menghapus debian-rootfs.tar.gz(.part) saat unduhan berjalan.

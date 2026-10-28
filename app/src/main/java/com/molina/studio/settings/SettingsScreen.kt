@@ -134,6 +134,7 @@ private val INDEX = listOf(
     Hit("Unduhan", "Unduh video atau audio dari URL: antrean, riwayat, ulangi yang gagal", Page.Downloads),
     Hit("Penyimpanan", "Ukuran Debian, cache, Recycle Bin, folder kerja, dan bersihkan ruang", Page.Storage),
     Hit("Bersihkan cache", "Hapus cache apt dan cache aplikasi", Page.Storage),
+    Hit("Pusat Pembersihan Cerdas", "Estimasi ruang per kategori: cache, sisa unduhan Debian, laporan lama, file sementara, Recycle Bin", Page.Storage),
     Hit("Monitor Sistem", "Kecepatan unduh dan unggah, pemakaian CPU dan RAM secara langsung", Page.Monitor),
     Hit("CPU", "Pemakaian CPU seluruh proses Molina", Page.Monitor),
     Hit("RAM", "Pemakaian memori seluruh proses Molina", Page.Monitor),
