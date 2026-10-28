@@ -1529,3 +1529,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: :app cinema (Win7Aero.kt, Win7OpenDialog.kt). Gradle, Manifest, JNI mpv TIDAK disentuh
 - [ ] BELUM dikompilasi Gradle (CI): risiko rendah
 - [ ] uji perangkat (Android 8): Berkas > buka ZIP > semua label tombol utuh (termasuk "Tutup"); ketuk Bantuan membuka panel dan Tutup menutupnya; Hapus dua kali tetap meminta konfirmasi
+
+## 2026-10-28 - Brand: ikon aplikasi kembali ke logo terminal [BRAND-TERMINAL-ICON]
+- [x] fix(brand): AndroidManifest android:icon/roundIcon dari ic_cinema_launcher (bola Aero + play, commit ec6e2bc) ke ic_launcher / ic_launcher_round (jendela terminal + prompt emas)
+- [x] feat(brand): ic_launcher_foreground: sisakan 1 titik bar judul (sebelumnya 3) dan tambah lencana play kecil di kanan bar judul sebagai penanda Cinema; ic_launcher_monochrome mendapat lencana yang sama
+- [x] Shortcut tidak diubah: Cinema tetap ic_cinema_launcher, Terminal tetap ic_launcher; aset ic_cinema_launcher_* dipertahankan
+- [x] Dampak: AndroidManifest.xml, 2 drawable vektor. Gradle dan JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi Gradle (CI): risiko sangat rendah
+- [ ] uji perangkat (Android 8): pasang ulang APK, ikon launcher berupa terminal dengan segitiga kecil di bar judul; tekan lama ikon: Cinema tetap bola Aero
+- [ ] KETERBATASAN: launcher dapat menyimpan ikon lama, perlu pasang ulang atau bersihkan cache launcher
