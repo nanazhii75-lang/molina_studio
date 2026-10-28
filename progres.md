@@ -1603,3 +1603,10 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI): risiko rendah
 - [ ] uji perangkat (Android 8): putar video sekali > Settings > About: libmpv dan FFmpeg terisi; tekan lama ikon: Cinema, Terminal, lalu dinamis; ketuk Code membuka tab Code
 - [ ] KETERBATASAN: launcher menampilkan sekitar 4 shortcut (statis dulu), jadi Penyimpanan dan Code di bawah lipatan pada launcher 4 slot; shortcut Code lama yang sudah disematkan di layar utama (id molina_code) menjadi nonaktif dan perlu disematkan ulang; SHA commit build belum ditampilkan (butuh buildConfig di Gradle)
+
+## 2026-10-28 - Keyboard tidak lagi muncul sendiri saat app dibuka [KEYBOARD-HIDDEN]
+- [x] fix(ui): MainActivity windowSoftInputMode `adjustResize` -> `stateHidden|adjustResize` (AndroidManifest.xml). Penyebab: kolom "Cari di YouTube atau tempel tautan" (OutlinedTextField di CinemaWin7Home.SearchBlock) adalah elemen fokus pertama di tab Cinema; Compose memberi fokus awal ke elemen itu saat jendela mendapat fokus, dan `adjustResize` tanpa state membuat sistem menampilkan keyboard otomatis
+- [x] Efek: keyboard tidak otomatis tampil saat app dibuka, dari shortcut, maupun saat kembali dari pemutar; keyboard tetap muncul saat kolom diketuk (pemanggilan eksplisit tidak terpengaruh)
+- [x] Dampak: HANYA AndroidManifest.xml (satu atribut). Kode, Gradle, JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi/diuji: perlu build CI lalu uji perangkat (Android 8): buka app dari nol dan dari shortcut > keyboard tidak muncul; ketuk kolom > keyboard muncul; Terminal, Code, dan pencarian di Log tetap bisa mengetik
+- [ ] KETERBATASAN: kolom Cinema mungkin masih tampak berfokus (tepi aktif) tanpa keyboard sampai diketuk; diagnosis dari kode, belum direproduksi di perangkat
