@@ -19,4 +19,8 @@
     <path
         android:fillColor="#FFFFFF"
         android:pathData="M58,68.5h18a2.5,2.5 0 0 1 0,5h-18a2.5,2.5 0 0 1 0,-5z" />
+    <!-- [BRAND-TERMINAL-ICON] -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M70,31.5L70,39.5L77,35.5z" />
 </vector>

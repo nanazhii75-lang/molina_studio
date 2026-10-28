@@ -15,14 +15,13 @@
     <path
         android:fillColor="#E6B450"
         android:pathData="M31,35.5m-2,0a2,2 0 1 1 4,0a2,2 0 1 1 -4,0" />
+    <!-- [BRAND-TERMINAL-ICON] Lencana play kecil: penanda Cinema, tetap bernuansa terminal -->
     <path
-        android:fillColor="#E6B450"
-        android:fillAlpha="0.55"
-        android:pathData="M38,35.5m-2,0a2,2 0 1 1 4,0a2,2 0 1 1 -4,0" />
-    <path
-        android:fillColor="#E6B450"
-        android:fillAlpha="0.25"
-        android:pathData="M45,35.5m-2,0a2,2 0 1 1 4,0a2,2 0 1 1 -4,0" />
+        android:fillColor="#F5D58A"
+        android:strokeColor="#F5D58A"
+        android:strokeWidth="1"
+        android:strokeLineJoin="round"
+        android:pathData="M70,31.5L70,39.5L77,35.5z" />
     <!-- Prompt chevron -->
     <path
         android:fillColor="#00000000"
