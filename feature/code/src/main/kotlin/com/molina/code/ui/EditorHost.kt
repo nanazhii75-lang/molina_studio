@@ -37,6 +37,7 @@ internal fun EditorHost(session: CodeSession, modifier: Modifier = Modifier) {
             }
             // membaca nama berkas di sini: ganti nama / Simpan sebagai ikut menyegarkan highlight
             syncSyntax(editor, tab.file?.name ?: tab.title)
+            syncFontSize(editor, session.editorFontSp) // [CODE-FONT] membaca state: ikut berubah saat ukuran diganti
             if (container.childCount != 1 || container.getChildAt(0) !== editor) {
                 container.removeAllViews()
                 (editor.parent as? ViewGroup)?.removeView(editor)
@@ -140,6 +141,15 @@ internal fun CodeEditor.flashCurrentLine(durationMs: Long = FLASH_MS) {
     }
     flashRestore[this] = restore
     postDelayed(restore, durationMs)
+}
+
+private val appliedFontSp = java.util.WeakHashMap<CodeEditor, Int>()
+
+/** [CODE-FONT] Pasang ukuran font (sp) ke editor; hanya bila berubah. Tab nonaktif menyusul saat jadi aktif. */
+internal fun syncFontSize(ed: CodeEditor, sp: Int) {
+    if (appliedFontSp[ed] == sp) return
+    appliedFontSp[ed] = sp
+    ed.setTextSize(sp.toFloat())
 }
 
 private val appliedSpec = java.util.WeakHashMap<CodeEditor, SyntaxSpec?>()

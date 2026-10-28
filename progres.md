@@ -1711,3 +1711,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: hanya :feature:code (FileInfoScreen.kt baru; CodeSession, CodeScreen, OverflowMenu, CodeWin7 languageOf jadi internal). Manifest, Gradle, JNI mpv TIDAK disentuh
 - [ ] BELUM dikompilasi (CI) dan belum diuji di perangkat. Uji: menu titik tiga > Informasi berkas; angka berubah setelah mengetik lalu buka ulang; berkas .kt tampil ".kt" dan Kotlin; tombol back menutup layar
 - [ ] Usulan: hapus "N baris, N karakter" dan label bahasa dari bilah status bawah (menunggu keputusan)
+
+## 2026-10-29 - Ukuran font editor di menu titik tiga, waktu baca, seleksi [CODE-FONT] [INFO-READ]
+- [x] feat(code): item "Ukuran font: Nsp" di menu titik tiga (grup terakhir, di atas Akhir baris) membuka FontSizeDialog: tombol - dan +, pilihan cepat, pratinjau, Setel ulang; rentang 8-24sp, bawaan 13sp, berlaku untuk semua tab
+- [x] Ukuran diingat lewat RunStore yang sudah dipasang di MainActivity (kunci editor_font_sp); EditorHost.syncFontSize memasang ke editor aktif dan tab lain menyusul saat aktif. Tanpa perubahan di :app
+- [x] feat(code): Informasi berkas menambah "Waktu baca" (200 kata per menit) dan "Seleksi" (karakter dan kata teks terpilih, hanya muncul bila ada seleksi)
+- [x] Dampak: hanya :feature:code (FontSizeDialog.kt baru; RunStore, CodeSession, EditorHost, CodeScreen, MenuIcons, OverflowMenu, FileInfoScreen). Manifest, Gradle, JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi (CI) dan belum diuji di perangkat. Uji: ganti ukuran lalu cek tab lain; tutup dan buka aplikasi, ukuran tetap; seleksi teks lalu buka Informasi berkas
+- [ ] Catatan: angka Informasi berkas tidak berubah saat mengetik karena layar penuh menutupi editor; dihitung ulang tiap dibuka

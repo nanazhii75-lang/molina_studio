@@ -46,7 +46,7 @@ private val ID_LOCALE = Locale("id", "ID")
 /** [CODE-INFO] Hasil hitung teks tab aktif. Karakter = satuan UTF-16 (sama dengan bilah status). */
 internal class TextStats(val lines: Int, val words: Int, val chars: Int, val charsNoSpace: Int, val bytes: Long)
 
-private class StatsResult(val stats: TextStats?)
+private class StatsResult(val stats: TextStats?, val selection: TextStats?)
 
 /** Satu putaran: baris (jumlah LF + 1), kata (rangkaian non-spasi), karakter, tanpa spasi, dan byte UTF-8. */
 internal fun computeTextStats(text: String): TextStats {
@@ -76,6 +76,13 @@ internal fun computeTextStats(text: String): TextStats {
 
 private fun fmtNum(n: Number): String = NumberFormat.getIntegerInstance(ID_LOCALE).format(n)
 
+/** [INFO-READ] Perkiraan waktu baca dengan kecepatan 200 kata per menit. */
+private fun readTime(words: Int): String = when {
+    words == 0 -> "-"
+    words < 200 -> "kurang dari 1 menit"
+    else -> "\u00B1" + ((words + 199) / 200) + " menit"
+}
+
 private fun fmtSize(b: Long): String = when {
     b < 1024L -> fmtNum(b) + " B"
     b < 1024L * 1024L -> String.format(ID_LOCALE, "%.1f KB", b / 1024.0)
@@ -92,7 +99,16 @@ internal fun FileInfoScreen(tab: EditorTab, onDismiss: () -> Unit) {
     val ext = name.substringAfterLast('.', "").lowercase()
     val result by produceState<StatsResult?>(null, tab.id, tab.revision) {
         val t = tab.currentTextOrNull(INFO_MAX_CHARS)
-        value = StatsResult(if (t == null) null else withContext(Dispatchers.Default) { computeTextStats(t) })
+        // [INFO-READ] teks yang sedang diseleksi (bila ada dan tidak terlalu besar)
+        val sel = runCatching {
+            tab.editor?.let { e ->
+                val c = e.cursor
+                if (c.isSelected && c.right - c.left <= INFO_MAX_CHARS) e.text.substring(c.left, c.right) else null
+            }
+        }.getOrNull()
+        value = withContext(Dispatchers.Default) {
+            StatsResult(t?.let { computeTextStats(it) }, sel?.let { computeTextStats(it) })
+        }
     }
     val cursor = runCatching { tab.editor?.cursor?.let { "Ln ${it.leftLine + 1}, Kol ${it.leftColumn + 1}" } }.getOrNull() ?: "-"
     val onDisk = remember(tab.file, tab.dirty, tab.loading) { tab.file?.takeIf { it.exists() } }
@@ -142,7 +158,11 @@ internal fun FileInfoScreen(tab: EditorTab, onDismiss: () -> Unit) {
                 InfoRow("Karakter", sv { fmtNum(it.chars) }, CodeColors.InfoBlue, true)
                 InfoRow("Tanpa spasi", sv { fmtNum(it.charsNoSpace) }, CodeColors.InfoBlue, true)
                 InfoRow("Ukuran teks", sv { fmtSize(it.bytes) + " (UTF-8)" }, CodeColors.InfoBlue, true)
+                InfoRow("Waktu baca", sv { readTime(it.words) }, CodeColors.InfoBlue, true)
                 InfoRow("Posisi kursor", cursor, CodeColors.InfoBlue, true)
+                result?.selection?.let {
+                    InfoRow("Seleksi", "${fmtNum(it.chars)} karakter, ${fmtNum(it.words)} kata", CodeColors.InfoBlue, true)
+                }
 
                 InfoSection("Jenis berkas")
                 InfoRow("Nama", name)

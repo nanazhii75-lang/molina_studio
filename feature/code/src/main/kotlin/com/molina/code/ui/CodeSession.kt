@@ -221,6 +221,24 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
     /** [CODE-INFO] Layar Informasi berkas (statistik teks dan jenis berkas) terbuka. */
     var infoOpen by mutableStateOf(false)
 
+    /** [CODE-FONT] Dialog Ukuran font editor terbuka. */
+    var fontOpen by mutableStateOf(false)
+
+    /** [CODE-FONT] Ukuran font semua editor (sp); diingat lewat [runStore], dimuat saat runStore dipasang. */
+    var editorFontSp by mutableIntStateOf(FONT_DEFAULT_SP)
+        private set
+
+    fun applyEditorFontSp(sp: Int) {
+        val v = sp.coerceIn(FONT_MIN_SP, FONT_MAX_SP)
+        if (v == editorFontSp) return
+        editorFontSp = v
+        runStore?.put(RunPrefs.KEY_FONT_SP, v.toString())
+    }
+
+    private fun loadEditorFont() {
+        runStore?.get(RunPrefs.KEY_FONT_SP)?.toIntOrNull()?.let { editorFontSp = it.coerceIn(FONT_MIN_SP, FONT_MAX_SP) }
+    }
+
     /** [CODE-REPLACE] Penggantian terakhir di berkas, untuk Urungkan (hanya di memori). */
     internal var lastReplace by mutableStateOf<ReplaceUndo?>(null)
 
@@ -320,6 +338,7 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
 
     /** Dipasang :app. Menyimpan pilihan dialog (mode terakhir, tanya/langsung). Null = tidak diingat. */
     var runStore: RunStore? = null
+        set(value) { field = value; loadEditorFont() } // [CODE-FONT]
 
     /** Penulisan berkas terakhir oleh Jalankan di Terminal, untuk Urungkan (hanya di memori). */
     internal var lastTerminalRun by mutableStateOf<TerminalRunUndo?>(null)
