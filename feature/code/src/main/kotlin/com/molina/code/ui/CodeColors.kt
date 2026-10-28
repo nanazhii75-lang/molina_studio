@@ -38,7 +38,7 @@ object CodeColors {
     // putih-persik + latar terakota sesaat saat Pergi ke baris / lompat hasil Cari.
     val ClaudeOrange = Color(0xFFD97757)
     val LineNumber = Color(0xFF8A4F3C)
-    val LineNumberCurrent = Color(0xFFF0916F)
+    val LineNumberCurrent = Color(0xFF5AB0FF)   // biru: nomor baris aktif beda dari terakota di sekitarnya [CODE-LINENUM-BLUE]
     val LineNumberFlash = Color(0xFFFFD9C7)
     val LineNumberPanelBg = Color(0xFF3A2218)   // panel nomor baris saat scroll cepat
     val ActiveLineFlash = Color(0xFF5A2E1F)
