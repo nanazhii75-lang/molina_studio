@@ -1480,3 +1480,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI): sisi Compose hanya dicek sintaks. Risiko: rendah (parameter baru berdefault, smart cast `onSearch` di lambda)
 - [ ] uji perangkat (Android 8): cari "lagu" > chip "Cari juga" muncul (mis. "lagu terbaru"); ketuk > hasil dimuat ulang dan kolom beranda terisi; kanal terkait tampil maks 3
 - [ ] KETERBATASAN: saran dari judul hasil saja (bukan sugesti mesin pencari), jadi kualitasnya mengikuti judul; kata umum yang belum ada di daftar kata henti bisa muncul
+
+### Rencana Modul Settings (Molina Hub)
+- [ ] Ekstrak modul :molina-core (model setting, DataStore, tema bersama)
+- [ ] Halaman Info/Diagnostik + health check Debian PRoot
+- [ ] Pusat Log (Activity Log + Logcat Grouping, ekspor)
+- [ ] Shortcut dinamis (Terminal Baru, Molina Git, Putar Terakhir)
+- [ ] Bridge Terminal <-> Player
+- [ ] Palet branding Home Theater (gelap + aksen amber/teal)
