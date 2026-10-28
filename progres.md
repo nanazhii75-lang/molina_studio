@@ -1482,7 +1482,7 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] KETERBATASAN: saran dari judul hasil saja (bukan sugesti mesin pencari), jadi kualitasnya mengikuti judul; kata umum yang belum ada di daftar kata henti bisa muncul
 
 ### Rencana Modul Settings (Molina Hub)
-- [ ] Ekstrak modul :molina-core (model setting, DataStore, tema bersama)
+- [x] Ekstrak modul :molina-core (model setting, DataStore, tema bersama) (skeleton selesai; belum dipakai app)
 - [ ] Halaman Info/Diagnostik + health check Debian PRoot
 - [ ] Pusat Log (Activity Log + Logcat Grouping, ekspor)
 - [ ] Shortcut dinamis (Terminal Baru, Molina Git, Putar Terakhir)
