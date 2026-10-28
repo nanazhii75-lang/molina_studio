@@ -47,6 +47,7 @@ internal fun HubInfoPage(
             "Molina Studio" to "${pi?.versionName ?: "?"} (kode $code)",
             "Molina Terminal" to "${pi?.versionName ?: "?"} (emulator Termux v0.118.0)",
             "Molina Cinema" to "${pi?.versionName ?: "?"} (libmpv ${MpvVersionBridge.mpv(ctx) ?: "belum tercatat"})",
+            "Dekoder aktif" to decoderLabel(MpvVersionBridge.decoder(ctx)),
             "Paket" to ctx.packageName,
             "Diperbarui" to hubTime(pi?.lastUpdateTime ?: 0L),
             "Android" to "${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})",
@@ -85,4 +86,12 @@ internal fun HubInfoPage(
     SettingsItem("Debian", "Rootfs Debian trixie-slim arm64 resmi, diunduh saat runtime dan diverifikasi SHA-256.") {}
     SettingsItem("Pemutar", "Berbasis mpv-android. Lihat feature/mpv/LICENSE-mpv-android.") {}
     SettingsItem("Editor Code", "sora-editor 0.23.6 (LGPL-2.1-or-later), tanpa modifikasi.") {}
+}
+
+/** [INFO-DECODER] Label dekoder untuk kartu Versi dan perangkat; selaras dengan tombol SW/HW/HW+ di pemutar. */
+private fun decoderLabel(v: String?): String = when (v) {
+    null -> "belum tercatat (putar video sekali)"
+    "no" -> "SW (perangkat lunak)"
+    "mediacodec" -> "HW+ (mediacodec)"
+    else -> "HW ($v)"
 }

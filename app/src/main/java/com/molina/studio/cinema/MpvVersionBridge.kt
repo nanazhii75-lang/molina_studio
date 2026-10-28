@@ -10,6 +10,9 @@ internal object MpvVersionBridge {
 
     fun ffmpeg(ctx: Context): String? = read(ctx, "ffmpeg_version")
 
+    /** [INFO-DECODER] Dekoder aktif terakhir (nilai mentah hwdec-current); kunci disalin dari MpvVersionNote. */
+    fun decoder(ctx: Context): String? = read(ctx, "hwdec_active")
+
     private fun read(ctx: Context, key: String): String? =
         ctx.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getString(key, null)?.takeIf { it.isNotBlank() }

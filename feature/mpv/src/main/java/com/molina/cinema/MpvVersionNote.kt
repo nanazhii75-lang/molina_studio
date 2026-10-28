@@ -18,6 +18,14 @@ internal object MpvVersionNote {
         }.apply()
     }
 
+    /** [INFO-DECODER] Mencatat dekoder aktif terakhir (properti hwdec-current: no, mediacodec, mediacodec-copy, dst.). */
+    fun recordDecoder(ctx: Context, hwdecCurrent: String) {
+        val v = hwdecCurrent.trim().take(40)
+        if (v.isEmpty()) return
+        ctx.applicationContext.getSharedPreferences("molina_ui", Context.MODE_PRIVATE)
+            .edit().putString("hwdec_active", v).apply()
+    }
+
     private fun read(property: String): String? =
         runCatching { MPVLib.getPropertyString(property) }.getOrNull()?.trim()?.takeIf { it.isNotEmpty() }?.take(80)
 }

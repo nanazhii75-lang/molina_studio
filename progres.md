@@ -1691,3 +1691,10 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] fix(explorer): W7HelpPanel dipanggil di Mode Pilih (baris 802) dan dialog ZIP (baris 1853) tetapi definisinya tidak ikut ter-commit di 3eddb0b; kini ditambahkan di Win7OpenDialog.kt (judul, ringkasan, daftar istilah-penjelasan yang bisa digulir, tombol Tutup)
 - [x] Dampak: hanya :app (Win7OpenDialog.kt). Manifest, Gradle, JNI mpv TIDAK disentuh
 - [ ] BELUM dikompilasi (CI); cek CI hijau, lalu uji ikon "?" di Mode Pilih dan bantuan di dialog ZIP
+
+## 2026-10-28 - Baris Dekoder aktif di Sistem > Info [INFO-DECODER]
+- [x] feat(cinema): MPVActivity mencatat hwdec-current via MpvVersionNote.recordDecoder (kunci hwdec_active di prefs molina_ui), juga saat pemutar di latar
+- [x] feat(settings): kartu Versi dan perangkat di Info memuat "Dekoder aktif": SW / HW+ (mediacodec) / HW (nilai); ikut tersalin di Salin info debug
+- [x] Dampak: Kotlin saja (:feature:mpv MPVActivity.kt, MpvVersionNote.kt; :app MpvVersionBridge.kt, AboutUi.kt). Manifest, Gradle, JNI C/C++ TIDAK disentuh
+- [ ] BELUM dikompilasi (CI) dan belum diuji di perangkat. Uji: sebelum putar tampil "belum tercatat"; setelah putar video tampil HW+/HW; ganti ke SW lewat tombol dekoder lalu cek Info
+- [ ] Catatan: file audio saja akan tercatat "SW" (mpv melaporkan no); batasi ke trek video bila membingungkan

@@ -2665,6 +2665,9 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         if (property == "pause" || property == "current-tracks/audio/selected")
             handleAudioFocus()
 
+        // [INFO-DECODER] catat dekoder aktif untuk Sistem > Info (tetap tercatat saat di latar)
+        if (property == "hwdec-current") MpvVersionNote.recordDecoder(applicationContext, player.hwdecActive)
+
         if (!activityIsForeground) return
         eventUiHandler.post { eventPropertyUi(property, null, metaUpdated) }
     }
