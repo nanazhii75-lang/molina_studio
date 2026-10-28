@@ -1648,3 +1648,4 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - 2026-10-28: Riset saran fitur utilitas Settings (profil setelan, backup berversi, pusat pembersihan, pustaka skrip, aturan otomasi, diagnostik). Menunggu keputusan prioritas.
 - 2026-10-28: feat(settings): Profil setelan (ProfileManager + ProfileUi, satu JSON per profil di Backup/profiles, tanpa mengubah format molina-backup.json).
 - 2026-10-28: feat(settings): Diagnostik sekali klik (DiagnosticsManager + DiagnosticsUi): ZIP ringkasan, laporan bug, crash ke Documents/Export, URL disamarkan, simpan 3 terbaru.
+- 2026-10-28: feat(settings): Diagnostik: SHA-256 tiap berkas di ringkasan.txt, SHA-256 ZIP di berkas .sha256 (format sha256sum) dan ikut teks berbagi.

@@ -24,6 +24,7 @@ internal fun DiagnosticsDialog(onDismiss: () -> Unit) {
     val scope = rememberCoroutineScope()
     var busy by remember { mutableStateOf(false) }
     var last by remember { mutableStateOf<String?>(null) }
+    var lastHash by remember { mutableStateOf<String?>(null) }
 
     AlertDialog(
         onDismissRequest = { if (!busy) onDismiss() },
@@ -37,6 +38,7 @@ internal fun DiagnosticsDialog(onDismiss: () -> Unit) {
                     fontSize = 13.sp
                 )
                 last?.let { Text("Terakhir: $it", fontSize = 12.sp) }
+                lastHash?.let { Text("SHA-256: $it", fontSize = 10.sp) }
             }
         },
         confirmButton = {
@@ -50,6 +52,7 @@ internal fun DiagnosticsDialog(onDismiss: () -> Unit) {
                         val f = r.getOrNull()
                         if (f != null) {
                             last = f.name
+                            lastHash = DiagnosticsManager.zipHash(f)
                             DiagnosticsManager.share(ctx, f)
                         } else {
                             Toast.makeText(ctx, "Gagal membuat diagnostik: ${r.exceptionOrNull()?.message}", Toast.LENGTH_LONG).show()
