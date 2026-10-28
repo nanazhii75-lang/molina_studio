@@ -104,6 +104,16 @@ internal object CinemaActions {
         return ok
     }
 
+    /** Putar item teratas riwayat Cinema (shortcut "Putar terakhir"); false bila riwayat kosong atau gagal. */
+    fun playLast(ctx: Context): Boolean {
+        val r = CinemaRecent.load(ctx).firstOrNull() ?: return false
+        if (r.ref.startsWith("/")) return playPath(ctx, r.ref)
+        return when (val i = classify(r.ref)) {
+            is Input.Direct -> play(ctx, i.uri)
+            else -> false
+        }
+    }
+
     fun openSettings(ctx: Context): Boolean =
         start(ctx, Intent().setClassName(ctx.packageName, SETTINGS))
 

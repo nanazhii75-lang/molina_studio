@@ -1506,3 +1506,13 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI): sisi Compose hanya dicek sintaks. Risiko: rendah-sedang (`when` penuh atas enum Page, destrukturisasi Pair di forEach, Path di Canvas)
 - [ ] uji perangkat (Android 8): Settings > ubin Pemutar > ubah sakelar, buka video: dekoder mengikuti; ketuk sumber IPTV > hapus; Log > titik tiga > Laporan bug > buka berkas di Documents/Export: bagian 1-4 ada, URL tersamarkan
 - [ ] KETERBATASAN: sakelar dekoder berlaku pada video berikutnya (bukan yang sedang diputar); log hanya sejak proses hidup (buffer 1000 baris); folder Export terbaca aplikasi lain, jadi tinjau berkas sebelum dibagikan
+
+## 2026-10-28 - Shortcut dinamis ikon: Putar terakhir, Unduhan, Penyimpanan [SHORTCUT-DYNAMIC]
+- [x] feat(shortcut): `MolinaShortcuts` (ShortcutManager.setDynamicShortcuts, thread latar) menerbitkan "Putar terakhir" (hanya bila riwayat Cinema tidak kosong), "Unduhan", dan "Penyimpanan"; dipanggil saat MainActivity dibuat dan setiap riwayat Cinema berubah (simpan/hapus)
+- [x] Privasi: intent hanya memuat nama tujuan (`molina_open_tab` = play_last | downloads | storage); URL dan judul riwayat TIDAK masuk shortcut (bisa dibaca launcher). Tujuan "play_last" diselesaikan saat diketuk lewat `CinemaActions.playLast`
+- [x] MainActivity.handleOpenTabIntent: tujuan baru downloads (DownloadNav.openTab), storage (SettingsNav.openStorage > halaman Penyimpanan), play_last (putar item teratas riwayat, pindah ke tab Cinema)
+- [x] Ikon baru (adaptive, pola ic_shortcut_code): ic_shortcut_last (lavender), ic_shortcut_downloads (biru), ic_shortcut_storage (hijau); string di values/molina_shortcuts_dynamic.xml
+- [x] Dampak: :app (MolinaShortcuts.kt, res baru, MainActivity, CinemaRecent, CinemaActions, SettingsScreen). molina_shortcuts.xml, AndroidManifest.xml, Gradle, JNI mpv TIDAK disentuh; 3 shortcut statis (Cinema, Terminal, Code) tetap
+- [ ] BELUM dikompilasi Gradle (CI): risiko rendah-sedang (`Icon.createWithResource` dengan adaptive-icon mipmap, `setDynamicShortcuts`, `when` mengembalikan Int di handleOpenTabIntent)
+- [ ] uji perangkat (Android 8): putar video > tekan lama ikon > "Putar terakhir" muncul dan memutar ulang; Settings > Pemutar/Cinema hapus riwayat > shortcut itu hilang; ketuk "Unduhan" dan "Penyimpanan" membuka halaman masing-masing (saat app mati maupun hidup)
+- [ ] KETERBATASAN: launcher umumnya hanya menampilkan 4 shortcut dan menaruh yang statis lebih dulu; dengan 3 statis, hanya 1 dinamis (Putar terakhir) yang pasti terlihat. Kuota total dibatasi `maxShortcutCountPerActivity` dikurangi shortcut statis

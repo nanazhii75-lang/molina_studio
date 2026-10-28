@@ -50,12 +50,14 @@ internal object CinemaRecent {
     fun clear(ctx: Context) {
         prefs(ctx).edit().remove(KEY).apply()
         version++
+        com.molina.studio.MolinaShortcuts.refresh(ctx)
     }
 
     private fun save(ctx: Context, items: List<Item>) {
         val arr = JSONArray()
         items.forEach { arr.put(JSONObject().put("r", it.ref).put("t", it.title).put("v", it.video)) }
         prefs(ctx).edit().putString(KEY, arr.toString()).apply()
+        com.molina.studio.MolinaShortcuts.refresh(ctx)
         version++
     }
 

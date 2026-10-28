@@ -133,6 +133,20 @@ class MainActivity : ComponentActivity() {
                     com.molina.studio.settings.SettingsNav.openTerminalApp = true
                     Tab.Settings.ordinal
                 }
+                "downloads" -> {
+                    com.molina.studio.download.DownloadNav.openTab = true
+                    -1
+                }
+                "storage" -> {
+                    com.molina.studio.settings.SettingsNav.openStorage = true
+                    Tab.Settings.ordinal
+                }
+                "play_last" -> {
+                    if (!com.molina.studio.cinema.CinemaActions.playLast(this)) {
+                        android.widget.Toast.makeText(this, "Belum ada riwayat putar", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                    Tab.Mpv.ordinal
+                }
                 "files" -> Tab.Files.ordinal
                 "code" -> Tab.Code.ordinal
                 else -> -1
@@ -151,6 +165,7 @@ class MainActivity : ComponentActivity() {
             checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
         ) storagePermission.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
         LogServer.start()
+        MolinaShortcuts.refresh(applicationContext)
         applyPrivacy()
         com.molina.studio.security.PrivacyPrefs.onChange = { runOnUiThread { applyPrivacy() } }
         com.molina.studio.terminal.TerminalPrefs.init(applicationContext)

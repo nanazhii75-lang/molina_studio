@@ -54,6 +54,7 @@ import kotlin.math.roundToInt
 object SettingsNav {
     var openTerminal by mutableStateOf(false)
     var openDownloads by mutableStateOf(false)
+    var openStorage by mutableStateOf(false)
     /** Buka halaman Terminal (sesi Debian) di dalam Settings; dulu tab nav bawah. */
     var openTerminalApp by mutableStateOf(false)
 }
@@ -192,6 +193,12 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
         if (SettingsNav.openDownloads) {
             open(Page.Downloads)
             SettingsNav.openDownloads = false
+        }
+    }
+    LaunchedEffect(SettingsNav.openStorage) {
+        if (SettingsNav.openStorage) {
+            open(Page.Storage)
+            SettingsNav.openStorage = false
         }
     }
     // Penanda untuk lencana tab Settings: halaman Unduhan sedang dilihat.
