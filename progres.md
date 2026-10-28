@@ -1521,3 +1521,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ANALISIS] Files Manager: dialog ZIP, tombol "Tutup" terpotong ("Tut") dan baris tombol tidak sejajar.
 - Rencana: header dengan ikon ⓘ/✕, teks bantuan dipindah ke bottom sheet, aksi sekunder ke menu ⋮, tombol berbobot seragam.
 - Status: menunggu source dialog ZIP untuk patch.
+
+## 2026-10-28 - Files Manager: perbaiki dialog ZIP, tombol "Tutup" terpotong [ZIP-LAYOUT]
+- [x] fix(files): penyebab tombol terpotong = Win7Button berlebar min 76dp + padding 14dp tanpa weight, 4 tombol di baris kedua melebihi lebar dialog
+- [x] fix(files): Win7Button dapat parameter `compact` (1 baris, padding 4dp, tinggi 32dp); dua baris tombol dialog ZIP (3 + 4) memakai Modifier.weight(1f)
+- [x] refactor(files): teks bantuan panjang dipindah ke panel "Cara memakai ZIP" (tautan Bantuan); ringkasan jadi 1 baris; "Yakin hapus?" -> "Yakin?"
+- [x] Dampak: :app cinema (Win7Aero.kt, Win7OpenDialog.kt). Gradle, Manifest, JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi Gradle (CI): risiko rendah
+- [ ] uji perangkat (Android 8): Berkas > buka ZIP > semua label tombol utuh (termasuk "Tutup"); ketuk Bantuan membuka panel dan Tutup menutupnya; Hapus dua kali tetap meminta konfirmasi

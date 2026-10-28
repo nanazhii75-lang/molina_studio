@@ -1695,6 +1695,7 @@ private fun W7ZipDialog(
             value = W7Thumb.zipImage(zip, pk0, zipPw)?.asImageBitmap()
         }
     }
+    var showHelp by remember { mutableStateOf(false) } // [ZIP-LAYOUT]
     W7Panel("ZIP: " + zip.name, { tryClose() }) {
         val l = listing
         val e = err
@@ -1703,7 +1704,7 @@ private fun W7ZipDialog(
             l == null -> Text("Membaca isi ZIP\u2026", color = Win7.TextDim, fontSize = 12.sp)
             else -> {
                 Text(
-                    l.files.toString() + " berkas, " + l.folders + " folder \u2022 " + FileOps.readable(l.totalSize) + " (tanpa kompresi)",
+                    l.files.toString() + " berkas, " + l.folders + " folder \u2022 " + FileOps.readable(l.totalSize),
                     color = Win7.Ink, fontSize = 12.sp
                 )
                 if (l.encrypted) {
@@ -1765,10 +1766,13 @@ private fun W7ZipDialog(
                     }
                 }
                 Spacer(Modifier.height(6.dp))
-                Text(
-                    "Ketuk folder untuk masuk. Ketuk berkas untuk memilih, ketuk lagi atau tekan Buka (media ke mpv, teks ke Code). Terminal membuka folder salinannya. Tempel menambah berkas yang disalin di Penjelajah ke folder ini; Hapus membuang berkas terpilih (atau folder ini bila tak ada yang dipilih).",
-                    color = Win7.TextDim, fontSize = 11.sp
-                )
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) { // [ZIP-LAYOUT]
+                    Text("Ketuk berkas untuk memilih, ketuk lagi untuk membuka.", color = Win7.TextDim, fontSize = 11.sp, modifier = Modifier.weight(1f))
+                    Text(
+                        "Bantuan", color = MolinaTheme.Gold, fontSize = 12.sp,
+                        modifier = Modifier.clickable { showHelp = true }.padding(start = 8.dp, top = 6.dp, bottom = 6.dp)
+                    )
+                }
             }
         }
         if (dirty.isNotEmpty()) {
@@ -1780,22 +1784,34 @@ private fun W7ZipDialog(
             Text(status, color = if (statusOk) Win7.NavHeader else Color(0xFFFF8A80), fontSize = 12.sp)
         }
         Spacer(Modifier.height(10.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-            Win7Button("Buka", isDefault = true, enabled = picked != null && !busy) { picked?.let { openEntry(it, null) } }
-            Spacer(Modifier.width(6.dp))
-            Win7Button("Terminal", enabled = picked != null && !busy && onOpenTerminal != null) { picked?.let { openEntry(it, null, true) } }
-            Spacer(Modifier.width(6.dp))
-            Win7Button("Simpan", enabled = dirty.isNotEmpty() && !busy, accent = MolinaTheme.Gold) { saveBack(null) }
+        // [ZIP-LAYOUT-BTN] dua baris, tiap tombol berbobot sama: label tidak lagi terpotong
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+            Win7Button("Buka", Modifier.weight(1f), isDefault = true, enabled = picked != null && !busy, compact = true) { picked?.let { openEntry(it, null) } }
+            Win7Button("Terminal", Modifier.weight(1f), enabled = picked != null && !busy && onOpenTerminal != null, compact = true) { picked?.let { openEntry(it, null, true) } }
+            Win7Button("Simpan", Modifier.weight(1f), enabled = dirty.isNotEmpty() && !busy, accent = MolinaTheme.Gold, compact = true) { saveBack(null) }
         }
         Spacer(Modifier.height(6.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-            Win7Button("Tempel", enabled = listing != null && !busy) { addFromClip(null) }
-            Spacer(Modifier.width(6.dp))
-            Win7Button(if (delArm != null) "Yakin hapus?" else "Hapus", enabled = listing != null && !busy && (picked != null || cwd.isNotEmpty()), accent = if (delArm != null) Color(0xFFFF8A80) else null) { deleteTarget() }
-            Spacer(Modifier.width(6.dp))
-            Win7Button("Ekstrak", enabled = listing != null && !busy) { onExtract() }
-            Spacer(Modifier.width(6.dp))
-            Win7Button("Tutup") { tryClose() }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+            Win7Button("Tempel", Modifier.weight(1f), enabled = listing != null && !busy, compact = true) { addFromClip(null) }
+            Win7Button(if (delArm != null) "Yakin?" else "Hapus", Modifier.weight(1f), enabled = listing != null && !busy && (picked != null || cwd.isNotEmpty()), accent = if (delArm != null) Color(0xFFFF8A80) else null, compact = true) { deleteTarget() }
+            Win7Button("Ekstrak", Modifier.weight(1f), enabled = listing != null && !busy, compact = true) { onExtract() }
+            Win7Button("Tutup", Modifier.weight(1f), compact = true) { tryClose() }
+        }
+    }
+    if (showHelp) W7Panel("Cara memakai ZIP", { showHelp = false }) { // [ZIP-LAYOUT]
+        Column(Modifier.fillMaxWidth().heightIn(max = 320.dp).verticalScroll(rememberScrollState())) {
+            listOf(
+                "Folder: ketuk untuk masuk.",
+                "Berkas: ketuk untuk memilih, ketuk lagi atau tekan Buka (media ke mpv, teks ke Code).",
+                "Terminal: membuka folder salinan berkas terpilih.",
+                "Tempel: menambah berkas yang disalin di Penjelajah ke folder ini.",
+                "Hapus: membuang berkas terpilih (atau folder ini bila tak ada yang dipilih).",
+                "Ukuran yang ditampilkan adalah ukuran tanpa kompresi."
+            ).forEach { Text("\u2022 " + it, color = Win7.Ink, fontSize = 12.sp, modifier = Modifier.padding(vertical = 3.dp)) }
+        }
+        Spacer(Modifier.height(10.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            Win7Button("Tutup", isDefault = true) { showHelp = false }
         }
     }
     val a = ask

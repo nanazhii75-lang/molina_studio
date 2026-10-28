@@ -60,18 +60,24 @@ internal fun Win7Button(
     isDefault: Boolean = false,
     enabled: Boolean = true,
     accent: Color? = null,
+    compact: Boolean = false, // [ZIP-LAYOUT] label 1 baris, padding kecil, aman dipakai dengan Modifier.weight
     onClick: () -> Unit
 ) {
     val shape = RoundedCornerShape(3.dp)
     Box(
-        modifier.height(28.dp).widthIn(min = 76.dp)
+        modifier.height(if (compact) 32.dp else 28.dp).widthIn(min = if (compact) 0.dp else 76.dp)
             .clip(shape)
             .background(Brush.verticalGradient(listOf(Win7.BtnTop, Win7.BtnBottom)), shape)
             .border(1.dp, if (isDefault && enabled) Win7.DefaultLine else Win7.BtnLine, shape)
             .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 14.dp),
+            .padding(horizontal = if (compact) 4.dp else 14.dp),
         Alignment.Center
-    ) { Text(label, color = if (enabled) (accent ?: Win7.Ink) else Win7.TextDim, fontSize = 13.sp) }
+    ) {
+        Text(
+            label, color = if (enabled) (accent ?: Win7.Ink) else Win7.TextDim, fontSize = if (compact) 12.sp else 13.sp,
+            maxLines = if (compact) 1 else Int.MAX_VALUE, softWrap = !compact
+        )
+    }
 }
 
 @Composable
