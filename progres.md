@@ -1547,3 +1547,9 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI): risiko rendah-sedang (channelFlow + launch + Atomic*)
 - [ ] uji perangkat (Android 8): Settings > Monitor Sistem saat unduh/streaming: meter dan grafik bergerak tiap detik; amati apakah peringatan kuning muncul
 - [ ] KETERBATASAN: counter per-UID Android 8 bisa diperbarui kasar oleh sistem; opsi lanjutan = cuplikan 500 ms + rata-rata 2 sampel
+
+## 2026-10-28 - Script Execution: analisis peningkatan produktivitas [SCRIPT-ENHANCE]
+- [ANALISIS] Skrip belum ikut cadangan (BackupManager tanpa ScriptStore, allowBackup=false); hanya bisa dijalankan dari Settings, selalu dengan konfirmasi; tanpa favorit/cari/urutan dan tanpa argumen
+- Rencana paket A: cadangan skrip, pintasan layar utama (requestPinShortcut, intent hanya id), pemilih Skrip di Terminal
+- Rencana paket B: favorit/cari/urutan, argumen + saklar percaya, status terakhir (exit code)
+- Status: menunggu persetujuan paket
