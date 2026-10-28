@@ -5,6 +5,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,6 +21,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -57,6 +59,8 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.molina.core.common.DownloadCommand
 import com.molina.core.common.RelativeTime
+import com.molina.core.common.SearchOrder
+import com.molina.core.common.SearchSort
 import com.molina.core.common.StreamSearchItem
 import com.molina.studio.R
 import com.molina.studio.download.DownloadNav
@@ -92,11 +96,15 @@ private fun clockNow(): String = SimpleDateFormat("HH:mm", Locale.getDefault()).
 @Composable
 internal fun SearchResultsDialog(
     results: List<StreamSearchItem>,
-    onPick: (StreamSearchItem) -> Unit,
+    onPick: (List<StreamSearchItem>, StreamSearchItem) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val ctx = LocalContext.current
-    val entries = remember(results) { results.mapIndexed { i, r -> ResultEntry(i + 1, r) } }
+    var sort by remember { mutableStateOf(SearchSort.NEWEST) } // [RESULTS-SORT] bawaan: terbaru dulu
+    val ordered = remember(results, sort) { SearchOrder.sort(results, sort) }
+    val entries = remember(ordered) { ordered.mapIndexed { i, r -> ResultEntry(i + 1, r) } }
+    val related = remember(results) { SearchOrder.related(results) }
+    val undated = remember(results) { results.count { RelativeTime.estimateAtMs(it) == null } }
     var query by remember { mutableStateOf("") }
     var searchOpen by remember { mutableStateOf(false) }
     var selected by remember { mutableIntStateOf(1) }
@@ -112,7 +120,7 @@ internal fun SearchResultsDialog(
     val q = query.trim()
     val numeric = q.isNotEmpty() && q.all { it.isDigit() }
     val visible = if (q.isEmpty() || numeric) entries
-        else entries.filter { it.item.title.contains(q, ignoreCase = true) }
+        else entries.filter { SearchOrder.matches(it.item, q) }
 
     LaunchedEffect(q) {
         if (numeric) {
@@ -121,6 +129,7 @@ internal fun SearchResultsDialog(
         }
     }
     LaunchedEffect(searchOpen) { if (searchOpen) focus.requestFocus() }
+    LaunchedEffect(sort) { selected = 1; listState.scrollToItem(0) } // ganti urutan: kembali ke nomor 001
 
     fun page(delta: Int) {
         if (visible.isEmpty()) return
@@ -132,7 +141,7 @@ internal fun SearchResultsDialog(
 
     fun pickFromQuery() {
         val t = if (numeric) visible.firstOrNull { it.number == q.toIntOrNull() } else visible.singleOrNull()
-        if (t != null) onPick(t.item)
+        if (t != null) onPick(ordered, t.item)
     }
 
     // Kirim URL ke tab Unduhan (tidak langsung mengunduh: mode/kualitas dipilih di sana).
@@ -177,6 +186,31 @@ internal fun SearchResultsDialog(
                     Text(clock, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
                 }
 
+                // [RESULTS-SORT] urutan waktu unggah + kanal terkait (ketuk = saring daftar dengan nama kanal)
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    SearchSort.values().forEach { s -> ResultChip(s.label, s == sort) { sort = s } }
+                }
+                if (sort != SearchSort.RELEVANCE && undated > 0) Text(
+                    "$undated hasil tanpa tanggal ditaruh di akhir", color = MolinaTheme.Muted, fontSize = 11.sp,
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 2.dp),
+                )
+                if (related.isNotEmpty()) Row(
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 2.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("Terkait", color = MolinaTheme.Muted, fontSize = 12.sp)
+                    related.forEach { (name, n) ->
+                        val on = q.equals(name, ignoreCase = true)
+                        ResultChip("$name \u00B7 $n", on) {
+                            if (on) { query = ""; searchOpen = false } else { query = name; searchOpen = true }
+                        }
+                    }
+                }
+
                 if (searchOpen) OutlinedTextField(
                     query, { query = it },
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp)
@@ -192,7 +226,7 @@ internal fun SearchResultsDialog(
                         focusedPlaceholderColor = MolinaTheme.Muted,
                         unfocusedPlaceholderColor = MolinaTheme.Muted,
                     ),
-                    placeholder = { Text("Cari nama atau ketik nomor channel", fontSize = 14.sp) },
+                    placeholder = { Text("Cari judul, kanal, atau nomor", fontSize = 14.sp) },
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = { pickFromQuery() }),
                 )
@@ -205,7 +239,7 @@ internal fun SearchResultsDialog(
                     items(visible, key = { it.number }) { e ->
                         ChannelRow(e, e.number == selected,
                             onPress = { selected = e.number },
-                            onClick = { onPick(e.item) },
+                            onClick = { onPick(ordered, e.item) },
                             onDownload = { download(listOf(e.item)) })
                     }
                 }
@@ -288,4 +322,21 @@ private fun TvKey(icon: Int, label: String, tint: Color, modifier: Modifier, onC
             colorFilter = ColorFilter.tint(tint), modifier = Modifier.size(24.dp))
         Text(label.uppercase(), color = tint, fontSize = 10.sp, maxLines = 1)
     }
+}
+
+/** [RESULTS-SORT] Chip kecil: aktif = emas penuh, tidak aktif = garis tipis. */
+@Composable
+private fun ResultChip(label: String, active: Boolean, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(14.dp)
+    Text(
+        label,
+        color = if (active) Color.Black else Color.White,
+        fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+        fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
+        modifier = Modifier.widthIn(max = 180.dp).clip(shape)
+            .background(if (active) MolinaTheme.Gold else Color(0x14FFFFFF))
+            .border(1.dp, if (active) MolinaTheme.Gold else RowLine, shape)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 5.dp),
+    )
 }

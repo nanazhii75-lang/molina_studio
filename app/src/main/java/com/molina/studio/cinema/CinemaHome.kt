@@ -189,10 +189,10 @@ fun CinemaHome(modifier: Modifier = Modifier) {
     if (showResults) SearchResultsDialog(
         results = results,
         onDismiss = { showResults = false },
-        onPick = { r ->
+        onPick = { list, r ->
             showResults = false
             val d = CinemaActions.classify(r.pageUrl)
-            info = if (d is CinemaActions.Input.Direct && CinemaActions.playResults(ctx, results, r)) "" else FAIL
+            info = if (d is CinemaActions.Input.Direct && CinemaActions.playResults(ctx, list, r)) "" else FAIL
         }
     )
 }

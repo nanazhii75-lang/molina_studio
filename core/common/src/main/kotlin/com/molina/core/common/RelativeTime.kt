@@ -37,6 +37,26 @@ object RelativeTime {
         return "$n $unit lalu"
     }
 
+    /**
+     * Perkiraan waktu unggah (epoch ms) untuk pengurutan: uploadedAtMs bila ada, kalau tidak dari teks
+     * "3 days ago" (kasar: bulan = 30 hari, tahun = 365 hari). null = tidak diketahui.
+     */
+    fun estimateAtMs(item: StreamSearchItem, nowMs: Long = System.currentTimeMillis()): Long? {
+        item.uploadedAtMs?.let { return it }
+        val m = EN_AGO.find(item.uploadedText.orEmpty()) ?: return null
+        val n = m.groupValues[1].toLongOrNull() ?: return null
+        val unit = when (m.groupValues[2].lowercase()) {
+            "second" -> 1_000L
+            "minute" -> MIN
+            "hour" -> HOUR
+            "day" -> DAY
+            "week" -> 7 * DAY
+            "month" -> 30 * DAY
+            else -> 365 * DAY
+        }
+        return nowMs - n * unit
+    }
+
     /** Label untuk satu hasil, atau null bila waktu unggah tidak diketahui. */
     fun label(item: StreamSearchItem, nowMs: Long = System.currentTimeMillis()): String? =
         item.uploadedAtMs?.let { ago(it, nowMs) }

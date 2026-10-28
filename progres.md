@@ -1459,3 +1459,14 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah (parameter baru berdefault, `onCode?.let { fn -> { fn(e.file) } }`, `Box(Modifier.size(20.dp)) { TabFolderIcon }`)
 - [ ] uji perangkat (Android 8): Saluran > Berkas > ikon folder kuning + "Folder IPTV" terbuka di folder IPTV; folder kosong tampil petunjuk baru; ketuk "Code" pada sebuah .m3u > pindah ke tab Code dengan berkas terbuka; di Penjelajah IPTV ketuk ulang .m3u > terbuka di Code
 - [ ] KETERBATASAN: setelah pindah ke Code, kembali ke Cinema dialog Saluran sudah tertutup; ketuk berkas lain di baris (bukan "Code") tetap memuat saluran
+
+## 2026-10-28 - Hasil pencarian Cinema: urut waktu, saring judul+kanal, kanal terkait [SEARCH-SORT-RELATED]
+- [x] feat(core): `SearchOrder` (:core:common, JDK murni) + `SearchSort` {Relevansi, Terbaru, Terlama}; `RelativeTime.estimateAtMs` memperkirakan waktu unggah dari uploadedAtMs atau teks "3 days ago" (bulan 30 hari, tahun 365 hari). Pengurutan stabil, hasil tanpa tanggal selalu di akhir
+- [x] feat(cinema): dialog Hasil pencarian punya chip Relevansi/Terbaru/Terlama (bawaan Terbaru), nomor 001.. mengikuti urutan tampil, catatan "N hasil tanpa tanggal ditaruh di akhir"
+- [x] feat(cinema): kolom Cari kini menyaring judul DAN nama kanal; baris chip "Terkait" menampilkan kanal yang muncul >= 2 kali, ketuk = saring daftar dengan kanal itu, ketuk lagi = lepas
+- [x] Playlist pemutar mpv kini mengikuti urutan yang tampil di dialog (`onPick(list, item)` -> `CinemaActions.playResults(ctx, list, r)`), jadi dialog playlist di pemutar ikut terurut
+- [x] Uji JVM: scripts/core-tests/run_search_order.sh (21 pengecekan: estimasi waktu, urut baru/lama, stabil, tanpa tanggal di akhir, saring, kanal terkait)
+- [x] Dampak: :core:common (+SearchOrder.kt, RelativeTime.kt), :app cinema (CinemaResults, CinemaHome). Gradle, Manifest, JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi Gradle (CI): sisi Compose hanya dicek sintaks. Risiko: rendah-sedang (`related.forEach { (name, n) -> }`, `SearchSort.values()`, `horizontalScroll(rememberScrollState())` di dalam `if`)
+- [ ] uji perangkat (Android 8): cari kata di beranda > chip Terbaru aktif, video terbaru di nomor 001; ketuk Terlama > urutan terbalik; ketuk chip kanal > daftar tersaring; putar item > dialog playlist di pemutar berurutan sama
+- [ ] KETERBATASAN: sumber yt-dlp mode flat sering tanpa tanggal, hasilnya masuk "tanpa tanggal" di akhir; tanggal teks YouTube ("3 weeks ago") kasar sehingga hasil sewaktu mengikuti urutan relevansi. Pencarian di dialog playlist PEMUTAR (layout XML) belum diberi chip urutan/kanal
