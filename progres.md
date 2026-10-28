@@ -1419,3 +1419,10 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah-sedang (`background(Color, RoundedCornerShape)`, `var ... by remember` di AutomationPage)
 - [ ] uji perangkat (Android 8): putar video, keluar di tengah, nyalakan Lanjutkan, buka Cinema, ketuk kartu > lanjut dari posisi terakhir; nyalakan Unduhan masuk ke Cinema, unduh video, cek Terakhir diputar
 - [ ] KETERBATASAN: posisi hanya diingat bila save_position menyala; berkas di dalam rootfs Debian (bukan /sdcard) tidak ditambahkan
+
+## 2026-10-28 - Selaraskan status warna direktori [DIR-STATUS-COLOR]
+- [x] fix(term): prompt hijau hanya di home internal /sdcard/Molina (+ subfolder); semua lokasi lain merah, termasuk project /sdcard/molina-studio dan ~
+- [x] Alias /storage/emulated/0, /storage/self/primary, /mnt/sdcard dinormalkan ke /sdcard sebelum dicocokkan
+- [x] Dampak: assets/molina/bashrc saja. Gradle, Manifest, JNI mpv TIDAK disentuh. Berlaku di sesi terminal baru
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah
+- [ ] uji perangkat: cd /sdcard/Molina hijau; cd /storage/emulated/0/Molina hijau; cd /sdcard/molina-studio merah; cd ~ merah
