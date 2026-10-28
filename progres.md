@@ -1370,3 +1370,10 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] KETERBATASAN: Urungkan hilang saat aplikasi dimatikan (andalkan git diff / git checkout); pencarian hanya baris tunggal
 - [ ] LANGKAH BERIKUT: tombol Play di baris main/if __name__, Command Palette registry aksi tunggal
 
+
+## 2026-10-28 - Redesain UI Player mpv: gaya TV digital + tema hitam [PLAYER-TV-BLACK]
+- [x] style(mpv): panel kontrol hitam pekat dengan garis aksen amber, tombol kotak-bulat ala remote, seekbar tipis + thumb batang, jam monospace
+- [x] Tema biru diganti hitam: accent/playlist aktif/fokus D-pad jadi amber #E6B450; bg_channel_selected hitam-amber
+- [x] Dampak: HANYA res (drawable, colors.xml, player.xml). ID view, Kotlin, Gradle, Manifest, JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi (CI). Risiko: rendah (resource XML saja)
+- [ ] uji perangkat: kontras kontrol di atas video terang, fokus D-pad, tombol disabled prev/next, PiP, mode kunci
