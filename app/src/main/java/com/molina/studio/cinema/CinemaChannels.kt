@@ -69,6 +69,7 @@ import com.molina.core.common.M3uParser
 import com.molina.core.common.M3uResult
 import com.molina.studio.AppPaths
 import com.molina.studio.R
+import com.molina.studio.settings.TabFolderIcon
 import com.molina.studio.ui.MolinaTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -105,6 +106,7 @@ internal fun CinemaChannelsDialog(
     onDismiss: () -> Unit,
     onOpenFolder: (() -> Unit)? = null,
     refreshTick: Int = 0,
+    onOpenInCode: ((File) -> Unit)? = null,
 ) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -307,17 +309,20 @@ internal fun CinemaChannelsDialog(
                             fontSize = 13.sp, modifier = Modifier.padding(vertical = 8.dp))
                         list == null -> Text("Folder IPTV tidak bisa dibaca. Beri izin penyimpanan, lalu ketuk Segarkan.",
                             color = MolinaTheme.Muted, fontSize = 13.sp, modifier = Modifier.padding(vertical = 8.dp))
-                        list.isEmpty() -> Text("Belum ada berkas .m3u / .m3u8 di folder ini. Salin playlist ke sana, lalu ketuk Segarkan.",
+                        list.isEmpty() -> Text("Belum ada berkas .m3u / .m3u8 di folder ini. Ketuk Folder IPTV, salin playlist ke sana, lalu tutup Penjelajah.",
                             color = MolinaTheme.Muted, fontSize = 13.sp, modifier = Modifier.padding(vertical = 8.dp))
                         else -> Column(Modifier.fillMaxWidth().heightIn(max = 180.dp).verticalScroll(rememberScrollState())) {
-                            list.forEach { e -> FileRow(e) { pickFile(e.file) } }
+                            list.forEach { e -> FileRow(e, onCode = onOpenInCode?.let { fn -> { fn(e.file) } }) { pickFile(e.file) } }
                         }
                     }
                     Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                        if (onOpenFolder != null) Text("Buka folder IPTV", color = MolinaTheme.Gold, fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.clickable { onOpenFolder() }.padding(8.dp))
-                        else Spacer(Modifier.width(1.dp))
+                        if (onOpenFolder != null) {
+                            Row(Modifier.clickable { onOpenFolder() }.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Box(Modifier.size(20.dp)) { TabFolderIcon(MolinaTheme.Explorer.Folder) }
+                                Spacer(Modifier.width(6.dp))
+                                Text("Folder IPTV", color = MolinaTheme.Gold, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                            }
+                        } else Spacer(Modifier.width(1.dp))
                         Text("Segarkan", color = MolinaTheme.Gold, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.clickable { refreshFiles() }.padding(8.dp))
                     }
@@ -454,7 +459,7 @@ private fun ChKey(icon: Int?, glyph: String?, label: String, tint: Color, modifi
 
 /** Satu berkas playlist di folder IPTV Molina: nama + ukuran. */
 @Composable
-private fun FileRow(e: IptvLocal.Entry, onClick: () -> Unit) {
+private fun FileRow(e: IptvLocal.Entry, onCode: (() -> Unit)? = null, onClick: () -> Unit) {
     val shape = RoundedCornerShape(6.dp)
     Row(
         Modifier.fillMaxWidth().padding(vertical = 2.dp).clip(shape)
@@ -466,6 +471,8 @@ private fun FileRow(e: IptvLocal.Entry, onClick: () -> Unit) {
             overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
         Spacer(Modifier.width(8.dp))
         Text(sizeLabel(e.sizeBytes), color = MolinaTheme.Muted, fontSize = 12.sp)
+        if (onCode != null) Text("Code", color = MolinaTheme.Gold, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.clickable(onClick = onCode).padding(horizontal = 8.dp, vertical = 4.dp))
     }
 }
 

@@ -127,6 +127,7 @@ fun CinemaHome(modifier: Modifier = Modifier) {
         onDismiss = { channelsOpen = false },
         onOpenFolder = { runCatching { iptvDir.mkdirs() }; iptvFolderOpen = true },
         refreshTick = iptvTick,
+        onOpenInCode = { f -> channelsOpen = false; MolinaExplorer.openInCode(ctx, listOf(f)) },
         onPlay = { list, picked ->
             channelsOpen = false
             info = if (CinemaActions.playChannels(ctx, list, picked)) "" else FAIL
@@ -182,6 +183,7 @@ fun CinemaHome(modifier: Modifier = Modifier) {
             onInsertPaths = { fs -> MolinaExplorer.insertPaths(ctx, fs) },
             isVisibleInDebian = { f -> MolinaExplorer.visibleInDebian(f) },
             onPlay = { files -> MolinaExplorer.play(ctx, files) },
+            onOpenInCode = { files -> iptvFolderOpen = false; channelsOpen = false; MolinaExplorer.openInCode(ctx, files) },
         )
     }
     if (showResults) SearchResultsDialog(

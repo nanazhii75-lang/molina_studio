@@ -1450,3 +1450,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: :app cinema (CinemaChannels, CinemaHome). Memakai MolinaExplorer yang sudah ada. Gradle, Manifest, JNI mpv, :core:common TIDAK disentuh. Wajib setelah patch_iptv_local.py
 - [ ] BELUM dikompilasi Gradle (CI): sisi Compose hanya dicek sintaks. Risiko: rendah (parameter baru berdefault, `iptvTick++` pada state delegasi)
 - [ ] uji perangkat (Android 8): Saluran > Berkas > Buka folder IPTV > Penjelajah terbuka di folder IPTV; salin/tempel .m3u ke sana, tutup > daftar berkas ikut terbarui tanpa Segarkan; ketuk berkas > saluran termuat
+
+## 2026-10-28 - Saluran Cinema: poles tombol Folder IPTV, petunjuk folder kosong, Buka di Code [IPTV-POLISH]
+- [x] style(cinema): tombol "Buka folder IPTV" jadi "Folder IPTV" dengan ikon folder kuning (`TabFolderIcon` + `MolinaTheme.Explorer.Folder`), sejajar bahasa visual Penjelajah
+- [x] Petunjuk folder kosong kini mengarahkan ke tombol Folder IPTV (salin playlist, lalu tutup Penjelajah; daftar tersegarkan otomatis)
+- [x] feat(cinema): tiap berkas di panel Berkas punya tombol "Code" yang menutup dialog Saluran lalu membuka berkas di tab Code (`MolinaExplorer.openInCode` -> `CodeNav.pendingFiles`). Penjelajah IPTV juga meneruskan `onOpenInCode`, jadi menu "Buka di Code" dan ketuk ulang berkas teks bekerja
+- [x] Dampak: :app cinema (CinemaChannels, CinemaHome). Gradle, Manifest, JNI mpv, :core:common TIDAK disentuh. Wajib setelah patch_open.py
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah (parameter baru berdefault, `onCode?.let { fn -> { fn(e.file) } }`, `Box(Modifier.size(20.dp)) { TabFolderIcon }`)
+- [ ] uji perangkat (Android 8): Saluran > Berkas > ikon folder kuning + "Folder IPTV" terbuka di folder IPTV; folder kosong tampil petunjuk baru; ketuk "Code" pada sebuah .m3u > pindah ke tab Code dengan berkas terbuka; di Penjelajah IPTV ketuk ulang .m3u > terbuka di Code
+- [ ] KETERBATASAN: setelah pindah ke Code, kembali ke Cinema dialog Saluran sudah tertutup; ketuk berkas lain di baris (bukan "Code") tetap memuat saluran
