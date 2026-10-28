@@ -1481,10 +1481,10 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] uji perangkat (Android 8): cari "lagu" > chip "Cari juga" muncul (mis. "lagu terbaru"); ketuk > hasil dimuat ulang dan kolom beranda terisi; kanal terkait tampil maks 3
 - [ ] KETERBATASAN: saran dari judul hasil saja (bukan sugesti mesin pencari), jadi kualitasnya mengikuti judul; kata umum yang belum ada di daftar kata henti bisa muncul
 
-### Rencana Modul Settings (Molina Hub)
-- [x] Ekstrak modul :molina-core (model setting, DataStore, tema bersama) (skeleton selesai; belum dipakai app)
-- [ ] Halaman Info/Diagnostik + health check Debian PRoot
-- [ ] Pusat Log (Activity Log + Logcat Grouping, ekspor)
-- [ ] Shortcut dinamis (Terminal Baru, Molina Git, Putar Terakhir)
-- [ ] Bridge Terminal <-> Player
-- [ ] Palet branding Home Theater (gelap + aksen amber/teal)
+### Rencana Modul Settings (Molina Hub) - revisi
+- [x] Koreksi: repo satu app (com.molina.studio); modul :molina-core dihapus (tidak dipakai, duplikat prefs)
+- [ ] Kartu status Molina Hub di Home Settings (apt, yt-dlp, Debian, backup)
+- [ ] About lengkap: SHA build, ABI, API, versi libmpv/yt-dlp, lisensi, salin info debug
+- [ ] Tile Pemutar/Cinema (resume, IPTV, decoder)
+- [ ] Ekspor laporan bug gabungan (crash + log + info sistem)
+- [ ] Shortcut dinamis: Putar terakhir, Unduhan, Penyimpanan
