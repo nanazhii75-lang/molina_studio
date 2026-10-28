@@ -6,6 +6,7 @@ import android.content.Context
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,6 +23,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -39,6 +41,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.molina.studio.log.BugReport
@@ -548,11 +551,20 @@ private fun TampilanPage() {
         "${sp}sp  (${TerminalPrefs.MIN_FONT_SP}\u2013${TerminalPrefs.MAX_FONT_SP}sp)",
         color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Medium
     )
+    // [SLIDER-THUMB] thumb bawaan M3 setinggi 44dp (garis kuning terlalu panjang); dipendekkan jadi 24dp
+    val thumbInteraction = remember { MutableInteractionSource() }
     Slider(
         value = sp.toFloat(),
         onValueChange = { TerminalPrefs.setFontSp(it.roundToInt()) },
         valueRange = TerminalPrefs.MIN_FONT_SP.toFloat()..TerminalPrefs.MAX_FONT_SP.toFloat(),
-        steps = TerminalPrefs.MAX_FONT_SP - TerminalPrefs.MIN_FONT_SP - 1
+        steps = TerminalPrefs.MAX_FONT_SP - TerminalPrefs.MIN_FONT_SP - 1,
+        interactionSource = thumbInteraction,
+        thumb = {
+            SliderDefaults.Thumb(
+                interactionSource = thumbInteraction,
+                thumbSize = DpSize(4.dp, 24.dp)
+            )
+        }
     )
     Text(
         "user@localhost:~ $", fontFamily = FontFamily.Monospace, fontSize = sp.sp,

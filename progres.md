@@ -1698,3 +1698,9 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: Kotlin saja (:feature:mpv MPVActivity.kt, MpvVersionNote.kt; :app MpvVersionBridge.kt, AboutUi.kt). Manifest, Gradle, JNI C/C++ TIDAK disentuh
 - [ ] BELUM dikompilasi (CI) dan belum diuji di perangkat. Uji: sebelum putar tampil "belum tercatat"; setelah putar video tampil HW+/HW; ganti ke SW lewat tombol dekoder lalu cek Info
 - [ ] Catatan: file audio saja akan tercatat "SW" (mpv melaporkan no); batasi ke trek video bila membingungkan
+
+## 2026-10-29 - Perbaikan thumb slider ukuran font [SLIDER-THUMB]
+- [x] fix(settings): Tampilan Molina, thumb slider ukuran font (garis kuning vertikal) terlalu tinggi karena bawaan M3 44dp; dipendekkan jadi 4dp x 24dp via SliderDefaults.Thumb(thumbSize = DpSize(4.dp, 24.dp))
+- [x] Dampak: hanya :app (SettingsScreen.kt, fungsi TampilanPage). Manifest, Gradle, JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi (CI) dan belum diuji di perangkat. Uji: geser slider 8-14sp, garis kuning tidak lagi menjulang, ukuran font prompt tetap berubah per 1sp
+- [ ] Catatan: kalau yang dimaksud bagian kuning lintasan, bukan thumb, ubah SliderDefaults.colors (activeTrackColor)
