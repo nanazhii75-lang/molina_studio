@@ -85,10 +85,10 @@ internal fun saveTranscript(): String? {
     }
 }
 
-private val HdrTop = Color(0xFF3B6EA5)
-private val HdrMid = Color(0xFF244A75)
-private val HdrBottom = Color(0xFF14263F)
-private val HdrDim = Color(0xFFBFD9F2)
+private val HdrTop = Color(0xFF4A4A4A)
+private val HdrMid = Color(0xFF262626)
+private val HdrBottom = Color(0xFF111111)
+private val HdrDim = Color(0xFFC8C8C8)
 
 /**
  * Header ala Windows 7 Aero di atas viewport Terminal: titik status sesi, nomor sesi, zoom font A-/A+,
@@ -115,7 +115,7 @@ internal fun TerminalHeader(onOpenSettings: () -> Unit) {
             .background(Brush.verticalGradient(listOf(HdrTop, HdrMid, HdrBottom)))
             .drawBehind {
                 drawRect(Color.White.copy(alpha = 0.10f), Offset.Zero, Size(size.width, size.height * 0.5f))
-                drawLine(Color(0x99BFE0FF), Offset(0f, size.height - 1f), Offset(size.width, size.height - 1f), 1f)
+                drawLine(Color(0x99D0D0D0), Offset(0f, size.height - 1f), Offset(size.width, size.height - 1f), 1f)
             }
             .padding(horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -204,8 +204,8 @@ private fun HdrBtn(label: String, enabled: Boolean = true, onClick: () -> Unit) 
             .padding(start = 4.dp)
             .size(width = 34.dp, height = 28.dp)
             .clip(shape)
-            .background(Brush.verticalGradient(listOf(Color(0xFF2A3A50), Color(0xFF111A28))), shape)
-            .border(1.dp, Color(0x66BFE0FF), shape)
+            .background(Brush.verticalGradient(listOf(Color(0xFF3A3A3A), Color(0xFF151515))), shape)
+            .border(1.dp, Color(0x66D0D0D0), shape)
             .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {

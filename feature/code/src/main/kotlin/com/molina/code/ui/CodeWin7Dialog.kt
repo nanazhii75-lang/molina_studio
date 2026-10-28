@@ -27,8 +27,8 @@ import androidx.compose.ui.unit.sp
 /** Bingkai dialog Win7: latar biru gelap ke hitam, tepi kaca terang. Dipakai semua dialog Code. */
 internal fun Modifier.win7DialogFrame(shape: Shape): Modifier = this
     .clip(shape)
-    .background(Brush.verticalGradient(listOf(Color(0xFF1F3A5C), Color(0xFF0C1624), Color(0xFF05080D))), shape)
-    .border(1.dp, Color(0x99BFE0FF), shape)
+    .background(Brush.verticalGradient(listOf(Color(0xFF2C2C2C), Color(0xFF111111), Color(0xFF060606))), shape)
+    .border(1.dp, Color(0x99D0D0D0), shape)
 
 /** Tombol dialog Win7. [isDefault] = tepi biru terang; [accent] mewarnai teks (mis. merah untuk Buang). */
 @Composable
@@ -39,8 +39,8 @@ internal fun Win7DialogButton(label: String, onClick: () -> Unit, isDefault: Boo
             .height(30.dp)
             .widthIn(min = 76.dp)
             .clip(shape)
-            .background(Brush.verticalGradient(listOf(Color(0xFF1E252E), Color(0xFF10151B))), shape)
-            .border(1.dp, if (isDefault) Color(0xFF4DA3FF) else Color(0xFF4A5666), shape)
+            .background(Brush.verticalGradient(listOf(Color(0xFF202020), Color(0xFF111111))), shape)
+            .border(1.dp, if (isDefault) Color(0xFF4DA3FF) else Color(0xFF4D4D4D), shape)
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp),
         contentAlignment = Alignment.Center

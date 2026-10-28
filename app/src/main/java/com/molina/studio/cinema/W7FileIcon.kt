@@ -79,7 +79,7 @@ internal fun W7FileIcon(ext: String, box: Dp) {
                 moveTo(w * 0.18f, h * 0.06f); lineTo(w * 0.62f, h * 0.06f); lineTo(w * 0.84f, h * 0.28f)
                 lineTo(w * 0.84f, h * 0.94f); lineTo(w * 0.18f, h * 0.94f); close()
             }
-            drawPath(page, Color(0xFF1B1E26))
+            drawPath(page, Color(0xFF1C1C1C))
             drawPath(page, g.color.copy(alpha = 0.9f), style = Stroke(width = 1.4f))
             val fold = Path().apply {
                 moveTo(w * 0.62f, h * 0.06f); lineTo(w * 0.62f, h * 0.28f); lineTo(w * 0.84f, h * 0.28f); close()

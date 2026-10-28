@@ -35,18 +35,18 @@ import kotlinx.coroutines.delay
  * (TerminalChrome) dan Win7Glass di :app agar serasi. Area editor tetap hitam pekat.
  */
 internal object Win7Code {
-    val AeroTop = Color(0xFF3B6EA5)
-    val AeroMid = Color(0xFF244A75)
-    val AeroBottom = Color(0xFF14263F)
-    val Ink = Color(0xFFEAF3FC)
-    val InkDim = Color(0xFFBFD9F2)
+    val AeroTop = Color(0xFF4A4A4A)
+    val AeroMid = Color(0xFF262626)
+    val AeroBottom = Color(0xFF111111)
+    val Ink = Color(0xFFEEEEEE)
+    val InkDim = Color(0xFFC8C8C8)
     val RailBlue = Color(0x998FC4EE)
     val TabLine = Color(0xFF8FC4EE)
     val StatusHeight = 22.dp
-    val TabBarBrush = Brush.verticalGradient(listOf(Color(0xFF1A2230), Color(0xFF0A0F16)))
-    val TabActiveBrush = Brush.verticalGradient(listOf(Color(0xFF2A4F7A), Color(0xFF0B1522), Color.Black))
-    val ToolbarBrush = Brush.verticalGradient(listOf(Color(0xFF1E252E), Color(0xFF10151B)))
-    val StatusBrush = Brush.verticalGradient(listOf(Color(0xFF1A2230), Color(0xFF0A0F16)))
+    val TabBarBrush = Brush.verticalGradient(listOf(Color(0xFF1B1B1B), Color(0xFF0A0A0A)))
+    val TabActiveBrush = Brush.verticalGradient(listOf(Color(0xFF3A3A3A), Color(0xFF111111), Color.Black))
+    val ToolbarBrush = Brush.verticalGradient(listOf(Color(0xFF202020), Color(0xFF111111)))
+    val StatusBrush = Brush.verticalGradient(listOf(Color(0xFF1B1B1B), Color(0xFF0A0A0A)))
 }
 
 /** Kaca Aero: gradasi biru, kilap 50% atas, garis terang di tepi bawah. */
@@ -54,7 +54,7 @@ internal fun Modifier.win7Aero(): Modifier = this
     .background(Brush.verticalGradient(listOf(Win7Code.AeroTop, Win7Code.AeroMid, Win7Code.AeroBottom)))
     .drawBehind {
         drawRect(Color.White.copy(alpha = 0.10f), Offset.Zero, Size(size.width, size.height * 0.5f))
-        drawLine(Color(0x99BFE0FF), Offset(0f, size.height - 1f), Offset(size.width, size.height - 1f), 1f)
+        drawLine(Color(0x99D0D0D0), Offset(0f, size.height - 1f), Offset(size.width, size.height - 1f), 1f)
     }
 
 internal fun Modifier.win7Toolbar(): Modifier = this.background(Win7Code.ToolbarBrush)

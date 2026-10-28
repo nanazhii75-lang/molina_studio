@@ -54,15 +54,15 @@ private val W7LinkColor = Color(0xFF6CB4FF)
 internal object W7D {
     val Bg = Color(0xFF000000)
     val Accent = Color(0xFF6CB4FF)
-    val Card = Color(0xFF0B0B0F)
-    val BarTop = Color(0xFF14181E)
-    val BarBottom = Color(0xFF05070A)
-    val Field = Color(0xFF0F1318)
-    val Ink = Color(0xFFEAEFF5)
-    val TextDim = Color(0xFF9AA5B1)
+    val Card = Color(0xFF0B0B0B)
+    val BarTop = Color(0xFF151515)
+    val BarBottom = Color(0xFF060606)
+    val Field = Color(0xFF101010)
+    val Ink = Color(0xFFEDEDED)
+    val TextDim = Color(0xFFA3A3A3)
     val NavHeader = Color(0xFF8FC4EE)
-    val Hairline = Color(0xFF26303B)
-    val Line = Color(0xFF3A4654)
+    val Hairline = Color(0xFF262626)
+    val Line = Color(0xFF3A3A3A)
     val SelFill = Color(0xFF12263A)
     val SelLine = Color(0xFF3C7FB1)
 }
@@ -74,9 +74,9 @@ internal val Win7Scheme = darkColorScheme(
     secondary = Color(0xFF3C7FB1), onSecondary = Color.White,
     background = W7D.Bg, onBackground = W7D.Ink,
     surface = W7D.Bg, onSurface = W7D.Ink,
-    surfaceVariant = Color(0xFF14181E), onSurfaceVariant = W7D.TextDim,
+    surfaceVariant = Color(0xFF151515), onSurfaceVariant = W7D.TextDim,
     outline = W7D.Line, outlineVariant = W7D.Hairline,
-    surfaceContainerHigh = Color(0xFF0F1318), surfaceContainerHighest = Color(0xFF171C23)
+    surfaceContainerHigh = Color(0xFF101010), surfaceContainerHighest = Color(0xFF181818)
 )
 
 /**
@@ -309,7 +309,7 @@ private fun W7Badge(top: Color, bottom: Color, label: String) {
     }
 }
 
-@Composable internal fun W7IconTerminal() = W7Badge(Color(0xFF4A5A6E), Color(0xFF1E2833), ">_")
+@Composable internal fun W7IconTerminal() = W7Badge(Color(0xFF505050), Color(0xFF202020), ">_")
 @Composable internal fun W7IconLog() = W7Badge(Color(0xFF8FC4EE), Color(0xFF2D6DB5), "LOG")
 @Composable internal fun W7IconYtdlp() = W7Badge(Color(0xFFE8776B), Color(0xFFB3261E), "yt")
 @Composable internal fun W7IconInfo() = W7Badge(Color(0xFF7FC57A), Color(0xFF3F8F3A), "i")
@@ -336,7 +336,7 @@ internal fun W7IconMonitor(box: Dp) {
     Canvas(Modifier.size(box)) {
         val w = size.width
         val h = size.height
-        drawRoundRect(Color(0xFF3A4A5E), Offset(w * 0.06f, h * 0.10f), Size(w * 0.88f, h * 0.60f), CornerRadius(w * 0.06f))
+        drawRoundRect(Color(0xFF444444), Offset(w * 0.06f, h * 0.10f), Size(w * 0.88f, h * 0.60f), CornerRadius(w * 0.06f))
         drawRoundRect(
             Brush.verticalGradient(listOf(Color(0xFF8FC4EE), Color(0xFF2D6DB5))),
             Offset(w * 0.11f, h * 0.16f), Size(w * 0.78f, h * 0.48f), CornerRadius(w * 0.03f)

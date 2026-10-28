@@ -115,7 +115,7 @@ private fun TerminalContent(modifier: Modifier, onOpenSettings: () -> Unit) {
                     modifier = Modifier.fillMaxSize()
                         .padding(4.dp)
                         .clip(RoundedCornerShape(6.dp))
-                        .border(1.dp, Color(0xFF2E4A68), RoundedCornerShape(6.dp))
+                        .border(1.dp, Color(0xFF3A3A3A), RoundedCornerShape(6.dp))
                         .padding(1.dp)
                         .padding(horizontal = marginDp),
                     factory = { ctx -> createTerminalView(ctx, mods) },

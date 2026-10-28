@@ -33,7 +33,7 @@ internal fun W7IconPlayerBig(box: Dp) {
     Canvas(Modifier.size(box)) {
         val w = size.width
         val h = size.height
-        drawRoundRect(Color(0xFF3A4A5E), Offset(w * 0.10f, h * 0.06f), Size(w * 0.80f, h * 0.88f), CornerRadius(w * 0.08f))
+        drawRoundRect(Color(0xFF444444), Offset(w * 0.10f, h * 0.06f), Size(w * 0.80f, h * 0.88f), CornerRadius(w * 0.08f))
         drawRoundRect(
             Brush.verticalGradient(listOf(Color(0xFF8FC4EE), Color(0xFF2D6DB5))),
             Offset(w * 0.15f, h * 0.11f), Size(w * 0.70f, h * 0.78f), CornerRadius(w * 0.05f)

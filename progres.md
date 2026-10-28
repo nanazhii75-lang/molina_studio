@@ -1610,3 +1610,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: HANYA AndroidManifest.xml (satu atribut). Kode, Gradle, JNI mpv TIDAK disentuh
 - [ ] BELUM dikompilasi/diuji: perlu build CI lalu uji perangkat (Android 8): buka app dari nol dan dari shortcut > keyboard tidak muncul; ketuk kolom > keyboard muncul; Terminal, Code, dan pencarian di Log tetap bisa mengetik
 - [ ] KETERBATASAN: kolom Cinema mungkin masih tampak berfokus (tepi aktif) tanpa keyboard sampai diketuk; diagnosis dari kode, belum direproduksi di perangkat
+
+## 2026-10-28 - Tema grafit netral: frame Win7 biru jadi hitam/abu, aksen biru tetap [THEME-GRAPHITE]
+- [x] refactor(ui): tint biru diganti abu netral di MolinaTheme.Explorer (frame, garis, tombol, input, bar), W7D + Win7Scheme (Settings), kaca Win7Glass, header Aero Terminal (TerminalChrome), header/tab/toolbar/dialog Code (CodeWin7, CodeWin7Dialog), border Terminal, baris hasil Cinema, dan latar ikon
+- [x] Peta utama: FrameTop 1A2230>1B1B1B, FrameBottom 0A0F16>0A0A0A, FrameLine 2E4A68>3A3A3A, Hairline 26303B>262626, Line 5A6675>5C5C5C, BtnTop/Bottom 1E252E/10151B>202020/111111, Input 0F1318>101010, Bar 14181E/05070A>151515/060606, Ink EAEFF5>EDEDED, TextDim 9AA5B1>A3A3A3; header Aero 3B6EA5/244A75/14263F>4A4A4A/262626/111111; kaca 4A7DB5/244A75/0F1F34>5A5A5A/2A2A2A/101010; tepi kaca 99BFE0FF>99D0D0D0
+- [x] TIDAK diubah (aksen A): Accent 6CB4FF, NavHeader 8FC4EE, SelFill 12263A, SelLine 3C7FB1, tombol default 4DA3FF, rail/garis tab Code 8FC4EE, warna status, ikon jenis berkas, sapuan RGB, ANSI Terminal, MolinaTheme.Background/CardBg/CardLine/Muted, themes.xml, ikon peluncur, CodeColors
+- [x] Dampak: hanya literal warna di berkas UI Kotlin (:app dan :feature:code). Manifest, Gradle, JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi/dilihat di perangkat: periksa kontras teks di header Terminal/Code dan tepi kaca; kembalikan dengan git revert commit ini bila tidak cocok
+- [ ] LANJUTAN (opsional): opsi B (aksen emas) dan penyatuan W7D ke MolinaTheme.Explorer (semantik nama berbeda: W7D.Line = Explorer.Field)

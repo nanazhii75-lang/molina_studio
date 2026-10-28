@@ -102,7 +102,7 @@ internal fun W7IconScriptBig(box: Dp) {
     Canvas(Modifier.size(box)) {
         val w = size.width
         val h = size.height
-        drawRoundRect(Color(0xFF3A4A5E), Offset(w * 0.14f, h * 0.06f), Size(w * 0.72f, h * 0.88f), CornerRadius(w * 0.06f))
+        drawRoundRect(Color(0xFF444444), Offset(w * 0.14f, h * 0.06f), Size(w * 0.72f, h * 0.88f), CornerRadius(w * 0.06f))
         drawRoundRect(
             Brush.verticalGradient(listOf(Color(0xFF8FC4EE), Color(0xFF2D6DB5))),
             Offset(w * 0.19f, h * 0.12f), Size(w * 0.62f, h * 0.76f), CornerRadius(w * 0.03f)

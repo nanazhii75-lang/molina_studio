@@ -78,9 +78,9 @@ private val RgbColors = listOf(
 )
 
 // Kaca Aero (varian gelap): biru kaca di sisi tepi, gelap di bawah.
-private val GlassTop = Color(0xFF4A7DB5)
-private val GlassMid = Color(0xFF244A75)
-private val GlassBottom = Color(0xFF0F1F34)
+private val GlassTop = Color(0xFF5A5A5A)
+private val GlassMid = Color(0xFF2A2A2A)
+private val GlassBottom = Color(0xFF101010)
 
 /**
  * Bingkai RGB setebal 2dp. [animate] = true dan saklar RGB menyala -> sweep gradient berputar (hanya menggambar
@@ -142,7 +142,7 @@ internal fun Win7GlassWindow(
             .drawBehind {
                 drawRect(Color.White.copy(alpha = 0.10f), Offset.Zero, Size(size.width, size.height * 0.45f))
             }
-            .border(1.dp, Color(0x99BFE0FF), outer)
+            .border(1.dp, Color(0x99D0D0D0), outer)
             .padding(start = 7.dp, end = 7.dp, bottom = 7.dp, top = 4.dp)
     ) {
         Row(
@@ -229,7 +229,7 @@ internal fun Modifier.win7Card(accent: Color = W7D.Line): Modifier {
     val shape = RoundedCornerShape(6.dp)
     return this
         .clip(shape)
-        .background(Brush.verticalGradient(listOf(Color(0xFF151A22), Color(0xFF080A0E))), shape)
+        .background(Brush.verticalGradient(listOf(Color(0xFF161616), Color(0xFF090909))), shape)
         .border(1.dp, accent.copy(alpha = 0.55f), shape)
 }
 
