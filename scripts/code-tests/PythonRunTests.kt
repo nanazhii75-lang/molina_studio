@@ -35,5 +35,17 @@ fun main() {
     check("preview pendek", P.preview("a\nb") == "a\nb")
     check("preview panjang", P.preview("1\n2\n3\n4\n5\n6", 4) == "1\n2\n3\n4\n...")
 
+
+    // [CODE-PYRUN2] dukungan .sh dan deteksi bahasa
+    val SH = com.molina.code.preview.TerminalRunLang.SH
+    val PY = com.molina.code.preview.TerminalRunLang.PY
+    check("langOf py/sh", P.langOf("a.py") == PY && P.langOf("A.SH") == SH && P.langOf("a.txt") == null && P.langOf(".sh") == null && P.langOf(null) == null)
+    check("sh nama otomatis", P.normalizeName("deploy", SH).name == "deploy.sh" && P.normalizeName("deploy.SH", SH).name == "deploy.sh")
+    check("sh stem", P.suggestStem("deploy.sh", SH) == "deploy" && P.suggestStem("x.py", SH) == "x.py")
+    check("sh heredoc", P.heredoc("echo \$HOME\n", SH) == "bash << 'SHEOF'\necho \$HOME\nSHEOF")
+    check("sh pembatas bentrok", P.heredoc("a\nSHEOF\n", SH) == "bash << 'SHEOF_1'\na\nSHEOF\nSHEOF_1")
+    check("sh fileCommand", P.fileCommand("/sdcard/a/d.sh", SH) == "(cd '/sdcard/a' && bash 'd.sh')")
+    check("py tetap default", P.heredoc("print(1)", PY) == P.heredoc("print(1)") && P.fileCommand("/a/b.py", PY) == P.fileCommand("/a/b.py"))
+
     if (fails > 0) { println("$fails GAGAL"); System.exit(1) } else println("SEMUA LULUS")
 }

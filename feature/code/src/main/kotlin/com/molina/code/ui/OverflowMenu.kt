@@ -117,10 +117,11 @@ internal fun menuGroups(session: CodeSession, ctx: Context, onDismiss: () -> Uni
                 onDismiss()
             },
             MenuEntry("Jalankan di Terminal", enabled = hasText && session.terminalSink != null, icon = MenuIcon.Run) {
-                if (session.isPythonTab()) session.pyRunOpen = true else session.sendToTerminal(true) // [CODE-PYRUN]
+                if (session.runLang() != null) session.runInTerminalForLang() else session.sendToTerminal(true) // [CODE-PYRUN2]
                 onDismiss()
             },
-            MenuEntry("Urungkan jalankan Terminal", enabled = session.lastTerminalRun != null, icon = MenuIcon.Reload) { session.undoLastTerminalRun(); onDismiss() }, // [CODE-PYRUN]
+            MenuEntry("Urungkan jalankan Terminal", enabled = session.lastTerminalRun != null, icon = MenuIcon.Reload) { session.undoLastTerminalRun(); onDismiss() }, // [CODE-PYRUN2]
+            MenuEntry("Dialog jalankan: ${if (session.runAsk()) "tanya dulu" else "langsung"}", enabled = session.runStore != null && session.runLang() != null, icon = MenuIcon.Script) { session.toggleRunAsk(); onDismiss() }, // [CODE-PYRUN2]
             MenuEntry("Simpan sebagai snippet", enabled = hasText && session.snippetSink != null, icon = MenuIcon.Snippet) {
                 session.saveSelectionAsSnippet()
                 onDismiss()

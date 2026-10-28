@@ -38,28 +38,31 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.molina.code.preview.PythonTerminalRun
+import com.molina.code.preview.TerminalRunLang
 
 private enum class PyRunMode { HEREDOC, FILE }
 
 private const val MAX_HEREDOC_CHARS = 20_000
 
 /**
- * [CODE-PYRUN] Dialog "Jalankan Python di Terminal". Opsi 1: bungkus isi dengan python3 << 'PYEOF' (tanpa berkas).
- * Opsi 2: python3 nama.py; pengguna cukup mengisi nama, ekstensi .py dideteksi/ditambah otomatis.
- * Pratinjau perintah selalu tampil; penulisan berkas bisa diurungkan dari menu titik tiga.
+ * [CODE-PYRUN2] Dialog "Jalankan di Terminal" untuk .py dan .sh. Opsi 1: bungkus isi dengan heredoc (tanpa berkas).
+ * Opsi 2: interpreter + nama berkas; pengguna cukup mengisi nama, ekstensi dideteksi/ditambah otomatis.
+ * Pratinjau perintah selalu tampil; pilihan terakhir diingat dan bisa dijadikan "langsung" tanpa dialog.
  */
 @Composable
 internal fun PythonRunDialog(session: CodeSession, tab: EditorTab, onDismiss: () -> Unit) {
-    var mode by remember { mutableStateOf(PyRunMode.HEREDOC) }
-    var name by remember { mutableStateOf(PythonTerminalRun.suggestStem(tab.file?.name ?: tab.title)) }
+    val lang = remember { session.runLang() ?: TerminalRunLang.PY }
+    var mode by remember { mutableStateOf(if (session.runSavedFile()) PyRunMode.FILE else PyRunMode.HEREDOC) }
+    var name by remember { mutableStateOf(PythonTerminalRun.suggestStem(tab.file?.name ?: tab.title, lang)) }
+    var dontAsk by remember { mutableStateOf(!session.runAsk()) }
     val focus = remember { FocusRequester() }
     val shape = RoundedCornerShape(CodeDimens.DialogCorner)
-    val hasSelection = remember { session.pythonHasSelection() }
-    val source = remember { session.pythonSourceText() }
+    val hasSelection = remember { session.scriptHasSelection() }
+    val source = remember { session.scriptSourceText() }
 
-    val parsed = PythonTerminalRun.normalizeName(name)
-    val heredoc = PythonTerminalRun.heredoc(source)
-    val target = session.pythonTarget(tab, parsed.name)
+    val parsed = PythonTerminalRun.normalizeName(name, lang)
+    val heredoc = PythonTerminalRun.heredoc(source, lang)
+    val target = session.scriptTarget(tab, parsed.name)
     val overwrite = mode == PyRunMode.FILE && target != null && target.exists() && target != tab.file
 
     val tooLong = mode == PyRunMode.HEREDOC && heredoc != null && heredoc.length > MAX_HEREDOC_CHARS
@@ -69,12 +72,13 @@ internal fun PythonRunDialog(session: CodeSession, tab: EditorTab, onDismiss: ()
     }
     val preview = when (mode) {
         PyRunMode.HEREDOC -> heredoc?.let { PythonTerminalRun.preview(it) } ?: "(isi kosong)"
-        PyRunMode.FILE -> "python3 " + (parsed.name ?: "nama.py")
+        PyRunMode.FILE -> lang.interpreter + " " + (parsed.name ?: ("nama" + lang.ext))
     }
 
     fun run() {
         if (!canRun) return
-        if (mode == PyRunMode.HEREDOC) session.runPythonHeredoc() else session.runPythonFile(name)
+        session.saveRunChoice(mode == PyRunMode.FILE, !dontAsk)
+        if (mode == PyRunMode.HEREDOC) session.runScriptHeredoc(lang) else session.runScriptFile(name, lang)
         onDismiss()
     }
 
@@ -87,18 +91,18 @@ internal fun PythonRunDialog(session: CodeSession, tab: EditorTab, onDismiss: ()
                 .win7DialogFrame(shape)
                 .padding(20.dp)
         ) {
-            BasicText("Jalankan Python di Terminal", style = TextStyle(color = CodeColors.Gold, fontSize = CodeDimens.DialogTitleSize))
+            BasicText("Jalankan ${lang.label} di Terminal", style = TextStyle(color = CodeColors.Gold, fontSize = CodeDimens.DialogTitleSize))
             Spacer(Modifier.height(8.dp))
 
             PyOption(
                 selected = mode == PyRunMode.HEREDOC,
-                title = "Heredoc: python3 << 'PYEOF'",
-                subtitle = (if (hasSelection) "Hanya seleksi" else "Seluruh isi tab") + " dikirim apa adanya; tanpa berkas. input() tidak berfungsi.",
+                title = "Heredoc: ${lang.interpreter} << '${lang.delimiter}'",
+                subtitle = (if (hasSelection) "Hanya seleksi" else "Seluruh isi tab") + " dikirim apa adanya; tanpa berkas. " + (if (lang == TerminalRunLang.PY) "input()" else "read") + " dari keyboard tidak berfungsi.",
                 onClick = { mode = PyRunMode.HEREDOC }
             )
             PyOption(
                 selected = mode == PyRunMode.FILE,
-                title = "Berkas: python3 nama.py",
+                title = "Berkas: ${lang.interpreter} nama${lang.ext}",
                 subtitle = "Isi tab ditulis ke berkas lalu dijalankan. Berkas lama dicadangkan dan bisa diurungkan.",
                 onClick = { mode = PyRunMode.FILE }
             )
@@ -108,7 +112,7 @@ internal fun PythonRunDialog(session: CodeSession, tab: EditorTab, onDismiss: ()
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     BasicTextField(
                         value = name,
-                        onValueChange = { name = it.take(PythonTerminalRun.MAX_NAME + 3) },
+                        onValueChange = { name = it.take(PythonTerminalRun.MAX_NAME + lang.ext.length) },
                         modifier = Modifier.weight(1f).focusRequester(focus),
                         singleLine = true,
                         textStyle = TextStyle(color = CodeColors.TextPrimary, fontSize = CodeDimens.FindTextSize),
@@ -117,7 +121,7 @@ internal fun PythonRunDialog(session: CodeSession, tab: EditorTab, onDismiss: ()
                         keyboardActions = KeyboardActions(onGo = { run() })
                     )
                     BasicText(
-                        text = if (name.endsWith(".py", ignoreCase = true)) "" else ".py",
+                        text = if (name.endsWith(lang.ext, ignoreCase = true)) "" else lang.ext,
                         style = TextStyle(color = CodeColors.IconDim, fontSize = CodeDimens.FindTextSize)
                     )
                 }
@@ -127,6 +131,8 @@ internal fun PythonRunDialog(session: CodeSession, tab: EditorTab, onDismiss: ()
                 if (overwrite) PyNote(parsed.name + " sudah ada dan akan ditimpa (bisa diurungkan).", CodeColors.Danger)
             }
             if (tooLong) PyNote("Isi terlalu panjang untuk heredoc (maks. 20.000 karakter). Pakai opsi Berkas.", CodeColors.Danger)
+
+            PyCheck(dontAsk, "Ingat pilihan ini, langsung jalankan lain kali") { dontAsk = !dontAsk }
 
             Spacer(Modifier.height(10.dp))
             BasicText(
@@ -179,4 +185,21 @@ private fun PyOption(selected: Boolean, title: String, subtitle: String, onClick
 @Composable
 private fun PyNote(text: String, color: androidx.compose.ui.graphics.Color) {
     BasicText(text, modifier = Modifier.padding(top = 6.dp), style = TextStyle(color = color, fontSize = 12.sp))
+}
+
+@Composable
+private fun PyCheck(on: Boolean, label: String, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(top = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            Modifier.size(16.dp).border(1.5.dp, if (on) CodeColors.Gold else CodeColors.IconDim, RoundedCornerShape(3.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            if (on) Box(Modifier.size(8.dp).background(CodeColors.Gold, RoundedCornerShape(2.dp)))
+        }
+        Spacer(Modifier.width(10.dp))
+        BasicText(label, style = TextStyle(color = CodeColors.LabelChampagne, fontSize = 12.sp))
+    }
 }

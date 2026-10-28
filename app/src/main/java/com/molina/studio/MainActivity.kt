@@ -190,6 +190,11 @@ class MainActivity : ComponentActivity() {
                         it.scriptExecutor = com.molina.studio.code.ProotScriptExecutor(applicationContext)
                         it.terminalSink = { text, execute -> com.molina.studio.code.CodeTerminalBridge.deliver(text, execute) }
                         it.guestPathResolver = { f -> com.molina.studio.code.CodeTerminalBridge.guestPath(f) } // [CODE-PYRUN]
+                        val runPrefs = this@MainActivity.getSharedPreferences("molina_code_run", android.content.Context.MODE_PRIVATE) // [CODE-PYRUN2]
+                        it.runStore = object : com.molina.code.ui.RunStore { // [CODE-PYRUN2]
+                            override fun get(key: String): String? = runPrefs.getString(key, null)
+                            override fun put(key: String, value: String) { runPrefs.edit().putString(key, value).apply() }
+                        }
                         it.snippetSink = { name, cmd -> com.molina.studio.terminal.TerminalSnippets.addFromCode(applicationContext, name, cmd) }
                         com.molina.studio.code.CodeInbox.session = it
                         it.scriptSink = com.molina.code.run.ScriptSink { share ->

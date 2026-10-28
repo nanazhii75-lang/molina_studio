@@ -1563,3 +1563,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI): risiko sedang (Compose dialog baru + 2 anchor di :app)
 - [ ] uji perangkat (Android 8): tab .py > titik tiga > Jalankan di Terminal > pilih opsi, cek pratinjau; mode berkas dengan nama yang sudah ada menampilkan peringatan timpa; Urungkan memulihkan isi lama
 - [ ] KETERBATASAN: Urungkan hanya di memori (hilang bila proses mati), tidak membatalkan perintah yang sudah dijalankan di Terminal; heredoc memakai stdin sehingga input() tidak berfungsi (pakai mode berkas)
+
+## 2026-10-28 - Code: Jalankan di Terminal untuk .py/.sh, ingat pilihan, langsung [CODE-PYRUN2]
+- [x] feat(code): dialog Jalankan di Terminal kini juga untuk .sh (`bash << 'SHEOF'` atau `bash nama.sh`); pembatas bentrok otomatis SHEOF_1 dst.
+- [x] feat(code): pilihan terakhir (heredoc/berkas) diingat; kotak "Ingat pilihan ini, langsung jalankan lain kali" melewati dialog; menu baru "Dialog jalankan: tanya dulu/langsung" membalikkannya
+- [x] aturan langsung: mode heredoc selalu langsung; mode berkas hanya untuk tab yang sudah punya berkas (tanpa menimpa berkas lain), tab baru tetap membuka dialog untuk memberi nama
+- [x] test: scripts/code-tests/run_python_run.sh diperluas (langOf, .sh, pembatas SHEOF)
+- [x] Dampak: :feature:code (PythonTerminalRun + enum TerminalRunLang, RunStore baru, PythonRunDialog, CodeSession, OverflowMenu), :app (MainActivity: SharedPreferences molina_code_run). Gradle, Manifest, JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi Gradle (CI): risiko sedang (dialog Compose, objek RunStore anonim di MainActivity)
+- [ ] uji perangkat (Android 8): .sh dan .py membuka dialog; centang "Ingat pilihan" lalu Jalankan lagi tanpa dialog; menu "Dialog jalankan" mengembalikan dialog; pilihan bertahan setelah aplikasi dibuka ulang

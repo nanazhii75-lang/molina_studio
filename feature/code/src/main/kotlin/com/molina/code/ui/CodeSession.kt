@@ -10,6 +10,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.molina.code.preview.PreviewKind
 import com.molina.code.preview.PythonTerminalRun
+import com.molina.code.preview.TerminalRunLang
 import com.molina.code.preview.RunPlans
 import com.molina.code.run.ScriptExecutor
 import com.molina.code.run.ScriptShare
@@ -306,31 +307,68 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
         sink(text, execute)?.let { toast(it) }
     }
 
-    // ---------------------------------------------------------------- [CODE-PYRUN] Jalankan Python di Terminal
+    // ---------------------------------------------------------------- [CODE-PYRUN2] Jalankan Python/Shell di Terminal
 
-    /** Dialog "Jalankan Python di Terminal" terbuka. */
+    /** Dialog "Jalankan di Terminal" untuk .py/.sh terbuka. */
     var pyRunOpen by mutableStateOf(false)
 
     /** Dipasang :app. Berkas host -> jalur guest Debian, atau null bila foldernya tidak terlihat di PRoot. */
     var guestPathResolver: ((File) -> String?)? = null
 
+    /** Dipasang :app. Menyimpan pilihan dialog (mode terakhir, tanya/langsung). Null = tidak diingat. */
+    var runStore: RunStore? = null
+
     /** Penulisan berkas terakhir oleh Jalankan di Terminal, untuk Urungkan (hanya di memori). */
     internal var lastTerminalRun by mutableStateOf<TerminalRunUndo?>(null)
 
-    /** Tab aktif berekstensi .py (dari berkas, atau judul untuk tab tanpa berkas). */
-    internal fun isPythonTab(): Boolean {
-        val t = active ?: return false
-        return PythonTerminalRun.isPythonName(t.file?.name ?: t.title)
+    /** Bahasa tab aktif (.py / .sh) dari berkas, atau judul untuk tab tanpa berkas; null = bukan skrip yang dikenal. */
+    internal fun runLang(): TerminalRunLang? {
+        val t = active ?: return null
+        return PythonTerminalRun.langOf(t.file?.name ?: t.title)
     }
 
-    internal fun pythonHasSelection(): Boolean = try {
+    /** True = dialog tampil (bawaan). False = pengguna memilih "ingat pilihan", langsung jalankan dengan mode terakhir. */
+    internal fun runAsk(): Boolean = runStore?.get(RunPrefs.KEY_ASK) != "0"
+
+    /** True bila mode terakhir adalah berkas (selain itu heredoc). */
+    internal fun runSavedFile(): Boolean = runStore?.get(RunPrefs.KEY_MODE) == "file"
+
+    internal fun saveRunChoice(file: Boolean, ask: Boolean) {
+        val s = runStore ?: return
+        s.put(RunPrefs.KEY_MODE, if (file) "file" else "heredoc")
+        s.put(RunPrefs.KEY_ASK, if (ask) "1" else "0")
+    }
+
+    /** Menu "Dialog jalankan": balik antara tanya dulu dan langsung. */
+    fun toggleRunAsk() {
+        val s = runStore ?: return
+        val ask = !runAsk()
+        s.put(RunPrefs.KEY_ASK, if (ask) "1" else "0")
+        toast(if (ask) "Jalankan di Terminal: tanya dulu" else "Jalankan di Terminal: langsung (" + (if (runSavedFile()) "berkas" else "heredoc") + ")")
+    }
+
+    /**
+     * Titik masuk menu "Jalankan di Terminal" untuk tab .py/.sh. Dialog tampil kecuali pengguna memilih langsung;
+     * mode berkas langsung hanya untuk tab yang sudah punya berkas (tab baru tetap membuka dialog untuk memberi nama).
+     */
+    fun runInTerminalForLang() {
+        val lang = runLang()
+        val tab = active
+        if (lang == null || tab == null) { sendToTerminal(true); return }
+        val file = runSavedFile()
+        val own = tab.file
+        if (runAsk() || (file && own == null)) { pyRunOpen = true; return }
+        if (file && own != null) runScriptFileAt(tab, own, lang) else runScriptHeredoc(lang)
+    }
+
+    internal fun scriptHasSelection(): Boolean = try {
         active?.editor?.cursor?.isSelected == true
     } catch (e: Exception) {
         false
     }
 
     /** Sumber mode heredoc: seleksi bila ada, selain itu seluruh isi tab (bukan hanya baris kursor). */
-    internal fun pythonSourceText(): String {
+    internal fun scriptSourceText(): String {
         val tab = active ?: return ""
         val ed = tab.editor
         try {
@@ -341,38 +379,43 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
     }
 
     /** Berkas tujuan mode berkas: folder berkas tab (atau folder simpan bawaan) + [fileName]. */
-    internal fun pythonTarget(tab: EditorTab, fileName: String?): File? {
+    internal fun scriptTarget(tab: EditorTab, fileName: String?): File? {
         if (fileName == null) return null
         return File(tab.file?.parentFile ?: defaultSaveDir(tab), fileName)
     }
 
-    /** Mode 1: kirim sebagai `python3 << 'PYEOF'` ... `PYEOF` lalu Enter. Editor dan disk tidak disentuh. */
-    fun runPythonHeredoc() {
+    /** Mode 1: kirim sebagai heredoc (`python3 << 'PYEOF'` atau `bash << 'SHEOF'`) lalu Enter. Editor dan disk tidak disentuh. */
+    fun runScriptHeredoc(lang: TerminalRunLang) {
         val sink = terminalSink
         if (sink == null) { toast("Terminal belum tersedia"); return }
-        val cmd = PythonTerminalRun.heredoc(pythonSourceText())
+        val cmd = PythonTerminalRun.heredoc(scriptSourceText(), lang)
         if (cmd == null) { toast("Tidak ada kode untuk dikirim"); return }
         sink(cmd, true)?.let { toast(it) }
     }
 
-    /**
-     * Mode 2: tulis isi tab ke <folder>/<nama>.py lalu jalankan `python3 nama.py`. Isi lama dicadangkan
-     * ([lastTerminalRun]) sebelum ditimpa. Tab yang bersih dan sudah berupa berkas itu langsung dijalankan tanpa menulis.
-     */
-    fun runPythonFile(rawName: String) {
+    /** Mode 2: nama dari dialog (ekstensi otomatis) lalu [runScriptFileAt]. */
+    fun runScriptFile(rawName: String, lang: TerminalRunLang) {
         val tab = active ?: return
+        val n = PythonTerminalRun.normalizeName(rawName, lang)
+        val target = scriptTarget(tab, n.name)
+        if (target == null) { toast(n.error ?: "Nama tidak valid"); return }
+        runScriptFileAt(tab, target, lang)
+    }
+
+    /**
+     * Tulis isi tab ke [target] lalu jalankan dari foldernya. Isi lama dicadangkan ([lastTerminalRun]) sebelum
+     * ditimpa. Tab bersih yang sudah berupa [target] langsung dijalankan tanpa menulis.
+     */
+    internal fun runScriptFileAt(tab: EditorTab, target: File, lang: TerminalRunLang) {
         val sink = terminalSink
         if (sink == null) { toast("Terminal belum tersedia"); return }
-        val n = PythonTerminalRun.normalizeName(rawName)
-        val target = pythonTarget(tab, n.name)
-        if (target == null) { toast(n.error ?: "Nama tidak valid"); return }
         if (tab.loading) { toast("Editor sedang memuat"); return }
         val guest = guestPathResolver?.invoke(target)
         if (guest == null) {
             toast("Folder ini tidak terlihat di Debian. Simpan di folder molina-studio atau aktifkan akses penuh storage.")
             return
         }
-        val cmd = PythonTerminalRun.fileCommand(guest)
+        val cmd = PythonTerminalRun.fileCommand(guest, lang)
         if (tab.file == target && !tab.dirty) { sink(cmd, true)?.let { toast(it) }; return }
         val content = FileStore.applyEol(tab.currentTextOrNull(Int.MAX_VALUE) ?: "", tab.eol)
         if (content.isBlank()) { toast("Tidak ada kode untuk dijalankan"); return }
