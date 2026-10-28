@@ -974,6 +974,32 @@ private fun W7HelpIcon(onClick: () -> Unit) {
     }
 }
 
+/** [HELP-PANEL] Layar bantuan: judul, ringkasan, lalu daftar istilah-penjelasan yang bisa digulir. */
+@Composable
+private fun W7HelpPanel(
+    title: String, summary: String, items: List<Pair<String, String>>, onDismiss: () -> Unit
+) {
+    W7Panel(title, onDismiss) {
+        Text(summary, color = Win7.TextDim, fontSize = 12.sp)
+        Spacer(Modifier.height(10.dp))
+        Column(Modifier.fillMaxWidth().heightIn(max = 320.dp).verticalScroll(rememberScrollState())) {
+            items.forEach { (term, desc) ->
+                Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                    Text(
+                        term, color = MolinaTheme.Gold, fontSize = 12.sp, fontWeight = FontWeight.Bold,
+                        modifier = Modifier.width(84.dp)
+                    )
+                    Text(desc, color = Win7.Ink, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                }
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            Win7Button("Tutup", isDefault = true) { onDismiss() }
+        }
+    }
+}
+
 @Composable
 private fun W7Cmd(label: String, enabled: Boolean, onClick: () -> Unit) {
     Text(
