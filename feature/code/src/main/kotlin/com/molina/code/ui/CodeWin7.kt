@@ -114,6 +114,7 @@ internal fun CodeStatusBar(tab: EditorTab) {
         else -> { state = "Baru"; stateColor = Win7Code.InkDim }
     }
     val style = TextStyle(color = Win7Code.InkDim, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+    val infoStyle = style.copy(color = CodeColors.InfoBlue) // [STATUS-BLUE]
     Row(
         Modifier
             .fillMaxWidth()
@@ -123,9 +124,9 @@ internal fun CodeStatusBar(tab: EditorTab) {
             .padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        BasicText(pos, style = style, maxLines = 1)
+        BasicText(pos, style = infoStyle, maxLines = 1)
         Spacer(Modifier.width(12.dp))
-        BasicText("$lines baris, $chars karakter", style = style, maxLines = 1)
+        BasicText("$lines baris, $chars karakter", style = infoStyle, maxLines = 1)
         Spacer(Modifier.weight(1f))
         BasicText(languageOf(tab.file?.name ?: tab.title), style = style, maxLines = 1)
         Spacer(Modifier.width(12.dp))

@@ -1655,3 +1655,9 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] ui(code): teks dan ikon menu titik tiga jadi putih polos (CodeColors.MenuText); "Jalankan di Terminal" merah (CodeColors.MenuDanger). IconDefault champagne TIDAK diubah (dipakai di 55 tempat lain)
 - [x] Dampak: hanya :feature:code (CodeColors.kt, OverflowMenu.kt). Manifest, Gradle, JNI mpv TIDAK disentuh
 - [ ] BELUM dikompilasi (CI) dan belum diuji di perangkat. Uji: buka menu titik tiga, semua teks putih, "Jalankan di Terminal" merah, "Muat ulang" dan "Aksi file" tetap redup
+
+## 2026-10-28 - Warna menu titik tiga dan info line editor [MENU-WHITE] [STATUS-BLUE]
+- [x] ui(code): teks dan ikon menu titik tiga putih polos (CodeColors.MenuText); "Jalankan di Terminal" merah (CodeColors.MenuDanger). IconDefault champagne tidak diubah (dipakai di 55 tempat lain)
+- [x] ui(code): info line bilah status (Ln/Kol dan "N baris, N karakter") biru muda CodeColors.InfoBlue #4FC3F7; bahasa, UTF-8, status simpan tetap
+- [x] Dampak: hanya :feature:code (CodeColors.kt, OverflowMenu.kt, CodeWin7.kt). Manifest, Gradle, JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi (CI) dan belum diuji di perangkat. Uji: menu titik tiga putih, Jalankan di Terminal merah; info line biru
