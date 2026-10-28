@@ -1516,3 +1516,8 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI): risiko rendah-sedang (`Icon.createWithResource` dengan adaptive-icon mipmap, `setDynamicShortcuts`, `when` mengembalikan Int di handleOpenTabIntent)
 - [ ] uji perangkat (Android 8): putar video > tekan lama ikon > "Putar terakhir" muncul dan memutar ulang; Settings > Pemutar/Cinema hapus riwayat > shortcut itu hilang; ketuk "Unduhan" dan "Penyimpanan" membuka halaman masing-masing (saat app mati maupun hidup)
 - [ ] KETERBATASAN: launcher umumnya hanya menampilkan 4 shortcut dan menaruh yang statis lebih dulu; dengan 3 statis, hanya 1 dinamis (Putar terakhir) yang pasti terlihat. Kuota total dibatasi `maxShortcutCountPerActivity` dikurangi shortcut statis
+
+## 2026-10-28
+- [ANALISIS] Files Manager: dialog ZIP, tombol "Tutup" terpotong ("Tut") dan baris tombol tidak sejajar.
+- Rencana: header dengan ikon ⓘ/✕, teks bantuan dipindah ke bottom sheet, aksi sekunder ke menu ⋮, tombol berbobot seragam.
+- Status: menunggu source dialog ZIP untuk patch.
