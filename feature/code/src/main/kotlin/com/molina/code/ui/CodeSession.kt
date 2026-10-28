@@ -9,6 +9,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.molina.code.preview.PreviewKind
+import com.molina.code.preview.PythonTerminalRun
 import com.molina.code.preview.RunPlans
 import com.molina.code.run.ScriptExecutor
 import com.molina.code.run.ScriptShare
@@ -303,6 +304,96 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
         val text = selectionOrLine().trimEnd('\n', '\r')
         if (text.isBlank()) { toast("Tidak ada teks untuk dikirim"); return }
         sink(text, execute)?.let { toast(it) }
+    }
+
+    // ---------------------------------------------------------------- [CODE-PYRUN] Jalankan Python di Terminal
+
+    /** Dialog "Jalankan Python di Terminal" terbuka. */
+    var pyRunOpen by mutableStateOf(false)
+
+    /** Dipasang :app. Berkas host -> jalur guest Debian, atau null bila foldernya tidak terlihat di PRoot. */
+    var guestPathResolver: ((File) -> String?)? = null
+
+    /** Penulisan berkas terakhir oleh Jalankan di Terminal, untuk Urungkan (hanya di memori). */
+    internal var lastTerminalRun by mutableStateOf<TerminalRunUndo?>(null)
+
+    /** Tab aktif berekstensi .py (dari berkas, atau judul untuk tab tanpa berkas). */
+    internal fun isPythonTab(): Boolean {
+        val t = active ?: return false
+        return PythonTerminalRun.isPythonName(t.file?.name ?: t.title)
+    }
+
+    internal fun pythonHasSelection(): Boolean = try {
+        active?.editor?.cursor?.isSelected == true
+    } catch (e: Exception) {
+        false
+    }
+
+    /** Sumber mode heredoc: seleksi bila ada, selain itu seluruh isi tab (bukan hanya baris kursor). */
+    internal fun pythonSourceText(): String {
+        val tab = active ?: return ""
+        val ed = tab.editor
+        try {
+            if (ed != null && ed.cursor.isSelected) return ed.text.substring(ed.cursor.left, ed.cursor.right)
+        } catch (e: Exception) {
+        }
+        return tab.currentTextOrNull(Int.MAX_VALUE) ?: ""
+    }
+
+    /** Berkas tujuan mode berkas: folder berkas tab (atau folder simpan bawaan) + [fileName]. */
+    internal fun pythonTarget(tab: EditorTab, fileName: String?): File? {
+        if (fileName == null) return null
+        return File(tab.file?.parentFile ?: defaultSaveDir(tab), fileName)
+    }
+
+    /** Mode 1: kirim sebagai `python3 << 'PYEOF'` ... `PYEOF` lalu Enter. Editor dan disk tidak disentuh. */
+    fun runPythonHeredoc() {
+        val sink = terminalSink
+        if (sink == null) { toast("Terminal belum tersedia"); return }
+        val cmd = PythonTerminalRun.heredoc(pythonSourceText())
+        if (cmd == null) { toast("Tidak ada kode untuk dikirim"); return }
+        sink(cmd, true)?.let { toast(it) }
+    }
+
+    /**
+     * Mode 2: tulis isi tab ke <folder>/<nama>.py lalu jalankan `python3 nama.py`. Isi lama dicadangkan
+     * ([lastTerminalRun]) sebelum ditimpa. Tab yang bersih dan sudah berupa berkas itu langsung dijalankan tanpa menulis.
+     */
+    fun runPythonFile(rawName: String) {
+        val tab = active ?: return
+        val sink = terminalSink
+        if (sink == null) { toast("Terminal belum tersedia"); return }
+        val n = PythonTerminalRun.normalizeName(rawName)
+        val target = pythonTarget(tab, n.name)
+        if (target == null) { toast(n.error ?: "Nama tidak valid"); return }
+        if (tab.loading) { toast("Editor sedang memuat"); return }
+        val guest = guestPathResolver?.invoke(target)
+        if (guest == null) {
+            toast("Folder ini tidak terlihat di Debian. Simpan di folder molina-studio atau aktifkan akses penuh storage.")
+            return
+        }
+        val cmd = PythonTerminalRun.fileCommand(guest)
+        if (tab.file == target && !tab.dirty) { sink(cmd, true)?.let { toast(it) }; return }
+        val content = FileStore.applyEol(tab.currentTextOrNull(Int.MAX_VALUE) ?: "", tab.eol)
+        if (content.isBlank()) { toast("Tidak ada kode untuk dijalankan"); return }
+        runIo {
+            var undo: TerminalRunUndo? = null
+            var err: String? = null
+            try {
+                undo = TerminalRunEngine.begin(target, content)
+                FileStore.writeUtf8Atomic(target, content)
+            } catch (e: Exception) {
+                err = e.message ?: "Gagal menulis berkas"
+            }
+            val failure = err
+            val made = undo
+            mainHandler.post {
+                if (failure != null) { toast(failure); return@post }
+                lastTerminalRun = made
+                dir.refresh()
+                sink(cmd, true)?.let { toast(it) }
+            }
+        }
     }
 
     /** Dipasang :app. (nama, isi) -> pesan hasil untuk toast. Null = menu Simpan sebagai snippet redup. */

@@ -1553,3 +1553,13 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - Rencana paket A: cadangan skrip, pintasan layar utama (requestPinShortcut, intent hanya id), pemilih Skrip di Terminal
 - Rencana paket B: favorit/cari/urutan, argumen + saklar percaya, status terakhir (exit code)
 - Status: menunggu persetujuan paket
+
+## 2026-10-28 - Code: Jalankan di Terminal untuk .py memakai dialog [CODE-PYRUN]
+- [x] feat(code): menu "Jalankan di Terminal" pada tab .py membuka dialog: (1) heredoc `python3 << 'PYEOF'` ... `PYEOF` (pembatas otomatis PYEOF_1 dst. bila isi bentrok), (2) `python3 nama.py` (pengguna cukup isi nama; .py dideteksi/ditambah otomatis)
+- [x] feat(code): sumber heredoc = seleksi bila ada, selain itu seluruh isi tab (sebelumnya hanya seleksi atau baris kursor); tab non-.py tetap memakai alur lama
+- [x] feat(code): mode berkas menulis isi tab ke berkas lalu menjalankan `(cd dir && python3 nama.py)` lewat jalur guest; isi lama dicadangkan, menu baru "Urungkan jalankan Terminal" memulihkan (dilewati bila berkas sudah berubah; berkas baru dihapus)
+- [x] test: scripts/code-tests/run_python_run.sh (logika murni PythonTerminalRun)
+- [x] Dampak: :feature:code (PythonTerminalRun, TerminalRunUndo, PythonRunDialog, CodeSession, OverflowMenu, CodeScreen), :app (MainActivity, CodeTerminalBridge). Gradle, Manifest, JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi Gradle (CI): risiko sedang (Compose dialog baru + 2 anchor di :app)
+- [ ] uji perangkat (Android 8): tab .py > titik tiga > Jalankan di Terminal > pilih opsi, cek pratinjau; mode berkas dengan nama yang sudah ada menampilkan peringatan timpa; Urungkan memulihkan isi lama
+- [ ] KETERBATASAN: Urungkan hanya di memori (hilang bila proses mati), tidak membatalkan perintah yang sudah dijalankan di Terminal; heredoc memakai stdin sehingga input() tidak berfungsi (pakai mode berkas)

@@ -189,6 +189,7 @@ class MainActivity : ComponentActivity() {
                         codeSessionRef = it
                         it.scriptExecutor = com.molina.studio.code.ProotScriptExecutor(applicationContext)
                         it.terminalSink = { text, execute -> com.molina.studio.code.CodeTerminalBridge.deliver(text, execute) }
+                        it.guestPathResolver = { f -> com.molina.studio.code.CodeTerminalBridge.guestPath(f) } // [CODE-PYRUN]
                         it.snippetSink = { name, cmd -> com.molina.studio.terminal.TerminalSnippets.addFromCode(applicationContext, name, cmd) }
                         com.molina.studio.code.CodeInbox.session = it
                         it.scriptSink = com.molina.code.run.ScriptSink { share ->
