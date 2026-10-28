@@ -1340,3 +1340,13 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] uji perangkat: edit, tambah, hapus baris lalu cek warna; Simpan menghapus semua penanda; undo kembali ke isi awal menghapus penanda; mode word wrap (penanda hanya di baris visual pertama)
 - [ ] LANGKAH BERIKUT: scratch file dan Live Template, tombol Play di gutter
 
+## 2026-10-28 - Scratch baru dan Live Template [CODE-TEMPLATE]
+- [x] feat(code): menu "Scratch baru": pilih jenis (kt, py, sh, js, java, md, json, html, txt) lalu tab Scratch.<ext> (Scratch 2.<ext>, dst.); highlight, Struktur berkas, dan Play (.sh/.py/.md/.json/.html) langsung jalan karena judul tab dipakai sebagai ekstensi (previewKind)
+- [x] feat(code): menu "Live Template": 16 template bawaan per jenis berkas (main, logd, shebang, for, if, log, code, table, task, todo, date, time, now); variabel $CURSOR$ $SELECTION$ $DATE$ $TIME$ $DATETIME$ $FILE$; seleksi diganti/dibungkus, indent mengikuti baris kursor, kursor mendarat di $CURSOR$
+- [x] "Simpan seleksi..." membuat template sendiri (singkatan huruf/angka/_/-, maks. 4000 karakter) disimpan di live_templates.json folder draf privat; bisa dihapus dari daftar. Muncul juga di Palet Perintah karena memakai menuGroups
+- [x] Dampak: :feature:code saja (LiveTemplates.kt baru; CodeSession.kt, OverflowMenu.kt, CodeScreen.kt, PreviewState.kt). Gradle, Manifest, JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah-sedang (Compose dialog baru, ed.text.replace + indexer.getCharPosition diverifikasi dari source sora-editor 0.23.6)
+- [ ] uji perangkat: Scratch.py lalu Play; Live Template main di .kt dan .py; seleksi + template code di .md; template buatan sendiri bertahan setelah force-stop; indent di dalam blok
+- [ ] KEPUTUSAN: menutup scratch berisi tetap memunculkan konfirmasi Simpan/Buang/Batal (aman dari kehilangan data). Opsi lanjutan: scratch tanpa konfirmasi
+- [ ] LANGKAH BERIKUT: tombol Play di gutter (baris shebang/main), Ganti di semua berkas
+

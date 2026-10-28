@@ -122,7 +122,7 @@ internal class PreviewController {
 }
 
 /** Jenis keluaran tombol Play untuk tab ini. Nama berkas + baris pertama (shebang). */
-internal fun EditorTab.previewKind(): PreviewKind = PreviewKinds.of(file?.name, firstLineOrNull())
+internal fun EditorTab.previewKind(): PreviewKind = PreviewKinds.of(file?.name ?: title, firstLineOrNull()) // [CODE-TEMPLATE] tab scratch memakai ekstensi judul
 
 internal fun EditorTab.firstLineOrNull(): String? {
     val ed = editor

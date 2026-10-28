@@ -216,6 +216,10 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
     var findFilesOpen by mutableStateOf(false)
     var outlineOpen by mutableStateOf(false)
 
+    /** [CODE-TEMPLATE] Dialog Live Template dan pemilih jenis Scratch terbuka. */
+    var templatesOpen by mutableStateOf(false)
+    var scratchOpen by mutableStateOf(false)
+
     /** Dialog Simpan sebagai yang sedang terbuka (null = tertutup). */
     var saveAs by mutableStateOf<SaveAsRequest?>(null)
         private set
@@ -244,6 +248,9 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
         Thread(r, "molina-code-io").apply { isDaemon = true }
     }
     private val store: DraftStore? = draftDir?.let { DraftStore(it) }
+
+    /** [CODE-TEMPLATE] Template buatan pengguna (disimpan di folder draf privat). */
+    internal val templates = TemplateStore(draftDir?.let { File(it, "live_templates.json") })
     private val draftTask = Runnable { persistDrafts() }
 
     /** Panel direktori (F4). Folder utama awal = folder kerja. */
@@ -340,6 +347,24 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
 
     fun newTab(): EditorTab {
         val tab = EditorTab(nextId++, nextUntitledTitle())
+        tab.onEdited = { scheduleDraft() }
+        tabs.add(tab)
+        activeId = tab.id
+        scheduleDraft()
+        return tab
+    }
+
+    /** [CODE-TEMPLATE] Tab scratch bernama Scratch.<ekstensi> (Scratch 2.<ekstensi>, dst. bila sudah dipakai); belum punya berkas. */
+    fun newScratch(ext: String): EditorTab {
+        val used = tabs.map { it.title }.toSet()
+        var n = 1
+        while (true) {
+            val t = if (n == 1) "Scratch.$ext" else "Scratch $n.$ext"
+            if (t !in used) break
+            n++
+        }
+        val title = if (n == 1) "Scratch.$ext" else "Scratch $n.$ext"
+        val tab = EditorTab(nextId++, title)
         tab.onEdited = { scheduleDraft() }
         tabs.add(tab)
         activeId = tab.id
@@ -747,7 +772,7 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
             toast("Skrip terlalu besar untuk dijalankan")
             return
         }
-        val plan = RunPlans.of(tab.file?.name, tab.firstLineOrNull())
+        val plan = RunPlans.of(tab.file?.name ?: tab.title, tab.firstLineOrNull()) // [CODE-TEMPLATE] scratch
         if (plan == null) {
             toast("Interpreter skrip tidak dikenal")
             return

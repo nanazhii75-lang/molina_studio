@@ -71,6 +71,7 @@ internal fun menuGroups(session: CodeSession, ctx: Context, onDismiss: () -> Uni
         ),
         listOf(
             MenuEntry("Baru", enabled = true, icon = MenuIcon.New) { session.newTab(); onDismiss() },
+            MenuEntry("Scratch baru", enabled = true, icon = MenuIcon.New) { session.scratchOpen = true; onDismiss() }, // [CODE-TEMPLATE]
             MenuEntry("Simpan sebagai", enabled = tab != null && !tab.loading, icon = MenuIcon.SaveAs) {
                 session.saveAsActive()
                 onDismiss()
@@ -96,6 +97,7 @@ internal fun menuGroups(session: CodeSession, ctx: Context, onDismiss: () -> Uni
             MenuEntry("Pergi ke baris", enabled = tab != null, icon = MenuIcon.GoToLine) { session.gotoOpen = true; onDismiss() }
         ),
         listOf(
+            MenuEntry("Live Template", enabled = tab != null && !tab.loading && !tab.readOnly, icon = MenuIcon.Snippet) { session.templatesOpen = true; onDismiss() },
             MenuEntry("Bagikan", enabled = hasText, icon = MenuIcon.Share) {
                 val text = ed?.text?.toString().orEmpty()
                 if (text.length > MAX_SHARE_CHARS) {
