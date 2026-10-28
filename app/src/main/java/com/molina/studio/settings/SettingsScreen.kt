@@ -41,6 +41,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.molina.studio.log.BugReport
 import com.molina.studio.log.LogScreen
 import com.molina.studio.terminal.CrashReporter
 import com.molina.studio.terminal.LogcatReporter
@@ -58,12 +59,12 @@ object SettingsNav {
 }
 
 private enum class Page {
-    Home, System, Terminal, Debugging, TerminalIO, TerminalView, Tampilan, CrashReports, About, Log, Stream, Network, Scripts, Packages, Code, TerminalApp, Downloads, Storage, Monitor, Automation
+    Home, System, Terminal, Debugging, TerminalIO, TerminalView, Tampilan, CrashReports, About, Log, Stream, Network, Scripts, Packages, Code, TerminalApp, Downloads, Storage, Monitor, Automation, Player
 }
 
 private fun parentOf(p: Page): Page? = when (p) {
     Page.Home -> null
-    Page.System, Page.Scripts, Page.Packages, Page.TerminalApp, Page.Downloads -> Page.Home
+    Page.System, Page.Scripts, Page.Packages, Page.TerminalApp, Page.Downloads, Page.Player -> Page.Home
     Page.Stream -> Page.Packages
     Page.Debugging, Page.TerminalIO, Page.TerminalView, Page.Tampilan -> Page.Terminal
     Page.CrashReports -> Page.Debugging
@@ -91,6 +92,7 @@ private fun titleOf(p: Page): String = when (p) {
     Page.Storage -> "Penyimpanan"
     Page.Monitor -> "Monitor Sistem"
     Page.Automation -> "Otomasi dan pembaruan"
+    Page.Player -> "Pemutar"
 }
 
 private fun trailOf(p: Page): List<Page> = generateSequence(p) { parentOf(it) }.toList().reversed()
@@ -135,6 +137,11 @@ private val INDEX = listOf(
     Hit("Otomasi dan pembaruan", "Pemeriksaan pembaruan otomatis (Wi-Fi, 24 jam) dan cadangan harian", Page.Automation),
     Hit("Pembaruan otomatis", "Perbarui lencana paket Debian dan yt-dlp lewat WorkManager", Page.Automation),
     Hit("Cadangan otomatis", "Cadangan gabungan harian ke folder Backup", Page.Automation),
+    Hit("Pemutar", "Molina Cinema: ingat posisi putar, dekoder, sumber IPTV", Page.Player),
+    Hit("Ingat posisi putar", "Lanjutkan video dari posisi terakhir", Page.Player),
+    Hit("Dekoder perangkat keras", "MediaCodec untuk pemutar mpv", Page.Player),
+    Hit("Sumber IPTV", "Daftar playlist saluran dan Folder IPTV", Page.Player),
+    Hit("Laporan bug", "Ekspor log gabungan dan per kelompok ke folder Export", Page.System),
     Hit("About", "Versi, perangkat, status, dan lisensi", Page.About),
     Hit("Salin info debug", "Salin ringkasan versi dan status untuk laporan bug", Page.About),
     Hit("Status Molina", "Ringkasan Debian, paket, yt-dlp, dan cadangan di beranda", Page.Home)
@@ -269,11 +276,19 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                             selected = lastTile == Page.Downloads,
                             onOpen = { lastTile = Page.Downloads; open(Page.Downloads) }
                         )
+                        W7CategoryTile(
+                            icon = { W7IconPlayerBig(52.dp) },
+                            title = "Pemutar",
+                            links = emptyList(),
+                            selected = lastTile == Page.Player,
+                            onOpen = { lastTile = Page.Player; open(Page.Player) }
+                        )
                     }
                     Page.System -> {
                         W7Link({ W7IconTerminal() }, "Terminal", "Molina Terminal: debugging, I/O, tampilan") { open(Page.Terminal) }
                         W7Link({ W7IconTerminal() }, "Editor Code", "Pratinjau HTML: renderer native atau WebView") { open(Page.Code) }
                         W7Link({ W7IconLog() }, "Log", "Log aktivitas mpv, Terminal, dan sistem") { open(Page.Log) }
+                        W7Link({ W7IconLog() }, "Laporan bug", "Gabungan kronologis dan per kelompok (Cinema, Terminal, Sistem, Logcat, Crash) ke folder Export") { BugReport.export(aptCtx) }
                         W7Link({ W7IconShield() }, "Keamanan dan privasi", "Kebijakan URL, jaringan lokal (LAN), layar privat") { open(Page.Network) }
                         W7Link({ W7IconToolList() }, "Penyimpanan", "Ukuran Debian, cache, Recycle Bin, dan bersihkan ruang") { open(Page.Storage) }
                         W7Link({ W7IconMonitor(32.dp) }, "Monitor Sistem", "Unduh, unggah, CPU, dan RAM secara langsung") { open(Page.Monitor) }
@@ -305,6 +320,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                     Page.About -> HubAboutPage()
                     Page.Log -> {}
                     Page.Downloads -> {}
+                    Page.Player -> PlayerSettingsPage(onOpenCinema = { com.molina.studio.ShortcutNav.tab = 0 })
                     Page.Stream -> StreamEnginePage()
                     Page.Network -> NetworkSecurityPage()
                     Page.Scripts -> ScriptsPage()

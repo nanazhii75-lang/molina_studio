@@ -1497,3 +1497,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI): sisi Compose hanya dicek sintaks. Risiko: rendah (`when` atas RootfsState sealed, `remember { a; b; c }`)
 - [ ] uji perangkat (Android 8): beranda Settings > kartu Status Molina tampil di atas ubin; ketuk baris Debian/yt-dlp/Cadangan > pindah halaman; About > ketuk "Salin info debug" > tempel di catatan
 - [ ] KETERBATASAN: versi libmpv dan SHA commit build belum ditampilkan (SHA butuh buildConfig di Gradle; versi mpv hanya tersedia dari log mpv)
+
+## 2026-10-28 - Settings: ubin Pemutar + laporan bug gabungan dan per kelompok [HUB-PLAYER-REPORT]
+- [x] feat(settings): ubin "Pemutar" di beranda Settings > halaman Pemutar: sakelar Ingat posisi putar (ResumeBridge), sakelar Dekoder perangkat keras (HwdecBridge, kunci hardware_decoding), daftar sumber IPTV (ketuk = hapus, URL tidak ditampilkan), jalur Folder IPTV, pintasan ke Setelan pemutar lengkap dan tab Cinema
+- [x] feat(log): BugReport.export: satu berkas molina-laporan-bug-<stempel>.txt di Documents/Export berisi (1) ringkasan, (2) PER KELOMPOK (Cinema, Terminal, Sistem, Logcat, Crash; tag terbanyak per kelompok, maks 400 baris terakhir), (3) GABUNGAN kronologis semua sumber, (4) 3 laporan crash terbaru; semua disamarkan LogRedact (URL dan token)
+- [x] Tautan: menu titik tiga di halaman Log dan "Laporan bug" di halaman Sistem. Ekspor log lama (Salin, Bagikan, Simpan .txt terfilter) tidak diubah
+- [x] Dampak: :app settings (PlayerSettingsUi.kt baru, SettingsScreen), :app cinema (HwdecBridge.kt baru), :app log (BugReport.kt baru, LogScreen). Gradle, Manifest, JNI mpv TIDAK disentuh. Wajib setelah patch_hub_status.py
+- [ ] BELUM dikompilasi Gradle (CI): sisi Compose hanya dicek sintaks. Risiko: rendah-sedang (`when` penuh atas enum Page, destrukturisasi Pair di forEach, Path di Canvas)
+- [ ] uji perangkat (Android 8): Settings > ubin Pemutar > ubah sakelar, buka video: dekoder mengikuti; ketuk sumber IPTV > hapus; Log > titik tiga > Laporan bug > buka berkas di Documents/Export: bagian 1-4 ada, URL tersamarkan
+- [ ] KETERBATASAN: sakelar dekoder berlaku pada video berikutnya (bukan yang sedang diputar); log hanya sejak proses hidup (buffer 1000 baris); folder Export terbaca aplikasi lain, jadi tinjau berkas sebelum dibagikan
