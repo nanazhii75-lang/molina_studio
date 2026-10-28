@@ -135,7 +135,9 @@ private val INDEX = listOf(
     Hit("Otomasi dan pembaruan", "Pemeriksaan pembaruan otomatis (Wi-Fi, 24 jam) dan cadangan harian", Page.Automation),
     Hit("Pembaruan otomatis", "Perbarui lencana paket Debian dan yt-dlp lewat WorkManager", Page.Automation),
     Hit("Cadangan otomatis", "Cadangan gabungan harian ke folder Backup", Page.Automation),
-    Hit("About", "Versi dan lisensi", Page.About)
+    Hit("About", "Versi, perangkat, status, dan lisensi", Page.About),
+    Hit("Salin info debug", "Salin ringkasan versi dan status untuk laporan bug", Page.About),
+    Hit("Status Molina", "Ringkasan Debian, paket, yt-dlp, dan cadangan di beranda", Page.Home)
 )
 
 /**
@@ -222,6 +224,13 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                 W7Heading(if (page == Page.Home) "Sesuaikan setelan Molina" else titleOf(page))
                 when (page) {
                     Page.Home -> {
+                        W7HubStatusCard(
+                            aptPending = aptPending,
+                            auto = autoSt,
+                            onSystem = { lastTile = Page.System; open(Page.System) },
+                            onPackages = { lastTile = Page.Packages; open(Page.Packages) },
+                            onAutomation = { open(Page.Automation) }
+                        )
                         W7CategoryTile(
                             icon = { W7IconMonitor(52.dp) },
                             title = "Sistem",
@@ -293,7 +302,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                     Page.TerminalView -> TerminalViewPage()
                     Page.Tampilan -> TampilanPage()
                     Page.CrashReports -> CrashReportsPage()
-                    Page.About -> AboutPage()
+                    Page.About -> HubAboutPage()
                     Page.Log -> {}
                     Page.Downloads -> {}
                     Page.Stream -> StreamEnginePage()
@@ -545,20 +554,7 @@ private fun TampilanPage() {
     )
 }
 
-// ---------- About ----------
-
-@Composable
-private fun AboutPage() {
-    val ctx = LocalContext.current
-    val version = remember {
-        runCatching { ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName }.getOrNull() ?: "?"
-    }
-    SettingsItem("Molina Studio", "Versi $version") {}
-    SettingsItem(
-        "Terminal emulator",
-        "Berbasis Termux v0.118.0 (terminal-emulator, terminal-view; GPLv3). Lihat THIRD_PARTY_NOTICES.md."
-    ) {}
-}
+// ---------- About: lihat AboutUi.kt ----------
 
 // ---------- Komponen bersama ----------
 

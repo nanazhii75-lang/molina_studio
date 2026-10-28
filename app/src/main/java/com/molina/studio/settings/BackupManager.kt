@@ -43,6 +43,9 @@ internal object BackupManager {
 
     fun hasBackup(ctx: Context): Boolean = file(ctx).isFile
 
+    /** Waktu ubah berkas cadangan gabungan (ms); 0 = belum ada. */
+    fun lastBackupMs(ctx: Context): Long = file(ctx).takeIf { it.isFile }?.lastModified() ?: 0L
+
     fun describe(ctx: Context): String {
         val f = file(ctx)
         if (!f.isFile) return "Belum ada cadangan gabungan."

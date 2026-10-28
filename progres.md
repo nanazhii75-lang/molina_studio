@@ -1488,3 +1488,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Tile Pemutar/Cinema (resume, IPTV, decoder)
 - [ ] Ekspor laporan bug gabungan (crash + log + info sistem)
 - [ ] Shortcut dinamis: Putar terakhir, Unduhan, Penyimpanan
+
+## 2026-10-28 - Settings: kartu Status Molina + About lengkap [HUB-STATUS]
+- [x] feat(settings): kartu "Status Molina" di beranda Settings (Debian, paket apt, yt-dlp, cadangan, pembaruan otomatis); ketuk baris membuka halaman terkait. Memakai data yang sudah ada (RootfsManager, AptHistory, AutoPrefs), tanpa pemeriksaan/jaringan baru
+- [x] feat(settings): About lengkap (versi + kode, waktu pembaruan, Android/API, perangkat, ABI, status ringkas), tombol "Salin info debug", dan atribusi lisensi (Termux, PRoot, Debian, mpv-android, sora-editor)
+- [x] BackupManager.lastBackupMs(ctx): waktu ubah berkas cadangan (cadangan manual ikut terbaca, bukan hanya otomatis)
+- [x] Dampak: :app settings (HubStatusUi.kt, AboutUi.kt baru; SettingsScreen, BackupManager). Gradle, Manifest, JNI mpv TIDAK disentuh. Tanpa URL baru (aman untuk telemetry_gate)
+- [ ] BELUM dikompilasi Gradle (CI): sisi Compose hanya dicek sintaks. Risiko: rendah (`when` atas RootfsState sealed, `remember { a; b; c }`)
+- [ ] uji perangkat (Android 8): beranda Settings > kartu Status Molina tampil di atas ubin; ketuk baris Debian/yt-dlp/Cadangan > pindah halaman; About > ketuk "Salin info debug" > tempel di catatan
+- [ ] KETERBATASAN: versi libmpv dan SHA commit build belum ditampilkan (SHA butuh buildConfig di Gradle; versi mpv hanya tersedia dari log mpv)
