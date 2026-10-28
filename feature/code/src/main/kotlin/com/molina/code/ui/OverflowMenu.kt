@@ -131,6 +131,7 @@ internal fun menuGroups(session: CodeSession, ctx: Context, onDismiss: () -> Uni
         ),
         listOf(
             MenuEntry("Font editor: ${session.editorFont.label}, ${session.editorFontSp}sp", enabled = true, icon = MenuIcon.FontSize) { session.fontOpen = true; onDismiss() }, // [CODE-FONT]
+            MenuEntry("Tema kode: ${MolinaTextMate.themeOf(session.editorTheme).label}", enabled = true, icon = MenuIcon.Syntax) { session.themeOpen = true; onDismiss() }, // [CODE-TM]
             MenuEntry("Akhir baris: ${tab?.eol?.label ?: "LF"}", enabled = tab != null && !tab.loading, icon = MenuIcon.Eol) {
                 tab?.let {
                     it.eol = it.eol.other()

@@ -259,11 +259,31 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
         runStore?.put(RunPrefs.KEY_STICKY, if (editorSticky) "1" else "0")
     }
 
+    /** [CODE-TM] Dialog Tema kode, tema token aktif, dan saklar highlight TextMate. */
+    var themeOpen by mutableStateOf(false)
+    var editorTheme by mutableStateOf(MolinaTextMate.DEFAULT_THEME)
+        private set
+    var tmEnabled by mutableStateOf(true)
+        private set
+
+    fun applyEditorTheme(id: String) {
+        if (id == editorTheme) return
+        editorTheme = id
+        runStore?.put(RunPrefs.KEY_TM_THEME, id)
+    }
+
+    fun toggleTextMate() {
+        tmEnabled = !tmEnabled
+        runStore?.put(RunPrefs.KEY_TM_ON, if (tmEnabled) "1" else "0")
+    }
+
     private fun loadEditorFont() {
         runStore?.get(RunPrefs.KEY_FONT_SP)?.toIntOrNull()?.let { editorFontSp = it.coerceIn(FONT_MIN_SP, FONT_MAX_SP) }
         runStore?.get(RunPrefs.KEY_FONT_FAMILY)?.let { editorFont = EditorFont.fromId(it) }
         runStore?.get(RunPrefs.KEY_LIGATURE)?.let { editorLigature = it != "0" }
         runStore?.get(RunPrefs.KEY_STICKY)?.let { editorSticky = it != "0" }
+        runStore?.get(RunPrefs.KEY_TM_THEME)?.let { editorTheme = MolinaTextMate.themeOf(it).id }
+        runStore?.get(RunPrefs.KEY_TM_ON)?.let { tmEnabled = it != "0" }
     }
 
     /** [CODE-REPLACE] Penggantian terakhir di berkas, untuk Urungkan (hanya di memori). */

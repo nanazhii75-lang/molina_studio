@@ -144,7 +144,7 @@ private fun StepButton(label: String, enabled: Boolean, onClick: () -> Unit) {
 
 /** [CODE-STYLE] Chip pilihan / saklar bergaya sama dengan chip ukuran cepat. */
 @Composable
-private fun ChoiceChip(label: String, on: Boolean, modifier: Modifier, onClick: () -> Unit) {
+internal fun ChoiceChip(label: String, on: Boolean, modifier: Modifier, onClick: () -> Unit) {
     val chip = RoundedCornerShape(4.dp)
     Box(
         modifier

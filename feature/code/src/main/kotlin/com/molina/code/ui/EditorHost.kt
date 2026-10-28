@@ -12,6 +12,7 @@ import com.molina.code.preview.PreviewKind
 import io.github.rosemoe.sora.event.ContentChangeEvent
 import io.github.rosemoe.sora.event.PublishSearchResultEvent
 import io.github.rosemoe.sora.event.SelectionChangeEvent
+import io.github.rosemoe.sora.langs.textmate.registry.ThemeRegistry
 import io.github.rosemoe.sora.widget.CodeEditor
 import io.github.rosemoe.sora.widget.schemes.EditorColorScheme
 import java.util.WeakHashMap
@@ -36,7 +37,8 @@ internal fun EditorHost(session: CodeSession, modifier: Modifier = Modifier) {
                 me.invalidate()
             }
             // membaca nama berkas di sini: ganti nama / Simpan sebagai ikut menyegarkan highlight
-            syncSyntax(editor, tab.file?.name ?: tab.title)
+            MolinaTextMate.syncTheme(session.editorTheme) // [CODE-TM] membaca state: tema ikut berubah
+            syncSyntax(editor, tab.file?.name ?: tab.title, session.tmEnabled)
             syncEditorStyle(editor, session.editorFont, session.editorLigature, session.editorSticky) // [CODE-STYLE]
             syncFontSize(editor, session.editorFontSp) // [CODE-FONT] membaca state: ikut berubah saat ukuran diganti
             if (container.childCount != 1 || container.getChildAt(0) !== editor) {
@@ -62,7 +64,11 @@ internal fun EditorTab.editorOrCreate(context: Context): CodeEditor {
     ed.setTextSize(CodeDimens.EditorTextSize.value)
     ed.setWordwrap(wordWrap) // blueprint v2 bagian 12: default AKTIF; diubah dari menu titik tiga
     ed.setEditable(!readOnly && !loading)
-    applyMolinaColors(ed.colorScheme)
+    if (MolinaTextMate.ensure(context)) { // [CODE-TM] skema TextMate (chrome Molina tetap dijaga)
+        ed.colorScheme = MolinaTmColorScheme(ThemeRegistry.getInstance(), MolinaTextMate.currentModel())
+    } else {
+        applyMolinaColors(ed.colorScheme)
+    }
     // Isi hasil pemulihan draf dipasang sebelum langganan event agar tidak dihitung sebagai edit.
     pendingText?.let {
         ed.setText(it)
@@ -94,7 +100,7 @@ internal fun EditorTab.editorOrCreate(context: Context): CodeEditor {
     return ed
 }
 
-private fun applyMolinaColors(s: EditorColorScheme) {
+internal fun applyMolinaColors(s: EditorColorScheme) {
     ObsidianClaude.apply(s)
     s.setColor(EditorColorScheme.WHOLE_BACKGROUND, CodeColors.EditorBg.toArgb())
     s.setColor(EditorColorScheme.LINE_NUMBER_BACKGROUND, CodeColors.GutterBg.toArgb())
@@ -153,12 +159,30 @@ internal fun syncFontSize(ed: CodeEditor, sp: Int) {
     ed.setTextSize(sp.toFloat())
 }
 
-private val appliedSpec = java.util.WeakHashMap<CodeEditor, SyntaxSpec?>()
+private class AppliedSyntax(val scope: String?, val spec: SyntaxSpec?)
 
-/** Pasang bahasa highlight sesuai nama berkas (default tema Obsidian Claude); hanya bila berubah. */
-internal fun syncSyntax(ed: CodeEditor, fileName: String?) {
+private val appliedSyntax = java.util.WeakHashMap<CodeEditor, AppliedSyntax>()
+
+/** [CODE-TM] Berkas lebih besar dari ini memakai lexer Molina agar ketikan tetap lancar. */
+internal const val TM_MAX_CHARS = 400_000
+
+/**
+ * Pasang bahasa highlight sesuai nama berkas; hanya bila berubah. Lexer Molina dipasang seketika,
+ * lalu diganti bahasa TextMate setelah selesai dimuat di latar (bila [tmEnabled] dan grammar ada).
+ */
+internal fun syncSyntax(ed: CodeEditor, fileName: String?, tmEnabled: Boolean = false) {
     val spec = SyntaxLanguages.specFor(fileName)
-    if (appliedSpec.containsKey(ed) && appliedSpec[ed] === spec) return
-    appliedSpec[ed] = spec
+    val scope = if (tmEnabled && ed.text.length <= TM_MAX_CHARS && MolinaTextMate.ready) MolinaTextMate.scopeFor(fileName) else null
+    val cur = appliedSyntax[ed]
+    if (cur != null && cur.scope == scope && cur.spec === spec) return
+    appliedSyntax[ed] = AppliedSyntax(scope, spec)
     ed.setEditorLanguage(if (spec == null) null else MolinaLanguage(spec))
+    if (scope != null) {
+        MolinaTextMate.createAsync(scope) { lang ->
+            ed.post {
+                // abaikan hasil usang: berkas sudah diganti nama / saklar dimatikan saat memuat
+                if (lang != null && appliedSyntax[ed]?.scope == scope) ed.setEditorLanguage(lang)
+            }
+        }
+    }
 }

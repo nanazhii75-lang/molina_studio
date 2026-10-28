@@ -155,6 +155,7 @@ fun CodeScreen(session: CodeSession, modifier: Modifier = Modifier) {
     if (session.outlineOpen) session.active?.let { OutlineDialog(it) { session.outlineOpen = false } }
     if (session.infoOpen) session.active?.let { FileInfoScreen(it) { session.infoOpen = false } } // [CODE-INFO]
     if (session.fontOpen) FontSizeDialog(session) { session.fontOpen = false } // [CODE-FONT]
+    if (session.themeOpen) ThemeDialog(session) { session.themeOpen = false } // [CODE-TM]
 
     session.saveAs?.let { SaveAsDialog(session, it) }
 

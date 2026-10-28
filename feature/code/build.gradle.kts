@@ -23,6 +23,7 @@ dependencies {
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.foundation:foundation")
     implementation("io.github.Rosemoe.sora-editor:editor:0.23.6")
+    implementation("io.github.Rosemoe.sora-editor:language-textmate:0.23.6") // [CODE-TM] highlight TextMate; versi sama dengan editor
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
     implementation("androidx.activity:activity-compose:1.9.3")
 }

@@ -20,4 +20,8 @@ internal object RunPrefs {
     const val KEY_FONT_FAMILY = "editor_font_family"
     const val KEY_LIGATURE = "editor_ligature"
     const val KEY_STICKY = "editor_sticky"
+
+    /** [CODE-TM] Tema token TextMate (id) dan saklar highlight TextMate ("1"/"0"). */
+    const val KEY_TM_THEME = "editor_tm_theme"
+    const val KEY_TM_ON = "editor_tm_on"
 }
