@@ -1377,3 +1377,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: HANYA res (drawable, colors.xml, player.xml). ID view, Kotlin, Gradle, Manifest, JNI mpv TIDAK disentuh
 - [ ] BELUM dikompilasi (CI). Risiko: rendah (resource XML saja)
 - [ ] uji perangkat: kontras kontrol di atas video terang, fokus D-pad, tombol disabled prev/next, PiP, mode kunci
+
+## 2026-10-28 - Player mpv: signage Molina Cinema + jam digital + judul condensed [PLAYER-TV-BANNER]
+- [x] style(mpv): baris status baru di panel kontrol (tvStatusRow): label "MOLINA CINEMA" amber + TextClock HH:mm (update otomatis, tanpa Kotlin)
+- [x] Judul (video & audio) memakai font condensed tebal ala banner channel
+- [x] Dampak: HANYA layout/player.xml. Baris status ditaruh di luar controls_title_group (viewGroupReorder menyembunyikan anak tak terdaftar). Gradle, Manifest, JNI TIDAK disentuh
+- [ ] BELUM dikompilasi (CI). Risiko: rendah
+- [ ] uji perangkat: baris status ikut fade bersama panel, jam akurat, mode audio, layar kecil/portrait
+- [ ] LANGKAH BERIKUT: palet Explorer Cinema (MolinaTheme.Explorer) dan CinemaResults.kt masih biru Win7; migrasi ke hitam-emas bila diinginkan

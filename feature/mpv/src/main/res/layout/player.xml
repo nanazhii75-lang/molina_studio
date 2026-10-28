@@ -32,6 +32,44 @@
             android:paddingBottom="4dp"
             android:orientation="vertical">
 
+            <!-- Baris status ala TV digital: signage merek + jam. Di luar controls_title_group
+                 karena Utils.viewGroupReorder menyembunyikan anak yang tidak terdaftar. -->
+            <LinearLayout
+                android:id="@+id/tvStatusRow"
+                tools:ignore="RtlHardcoded"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:layoutDirection="ltr"
+                android:orientation="horizontal"
+                android:paddingLeft="16dp"
+                android:paddingTop="2dp"
+                android:paddingRight="16dp">
+
+                <TextView
+                    android:id="@+id/tvBrandLabel"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:fontFamily="sans-serif-condensed"
+                    android:letterSpacing="0.15"
+                    android:text="● MOLINA CINEMA"
+                    android:textColor="#FFE6B450"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+
+                <TextClock
+                    android:id="@+id/tvClock"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="monospace"
+                    android:format12Hour="HH:mm"
+                    android:format24Hour="HH:mm"
+                    android:textColor="@android:color/white"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
             <LinearLayout
                 android:id="@+id/controls_title_group"
                 android:layout_width="match_parent"
@@ -45,6 +83,8 @@
                     android:id="@+id/titleTextView"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:fontFamily="sans-serif-condensed"
+                    android:textStyle="bold"
                     android:gravity="center"
                     android:textColor="@color/tint_normal"
                     android:textSize="24sp"
@@ -67,6 +107,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:ellipsize="middle"
+                    android:fontFamily="sans-serif-condensed"
+                    android:textStyle="bold"
                     android:gravity="center"
                     android:singleLine="true"
                     android:textColor="@color/tint_normal"
