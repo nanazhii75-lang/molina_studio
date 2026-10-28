@@ -1583,3 +1583,15 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI): risiko sedang (Column baru di dialog Script Execution; impor lama jadi tak terpakai hanya peringatan)
 - [ ] uji perangkat (Android 8): Settings > Script Execution: kartu skrip tampil sama seperti sebelumnya; ketuk jalankan: dialog menampilkan awal skrip; Paket/alat dengan konfirmasi: blok perintah berlatar gelap
 - [ ] KETERBATASAN: Snippet Terminal (daftar baris) dan keluaran log tidak diubah karena berupa daftar/aliran, bukan blok perintah
+
+## 2026-10-28 - Script Execution: analisis peningkatan produktivitas [SCRIPT-ENHANCE]
+- [ANALISIS] Skrip belum ikut cadangan (BackupManager tanpa ScriptStore, allowBackup=false); hanya bisa dijalankan dari Settings, selalu dengan konfirmasi; tanpa favorit/cari/urutan dan tanpa argumen
+- Rencana paket A: cadangan skrip, pintasan layar utama (requestPinShortcut, intent hanya id), pemilih Skrip di Terminal
+- Rencana paket B: favorit/cari/urutan, argumen + saklar percaya, status terakhir (exit code)
+- Status: menunggu persetujuan paket
+
+## 2026-10-28 - Script Execution: analisis peningkatan produktivitas [SCRIPT-ENHANCE]
+- [ANALISIS] Skrip belum ikut cadangan (BackupManager tanpa ScriptStore, allowBackup=false); hanya bisa dijalankan dari Settings, selalu dengan konfirmasi; tanpa favorit/cari/urutan dan tanpa argumen
+- Rencana paket A: cadangan skrip, pintasan layar utama (requestPinShortcut, intent hanya id), pemilih Skrip di Terminal
+- Rencana paket B: favorit/cari/urutan, argumen + saklar percaya, status terakhir (exit code)
+- Status: menunggu persetujuan paket
