@@ -1443,3 +1443,10 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: CodeScreen.kt dua baris saja. Gradle, Manifest, JNI mpv TIDAK disentuh
 - [ ] BELUM dikompilasi Gradle (CI). Risiko: sangat rendah
 - [ ] uji perangkat (Android 8): X di tepi kanan tab aktif dan tidak aktif; judul panjang terpotong "…" tanpa menimpa X; buka banyak tab, bilah tab tetap bisa digeser; ketuk X menutup tab
+
+## 2026-10-28 - Saluran Cinema: tombol "Buka folder IPTV" (Penjelajah langsung di folder IPTV) [IPTV-OPEN-FOLDER]
+- [x] feat(cinema): panel Berkas di dialog Saluran punya tombol "Buka folder IPTV": membuka Penjelajah Molina (`Win7OpenDialog(browse = true, startDir = /sdcard/Molina/Media/IPTV)`) di atas dialog Saluran, pola sama dengan UnduhanScreen. Folder dibuat bila belum ada
+- [x] Saat Penjelajah ditutup, daftar berkas di panel disegarkan otomatis (`refreshTick`), jadi .m3u yang baru disalin/dipindah langsung muncul
+- [x] Dampak: :app cinema (CinemaChannels, CinemaHome). Memakai MolinaExplorer yang sudah ada. Gradle, Manifest, JNI mpv, :core:common TIDAK disentuh. Wajib setelah patch_iptv_local.py
+- [ ] BELUM dikompilasi Gradle (CI): sisi Compose hanya dicek sintaks. Risiko: rendah (parameter baru berdefault, `iptvTick++` pada state delegasi)
+- [ ] uji perangkat (Android 8): Saluran > Berkas > Buka folder IPTV > Penjelajah terbuka di folder IPTV; salin/tempel .m3u ke sana, tutup > daftar berkas ikut terbarui tanpa Segarkan; ketuk berkas > saluran termuat

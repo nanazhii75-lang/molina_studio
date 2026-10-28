@@ -103,6 +103,8 @@ private fun chClock(): String = SimpleDateFormat("HH:mm", Locale.getDefault()).f
 internal fun CinemaChannelsDialog(
     onPlay: (List<IptvChannel>, IptvChannel) -> Unit,
     onDismiss: () -> Unit,
+    onOpenFolder: (() -> Unit)? = null,
+    refreshTick: Int = 0,
 ) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -205,6 +207,7 @@ internal fun CinemaChannelsDialog(
     LaunchedEffect(Unit) { while (true) { clock = chClock(); delay(15_000) } }
     LaunchedEffect(Unit) { current?.let { load(it, false) } }
     LaunchedEffect(searchOpen) { if (searchOpen) focus.requestFocus() }
+    LaunchedEffect(refreshTick) { if (picking) refreshFiles() } // Penjelajah ditutup: daftar berkas disegarkan
 
     val entries = remember(channels) { channels.mapIndexed { i, c -> ChEntry(i + 1, c) } }
     val q = query.trim()
@@ -310,7 +313,11 @@ internal fun CinemaChannelsDialog(
                             list.forEach { e -> FileRow(e) { pickFile(e.file) } }
                         }
                     }
-                    Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.End) {
+                    Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                        if (onOpenFolder != null) Text("Buka folder IPTV", color = MolinaTheme.Gold, fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.clickable { onOpenFolder() }.padding(8.dp))
+                        else Spacer(Modifier.width(1.dp))
                         Text("Segarkan", color = MolinaTheme.Gold, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.clickable { refreshFiles() }.padding(8.dp))
                     }

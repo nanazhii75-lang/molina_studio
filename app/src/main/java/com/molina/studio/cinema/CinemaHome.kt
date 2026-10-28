@@ -17,11 +17,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.molina.cinema.BackgroundPlaybackState
 import com.molina.cinema.MpvFolder
+import com.molina.core.common.MolinaDir
 import com.molina.core.common.PlaylistPlan
 import com.molina.core.common.StreamError
 import com.molina.core.common.StreamOutcome
 import com.molina.core.common.StreamResolvers
 import com.molina.core.common.StreamSearchItem
+import com.molina.studio.AppPaths
+import com.molina.studio.settings.MolinaExplorer
 import com.molina.studio.ui.MolinaTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -57,6 +60,9 @@ fun CinemaHome(modifier: Modifier = Modifier) {
     var openLocal by rememberSaveable { mutableStateOf(false) }
     var openChooser by rememberSaveable { mutableStateOf(false) }
     var openFolder by rememberSaveable { mutableStateOf(false) }
+    var iptvFolderOpen by rememberSaveable { mutableStateOf(false) }
+    var iptvTick by remember { mutableStateOf(0) }
+    val iptvDir = remember { AppPaths.get(ctx).dir(MolinaDir.Iptv) } // /sdcard/Molina/Media/IPTV
     var folderDeep by rememberSaveable { mutableStateOf(false) }
 
     fun search(q: String) {
@@ -119,6 +125,8 @@ fun CinemaHome(modifier: Modifier = Modifier) {
     )
     if (channelsOpen) CinemaChannelsDialog(
         onDismiss = { channelsOpen = false },
+        onOpenFolder = { runCatching { iptvDir.mkdirs() }; iptvFolderOpen = true },
+        refreshTick = iptvTick,
         onPlay = { list, picked ->
             channelsOpen = false
             info = if (CinemaActions.playChannels(ctx, list, picked)) "" else FAIL
@@ -163,6 +171,19 @@ fun CinemaHome(modifier: Modifier = Modifier) {
             }
         }
     )
+    if (iptvFolderOpen) {
+        remember { MolinaExplorer.attach(ctx) }
+        Win7OpenDialog(
+            onDismiss = { iptvFolderOpen = false; iptvTick++ },
+            browse = true,
+            startDir = iptvDir,
+            onCopyPath = { f -> MolinaExplorer.copyPath(ctx, f) },
+            onShare = { files -> MolinaExplorer.share(ctx, files) },
+            onInsertPaths = { fs -> MolinaExplorer.insertPaths(ctx, fs) },
+            isVisibleInDebian = { f -> MolinaExplorer.visibleInDebian(f) },
+            onPlay = { files -> MolinaExplorer.play(ctx, files) },
+        )
+    }
     if (showResults) SearchResultsDialog(
         results = results,
         onDismiss = { showResults = false },
