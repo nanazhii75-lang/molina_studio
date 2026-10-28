@@ -36,6 +36,7 @@ object ScriptStore {
     const val MAX_SCRIPTS = 50
     private const val MAX_BODY_CHARS = 300_000
     private const val FILE = "script-execution.json"
+    private val SAFE_ID = Regex("[A-Za-z0-9]{1,16}")
 
     private var file: File? = null
     private val io = Executors.newSingleThreadExecutor { r -> Thread(r, "molina-script-store").apply { isDaemon = true } }
@@ -94,6 +95,38 @@ object ScriptStore {
         if (list.none { it.id == id }) return ScriptResult(false, "Skrip tidak ditemukan (mungkin sudah dihapus)")
         publish(list.map { if (it.id == id) it.copy(title = t, note = n, body = body, updatedAt = now) else it })
         return ScriptResult(true, "\"$t\" disimpan", id)
+    }
+
+    /** Salinan seluruh skrip sebagai JSON untuk cadangan gabungan. */
+    @Synchronized
+    fun snapshot(): JSONArray = JSONObject(encode(_items.value)).getJSONArray("items")
+
+    /**
+     * Gabungkan skrip dari cadangan: judul + isi yang sudah ada dilewati, id tidak aman atau bentrok diganti id baru
+     * (id dipakai sebagai bagian nama berkas), batas [MAX_SCRIPTS] dihormati. Mengembalikan jumlah yang ditambahkan.
+     */
+    @Synchronized
+    fun mergeFrom(arr: JSONArray): Int {
+        var list = _items.value
+        var added = 0
+        for (i in 0 until arr.length()) {
+            if (list.size >= MAX_SCRIPTS) break
+            val o = arr.optJSONObject(i) ?: continue
+            val body = ScriptLaunch.normalizeEol(o.optString("body"))
+            if (checkBody(body) != null) continue
+            val title = o.optString("title", "Skrip").trim().take(ScriptLaunch.MAX_TITLE).ifEmpty { "Skrip" }
+            if (list.any { it.title == title && it.body == body }) continue
+            val rawId = o.optString("id")
+            val id = if (SAFE_ID.matches(rawId) && list.none { it.id == rawId }) rawId else newId(list)
+            val source = if (o.isNull("source")) null else o.optString("source").ifEmpty { null }
+            list = list + ScriptItem(
+                id, title, o.optString("note", "").take(ScriptLaunch.MAX_NOTE), body, source,
+                o.optLong("created"), o.optLong("updated"), o.optLong("lastRun")
+            )
+            added++
+        }
+        if (added > 0) publish(list)
+        return added
     }
 
     @Synchronized

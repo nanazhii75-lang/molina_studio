@@ -152,6 +152,11 @@ class MainActivity : ComponentActivity() {
                 else -> -1
             }
         }
+        val runId = i?.getStringExtra(ScriptShortcuts.EXTRA_RUN)
+        if (i != null && runId != null) {
+            i.removeExtra(ScriptShortcuts.EXTRA_RUN)
+            com.molina.studio.code.ScriptNav.confirmRunId = runId
+        }
         val key = com.molina.studio.download.DownloadService.EXTRA_OPEN_TAB
         if (i?.getStringExtra(key) == com.molina.studio.download.DownloadService.OPEN_TAB_DOWNLOADS) {
             i.removeExtra(key)
@@ -250,6 +255,8 @@ class MainActivity : ComponentActivity() {
                     if (t in Tab.entries.indices) selected = t
                     ShortcutNav.tab = -1
                 }
+                // Pintasan skrip di layar utama: dialog konfirmasi sebelum skrip dijalankan.
+                com.molina.studio.code.ScriptRunHost()
                 // Lencana tab Unduhan: emas saat berjalan, hijau saat selesai dan belum dilihat.
                 val dl by com.molina.studio.download.DownloadRunner.state.collectAsState()
                 var dlWasRunning by remember { mutableStateOf(dl.running) }

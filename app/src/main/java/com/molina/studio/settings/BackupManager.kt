@@ -4,6 +4,7 @@ import android.content.Context
 import com.molina.cinema.VideoBookmarks
 import com.molina.core.common.MolinaDir
 import com.molina.studio.AppPaths
+import com.molina.studio.code.ScriptStore
 import com.molina.studio.terminal.PromptTheme
 import com.molina.studio.terminal.TerminalPrefs
 import com.molina.studio.terminal.TerminalSnippets
@@ -15,9 +16,9 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Cadangan gabungan di /sdcard/Molina/Backup/molina-backup.json: penanda video, snippet Terminal, setelan
+ * Cadangan gabungan di /sdcard/Molina/Backup/molina-backup.json: penanda video, snippet Terminal, skrip Script Execution, setelan
  * (SharedPreferences yang diizinkan + setelan Terminal). Riwayat, cache, dan data alat tidak ikut.
- * Pulihkan: penanda dan snippet digabung (tidak menimpa), setelan menimpa nilai saat ini.
+ * Pulihkan: penanda, snippet, dan skrip digabung (tidak menimpa), setelan menimpa nilai saat ini.
  */
 internal object BackupManager {
     const val FILE_NAME = "molina-backup.json"
@@ -136,6 +137,7 @@ internal object BackupManager {
         return try {
             val bm = VideoBookmarks.snapshot(ctx)
             val sn = TerminalSnippets.snapshot(ctx)
+            val sc = ScriptStore.snapshot()
             val prefs = JSONObject()
             var settings = 0
             for (s in specs(ctx)) {
@@ -152,6 +154,7 @@ internal object BackupManager {
                 .put("created", SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).format(Date()))
                 .put("bookmarks", bm)
                 .put("snippets", sn)
+                .put("scripts", sc)
                 .put("prefs", prefs)
                 .put("terminal", term)
             val f = file(ctx)
@@ -163,7 +166,7 @@ internal object BackupManager {
                 f.writeText(text)
                 tmp.delete()
             }
-            "Dicadangkan: ${bm.length()} video, ${sn.length()} snippet, $settings setelan"
+            "Dicadangkan: ${bm.length()} video, ${sn.length()} snippet, ${sc.length()} skrip, $settings setelan"
         } catch (e: Exception) {
             "Gagal mencadangkan (cek izin penyimpanan)"
         }
@@ -178,6 +181,7 @@ internal object BackupManager {
             if (root.optString("kind") != "backup") return "Berkas cadangan tidak valid"
             val marks = VideoBookmarks.mergeFrom(ctx, root.optJSONObject("bookmarks") ?: JSONObject())
             val snips = TerminalSnippets.mergeFrom(ctx, root.optJSONArray("snippets") ?: JSONArray())
+            val scripts = ScriptStore.mergeFrom(root.optJSONArray("scripts") ?: JSONArray())
             var settings = 0
             val prefs = root.optJSONObject("prefs")
             if (prefs != null) {
@@ -187,7 +191,7 @@ internal object BackupManager {
                 }
             }
             root.optJSONObject("terminal")?.let { settings += applyTerminal(ctx, it) }
-            "Dipulihkan: +$marks penanda, +$snips snippet, $settings setelan. Mulai ulang aplikasi agar semua setelan berlaku."
+            "Dipulihkan: +$marks penanda, +$snips snippet, +$scripts skrip, $settings setelan. Mulai ulang aplikasi agar semua setelan berlaku."
         } catch (e: Exception) {
             "Gagal memulihkan: berkas cadangan tidak valid"
         }

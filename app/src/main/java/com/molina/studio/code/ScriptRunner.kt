@@ -18,6 +18,9 @@ import java.io.File
 /** Permintaan pindah ke tab Terminal dari luar (dikonsumsi MainActivity), pola yang sama dengan SettingsNav. */
 object ScriptNav {
     var openTerminal by mutableStateOf(false)
+
+    /** Id skrip yang diminta dijalankan dari luar (pintasan layar utama); selalu lewat dialog konfirmasi. */
+    var confirmRunId by mutableStateOf<String?>(null)
 }
 
 /** Permintaan membuka skrip di editor Code (tombol EDIT di Script Execution); dikonsumsi MainActivity. */

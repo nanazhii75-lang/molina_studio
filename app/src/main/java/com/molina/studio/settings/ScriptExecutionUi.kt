@@ -53,9 +53,12 @@ import com.molina.code.preview.ScriptLaunch
 import com.molina.studio.code.CodeNav
 import com.molina.studio.code.CodeOpenRequest
 import com.molina.studio.code.ScriptItem
+import com.molina.studio.ScriptShortcuts
+import com.molina.studio.code.ScriptRunDialog
 import com.molina.studio.code.ScriptRunner
 import com.molina.studio.code.ScriptStore
 import com.molina.studio.terminal.TerminalSessions
+import com.molina.studio.ui.MolinaTheme
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -110,6 +113,7 @@ internal fun ScriptsPage() {
                     CodeNav.pending = CodeOpenRequest(item.title, item.sourceKey ?: "script:${item.id}", item.body)
                 },
                 onNote = { noteOf = item },
+                onPin = { toast(ctx, ScriptShortcuts.pin(ctx, item)) },
                 onDelete = { toDelete = item }
             )
             Spacer(Modifier.height(8.dp))
@@ -124,39 +128,7 @@ internal fun ScriptsPage() {
             CodeNav.pending = CodeOpenRequest(name, "script:new-${System.currentTimeMillis()}", body)
         }
     }
-    toRun?.let { item ->
-        val canNew = TerminalSessions.sessions.isNotEmpty() && TerminalSessions.canAdd()
-        fun go(newSession: Boolean) {
-            toRun = null
-            val err = ScriptRunner.run(ctx, item, newSession)
-            if (err != null) toast(ctx, err)
-        }
-        AlertDialog(
-            onDismissRequest = { toRun = null },
-            title = { Text("Jalankan di Molina Terminal?") },
-            text = {
-              Column {
-                Text(
-                    "\"${item.title}\" (${ScriptLaunch.countLines(item.body)} baris) ditulis ke Debian, lalu diketik " +
-                        "ke terminal dengan chmod +x dan Enter, persis seperti Anda mengetiknya sendiri.\n\n" +
-                        "Periksa isinya bila bukan skrip buatan Anda. Pilih SESI BARU bila sesi aktif sedang " +
-                        "menjalankan sesuatu."
-                )
-                Spacer(Modifier.height(10.dp))
-                Text("Awal skrip (tidak menjamin sisanya aman):", fontSize = 12.sp)
-                Spacer(Modifier.height(4.dp))
-                CommandBlock(CommandBlockSpec.clip(item.body, withCount = true))
-              }
-            },
-            confirmButton = {
-                Row {
-                    if (canNew) TextButton(onClick = { go(true) }) { Text("SESI BARU") }
-                    TextButton(onClick = { go(false) }) { Text("SESI AKTIF") }
-                }
-            },
-            dismissButton = { TextButton(onClick = { toRun = null }) { Text("BATAL") } }
-        )
-    }
+    toRun?.let { item -> ScriptRunDialog(item) { toRun = null } }
     noteOf?.let { item ->
         var text by remember(item.id) { mutableStateOf(item.note) }
         AlertDialog(
@@ -183,6 +155,7 @@ internal fun ScriptsPage() {
                     if (expandedId == item.id) expandedId = null
                     ScriptStore.delete(item.id)
                     ScriptRunner.cleanup(ctx, item.id)
+                    ScriptShortcuts.onDeleted(ctx, item.id)
                     toast(ctx, "\"${item.title}\" dihapus")
                 }) { Text("HAPUS", color = Red) }
             },
@@ -220,6 +193,7 @@ private fun ScriptAccordion(
     onRun: () -> Unit,
     onEdit: () -> Unit,
     onNote: () -> Unit,
+    onPin: () -> Unit,
     onDelete: () -> Unit
 ) {
     val shape = RoundedCornerShape(6.dp)
@@ -244,7 +218,7 @@ private fun ScriptAccordion(
                     p.lineTo(w * 0.95f, h * 0.5f)
                     p.lineTo(w * 0.15f, h * 0.95f)
                     p.close()
-                    drawPath(p, Blue)
+                    drawPath(p, MolinaTheme.Gold)
                 }
             }
         }
@@ -267,6 +241,7 @@ private fun ScriptAccordion(
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
                 ActionText("EDIT", Blue, onClick = onEdit)
                 ActionText("CATATAN", W7D.Ink, onClick = onNote)
+                ActionText("PINTASAN", W7D.Ink, onClick = onPin)
                 ActionText("SALIN", W7D.Ink) {
                     val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                     cm.setPrimaryClip(ClipData.newPlainText(item.title, item.body))

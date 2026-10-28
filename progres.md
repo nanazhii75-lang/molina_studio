@@ -1618,3 +1618,13 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: hanya literal warna di berkas UI Kotlin (:app dan :feature:code). Manifest, Gradle, JNI mpv TIDAK disentuh
 - [ ] BELUM dikompilasi/dilihat di perangkat: periksa kontras teks di header Terminal/Code dan tepi kaca; kembalikan dengan git revert commit ini bila tidak cocok
 - [ ] LANJUTAN (opsional): opsi B (aksen emas) dan penyatuan W7D ke MolinaTheme.Explorer (semantik nama berbeda: W7D.Line = Explorer.Field)
+
+## 2026-10-28 - Script Execution paket A: cadangan, pintasan layar utama, pemilih di Terminal [SCRIPT-PACK-A]
+- [x] feat(backup): skrip Script Execution ikut molina-backup.json (kunci "scripts"). ScriptStore.snapshot() dan mergeFrom(): gabung tanpa menimpa (judul+isi sama dilewati), id tidak aman/bentrok diganti id baru (id dipakai di nama berkas), batas 50 skrip dihormati. Teks BackupUi diperbarui
+- [x] feat(shortcut): tombol PINTASAN per skrip memasang pinned shortcut (ScriptShortcuts.pin, requestPinShortcut). Intent hanya membawa id (molina_run_script); MainActivity menampilkan dialog konfirmasi lewat ScriptNav.confirmRunId + ScriptRunHost. Hapus skrip menonaktifkan pintasannya
+- [x] feat(term): menu titik tiga Terminal > "Pilih skrip": daftar urut terakhir dijalankan, kolom cari bila lebih dari 6 skrip, ketuk baris membuka konfirmasi lalu jalan
+- [x] refactor: dialog konfirmasi diekstrak jadi ScriptRunDialog (dipakai Settings, pemilih, pintasan) sehingga tidak ada jalur tanpa konfirmasi
+- [x] branding: segitiga jalankan di Script Execution kini emas (MolinaTheme.Gold)
+- [x] Dampak: hanya :app (ScriptStore, ScriptRunner/ScriptNav, BackupManager, BackupUi, ScriptExecutionUi, MainActivity, TerminalChrome, file baru ScriptPickerUi.kt dan ScriptShortcuts.kt). Manifest, Gradle, JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi (CI) dan belum diuji di perangkat. Uji (Android 8): Backup lalu hapus skrip lalu Pulihkan; PINTASAN lalu sematkan lalu ketuk dari layar utama: dialog muncul; Terminal > titik tiga > Pilih skrip
+- [ ] KETERBATASAN: Activity bisa menerima extra molina_run_script dari app lain, tetapi hanya memunculkan konfirmasi (tidak jalan diam-diam). Judul pintasan tidak ikut berubah bila skrip di-rename; pintasan lama dari skrip yang dihapus hanya dinonaktifkan. Paket B (favorit/cari/urutan, argumen + saklar percaya, status exit) belum dikerjakan

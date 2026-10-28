@@ -49,7 +49,7 @@ internal fun BackupDialog(onDismiss: () -> Unit) {
         text = {
             Column {
                 Text(
-                    "Penanda video, snippet Terminal, dan setelan Molina disimpan dalam satu berkas di folder Backup aplikasi.",
+                    "Penanda video, snippet Terminal, skrip Script Execution, dan setelan Molina disimpan dalam satu berkas di folder Backup aplikasi.",
                     fontSize = 13.sp
                 )
                 Spacer(Modifier.height(8.dp))
@@ -57,7 +57,7 @@ internal fun BackupDialog(onDismiss: () -> Unit) {
                 if (confirm) {
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        "Penanda dan snippet akan digabung, setelan saat ini akan ditimpa. Lanjutkan?",
+                        "Penanda, snippet, dan skrip akan digabung, setelan saat ini akan ditimpa. Lanjutkan?",
                         fontSize = 12.sp
                     )
                 }
