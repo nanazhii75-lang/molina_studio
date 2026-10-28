@@ -1317,3 +1317,8 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] LANGKAH BERIKUT: penanda perubahan di gutter, scratch file dan Live Template, tombol Play di gutter
 
 - [x] Push ke origin/main berhasil setelah jaringan pulih (kegagalan awal: Could not resolve host github.com). Menunggu hasil CI GitHub Actions
+
+## 2026-10-28 - Verifikasi CI [CI-214]
+- [x] Build #214 (Find in Files + Outline) sukses di GitHub Actions; ikon menu, Palet Perintah, tautan error, Cari di berkas, dan Struktur berkas lolos kompilasi
+- [ ] Uji perangkat Android 8 untuk semua fitur di atas masih tertunda
+
