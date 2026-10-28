@@ -72,6 +72,12 @@ class EditorTab internal constructor(val id: Int, initialTitle: String) {
     /** Akhir baris pada isi tersimpan/dibuka. Beda dari [eol] = dirty (hanya akhir baris yang berubah). */
     internal var baseEol: Eol = Eol.LF
 
+    /** [CODE-GUTTER] Teks tersimpan (LF) untuk penanda perubahan di gutter; null = dimuat malas dari disk. */
+    @Volatile
+    internal var baseText: String? = null
+    internal var gutterTask: Runnable? = null
+    internal var gutterJob: kotlinx.coroutines.Job? = null
+
     /** Teks hasil pemulihan yang menunggu editor dibuat. */
     internal var pendingText: String? = null
 
@@ -128,7 +134,9 @@ class EditorTab internal constructor(val id: Int, initialTitle: String) {
     internal fun markSaved(text: String, savedEol: Eol) {
         baseFp = FileStore.fingerprint(text)
         baseEol = savedEol
+        baseText = if (text.length <= 400_000) text else null
         recomputeDirty()
+        ChangeGutter.schedule(this)
     }
 
     /** Pasang isi bersih dari disk (buka atau muat ulang). Teks sudah LF. */
@@ -137,9 +145,11 @@ class EditorTab internal constructor(val id: Int, initialTitle: String) {
         eol = fileEol
         baseEol = fileEol
         baseFp = FileStore.fingerprint(text)
+        baseText = if (text.length <= 400_000) text else null
         dirty = false
         loading = false
         editor?.setEditable(!readOnly)
+        ChangeGutter.schedule(this)
     }
 
     /** Pasang isi dari draf: baseline dan akhir baris dikembalikan, lalu dirty dihitung ulang. */
@@ -148,10 +158,12 @@ class EditorTab internal constructor(val id: Int, initialTitle: String) {
         eol = draftEol
         baseFp = base
         baseEol = baseEolSaved
+        baseText = null
         loading = false
         editor?.setEditable(!readOnly)
         dirty = true
         recomputeDirty()
+        ChangeGutter.schedule(this)
     }
 
     /** Berkas tab dihapus dari disk: isi tinggal di editor, jadi tab ditandai belum tersimpan. */

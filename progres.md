@@ -1322,3 +1322,21 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Build #214 (Find in Files + Outline) sukses di GitHub Actions; ikon menu, Palet Perintah, tautan error, Cari di berkas, dan Struktur berkas lolos kompilasi
 - [ ] Uji perangkat Android 8 untuk semua fitur di atas masih tertunda
 
+## 2026-10-28 - Rapikan menu dan bilah status [CODE-STATUS]
+- [x] refactor(code): jumlah karakter ditambahkan ke bilah status ("N baris, M karakter"); grup menu "Statistik" (Toast) dihapus
+- [x] refactor(code): baris "Enkode: UTF-8 (terkunci)" dihapus dari menu (mati permanen; UTF-8 sudah tampil di bilah status)
+- [x] Placeholder lama (Ekspor, Konversi berkas..., Syntax, Gaya Visual, Lakukan) sudah tidak ada di kode sejak commit sebelumnya
+- [x] Dampak: :feature:code saja (OverflowMenu.kt, CodeWin7.kt). Gradle, Manifest, JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi Gradle (CI). Risiko rendah. Import Toast tetap dipakai oleh "Bagikan"
+- [ ] LANGKAH BERIKUT: penanda perubahan di gutter (perlu verifikasi API sora-editor 0.23.6), scratch file dan Live Template, tombol Play di gutter
+
+## 2026-10-28 - Penanda perubahan di gutter [CODE-GUTTER]
+- [x] feat(code): garis tipis di tepi kiri gutter: hijau = baris baru, biru = baris diubah, tanda merah = ada baris dihapus, dibandingkan dengan isi tersimpan terakhir
+- [x] Diff berbasis baris (buang awalan/akhiran sama, LCS pada sisa, batas 1 juta sel), debounce 400 ms, dihitung di Dispatchers.Default; berkas > 400 KB tidak diberi penanda
+- [x] Memakai hook resmi sora-editor 0.23.6: `CodeEditor.onCreateRenderer()` + `EditorRenderer.drawLineNumber` (diverifikasi dari source tag 0.23.6)
+- [x] Teks tersimpan disimpan di EditorTab.baseText (applyDiskText/markSaved); setelah pemulihan draf dibaca ulang dari disk dan dipakai hanya bila sidik jari cocok
+- [x] Dampak: :feature:code saja (ChangeGutter.kt baru, CodeSession.kt, EditorHost.kt). Gradle, Manifest, JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: sedang (override Java protected `drawLineNumber`/`onCreateRenderer` dari Kotlin)
+- [ ] uji perangkat: edit, tambah, hapus baris lalu cek warna; Simpan menghapus semua penanda; undo kembali ke isi awal menghapus penanda; mode word wrap (penanda hanya di baris visual pertama)
+- [ ] LANGKAH BERIKUT: scratch file dan Live Template, tombol Play di gutter
+

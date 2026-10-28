@@ -123,7 +123,6 @@ internal fun menuGroups(session: CodeSession, ctx: Context, onDismiss: () -> Uni
             },
         ),
         listOf(
-            MenuEntry("Enkode: UTF-8 (terkunci)", icon = MenuIcon.Encoding),
             MenuEntry("Akhir baris: ${tab?.eol?.label ?: "LF"}", enabled = tab != null && !tab.loading, icon = MenuIcon.Eol) {
                 tab?.let {
                     it.eol = it.eol.other()
@@ -143,18 +142,8 @@ internal fun menuGroups(session: CodeSession, ctx: Context, onDismiss: () -> Uni
                     it.editor?.setEditable(!it.readOnly && !it.loading)
                 }
             }
-        ),
-        listOf(
-            MenuEntry("Statistik", enabled = ed != null, icon = MenuIcon.Stats) {
-                ed?.let {
-                    Toast.makeText(
-                        ctx, "${it.text.lineCount} baris, ${it.text.length} karakter", Toast.LENGTH_SHORT
-                    ).show()
-                }
-                onDismiss()
-            },
         )
-    )
+    ) // [CODE-STATUS] Statistik dipindah ke bilah status
 }
 
 @Composable

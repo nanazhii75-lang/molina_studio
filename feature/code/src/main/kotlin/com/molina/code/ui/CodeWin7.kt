@@ -86,6 +86,7 @@ private fun languageOf(name: String): String = when (name.substringAfterLast('.'
 internal fun CodeStatusBar(tab: EditorTab) {
     var pos by remember(tab.id) { mutableStateOf("Ln 1, Kol 1") }
     var lines by remember(tab.id) { mutableStateOf(1) }
+    var chars by remember(tab.id) { mutableStateOf(0) } // [CODE-STATUS]
     LaunchedEffect(tab.id) {
         while (true) {
             val ed = tab.editor
@@ -95,6 +96,8 @@ internal fun CodeStatusBar(tab: EditorTab) {
                     if (p != pos) pos = p
                     val n = ed.text.lineCount
                     if (n != lines) lines = n
+                    val c = ed.text.length
+                    if (c != chars) chars = c
                 } catch (e: Exception) {
                     // editor sedang dibuat ulang; coba lagi pada putaran berikut
                 }
@@ -122,7 +125,7 @@ internal fun CodeStatusBar(tab: EditorTab) {
     ) {
         BasicText(pos, style = style, maxLines = 1)
         Spacer(Modifier.width(12.dp))
-        BasicText("$lines baris", style = style, maxLines = 1)
+        BasicText("$lines baris, $chars karakter", style = style, maxLines = 1)
         Spacer(Modifier.weight(1f))
         BasicText(languageOf(tab.file?.name ?: tab.title), style = style, maxLines = 1)
         Spacer(Modifier.width(12.dp))

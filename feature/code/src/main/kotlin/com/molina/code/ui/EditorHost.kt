@@ -47,7 +47,7 @@ internal fun EditorHost(session: CodeSession, modifier: Modifier = Modifier) {
 
 internal fun EditorTab.editorOrCreate(context: Context): CodeEditor {
     editor?.let { return it }
-    val ed = CodeEditor(context)
+    val ed = MolinaCodeEditor(context) // [CODE-GUTTER]
     ed.typefaceText = Typeface.MONOSPACE
     ed.setTextSize(CodeDimens.EditorTextSize.value)
     ed.setWordwrap(wordWrap) // blueprint v2 bagian 12: default AKTIF; diubah dari menu titik tiga
@@ -69,6 +69,7 @@ internal fun EditorTab.editorOrCreate(context: Context): CodeEditor {
         }
         // post: riwayat undo baru final setelah event selesai
         ed.post { revision++ }
+        ChangeGutter.schedule(this)
     }
     // Penghitung find bar: hasil pencarian selesai atau kursor pindah (indeks hasil aktif)
     ed.subscribeEvent(PublishSearchResultEvent::class.java) { _, _ -> ed.post { findRevision++ } }
@@ -79,6 +80,7 @@ internal fun EditorTab.editorOrCreate(context: Context): CodeEditor {
         ed.post { runCatching { ed.insertText(q, q.length) } }
     }
     editor = ed
+    ChangeGutter.schedule(this)
     return ed
 }
 
