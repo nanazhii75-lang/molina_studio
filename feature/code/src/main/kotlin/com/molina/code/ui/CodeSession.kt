@@ -218,6 +218,9 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
     var findFilesOpen by mutableStateOf(false)
     var outlineOpen by mutableStateOf(false)
 
+    /** [CODE-INFO] Layar Informasi berkas (statistik teks dan jenis berkas) terbuka. */
+    var infoOpen by mutableStateOf(false)
+
     /** [CODE-REPLACE] Penggantian terakhir di berkas, untuk Urungkan (hanya di memori). */
     internal var lastReplace by mutableStateOf<ReplaceUndo?>(null)
 

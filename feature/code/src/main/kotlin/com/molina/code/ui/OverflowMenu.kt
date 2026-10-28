@@ -96,7 +96,8 @@ internal fun menuGroups(session: CodeSession, ctx: Context, onDismiss: () -> Uni
             MenuEntry("Cari di berkas", enabled = true, icon = MenuIcon.FindFiles) { session.findFilesOpen = true; onDismiss() }, // [CODE-SEARCH]
             MenuEntry("Urungkan ganti di berkas", enabled = session.lastReplace != null, icon = MenuIcon.Reload) { session.undoLastReplace(); onDismiss() }, // [CODE-REPLACE]
             MenuEntry("Struktur berkas", enabled = tab != null, icon = MenuIcon.Outline) { session.outlineOpen = true; onDismiss() },
-            MenuEntry("Pergi ke baris", enabled = tab != null, icon = MenuIcon.GoToLine) { session.gotoOpen = true; onDismiss() }
+            MenuEntry("Pergi ke baris", enabled = tab != null, icon = MenuIcon.GoToLine) { session.gotoOpen = true; onDismiss() },
+            MenuEntry("Informasi berkas", enabled = tab != null, icon = MenuIcon.Stats) { session.infoOpen = true; onDismiss() } // [CODE-INFO]
         ),
         listOf(
             MenuEntry("Live Template", enabled = tab != null && !tab.loading && !tab.readOnly, icon = MenuIcon.Snippet) { session.templatesOpen = true; onDismiss() },

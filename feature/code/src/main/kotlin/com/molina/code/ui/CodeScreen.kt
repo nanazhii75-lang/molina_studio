@@ -153,6 +153,7 @@ fun CodeScreen(session: CodeSession, modifier: Modifier = Modifier) {
     if (session.scratchOpen) ScratchDialog(session) { session.scratchOpen = false }
     if (session.pyRunOpen) session.active?.let { PythonRunDialog(session, it) { session.pyRunOpen = false } } // [CODE-PYRUN]
     if (session.outlineOpen) session.active?.let { OutlineDialog(it) { session.outlineOpen = false } }
+    if (session.infoOpen) session.active?.let { FileInfoScreen(it) { session.infoOpen = false } } // [CODE-INFO]
 
     session.saveAs?.let { SaveAsDialog(session, it) }
 

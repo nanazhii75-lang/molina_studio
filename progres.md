@@ -1704,3 +1704,10 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: hanya :app (SettingsScreen.kt, fungsi TampilanPage). Manifest, Gradle, JNI mpv TIDAK disentuh
 - [ ] BELUM dikompilasi (CI) dan belum diuji di perangkat. Uji: geser slider 8-14sp, garis kuning tidak lagi menjulang, ukuran font prompt tetap berubah per 1sp
 - [ ] Catatan: kalau yang dimaksud bagian kuning lintasan, bukan thumb, ubah SliderDefaults.colors (activeTrackColor)
+
+## 2026-10-29 - Layar Informasi berkas di menu titik tiga [CODE-INFO]
+- [x] feat(code): item "Informasi berkas" di menu titik tiga (grup Cari, setelah Pergi ke baris; juga muncul di Palet Perintah) membuka layar penuh FileInfoScreen
+- [x] Isi: statistik teks (baris, kata, karakter, tanpa spasi, ukuran UTF-8, posisi kursor), jenis berkas (nama, ekstensi, jenis, lokasi, ukuran disk, diubah terakhir, status), editor (encoding, akhir baris, pembungkus kata, hanya baca). Hitung di Dispatchers.Default; batas 3 juta karakter
+- [x] Dampak: hanya :feature:code (FileInfoScreen.kt baru; CodeSession, CodeScreen, OverflowMenu, CodeWin7 languageOf jadi internal). Manifest, Gradle, JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi (CI) dan belum diuji di perangkat. Uji: menu titik tiga > Informasi berkas; angka berubah setelah mengetik lalu buka ulang; berkas .kt tampil ".kt" dan Kotlin; tombol back menutup layar
+- [ ] Usulan: hapus "N baris, N karakter" dan label bahasa dari bilah status bawah (menunggu keputusan)

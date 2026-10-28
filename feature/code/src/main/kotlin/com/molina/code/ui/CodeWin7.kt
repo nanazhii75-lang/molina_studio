@@ -62,7 +62,7 @@ internal fun Modifier.win7Toolbar(): Modifier = this.background(Win7Code.Toolbar
 internal fun Modifier.win7Tab(active: Boolean): Modifier =
     this.background(if (active) Win7Code.TabActiveBrush else Win7Code.TabBarBrush)
 
-private fun languageOf(name: String): String = when (name.substringAfterLast('.', "").lowercase()) {
+internal fun languageOf(name: String): String = when (name.substringAfterLast('.', "").lowercase()) {
     "kt", "kts" -> "Kotlin"
     "java" -> "Java"
     "py" -> "Python"
