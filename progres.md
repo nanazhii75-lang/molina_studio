@@ -1538,3 +1538,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi Gradle (CI): risiko sangat rendah
 - [ ] uji perangkat (Android 8): pasang ulang APK, ikon launcher berupa terminal dengan segitiga kecil di bar judul; tekan lama ikon: Cinema tetap bola Aero
 - [ ] KETERBATASAN: launcher dapat menyimpan ikon lama, perlu pasang ulang atau bersihkan cache launcher
+
+## 2026-10-28 - Settings > Monitor Sistem: koneksi tidak realtime [MONITOR-REALTIME]
+- [x] fix(monitor): SystemStats.flow ditulis ulang sebagai channelFlow; pemindaian PID (3 dtk) dan PSS (5 dtk) pindah ke coroutine terpisah sehingga emisi tiap detik tidak tertunda
+- [x] fix(monitor): counter jaringan dibaca tepat saat dt diambil; jika getUidRxBytes tidak didukung, jatuh ke total perangkat dan StatsSnapshot.netPerUid=false memunculkan peringatan di UI
+- [x] feat(monitor): grafik riwayat 60 detik untuk unduh dan unggah (skala logaritmik) di SystemMonitorUi
+- [x] Dampak: :app terminal (SystemStats.kt), :app settings (SystemMonitorUi.kt). Gradle, Manifest, JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi Gradle (CI): risiko rendah-sedang (channelFlow + launch + Atomic*)
+- [ ] uji perangkat (Android 8): Settings > Monitor Sistem saat unduh/streaming: meter dan grafik bergerak tiap detik; amati apakah peringatan kuning muncul
+- [ ] KETERBATASAN: counter per-UID Android 8 bisa diperbarui kasar oleh sistem; opsi lanjutan = cuplikan 500 ms + rata-rata 2 sampel
