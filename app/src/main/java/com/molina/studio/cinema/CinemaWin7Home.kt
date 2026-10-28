@@ -64,7 +64,7 @@ internal fun CinemaWin7Body(
     onInput: (String) -> Unit,
     onSubmit: () -> Unit,
     onFile: () -> Unit,
-    onLink: () -> Unit,
+    onChannels: () -> Unit,
     onSettings: () -> Unit,
     onReset: () -> Unit,
     onRecent: (CinemaRecent.Item) -> Unit
@@ -87,7 +87,7 @@ internal fun CinemaWin7Body(
                     SearchBlock(input, onInput, onSubmit) { onInput(clipText(ctx)) }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Tile("\uD83D\uDCC4", "Berkas", Modifier.weight(1f), onFile)
-                        Tile("\uD83D\uDD17", "Tautan", Modifier.weight(1f), onLink)
+                        Tile("\uD83D\uDCFA", "Saluran", Modifier.weight(1f), onChannels)
                         Tile("\u2699", "Setelan", Modifier.weight(1f), onSettings)
                         Tile("\u21BB", "Segarkan", Modifier.weight(1f), onReset)
                     }

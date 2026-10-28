@@ -3,6 +3,8 @@ package com.molina.studio.cinema
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import com.molina.core.common.IptvChannel
+import com.molina.core.common.IptvPlayback
 import com.molina.core.common.PlaylistExtras
 import com.molina.core.common.PlaylistPlan
 import com.molina.core.common.StreamSearchItem
@@ -93,6 +95,14 @@ internal object CinemaActions {
             .putExtra("filepath", memoryUri)
             .putExtra("folder_playlist", true)
     )
+
+    /** Putar saluran terpilih sebagai playlist memory:// (prev/next di pemutar = ganti saluran). */
+    fun playChannels(ctx: Context, channels: List<IptvChannel>, picked: IptvChannel): Boolean {
+        val uri = IptvPlayback.memoryPlaylist(channels, picked) ?: return false
+        val ok = playTree(ctx, uri)
+        if (ok) CinemaRecent.add(ctx, picked.url, picked.name)
+        return ok
+    }
 
     fun openSettings(ctx: Context): Boolean =
         start(ctx, Intent().setClassName(ctx.packageName, SETTINGS))

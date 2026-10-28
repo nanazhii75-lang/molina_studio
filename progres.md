@@ -1385,3 +1385,16 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi (CI). Risiko: rendah
 - [ ] uji perangkat: baris status ikut fade bersama panel, jam akurat, mode audio, layar kecil/portrait
 - [ ] LANGKAH BERIKUT: palet Explorer Cinema (MolinaTheme.Explorer) dan CinemaResults.kt masih biru Win7; migrasi ke hitam-emas bila diinginkan
+
+## 2026-10-28 - Molina Cinema: tile Tautan diganti Saluran (playlist M3U/IPTV) [CINEMA-SALURAN]
+- [x] feat(cinema): tile "Tautan" (duplikat kolom cari) diganti "Saluran": dialog bergaya daftar channel TV (nomor 001.., jam, Cari teks/grup/nomor, Prev/Next, Muat, Hapus), baris hitam + aksen emas
+- [x] M3uParser (core:common, murni Kotlin): EXTINF/group-title/tvg-name/EXTGRP, koma dalam kutip, BOM, dedupe, maks 5000, nama dibersihkan (kontrol + bidi), URL wajib stream jarak jauh + lolos UrlPolicy, playlist HLS tunggal dikenali
+- [x] IptvFetch (core:common): hanya https (app tanpa cleartext), pengalihan diikuti manual dan DIPERIKSA ULANG tiap lompatan, batas 5 MB, timeout 15/20 dtk
+- [x] IptvPlayback: saluran terpilih jadi item pertama playlist memory:// (maks 300 entri / 200 ribu karakter demi batas Binder); prev/next di pemutar = ganti saluran. Memakai CinemaActions.playTree, validasi MPVActivity/MpvLoad tidak diubah
+- [x] Sumber playlist (maks 10) di SharedPreferences molina_ui/cinema_iptv; cache hasil baca selama proses hidup; label = host (token di URL tidak ditampilkan)
+- [x] Diuji di JVM (kotlinc + server HTTP lokal): 22 pengecekan lolos untuk parser, fetch, pengalihan, batas ukuran, kebijakan URL, rotasi playlist
+- [x] Dampak: :core:common (+2 file), :app cinema (+2 file; CinemaActions, CinemaWin7Home, CinemaHome diubah). Gradle, Manifest, JNI mpv, MPVActivity TIDAK disentuh
+- [ ] BELUM dikompilasi Gradle (CI): sisi Compose hanya dicek sintaks. Risiko: sedang (Compose dialog baru)
+- [ ] uji perangkat: tambah URL https .m3u, muat, filter/nomor, ketuk saluran lalu prev/next di pemutar, http ditolak dengan pesan, hapus sumber, putar ulang layar
+- [ ] KETERBATASAN: .m3u http tidak bisa dimuat (cleartext diblokir; tempel di kolom cari lalu Putar); #EXTVLCOPT (referer/user-agent) diabaikan; daftar tidak di-cache ke disk; prev dari saluran pertama tidak berputar
+- [ ] LANGKAH BERIKUT: cache disk + offline, logo tvg-logo, favorit saluran, palet Explorer/CinemaResults (masih biru) ke hitam-emas

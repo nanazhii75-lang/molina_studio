@@ -27,7 +27,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-private const val HINT = "Ketuk ikon tautan di bawah untuk memutar atau mencari video di YouTube."
+private const val HINT = "Tempel tautan atau ketik judul di kolom atas, lalu tekan Putar. Ketuk Saluran untuk daftar TV (M3U)."
 private const val FAIL = "Pemutar gagal dibuka."
 private const val NO_MEDIA = "Folder ini tidak berisi berkas media."
 
@@ -49,7 +49,7 @@ fun CinemaHome(modifier: Modifier = Modifier) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     var info by rememberSaveable { mutableStateOf("") }
-    var dialog by rememberSaveable { mutableStateOf(false) }
+    var channelsOpen by rememberSaveable { mutableStateOf(false) }
     var input by rememberSaveable { mutableStateOf("") }
     var searching by remember { mutableStateOf(false) }
     var results by remember { mutableStateOf<List<StreamSearchItem>>(emptyList()) }
@@ -99,7 +99,7 @@ fun CinemaHome(modifier: Modifier = Modifier) {
         onInput = { input = it },
         onSubmit = { submit(input) },
         onFile = { openChooser = true },
-        onLink = { dialog = true },
+        onChannels = { channelsOpen = true },
         onSettings = { if (!CinemaActions.openSettings(ctx)) info = "Setelan gagal dibuka." },
         onReset = {
             input = ""
@@ -117,40 +117,13 @@ fun CinemaHome(modifier: Modifier = Modifier) {
             } else submit(r.ref)
         }
     )
-    if (dialog) MolinaFrameDialog(
-        title = "Tautan atau judul",
-        confirmLabel = "Buka",
-        dismissLabel = "Batal",
-        onDismiss = { dialog = false },
-        onConfirm = {
-            dialog = false
-            when (val r = CinemaActions.classify(input)) {
-                is CinemaActions.Input.Direct -> info = if (CinemaActions.play(ctx, r.uri)) "" else FAIL
-                CinemaActions.Input.Query -> search(input.trim())
-                CinemaActions.Input.Invalid -> info = "Tautan tidak didukung. Pakai http, https, rtsp, atau rtmp."
-                CinemaActions.Input.Empty -> Unit
-            }
+    if (channelsOpen) CinemaChannelsDialog(
+        onDismiss = { channelsOpen = false },
+        onPlay = { list, picked ->
+            channelsOpen = false
+            info = if (CinemaActions.playChannels(ctx, list, picked)) "" else FAIL
         }
-    ) {
-        OutlinedTextField(
-            input, { input = it },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            shape = RoundedCornerShape(12.dp),
-            placeholder = { Text("Tempel URL atau ketik judul video") },
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = MolinaTheme.OnBackground,
-                unfocusedTextColor = MolinaTheme.OnBackground,
-                focusedBorderColor = MolinaTheme.Gold,
-                unfocusedBorderColor = MolinaTheme.CardLine,
-                cursorColor = MolinaTheme.Gold,
-                focusedPlaceholderColor = MolinaTheme.Muted,
-                unfocusedPlaceholderColor = MolinaTheme.Muted,
-                focusedContainerColor = MolinaTheme.Background,
-                unfocusedContainerColor = MolinaTheme.Background
-            )
-        )
-    }
+    )
     if (openLocal) Win7OpenDialog(
         onDismiss = { openLocal = false },
         onPick = { f ->
