@@ -1316,4 +1316,4 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] CATATAN: regex pengguna yang berat (backtracking) hanya bisa dibatalkan antar berkas; baris dipotong 2000 karakter untuk meredam
 - [ ] LANGKAH BERIKUT: penanda perubahan di gutter, scratch file dan Live Template, tombol Play di gutter
 
-- [ ] PUSH TERTUNDA: pull/push gagal (DNS: Could not resolve host github.com). Commit lokal menunggu jaringan, lalu pull --rebase dan push agar CI jalan
+- [x] Push ke origin/main berhasil setelah jaringan pulih (kegagalan awal: Could not resolve host github.com). Menunggu hasil CI GitHub Actions
