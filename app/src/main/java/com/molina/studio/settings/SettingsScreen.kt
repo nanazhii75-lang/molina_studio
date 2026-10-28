@@ -128,6 +128,8 @@ private val INDEX = listOf(
     Hit("Daftar tool terpasang", "Deteksi alat Molina di Debian beserta versinya", Page.System),
     Hit("Cadangan dan pemulihan", "Cadangkan atau pulihkan penanda video, snippet, dan setelan (folder Backup)", Page.System),
     Hit("Pulihkan dari Backup", "Pulihkan penanda video, snippet, dan setelan dari molina-backup.json", Page.System),
+    Hit("Profil setelan", "Simpan setelan sebagai profil bernama (mis. Nonton, Dev, Hemat Baterai) dan ganti dengan satu ketukan", Page.System),
+    Hit("Diagnostik sekali klik", "Bangun ZIP diagnostik (perangkat, versi mpv/yt-dlp, status PRoot, laporan bug, crash) dan bagikan", Page.System),
     Hit("Terminal (sesi)", "Buka sesi Debian PRoot di Molina Terminal", Page.TerminalApp),
     Hit("Unduhan", "Unduh video atau audio dari URL: antrean, riwayat, ulangi yang gagal", Page.Downloads),
     Hit("Penyimpanan", "Ukuran Debian, cache, Recycle Bin, folder kerja, dan bersihkan ruang", Page.Storage),
@@ -169,6 +171,8 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     var apt by remember { mutableStateOf<AptJob?>(null) }
     var showTools by remember { mutableStateOf(false) }
     var showBackup by remember { mutableStateOf(false) }
+    var showProfiles by remember { mutableStateOf(false) }
+    var showDiag by remember { mutableStateOf(false) }
     val aptCtx = LocalContext.current
     remember { AptHistory.init(aptCtx) }
     remember { MolinaExplorer.attach(aptCtx) }
@@ -229,6 +233,8 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
         apt?.let { job -> DebianAptDialog(job) { apt = null } }
         if (showTools) InstalledToolsDialog { showTools = false }
         if (showBackup) BackupDialog { showBackup = false }
+        if (showProfiles) ProfileDialog { showProfiles = false }
+        if (showDiag) DiagnosticsDialog { showDiag = false }
         when {
             searching -> SearchResults(query) { open(it) }
             page == Page.Log -> LogScreen(Modifier.fillMaxSize())
@@ -317,6 +323,8 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         W7Link({ W7IconToolList() }, "Bersihkan cache dan paket yatim", "autoremove dan apt clean: menambah ruang kosong Debian") { apt = AptJob.CleanUp }
                         W7Link({ W7IconToolList() }, "Daftar tool terpasang", "Deteksi alat Molina di Debian beserta versinya") { showTools = true }
                         W7Link({ W7IconToolList() }, "Cadangan dan pemulihan", "Penanda video, snippet, dan setelan dalam satu berkas Backup") { showBackup = true }
+                        W7Link({ W7IconToolList() }, "Profil setelan", "Simpan dan ganti kumpulan setelan dengan satu ketukan") { showProfiles = true }
+                        W7Link({ W7IconLog() }, "Diagnostik sekali klik", "Satu ZIP: perangkat, versi, status PRoot, laporan bug, crash (URL disamarkan)") { showDiag = true }
                         Spacer(Modifier.height(12.dp))
                         W7SystemSummary()
                     }

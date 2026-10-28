@@ -132,6 +132,26 @@ internal object BackupManager {
         return n
     }
 
+    /** Cuplikan setelan saja (prefs yang diizinkan + setelan Terminal), tanpa penanda/snippet/skrip. Operasi disk. */
+    internal fun settingsSnapshot(ctx: Context): JSONObject {
+        val prefs = JSONObject()
+        for (s in specs(ctx)) prefs.put(s.file, dump(ctx, s))
+        return JSONObject().put("prefs", prefs).put("terminal", terminalJson(ctx))
+    }
+
+    /** Terapkan cuplikan setelan (menimpa nilai saat ini). Mengembalikan jumlah setelan yang diterapkan. */
+    internal fun applySettingsSnapshot(ctx: Context, root: JSONObject): Int {
+        var n = 0
+        root.optJSONObject("prefs")?.let { prefs ->
+            for (s in specs(ctx)) {
+                val d = prefs.optJSONObject(s.file) ?: continue
+                n += applyPrefs(ctx, s, d)
+            }
+        }
+        root.optJSONObject("terminal")?.let { n += applyTerminal(ctx, it) }
+        return n
+    }
+
     /** Tulis cadangan gabungan. Operasi disk: panggil di luar main thread. Mengembalikan pesan untuk toast. */
     fun backupAll(ctx: Context): String {
         return try {
