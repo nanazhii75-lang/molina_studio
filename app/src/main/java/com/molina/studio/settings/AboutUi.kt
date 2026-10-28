@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.molina.studio.automation.AutoPrefs
+import com.molina.studio.cinema.MpvVersionBridge
 import com.molina.studio.terminal.RootfsManager
 
 /** Halaman About: versi, perangkat, status ringkas, tombol Salin info debug, dan atribusi lisensi. */
@@ -35,7 +36,9 @@ internal fun HubAboutPage() {
             "Diperbarui" to hubTime(pi?.lastUpdateTime ?: 0L),
             "Android" to "${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})",
             "Perangkat" to "${Build.MANUFACTURER} ${Build.MODEL}",
-            "Arsitektur" to (Build.SUPPORTED_ABIS.firstOrNull() ?: "?")
+            "Arsitektur" to (Build.SUPPORTED_ABIS.firstOrNull() ?: "?"),
+            "libmpv" to (MpvVersionBridge.mpv(ctx) ?: "belum tercatat (putar video sekali)"),
+            "FFmpeg" to (MpvVersionBridge.ffmpeg(ctx) ?: "belum tercatat (putar video sekali)")
         )
     }
     val status = hubStatusRows(rootfs, pending, auto, maxOf(auto.lastBackup, BackupManager.lastBackupMs(ctx)))

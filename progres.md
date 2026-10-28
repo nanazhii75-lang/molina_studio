@@ -1595,3 +1595,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - Rencana paket A: cadangan skrip, pintasan layar utama (requestPinShortcut, intent hanya id), pemilih Skrip di Terminal
 - Rencana paket B: favorit/cari/urutan, argumen + saklar percaya, status terakhir (exit code)
 - Status: menunggu persetujuan paket
+
+## 2026-10-28 - About: versi libmpv/FFmpeg + Code jadi shortcut dinamis [ABOUT-MPV-CODE]
+- [x] feat(about): baris "libmpv" dan "FFmpeg" di Versi dan perangkat (ikut Salin info debug). Sumber: MpvVersionNote (:feature:mpv) mencatat properti mpv-version dan ffmpeg-version dari mpv yang berjalan, sekali setelah player.initialize; About membaca lewat MpvVersionBridge (SharedPreferences molina_ui). Sebelum pernah memutar video tampil "belum tercatat (putar video sekali)"
+- [x] refactor(shortcut): shortcut Code dipindah dari molina_shortcuts.xml (statis) ke MolinaShortcuts (dinamis, id molina_code_dyn, rank 3). Statis tersisa: Cinema, Terminal. Urutan dinamis: Putar terakhir, Unduhan, Penyimpanan, Code
+- [x] Dampak: :feature:mpv (MpvVersionNote.kt baru, satu baris di MPVActivity setelah player.initialize; hanya memanggil MPVLib.getPropertyString yang sudah ada, TANPA mengubah binding JNI/C++), :app (MpvVersionBridge, AboutUi, MolinaShortcuts, molina_shortcuts.xml). Manifest dan Gradle TIDAK disentuh
+- [ ] BELUM dikompilasi Gradle (CI): risiko rendah
+- [ ] uji perangkat (Android 8): putar video sekali > Settings > About: libmpv dan FFmpeg terisi; tekan lama ikon: Cinema, Terminal, lalu dinamis; ketuk Code membuka tab Code
+- [ ] KETERBATASAN: launcher menampilkan sekitar 4 shortcut (statis dulu), jadi Penyimpanan dan Code di bawah lipatan pada launcher 4 slot; shortcut Code lama yang sudah disematkan di layar utama (id molina_code) menjadi nonaktif dan perlu disematkan ulang; SHA commit build belum ditampilkan (butuh buildConfig di Gradle)

@@ -482,6 +482,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         player.addObserver(this)
         rolling = playlistFrom(intent, filepath)
         player.initialize(filesDir.path, cacheDir.path)
+        MpvVersionNote.record(applicationContext)
         // Folder jadi playlist: dari pemilih lama (extra) atau dari Cinema Home (ACTION_VIEW)
         val folder = resolveFolderPlaylist(intent, filepath)
         if (folder != null) {

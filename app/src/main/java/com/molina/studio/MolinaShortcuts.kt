@@ -12,7 +12,8 @@ import java.util.concurrent.Executors
 
 /**
  * Shortcut dinamis ikon (tekan lama): "Putar terakhir" (hanya bila riwayat Cinema tidak kosong), "Unduhan",
- * dan "Penyimpanan". Pelengkap shortcut statis (molina_shortcuts.xml). Intent hanya membawa nama tujuan
+ * "Penyimpanan", dan "Code" (dulu statis). Pelengkap shortcut statis Cinema dan Terminal (molina_shortcuts.xml).
+ * Urutan = prioritas tampil di launcher (umumnya 4 teratas, statis lebih dulu). Intent hanya membawa nama tujuan
  * (molina_open_tab); URL atau judul riwayat TIDAK dimasukkan karena shortcut dapat dibaca aplikasi launcher.
  * Jumlah yang dipublikasikan dibatasi sisa kuota (maks. per aktivitas dikurangi shortcut statis).
  */
@@ -48,6 +49,7 @@ internal object MolinaShortcuts {
         }
         all += item(ctx, "molina_downloads", "downloads", R.string.shortcut_downloads_short, R.string.shortcut_downloads_long, R.mipmap.ic_shortcut_downloads, 1)
         all += item(ctx, "molina_storage", "storage", R.string.shortcut_storage_short, R.string.shortcut_storage_long, R.mipmap.ic_shortcut_storage, 2)
+        all += item(ctx, "molina_code_dyn", "code", R.string.shortcut_code_short, R.string.shortcut_code_long, R.mipmap.ic_shortcut_code, 3)
         val room = (sm.maxShortcutCountPerActivity - sm.manifestShortcuts.size).coerceAtLeast(0)
         if (!sm.setDynamicShortcuts(all.take(room))) {
             LogBus.log("sistem", LogLevel.Warn, "shortcut", "Shortcut dinamis ditolak sistem (kemungkinan dibatasi laju)")

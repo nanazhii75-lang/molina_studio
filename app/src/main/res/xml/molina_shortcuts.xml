@@ -26,17 +26,5 @@
             <extra android:name="molina_open_tab" android:value="terminal" />
         </intent>
     </shortcut>
-    <shortcut
-        android:shortcutId="molina_code"
-        android:enabled="true"
-        android:icon="@mipmap/ic_shortcut_code"
-        android:shortcutShortLabel="@string/shortcut_code_short"
-        android:shortcutLongLabel="@string/shortcut_code_long">
-        <intent
-            android:action="android.intent.action.MAIN"
-            android:targetPackage="com.molina.studio"
-            android:targetClass="com.molina.studio.MainActivity">
-            <extra android:name="molina_open_tab" android:value="code" />
-        </intent>
-    </shortcut>
+    <!-- Code: shortcut dinamis (MolinaShortcuts.kt), bukan statis -->
 </shortcuts>
