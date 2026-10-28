@@ -1719,3 +1719,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: hanya :feature:code (FontSizeDialog.kt baru; RunStore, CodeSession, EditorHost, CodeScreen, MenuIcons, OverflowMenu, FileInfoScreen). Manifest, Gradle, JNI mpv TIDAK disentuh
 - [ ] BELUM dikompilasi (CI) dan belum diuji di perangkat. Uji: ganti ukuran lalu cek tab lain; tutup dan buka aplikasi, ukuran tetap; seleksi teks lalu buka Informasi berkas
 - [ ] Catatan: angka Informasi berkas tidak berubah saat mengetik karena layar penuh menutupi editor; dihitung ulang tiap dibuka
+
+## 2026-10-29 - Pilihan font, ligature, dan sticky scroll editor (paket cepat Cosmic) [CODE-STYLE] [CODE-STICKY]
+- [x] feat(code): dialog Font editor (menu titik tiga) kini memuat pilihan JetBrains Mono (bawaan), Fira Code, atau Monospace sistem; saklar Ligature; saklar Sticky scroll. Semua diingat lewat RunStore (editor_font_family, editor_ligature, editor_sticky), berlaku untuk semua tab
+- [x] feat(code): sticky scroll memakai blok berbasis indentasi (IndentBlocks.kt) yang dibangun di MolinaAnalyzeManager, satu lintasan, dilewati untuk berkas di atas SyntaxLexer.MAX_CHARS; maksimal 3 baris menempel
+- [x] Aset: JetBrainsMono-Regular.ttf dan FiraCode-Regular.ttf (SIL OFL 1.1) di feature/code/src/main/assets/fonts (+- 560 KB); atribusi di THIRD_PARTY_NOTICES.md
+- [x] Dampak: hanya :feature:code (EditorStyle.kt dan IndentBlocks.kt baru; CodeSession, EditorHost, FontSizeDialog, OverflowMenu, RunStore, SyntaxHighlight). Manifest, Gradle, JNI mpv TIDAK disentuh. API Sora (props.stickyScroll, setLigatureEnabled, Styles.addCodeBlock) diverifikasi dari sumber tag 0.23.6
+- [ ] BELUM dikompilasi (CI) dan belum diuji di perangkat. Uji: ganti font lalu cek semua tab; Ligature mati/aktif pada "=> != ->"; buka berkas Kotlin panjang dan gulir, tajuk fungsi/kelas menempel di atas; berkas Python/YAML (indentasi); tutup-buka aplikasi, pilihan tetap
+- [ ] Catatan: blok indentasi kurang tepat untuk kode tanpa indentasi rapi; bila perlu ganti ke blok berbasis token setelah TextMate (langkah 2). Berikutnya: highlight TextMate dan pilihan tema

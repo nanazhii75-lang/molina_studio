@@ -83,6 +83,7 @@ private class MolinaAnalyzeManager(private val spec: SyntaxSpec) : SimpleAnalyze
         }
         builder.determine(lastLine)
         val styles = Styles(builder.build())
+        if (text.length <= SyntaxLexer.MAX_CHARS) IndentBlocks.build(text, styles) { delegate.isCancelled } // [CODE-STICKY]
         styles.finishBuilding()
         return styles
     }

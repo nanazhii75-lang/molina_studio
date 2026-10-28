@@ -130,7 +130,7 @@ internal fun menuGroups(session: CodeSession, ctx: Context, onDismiss: () -> Uni
             },
         ),
         listOf(
-            MenuEntry("Ukuran font: ${session.editorFontSp}sp", enabled = true, icon = MenuIcon.FontSize) { session.fontOpen = true; onDismiss() }, // [CODE-FONT]
+            MenuEntry("Font editor: ${session.editorFont.label}, ${session.editorFontSp}sp", enabled = true, icon = MenuIcon.FontSize) { session.fontOpen = true; onDismiss() }, // [CODE-FONT]
             MenuEntry("Akhir baris: ${tab?.eol?.label ?: "LF"}", enabled = tab != null && !tab.loading, icon = MenuIcon.Eol) {
                 tab?.let {
                     it.eol = it.eol.other()

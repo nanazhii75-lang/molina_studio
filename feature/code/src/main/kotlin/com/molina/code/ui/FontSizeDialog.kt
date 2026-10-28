@@ -41,7 +41,7 @@ internal fun FontSizeDialog(session: CodeSession, onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
         Column(Modifier.widthIn(max = 340.dp).win7DialogFrame(shape).padding(20.dp)) {
             BasicText(
-                text = "Ukuran font editor",
+                text = "Font editor",
                 style = TextStyle(color = CodeColors.IconDefault, fontSize = CodeDimens.DialogTitleSize)
             )
             Spacer(Modifier.height(16.dp))
@@ -97,6 +97,23 @@ internal fun FontSizeDialog(session: CodeSession, onDismiss: () -> Unit) {
                     style = TextStyle(color = CodeColors.TextPrimary, fontSize = sp.sp, fontFamily = FontFamily.Monospace)
                 )
             }
+            Spacer(Modifier.height(12.dp)) // [CODE-STYLE]
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                EditorFont.entries.forEach { f ->
+                    ChoiceChip(f.label, session.editorFont == f, Modifier.weight(1f)) { session.applyEditorFont(f) }
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                ChoiceChip(
+                    "Ligature: ${if (session.editorLigature) "aktif" else "mati"}",
+                    session.editorLigature, Modifier.weight(1f)
+                ) { session.toggleEditorLigature() }
+                ChoiceChip(
+                    "Sticky scroll: ${if (session.editorSticky) "aktif" else "mati"}",
+                    session.editorSticky, Modifier.weight(1f)
+                ) { session.toggleEditorSticky() }
+            }
             Spacer(Modifier.height(16.dp))
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Win7DialogButton("Setel ulang (${FONT_DEFAULT_SP}sp)", { session.applyEditorFontSp(FONT_DEFAULT_SP) })
@@ -122,5 +139,26 @@ private fun StepButton(label: String, enabled: Boolean, onClick: () -> Unit) {
         contentAlignment = Alignment.Center
     ) {
         BasicText(text = label, style = TextStyle(color = CodeColors.MenuText, fontSize = 24.sp))
+    }
+}
+
+/** [CODE-STYLE] Chip pilihan / saklar bergaya sama dengan chip ukuran cepat. */
+@Composable
+private fun ChoiceChip(label: String, on: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    val chip = RoundedCornerShape(4.dp)
+    Box(
+        modifier
+            .height(34.dp)
+            .clip(chip)
+            .background(if (on) CodeColors.Capsule else CodeColors.Surface2, chip)
+            .border(CodeDimens.Hairline, if (on) CodeColors.Gold else CodeColors.Hairline, chip)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 4.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        BasicText(
+            text = label,
+            style = TextStyle(color = if (on) CodeColors.Gold else CodeColors.MenuText, fontSize = 11.sp)
+        )
     }
 }

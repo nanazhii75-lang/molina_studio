@@ -15,4 +15,9 @@ internal object RunPrefs {
 
     /** [CODE-FONT] Ukuran font editor (sp), bilangan bulat. Memakai penyimpanan yang sama. */
     const val KEY_FONT_SP = "editor_font_sp"
+
+    /** [CODE-STYLE] Keluarga font editor ("jetbrains", "fira", "system"), ligature ("1"/"0"), sticky scroll ("1"/"0"). */
+    const val KEY_FONT_FAMILY = "editor_font_family"
+    const val KEY_LIGATURE = "editor_ligature"
+    const val KEY_STICKY = "editor_sticky"
 }

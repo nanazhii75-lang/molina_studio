@@ -10,3 +10,5 @@
 - Rootfs Debian trixie-slim arm64 diunduh saat runtime dari https://github.com/debuerreotype/docker-debian-artifacts (commit 9c4818e).
 
 - `feature/code` memakai sora-editor (Rosemoe) `io.github.Rosemoe.sora-editor:editor:0.23.6` dari Maven Central, tanpa modifikasi. Lisensi LGPL-2.1-or-later (kompatibel dengan GPL-3.0-or-later proyek ini). Sumber: https://github.com/Rosemoe/sora-editor. Versi dipilih sadar: 0.23.6 adalah rilis terbaru yang dibangun dengan compileSdk 35; 0.23.7+ mensyaratkan compileSdk 36 dan 0.24.x juga mensyaratkan Kotlin 2.2+.
+
+- `feature/code/src/main/assets/fonts/`: JetBrains Mono (JetBrainsMono-Regular.ttf, https://github.com/JetBrains/JetBrainsMono, SIL OFL 1.1, salinan lisensi OFL-JetBrainsMono.txt) dan Fira Code 6.2 (FiraCode-Regular.ttf, https://github.com/tonsky/FiraCode, SIL OFL 1.1). Dipakai sebagai pilihan font editor, tanpa modifikasi. OFL mengizinkan penyertaan dan distribusi bersama aplikasi.

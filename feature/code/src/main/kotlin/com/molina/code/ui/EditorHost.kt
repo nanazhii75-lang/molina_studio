@@ -37,6 +37,7 @@ internal fun EditorHost(session: CodeSession, modifier: Modifier = Modifier) {
             }
             // membaca nama berkas di sini: ganti nama / Simpan sebagai ikut menyegarkan highlight
             syncSyntax(editor, tab.file?.name ?: tab.title)
+            syncEditorStyle(editor, session.editorFont, session.editorLigature, session.editorSticky) // [CODE-STYLE]
             syncFontSize(editor, session.editorFontSp) // [CODE-FONT] membaca state: ikut berubah saat ukuran diganti
             if (container.childCount != 1 || container.getChildAt(0) !== editor) {
                 container.removeAllViews()
@@ -57,7 +58,7 @@ internal fun EditorHost(session: CodeSession, modifier: Modifier = Modifier) {
 internal fun EditorTab.editorOrCreate(context: Context): CodeEditor {
     editor?.let { return it }
     val ed = MolinaCodeEditor(context) // [CODE-GUTTER]
-    ed.typefaceText = Typeface.MONOSPACE
+    ed.typefaceText = Typeface.MONOSPACE // font pilihan dipasang syncEditorStyle [CODE-STYLE]
     ed.setTextSize(CodeDimens.EditorTextSize.value)
     ed.setWordwrap(wordWrap) // blueprint v2 bagian 12: default AKTIF; diubah dari menu titik tiga
     ed.setEditable(!readOnly && !loading)

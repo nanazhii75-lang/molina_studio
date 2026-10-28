@@ -235,8 +235,35 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
         runStore?.put(RunPrefs.KEY_FONT_SP, v.toString())
     }
 
+    /** [CODE-STYLE] Keluarga font, ligature, dan sticky scroll semua editor; diingat lewat [runStore]. */
+    internal var editorFont by mutableStateOf(EditorFont.JETBRAINS)
+        private set
+    var editorLigature by mutableStateOf(true)
+        private set
+    var editorSticky by mutableStateOf(true)
+        private set
+
+    internal fun applyEditorFont(f: EditorFont) {
+        if (f == editorFont) return
+        editorFont = f
+        runStore?.put(RunPrefs.KEY_FONT_FAMILY, f.id)
+    }
+
+    fun toggleEditorLigature() {
+        editorLigature = !editorLigature
+        runStore?.put(RunPrefs.KEY_LIGATURE, if (editorLigature) "1" else "0")
+    }
+
+    fun toggleEditorSticky() {
+        editorSticky = !editorSticky
+        runStore?.put(RunPrefs.KEY_STICKY, if (editorSticky) "1" else "0")
+    }
+
     private fun loadEditorFont() {
         runStore?.get(RunPrefs.KEY_FONT_SP)?.toIntOrNull()?.let { editorFontSp = it.coerceIn(FONT_MIN_SP, FONT_MAX_SP) }
+        runStore?.get(RunPrefs.KEY_FONT_FAMILY)?.let { editorFont = EditorFont.fromId(it) }
+        runStore?.get(RunPrefs.KEY_LIGATURE)?.let { editorLigature = it != "0" }
+        runStore?.get(RunPrefs.KEY_STICKY)?.let { editorSticky = it != "0" }
     }
 
     /** [CODE-REPLACE] Penggantian terakhir di berkas, untuk Urungkan (hanya di memori). */
