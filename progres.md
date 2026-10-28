@@ -1645,3 +1645,4 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: :app (ScriptStore, ScriptRunner, ScriptPickerUi, ScriptExecutionUi), :feature:code (ScriptLaunch, parameter default sehingga pemanggil lama aman). Manifest, Gradle, JNI mpv TIDAK disentuh
 - [ ] BELUM dikompilasi (CI) dan belum diuji di perangkat. Uji: bintang lalu urutan naik; OPSI argumen "a b" lalu jalankan: terlihat di dialog dan terminal; aktifkan Percaya lalu ketuk segitiga: langsung jalan; pintasan tetap konfirmasi
 - [ ] BELUM: status exit code terakhir (butuh membaca keluaran terminal; dipisah ke paket tersendiri)
+- 2026-10-28: Riset saran fitur utilitas Settings (profil setelan, backup berversi, pusat pembersihan, pustaka skrip, aturan otomasi, diagnostik). Menunggu keputusan prioritas.
