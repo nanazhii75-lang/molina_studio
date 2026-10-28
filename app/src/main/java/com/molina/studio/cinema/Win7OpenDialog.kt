@@ -254,6 +254,7 @@ fun Win7OpenDialog(
     var sheet by remember { mutableStateOf<W7Sheet?>(null) }
     var messageOk by remember { mutableStateOf(false) }
     var multi by remember { mutableStateOf(false) }
+    var showSelectHelp by remember { mutableStateOf(false) } // [HELP-PANEL]
     var picked by remember { mutableStateOf<Set<String>>(emptySet()) }
     var progress by remember { mutableStateOf<Float?>(null) }
     val cancelFlag = remember { AtomicBoolean(false) }
@@ -562,12 +563,12 @@ fun Win7OpenDialog(
                             !busy
                         ) {
                             multi = !multi; picked = emptySet(); selected = null; fileName = ""
-                            if (multi) say("Mode Pilih: ketuk untuk mencentang berkas atau folder, ketuk \u203A untuk membuka folder. Centang bertahan saat pindah folder.", true)
                         }
                         if (multi) W7Cmd("Semua", !busy) {
                             val here = (entries ?: emptyList()).map { it.file.path }.toSet()
                             picked = if (here.isNotEmpty() && picked.containsAll(here)) picked - here else picked + here
                         }
+                        if (multi) W7HelpIcon { showSelectHelp = true } // [HELP-PANEL]
                         if (picked.isNotEmpty()) W7Cmd("Kosongkan", !busy) { picked = emptySet() }
                     }
                     if (browse) Box {
@@ -798,6 +799,16 @@ fun Win7OpenDialog(
                         ) { navOpen = false; go(it) }
                     }
                 }
+                if (showSelectHelp) W7HelpPanel(
+                    "Mode Pilih", "Pilih beberapa berkas atau folder sekaligus, lalu jalankan aksi dari menu Alat.",
+                    listOf(
+                        "Centang" to "Ketuk berkas atau folder untuk mencentang atau melepas centang.",
+                        "Buka folder" to "Ketuk tanda \u203A di ujung baris untuk masuk ke folder.",
+                        "Lintas folder" to "Centang tetap tersimpan saat Anda berpindah folder.",
+                        "Pilih cepat" to "Semua mencentang seluruh isi folder ini; Kosongkan menghapus semua centang.",
+                        "Selesai" to "Ketuk Selesai atau tombol Kembali untuk keluar dari Mode Pilih."
+                    )
+                ) { showSelectHelp = false } // [HELP-PANEL]
                 if (message.isNotBlank()) W7Toast(
                     message, messageOk,
                     actionLabel = if (undo != null && !busy) "Urungkan" else null,
@@ -949,6 +960,17 @@ private fun W7Toast(
             overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f)
         )
         if (actionLabel != null) W7Cmd(actionLabel, true, onAction)
+    }
+}
+
+/** [HELP-PANEL] Tombol bantuan ringkas: lingkaran emas berisi "?" (hemat tempat di bilah alat). */
+@Composable
+private fun W7HelpIcon(onClick: () -> Unit) {
+    Box(Modifier.clickable(onClick = onClick).padding(horizontal = 10.dp, vertical = 5.dp)) {
+        Box(
+            Modifier.size(20.dp).border(1.dp, MolinaTheme.Gold.copy(alpha = 0.8f), RoundedCornerShape(10.dp)),
+            Alignment.Center
+        ) { Text("?", color = MolinaTheme.Gold, fontSize = 12.sp, fontWeight = FontWeight.Bold) }
     }
 }
 
@@ -1828,22 +1850,17 @@ private fun W7ZipDialog(
             Win7Button("Tutup", Modifier.weight(1f), compact = true) { tryClose() }
         }
     }
-    if (showHelp) W7Panel("Cara memakai ZIP", { showHelp = false }) { // [ZIP-LAYOUT]
-        Column(Modifier.fillMaxWidth().heightIn(max = 320.dp).verticalScroll(rememberScrollState())) {
-            listOf(
-                "Folder: ketuk untuk masuk.",
-                "Berkas: ketuk untuk memilih, ketuk lagi atau tekan Buka (media ke mpv, teks ke Code).",
-                "Terminal: membuka folder salinan berkas terpilih.",
-                "Tempel: menambah berkas yang disalin di Penjelajah ke folder ini.",
-                "Hapus: membuang berkas terpilih (atau folder ini bila tak ada yang dipilih).",
-                "Ukuran yang ditampilkan adalah ukuran tanpa kompresi."
-            ).forEach { Text("\u2022 " + it, color = Win7.Ink, fontSize = 12.sp, modifier = Modifier.padding(vertical = 3.dp)) }
-        }
-        Spacer(Modifier.height(10.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            Win7Button("Tutup", isDefault = true) { showHelp = false }
-        }
-    }
+    if (showHelp) W7HelpPanel(
+        "Cara memakai ZIP", "Telusuri, buka, dan ubah isi ZIP tanpa mengekstraknya lebih dulu.",
+        listOf(
+            "Folder" to "Ketuk untuk masuk.",
+            "Berkas" to "Ketuk untuk memilih, ketuk lagi atau tekan Buka (media ke mpv, teks ke Code).",
+            "Terminal" to "Membuka folder salinan berkas terpilih.",
+            "Tempel" to "Menambah berkas yang disalin di Penjelajah ke folder ini.",
+            "Hapus" to "Membuang berkas terpilih, atau folder ini bila tak ada yang dipilih.",
+            "Ukuran" to "Yang tampil adalah ukuran tanpa kompresi."
+        )
+    ) { showHelp = false } // [HELP-PANEL]
     val a = ask
     if (a != null) W7PasswordDialog(
         title = if (a.kind == 3) "Tambah ke ZIP" else if (a.kind == 2) "Simpan ke ZIP" else "Buka dari ZIP",
