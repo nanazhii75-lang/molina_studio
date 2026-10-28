@@ -57,7 +57,8 @@ internal fun W7BrowseDock(
     onInsert: () -> Unit,
     onTerminal: () -> Unit,
     onOpen: () -> Unit,
-    onCopyPath: () -> Unit
+    onCopyPath: () -> Unit,
+    onHelp: (() -> Unit)? = null
 ) {
     val locale = Locale("id", "ID")
     val one = files.singleOrNull()
@@ -105,6 +106,7 @@ internal fun W7BrowseDock(
                 Text(title, color = Win7.Ink, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(meta, color = Win7.TextDim, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
+            if (onHelp != null) W7HelpIcon(onHelp) // [HELP-PANEL]
             if (debian != null) {
                 val tone = if (debian) MolinaTheme.Good else MolinaTheme.Warn
                 Spacer(Modifier.width(8.dp))

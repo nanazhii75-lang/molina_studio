@@ -568,7 +568,6 @@ fun Win7OpenDialog(
                             val here = (entries ?: emptyList()).map { it.file.path }.toSet()
                             picked = if (here.isNotEmpty() && picked.containsAll(here)) picked - here else picked + here
                         }
-                        if (multi) W7HelpIcon { showSelectHelp = true } // [HELP-PANEL]
                         if (picked.isNotEmpty()) W7Cmd("Kosongkan", !busy) { picked = emptySet() }
                     }
                     if (browse) Box {
@@ -855,7 +854,8 @@ fun Win7OpenDialog(
                             onInsert = { onInsertPaths?.invoke(dkFiles) },
                             onTerminal = { onOpenTerminal?.invoke(dkTarget) },
                             onOpen = { if (dkTarget.isDirectory) go(dkTarget) else smartOpen(dkTarget) },
-                            onCopyPath = { onCopyPath?.invoke(dkTarget); say("Path disalin", true) }
+                            onCopyPath = { onCopyPath?.invoke(dkTarget); say("Path disalin", true) },
+                            onHelp = if (multi) ({ showSelectHelp = true }) else null // [HELP-PANEL]
                         )
                     } else {
                     if (pickFolder) Text(
@@ -964,13 +964,15 @@ private fun W7Toast(
 }
 
 /** [HELP-PANEL] Tombol bantuan ringkas: lingkaran emas berisi "?" (hemat tempat di bilah alat). */
+private val W7_HELP_YELLOW = Color(0xFFFFF176) // kuning muda
+
 @Composable
-private fun W7HelpIcon(onClick: () -> Unit) {
-    Box(Modifier.clickable(onClick = onClick).padding(horizontal = 10.dp, vertical = 5.dp)) {
+internal fun W7HelpIcon(onClick: () -> Unit) {
+    Box(Modifier.clickable(onClick = onClick).padding(horizontal = 6.dp, vertical = 5.dp)) {
         Box(
-            Modifier.size(20.dp).border(1.dp, MolinaTheme.Gold.copy(alpha = 0.8f), RoundedCornerShape(10.dp)),
+            Modifier.size(15.dp).border(1.dp, W7_HELP_YELLOW, RoundedCornerShape(8.dp)),
             Alignment.Center
-        ) { Text("?", color = MolinaTheme.Gold, fontSize = 12.sp, fontWeight = FontWeight.Bold) }
+        ) { Text("?", color = W7_HELP_YELLOW, fontSize = 10.sp, fontWeight = FontWeight.Bold) }
     }
 }
 
