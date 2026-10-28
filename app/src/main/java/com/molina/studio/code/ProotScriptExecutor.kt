@@ -35,7 +35,7 @@ import java.util.concurrent.atomic.AtomicLong
  * - isi skrip tidak pernah masuk log (hanya kode keluar dan lamanya).
  */
 internal class ProotScriptExecutor(context: Context, private val lane: Lane = Lane.CODE) : ScriptExecutor {
-    enum class Lane { CODE, DOWNLOAD }
+    enum class Lane { CODE, DOWNLOAD, AUTO }
 
     private val app = context.applicationContext
 

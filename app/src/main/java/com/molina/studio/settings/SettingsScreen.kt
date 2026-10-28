@@ -58,7 +58,7 @@ object SettingsNav {
 }
 
 private enum class Page {
-    Home, System, Terminal, Debugging, TerminalIO, TerminalView, Tampilan, CrashReports, About, Log, Stream, Network, Scripts, Packages, Code, TerminalApp, Downloads, Storage, Monitor
+    Home, System, Terminal, Debugging, TerminalIO, TerminalView, Tampilan, CrashReports, About, Log, Stream, Network, Scripts, Packages, Code, TerminalApp, Downloads, Storage, Monitor, Automation
 }
 
 private fun parentOf(p: Page): Page? = when (p) {
@@ -90,6 +90,7 @@ private fun titleOf(p: Page): String = when (p) {
     Page.Downloads -> "Unduhan"
     Page.Storage -> "Penyimpanan"
     Page.Monitor -> "Monitor Sistem"
+    Page.Automation -> "Otomasi dan pembaruan"
 }
 
 private fun trailOf(p: Page): List<Page> = generateSequence(p) { parentOf(it) }.toList().reversed()
@@ -131,6 +132,9 @@ private val INDEX = listOf(
     Hit("CPU", "Pemakaian CPU seluruh proses Molina", Page.Monitor),
     Hit("RAM", "Pemakaian memori seluruh proses Molina", Page.Monitor),
     Hit("Kecepatan jaringan", "Unduh dan unggah per detik", Page.Monitor),
+    Hit("Otomasi dan pembaruan", "Pemeriksaan pembaruan otomatis (Wi-Fi, 24 jam) dan cadangan harian", Page.Automation),
+    Hit("Pembaruan otomatis", "Perbarui lencana paket Debian dan yt-dlp lewat WorkManager", Page.Automation),
+    Hit("Cadangan otomatis", "Cadangan gabungan harian ke folder Backup", Page.Automation),
     Hit("About", "Versi dan lisensi", Page.About)
 )
 
@@ -157,6 +161,8 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     remember { MolinaExplorer.attach(aptCtx) }
     val aptLast by AptHistory.last.collectAsState()
     val aptPending by AptHistory.pending.collectAsState()
+    remember { com.molina.studio.automation.AutoPrefs.init(aptCtx) }
+    val autoSt by com.molina.studio.automation.AutoPrefs.state.collectAsState()
     fun open(p: Page) { query = ""; page = p }
     BackHandler(enabled = query.isNotBlank() || page != Page.Home) {
         if (query.isNotBlank()) query = "" else page = parentOf(page) ?: Page.Home
@@ -236,6 +242,8 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                             title = "Paket",
                             links = emptyList(),
                             selected = lastTile == Page.Packages,
+                            badge = if (autoSt.ytdlpOutdated) "!" else null,
+                            badgeAero = true,
                             onOpen = { lastTile = Page.Packages; open(Page.Packages) }
                         )
                         W7CategoryTile(
@@ -261,6 +269,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         W7Link({ W7IconToolList() }, "Penyimpanan", "Ukuran Debian, cache, Recycle Bin, dan bersihkan ruang") { open(Page.Storage) }
                         W7Link({ W7IconMonitor(32.dp) }, "Monitor Sistem", "Unduh, unggah, CPU, dan RAM secara langsung") { open(Page.Monitor) }
                         W7Link({ W7IconInfo() }, "About", "Versi dan lisensi") { open(Page.About) }
+                        W7Link({ W7IconAptSync() }, "Otomasi dan pembaruan", "Pembaruan otomatis (Wi-Fi), cadangan harian, lencana yt-dlp") { open(Page.Automation) }
                         Category("Debian")
                         W7Link({ W7IconAptSync() }, "Periksa pembaruan paket", AptHistory.checkSubtitle(aptPending)) { apt = AptJob.CheckUpdates }
                         W7Link({ W7IconAptSync() }, "Perbarui dan tingkatkan paket", AptHistory.subtitle(aptLast)) { apt = AptJob.UpdateUpgrade }
@@ -294,6 +303,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                     Page.Packages -> PackagesPage(onOpenYtdlp = { open(Page.Stream) })
                     Page.Storage -> StoragePage()
                     Page.Monitor -> SystemMonitorPage()
+                    Page.Automation -> AutomationPage()
                     Page.TerminalApp -> {}
                 }
             }

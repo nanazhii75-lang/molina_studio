@@ -31,6 +31,8 @@ class MolinaApp : Application() {
         com.molina.studio.code.ScriptStore.init(this)
         MpvControl.install(this)
         SystemRefresh.install(this)
+        com.molina.studio.automation.AutoPrefs.init(this)
+        com.molina.studio.automation.AutoWork.sync(this)
         // NewPipe lebih dulu; yt-dlp (default mati, lihat Pengaturan) hanya untuk URL yang tak dikenalinya.
         StreamResolvers.install {
             GuardedStreamResolver(

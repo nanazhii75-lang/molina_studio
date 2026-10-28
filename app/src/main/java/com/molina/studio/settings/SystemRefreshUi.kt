@@ -245,7 +245,10 @@ internal fun StreamEnginePage() {
     }
     ytRun?.let { r ->
         ToolRunDialog(r, onClose = { ytRun = null }) { code, _ ->
-            if (code != -1 && r.title.endsWith("Hapus")) tick++
+            if (code != -1 && r.title.endsWith("Hapus")) {
+                tick++
+                com.molina.studio.automation.AutoPrefs.clearYtdlp(ctx)
+            }
         }
     }
 

@@ -1398,3 +1398,24 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] uji perangkat: tambah URL https .m3u, muat, filter/nomor, ketuk saluran lalu prev/next di pemutar, http ditolak dengan pesan, hapus sumber, putar ulang layar
 - [ ] KETERBATASAN: .m3u http tidak bisa dimuat (cleartext diblokir; tempel di kolom cari lalu Putar); #EXTVLCOPT (referer/user-agent) diabaikan; daftar tidak di-cache ke disk; prev dari saluran pertama tidak berputar
 - [ ] LANGKAH BERIKUT: cache disk + offline, logo tvg-logo, favorit saluran, palet Explorer/CinemaResults (masih biru) ke hitam-emas
+
+## 2026-10-28 - Otomasi: periksa pembaruan 24 jam/Wi-Fi, lencana yt-dlp, cadangan harian [AUTO-UPDATE-BACKUP]
+- [x] fix(settings): hapus import matchParentSize di Win7FrameUi.kt (member BoxScope)
+- [x] feat(automation): `AutoPrefs`, `AutoWork`, `UpdateCheckWorker` (WorkManager periodik 24 jam, hanya Wi-Fi/UNMETERED, baterai tidak lemah, tunda awal 15 menit). Tanpa notifikasi: hasil hanya mengubah lencana
+- [x] feat(automation): `UpdateChecker` (apt: perintah CheckUpdates di jalur Lane.AUTO; yt-dlp: --version terpasang vs tag rilis GitHub), `ProotScriptExecutor.Lane.AUTO` agar tidak memblokir editor/unduhan
+- [x] feat(settings): lencana biru Aero (`W7Badge(aero)`) di ubin Paket dan baris yt-dlp bila ada rilis lebih baru; hilang setelah `YtdlpInstaller` sukses (`AutoPrefs.setYtdlpInstalled`) atau yt-dlp dihapus
+- [x] feat(settings): halaman Settings > Sistem > Otomasi dan pembaruan (`AutomationPage`): sakelar pembaruan otomatis, Periksa sekarang, status apt/yt-dlp, sakelar cadangan harian
+- [x] feat(backup): `AutoBackupWorker` (harian, simpan molina-backup.prev.json, pulihkan berkas lama bila hasil baru < 50% ukuran). Sakelar otomasi ikut `BackupManager` (molina_auto)
+- [x] Dampak: Gradle (androidx.work:work-runtime-ktx:2.9.1), AndroidManifest hasil merge menambah RECEIVE_BOOT_COMPLETED dari WorkManager. JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah-sedang (`BadgeOverlay` memakai `Modifier.align` di dalam Box, `suspendCancellableCoroutine` + RunListener, WorkManager 2.9.1 vs compileSdk 35)
+- [ ] uji perangkat (Android 8): Sistem > Otomasi dan pembaruan > Periksa sekarang > status apt/yt-dlp terisi, lencana merah di Sistem bila ada paket, lencana biru di Paket bila yt-dlp usang; Perbarui yt-dlp > lencana hilang; matikan sakelar > pekerjaan dibatalkan; nyalakan cadangan harian > cek molina-backup.json dan .prev.json
+- [ ] LANGKAH BERIKUT: pilih bagian yang dipulihkan, ukuran unduhan di fase Mengunduh paket, ubin Settings dengan ikon status
+
+## 2026-10-28 - Lanjutkan terakhir + unduhan masuk Cinema [RESUME-POSTDL]
+- [x] feat(cinema): kartu "Lanjutkan" di beranda Molina Cinema (item pertama Terakhir diputar, emas), satu ketukan memutar lagi
+- [x] feat(settings): Settings > Sistem > Otomasi > Produktivitas: sakelar "Lanjutkan dari posisi terakhir" memakai kunci save_position yang sama dengan Setelan pemutar (`ResumeBridge`), MpvPrefs mendengarkan perubahan sehingga langsung berlaku
+- [x] feat(download): `PostDownload.onFinished` dipanggil `DownloadService.finishWith`: video/audio yang berhasil diunduh masuk Terakhir diputar Cinema bila sakelar "Unduhan masuk ke Cinema" menyala (default mati, ikut Cadangan gabungan)
+- [x] Dampak: :app saja (cinema/ResumeBridge, automation/PostDownload baru; AutoPrefs, AutomationUi, CinemaWin7Home, DownloadService, BackupManager diubah). Gradle, Manifest, JNI mpv TIDAK disentuh. WAJIB setelah patch_molina_auto.sh
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah-sedang (`background(Color, RoundedCornerShape)`, `var ... by remember` di AutomationPage)
+- [ ] uji perangkat (Android 8): putar video, keluar di tengah, nyalakan Lanjutkan, buka Cinema, ketuk kartu > lanjut dari posisi terakhir; nyalakan Unduhan masuk ke Cinema, unduh video, cek Terakhir diputar
+- [ ] KETERBATASAN: posisi hanya diingat bila save_position menyala; berkas di dalam rootfs Debian (bukan /sdcard) tidak ditambahkan

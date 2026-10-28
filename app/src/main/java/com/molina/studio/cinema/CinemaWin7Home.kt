@@ -91,6 +91,7 @@ internal fun CinemaWin7Body(
                         Tile("\u2699", "Setelan", Modifier.weight(1f), onSettings)
                         Tile("\u21BB", "Segarkan", Modifier.weight(1f), onReset)
                     }
+                    recents.firstOrNull()?.let { first -> ResumeCard(first, ResumeBridge.enabled(ctx)) { onRecent(first) } }
                     RecentList(recents, onRecent) { CinemaRecent.clear(ctx) }
                 }
                 StatusStrip(info, busy)
@@ -221,5 +222,29 @@ private fun StatusStrip(info: String, busy: Boolean) {
             Spacer(Modifier.height(6.dp))
         }
         Text(info, color = Win7.TextDim, fontSize = 12.sp)
+    }
+}
+
+
+/** Satu ketukan untuk melanjutkan putaran terakhir; teks bawah menyesuaikan setelan "ingat posisi". */
+@Composable
+private fun ResumeCard(item: CinemaRecent.Item, remembered: Boolean, onPick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth()
+            .background(Color(0x22E6B450), androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+            .clickable(onClick = onPick)
+            .padding(10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text("\u25B6", color = MolinaTheme.Gold, fontSize = 20.sp)
+        Spacer(Modifier.width(10.dp))
+        Column(Modifier.weight(1f)) {
+            Text("Lanjutkan", color = MolinaTheme.Gold, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            Text(item.title, color = Win7.Ink, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                if (remembered) "Dilanjutkan dari posisi terakhir" else "Diputar dari awal (aktifkan Lanjutkan di Settings > Otomasi)",
+                color = Win7.TextDim, fontSize = 11.sp
+            )
+        }
     }
 }

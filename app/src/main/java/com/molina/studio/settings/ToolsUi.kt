@@ -99,7 +99,16 @@ internal fun PackagesPage(onOpenYtdlp: () -> Unit) {
         color = W7D.TextDim, fontSize = 13.sp, modifier = Modifier.padding(bottom = 8.dp)
     )
     Category("Bawaan Molina")
-    W7Link({ W7IconYtdlp() }, "Mesin cadangan (yt-dlp)", "TikTok, Facebook, dll. lewat Debian (default mati)", onOpenYtdlp)
+    remember { com.molina.studio.automation.AutoPrefs.init(ctx) }
+    val autoSt by com.molina.studio.automation.AutoPrefs.state.collectAsState()
+    BadgeOverlay(if (autoSt.ytdlpOutdated) "Baru" else null, true) {
+        W7Link(
+            { W7IconYtdlp() }, "Mesin cadangan (yt-dlp)",
+            if (autoSt.ytdlpOutdated) "Pembaruan tersedia: ${autoSt.ytdlpInstalled} \u2192 ${autoSt.ytdlpLatest}"
+            else "TikTok, Facebook, dll. lewat Debian (default mati)",
+            onOpenYtdlp
+        )
+    }
     Spacer(Modifier.height(12.dp))
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(

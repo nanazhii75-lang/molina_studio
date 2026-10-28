@@ -41,7 +41,9 @@ object YtdlpInstaller {
         running = true
         scope.launch {
             try {
-                _state.value = doInstall(app)
+                val res = doInstall(app)
+                _state.value = res
+                if (res is YtdlpInstallState.Done) res.version?.let { com.molina.studio.automation.AutoPrefs.setYtdlpInstalled(app, it) }
             } catch (e: Exception) {
                 AppLog.log("stream", LogLevel.Warn, "ytdlp-install", "gagal: ${e.javaClass.simpleName}")
                 _state.value = YtdlpInstallState.Failed(e.message ?: e.javaClass.simpleName)

@@ -86,6 +86,7 @@ class DownloadService : Service() {
     private fun finishWith(s: DownloadRunState) {
         stopForeground(STOP_FOREGROUND_REMOVE)
         val sess = s.session
+        com.molina.studio.automation.PostDownload.onFinished(this, sess)
         val text = when {
             sess.fatalError != null -> "Unduhan gagal dimulai"
             sess.cancelled -> "Dibatalkan (${sess.ok} berhasil, ${sess.failed} gagal)"

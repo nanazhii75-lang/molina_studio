@@ -33,6 +33,7 @@ internal object BackupManager {
         Spec("molina_shield"),
         Spec("molina_privacy"),
         Spec("molina_stream"),
+        Spec("molina_auto", only = setOf("auto_update", "auto_backup", "dl_to_cinema")),
         Spec("molina_download"),
         Spec("molina_explorer", skip = setOf("recent_v1")),
         Spec(ctx.packageName + "_preferences") // setelan pemutar mpv
