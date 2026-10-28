@@ -65,6 +65,7 @@ internal object IptvSources {
 
     /** Label dari host + nama berkas terakhir (tanpa query/token). */
     private fun nameOf(url: String): String {
+        if (url.startsWith("/")) return url.substringAfterLast('/').ifEmpty { "Playlist" }.take(40) // sumber berkas lokal
         val u = runCatching { Uri.parse(url) }.getOrNull()
         val host = u?.host.orEmpty().removePrefix("www.")
         val last = u?.lastPathSegment.orEmpty()

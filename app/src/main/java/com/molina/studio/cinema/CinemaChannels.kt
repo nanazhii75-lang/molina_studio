@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -61,14 +62,19 @@ import androidx.compose.ui.window.DialogProperties
 import com.molina.core.common.IptvChannel
 import com.molina.core.common.IptvFetch
 import com.molina.core.common.IptvLoad
+import com.molina.core.common.IptvLocal
+import com.molina.core.common.MolinaDir
+import com.molina.core.common.MolinaPaths
 import com.molina.core.common.M3uParser
 import com.molina.core.common.M3uResult
+import com.molina.studio.AppPaths
 import com.molina.studio.R
 import com.molina.studio.ui.MolinaTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -106,6 +112,10 @@ internal fun CinemaChannelsDialog(
         mutableStateOf(sources.firstOrNull { it.url == last }?.url ?: sources.firstOrNull()?.url)
     }
     var adding by remember { mutableStateOf(sources.isEmpty()) }
+    val iptvDir = remember { AppPaths.get(ctx).dir(MolinaDir.Iptv) } // /sdcard/Molina/Media/IPTV
+    var picking by remember { mutableStateOf(false) }
+    var files by remember { mutableStateOf<List<IptvLocal.Entry>?>(emptyList()) } // null = folder tak terbaca
+    var filesBusy by remember { mutableStateOf(false) }
     var urlInput by remember { mutableStateOf("") }
     var channels by remember { mutableStateOf<List<IptvChannel>>(emptyList()) }
     var status by remember { mutableStateOf("") }
@@ -138,7 +148,9 @@ internal fun CinemaChannelsDialog(
         channels = emptyList()
         status = "Memuat daftar saluran\u2026"
         scope.launch {
-            when (val r = withContext(Dispatchers.IO) { IptvFetch.load(url) }) {
+            when (val r = withContext(Dispatchers.IO) {
+                if (IptvLocal.isLocalRef(url)) IptvLocal.load(iptvDir, File(url)) else IptvFetch.load(url)
+            }) {
                 is IptvLoad.Ok -> { IptvSources.cachePut(url, r.result); show(r.result) }
                 is IptvLoad.Fail -> status = r.message
             }
@@ -155,6 +167,29 @@ internal fun CinemaChannelsDialog(
         urlInput = ""
         adding = false
         load(u, true)
+    }
+
+    fun refreshFiles() {
+        if (filesBusy) return
+        filesBusy = true
+        scope.launch {
+            files = withContext(Dispatchers.IO) { IptvLocal.list(iptvDir) }
+            filesBusy = false
+        }
+    }
+
+    fun togglePicker() {
+        picking = !picking
+        if (picking) { adding = false; refreshFiles() }
+    }
+
+    fun pickFile(f: File) {
+        val path = f.absolutePath
+        IptvSources.add(ctx, path)
+        sources = IptvSources.load(ctx)
+        picking = false
+        adding = false
+        load(path, true)
     }
 
     fun removeCurrent() {
@@ -233,9 +268,10 @@ internal fun CinemaChannelsDialog(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     sources.forEach { s ->
-                        SourceChip(s.name, s.url == current && !adding) { adding = false; load(s.url, false) }
+                        SourceChip(s.name, s.url == current && !adding && !picking) { adding = false; picking = false; load(s.url, false) }
                     }
-                    SourceChip("+ Tambah", adding) { adding = !adding }
+                    SourceChip("+ Tambah", adding) { adding = !adding; if (adding) picking = false }
+                    SourceChip("Berkas", picking) { togglePicker() }
                 }
 
                 if (adding) Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp)) {
@@ -253,6 +289,30 @@ internal fun CinemaChannelsDialog(
                         Text("Simpan & muat", color = MolinaTheme.Gold, fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.clickable { saveAndLoad() }.padding(8.dp))
+                    }
+                }
+
+                if (picking) Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp)) {
+                    Text(
+                        "Folder: /sdcard/" + MolinaPaths.APP_FOLDER + "/" + MolinaDir.Iptv.folderName,
+                        color = MolinaTheme.Muted, fontSize = 12.sp, fontFamily = FontFamily.Monospace,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    )
+                    val list = files
+                    when {
+                        filesBusy && list.isNullOrEmpty() -> Text("Membaca folder\u2026", color = MolinaTheme.Muted,
+                            fontSize = 13.sp, modifier = Modifier.padding(vertical = 8.dp))
+                        list == null -> Text("Folder IPTV tidak bisa dibaca. Beri izin penyimpanan, lalu ketuk Segarkan.",
+                            color = MolinaTheme.Muted, fontSize = 13.sp, modifier = Modifier.padding(vertical = 8.dp))
+                        list.isEmpty() -> Text("Belum ada berkas .m3u / .m3u8 di folder ini. Salin playlist ke sana, lalu ketuk Segarkan.",
+                            color = MolinaTheme.Muted, fontSize = 13.sp, modifier = Modifier.padding(vertical = 8.dp))
+                        else -> Column(Modifier.fillMaxWidth().heightIn(max = 180.dp).verticalScroll(rememberScrollState())) {
+                            list.forEach { e -> FileRow(e) { pickFile(e.file) } }
+                        }
+                    }
+                    Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.End) {
+                        Text("Segarkan", color = MolinaTheme.Gold, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.clickable { refreshFiles() }.padding(8.dp))
                     }
                 }
 
@@ -276,8 +336,8 @@ internal fun CinemaChannelsDialog(
                     keyboardActions = KeyboardActions(onDone = { pickFromQuery() }),
                 )
 
-                if (channels.isEmpty() && !loading && !adding) Text(
-                    "Belum ada saluran. Ketuk + Tambah lalu tempel URL playlist .m3u (https).",
+                if (channels.isEmpty() && !loading && !adding && !picking) Text(
+                    "Belum ada saluran. Ketuk + Tambah untuk URL playlist (https), atau Berkas untuk .m3u di folder IPTV Molina.",
                     color = MolinaTheme.Muted, fontSize = 13.sp,
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
                 )
@@ -384,3 +444,23 @@ private fun ChKey(icon: Int?, glyph: String?, label: String, tint: Color, modifi
         Text(label.uppercase(), color = tint, fontSize = 10.sp, maxLines = 1)
     }
 }
+
+/** Satu berkas playlist di folder IPTV Molina: nama + ukuran. */
+@Composable
+private fun FileRow(e: IptvLocal.Entry, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(6.dp)
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = 2.dp).clip(shape)
+            .border(1.dp, RowLine, shape).clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(e.file.name, color = Color.White, fontSize = 14.sp, maxLines = 1,
+            overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+        Spacer(Modifier.width(8.dp))
+        Text(sizeLabel(e.sizeBytes), color = MolinaTheme.Muted, fontSize = 12.sp)
+    }
+}
+
+private fun sizeLabel(b: Long): String =
+    if (b < 1024) "$b B" else if (b < 1024 * 1024) "${b / 1024} KB" else "%.1f MB".format(b / 1048576.0)

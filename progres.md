@@ -1426,3 +1426,14 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: assets/molina/bashrc saja. Gradle, Manifest, JNI mpv TIDAK disentuh. Berlaku di sesi terminal baru
 - [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah
 - [ ] uji perangkat: cd /sdcard/Molina hijau; cd /storage/emulated/0/Molina hijau; cd /sdcard/molina-studio merah; cd ~ merah
+
+## 2026-10-28 - Saluran Cinema: muat playlist dari berkas .m3u di folder IPTV Molina [IPTV-LOCAL-M3U]
+- [x] feat(core): `IptvLocal` (:core:common, JDK murni): `list(dir)` daftar .m3u/.m3u8 (tanpa subfolder, maks 100, urut nama) dan `load(dir, file)` membaca berkas (maks 5 MB, UTF-8, BOM aman) lewat `M3uParser` + `IptvFetch.interpret`, jadi kebijakan URL saluran sama dengan playlist dari internet
+- [x] Keamanan jalur: hanya ANAK LANGSUNG folder IPTV setelah canonicalFile (".." , subfolder, dan symlink keluar folder ditolak); jalur yang tersimpan di prefs tidak dipercaya
+- [x] feat(cinema): dialog Saluran punya chip "Berkas": panel daftar berkas di /sdcard/Molina/Media/IPTV (nama + ukuran), ketuk = simpan sebagai sumber + muat. Sumber berkas disimpan sebagai jalur absolut di sumber playlist yang sama (maks 10), chip berlabel nama berkas, Muat ulang membaca ulang berkas, Hapus hanya menghapus sumber (berkas tidak dihapus)
+- [x] Uji JVM: scripts/core-tests/run_iptv_local.sh (20 pengecekan: filter ekstensi, subfolder, BOM, batas 5 MB/100 berkas, traversal, symlink, HLS, kosong)
+- [x] Dampak: :core:common (+IptvLocal.kt), :app cinema (CinemaChannels, IptvSources). Gradle, Manifest, JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi Gradle (CI): sisi Compose hanya dicek sintaks. Risiko: rendah-sedang (`when` tanpa subjek berisi composable, smart cast `val list`, import verticalScroll/AppPaths)
+- [ ] uji perangkat (Android 8): salin .m3u ke /sdcard/Molina/Media/IPTV, buka Saluran > Berkas > ketuk berkas > saluran tampil; tutup lalu buka lagi > sumber berkas termuat otomatis; ubah isi berkas lalu Muat > terbaca ulang; folder kosong/izin ditolak > pesan; Hapus > chip hilang, berkas tetap ada
+- [ ] KETERBATASAN: hanya entri stream jarak jauh (http/https/rtsp/rtmp) yang jadi saluran; entri jalur lokal (mis. /sdcard/video.mp4) dilewati kebijakan URL. Subfolder tidak dipindai. Encoding selain UTF-8 bisa menampilkan nama rusak
+- [ ] LANGKAH BERIKUT: pemindai subfolder opsional, tombol "Buka folder IPTV" di Penjelajah, cache disk + offline, favorit saluran
