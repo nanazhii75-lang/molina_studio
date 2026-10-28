@@ -334,7 +334,7 @@ private fun TabItem(
             )
         }
         Row(
-            Modifier.fillMaxHeight().padding(start = 12.dp),
+            Modifier.fillMaxWidth().fillMaxHeight().padding(start = 12.dp), // [CODE-TABCLOSE-EDGE]
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (!tab.loading) {
@@ -346,7 +346,7 @@ private fun TabItem(
             }
             BasicText(
                 text = tab.title,
-                modifier = Modifier.weight(1f, fill = false),
+                modifier = Modifier.weight(1f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 style = TextStyle(
