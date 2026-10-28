@@ -49,6 +49,7 @@ internal class MenuEntry(
     val enabled: Boolean = false,
     val checked: Boolean? = null,
     val icon: MenuIcon? = null, // [CODE-MENUICON]
+    val danger: Boolean = false, // [MENU-WHITE] true = teks dan ikon merah
     val onClick: () -> Unit = {}
 )
 
@@ -116,7 +117,7 @@ internal fun menuGroups(session: CodeSession, ctx: Context, onDismiss: () -> Uni
                 session.sendToTerminal(false)
                 onDismiss()
             },
-            MenuEntry("Jalankan di Terminal", enabled = hasText && session.terminalSink != null, icon = MenuIcon.Run) {
+            MenuEntry("Jalankan di Terminal", enabled = hasText && session.terminalSink != null, icon = MenuIcon.Run, danger = true) {
                 if (session.runLang() != null) session.runInTerminalForLang() else session.sendToTerminal(true) // [CODE-PYRUN2]
                 onDismiss()
             },
@@ -204,8 +205,9 @@ private fun MenuRow(e: MenuEntry) {
             .alpha(if (e.enabled) 1f else CodeColors.DisabledAlpha),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        val rowColor = if (e.danger) CodeColors.MenuDanger else CodeColors.MenuText // [MENU-WHITE]
         val ic = e.icon // [CODE-MENUICON]
-        if (ic != null) Canvas(Modifier.size(CodeDimens.MenuIconSize)) { drawMenuIcon(ic, CodeColors.IconDefault) }
+        if (ic != null) Canvas(Modifier.size(CodeDimens.MenuIconSize)) { drawMenuIcon(ic, rowColor) }
         else Spacer(Modifier.width(CodeDimens.MenuIconSize))
         Spacer(Modifier.width(12.dp))
         BasicText(
@@ -213,7 +215,7 @@ private fun MenuRow(e: MenuEntry) {
             modifier = Modifier.weight(1f),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            style = TextStyle(color = CodeColors.IconDefault, fontSize = CodeDimens.MenuTextSize)
+            style = TextStyle(color = rowColor, fontSize = CodeDimens.MenuTextSize)
         )
         e.checked?.let {
             Spacer(Modifier.width(12.dp))

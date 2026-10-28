@@ -21,6 +21,8 @@ object CodeColors {
 
     // Ikon
     val IconDefault = Color(0xFFCDBFA3)   // champagne
+    val MenuText = Color(0xFFFFFFFF)      // [MENU-WHITE] teks dan ikon menu titik tiga: putih polos
+    val MenuDanger = Color(0xFFFF5252)    // [MENU-WHITE] aksi Jalankan di Terminal: merah
     val IconDim = Color(0xFF7D7A72)
     val IconDisabled = Color(0xFF4D4C48)
 
