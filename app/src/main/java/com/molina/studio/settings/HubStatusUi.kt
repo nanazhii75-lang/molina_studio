@@ -124,7 +124,7 @@ internal fun HubCard(title: String, rows: List<HubRow>, dots: Boolean = true) {
     }
 }
 
-/** Kartu "Status Molina" di beranda Settings; ketuk baris = buka halaman terkait. */
+/** Kartu "Status Molina" di Sistem > Info; ketuk baris = buka halaman terkait. */
 @Composable
 internal fun W7HubStatusCard(
     aptPending: Int,

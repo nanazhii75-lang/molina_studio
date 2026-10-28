@@ -60,7 +60,7 @@ object SettingsNav {
 }
 
 private enum class Page {
-    Home, System, Terminal, Debugging, TerminalIO, TerminalView, Tampilan, CrashReports, About, Log, Stream, Network, Scripts, Packages, Code, TerminalApp, Downloads, Storage, Monitor, Automation, Player, Stats
+    Home, System, Terminal, Debugging, TerminalIO, TerminalView, Tampilan, CrashReports, About, Log, Stream, Network, Scripts, Packages, Code, TerminalApp, Downloads, Storage, Monitor, Automation, Player, Stats, Info
 }
 
 private fun parentOf(p: Page): Page? = when (p) {
@@ -95,6 +95,7 @@ private fun titleOf(p: Page): String = when (p) {
     Page.Automation -> "Otomasi dan pembaruan"
     Page.Player -> "Pemutar"
     Page.Stats -> "Statistik tontonan"
+    Page.Info -> "Info"
 }
 
 private fun trailOf(p: Page): List<Page> = generateSequence(p) { parentOf(it) }.toList().reversed()
@@ -151,7 +152,9 @@ private val INDEX = listOf(
     Hit("Laporan bug", "Ekspor log gabungan dan per kelompok ke folder Export", Page.System),
     Hit("About", "Versi, perangkat, status, dan lisensi", Page.About),
     Hit("Salin info debug", "Salin ringkasan versi dan status untuk laporan bug", Page.About),
-    Hit("Status Molina", "Ringkasan Debian, paket, yt-dlp, dan cadangan di beranda", Page.Home)
+    Hit("Info", "Status Molina dan informasi dasar perangkat", Page.Info),
+    Hit("Status Molina", "Ringkasan Debian, paket, yt-dlp, dan cadangan di Sistem > Info", Page.Info),
+    Hit("Informasi perangkat", "Versi Molina Studio, Android, perangkat, arsitektur, dan RAM", Page.Info)
 )
 
 /**
@@ -248,13 +251,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                 W7Heading(if (page == Page.Home) "Sesuaikan setelan Molina" else titleOf(page))
                 when (page) {
                     Page.Home -> {
-                        W7HubStatusCard(
-                            aptPending = aptPending,
-                            auto = autoSt,
-                            onSystem = { lastTile = Page.System; open(Page.System) },
-                            onPackages = { lastTile = Page.Packages; open(Page.Packages) },
-                            onAutomation = { open(Page.Automation) }
-                        )
+                        // [INFO-PAGE] beranda: kartu Status Molina pindah ke Sistem > Info
                         W7CategoryTile(
                             icon = { W7IconMonitor(52.dp) },
                             title = "Sistem",
@@ -309,6 +306,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         )
                     }
                     Page.System -> {
+                        W7Link({ W7IconInfo() }, "Info", "Status Molina dan informasi dasar perangkat") { open(Page.Info) } // [INFO-PAGE]
                         W7Link({ W7IconTerminal() }, "Terminal", "Molina Terminal: debugging, I/O, tampilan") { open(Page.Terminal) }
                         W7Link({ W7IconTerminal() }, "Editor Code", "Pratinjau HTML: renderer native atau WebView") { open(Page.Code) }
                         W7Link({ W7IconLog() }, "Log", "Log aktivitas mpv, Terminal, dan sistem") { open(Page.Log) }
@@ -326,7 +324,15 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         W7Link({ W7IconToolList() }, "Cadangan dan pemulihan", "Penanda video, snippet, dan setelan dalam satu berkas Backup") { showBackup = true }
                         W7Link({ W7IconToolList() }, "Profil setelan", "Simpan dan ganti kumpulan setelan dengan satu ketukan") { showProfiles = true }
                         W7Link({ W7IconLog() }, "Diagnostik sekali klik", "Satu ZIP: perangkat, versi, status PRoot, laporan bug, crash (URL disamarkan)") { showDiag = true }
-                        Spacer(Modifier.height(12.dp))
+                    }
+                    Page.Info -> { // [INFO-PAGE] Status Molina + informasi dasar perangkat
+                        W7HubStatusCard(
+                            aptPending = aptPending,
+                            auto = autoSt,
+                            onSystem = { open(Page.System) },
+                            onPackages = { lastTile = Page.Packages; open(Page.Packages) },
+                            onAutomation = { open(Page.Automation) }
+                        )
                         W7SystemSummary()
                     }
                     Page.Terminal -> {

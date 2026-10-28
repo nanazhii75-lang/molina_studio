@@ -1661,3 +1661,10 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] ui(code): info line bilah status (Ln/Kol dan "N baris, N karakter") biru muda CodeColors.InfoBlue #4FC3F7; bahasa, UTF-8, status simpan tetap
 - [x] Dampak: hanya :feature:code (CodeColors.kt, OverflowMenu.kt, CodeWin7.kt). Manifest, Gradle, JNI mpv TIDAK disentuh
 - [ ] BELUM dikompilasi (CI) dan belum diuji di perangkat. Uji: menu titik tiga putih, Jalankan di Terminal merah; info line biru
+
+## 2026-10-28 - Halaman Sistem > Info [INFO-PAGE]
+- [x] refactor(settings): kartu Status Molina dipindah dari beranda Settings ke halaman baru Sistem > Info (Page.Info). Kartu informasi dasar perangkat (W7SystemSummary) dipindah dari bawah halaman Sistem ke Info, jadi tidak ada duplikat
+- [x] Item "Info" di urutan teratas halaman Sistem; indeks pencarian: Info, Status Molina, Informasi perangkat
+- [x] Dampak: hanya :app (SettingsScreen.kt, HubStatusUi.kt). Manifest, Gradle, JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi (CI) dan belum diuji di perangkat. Uji: beranda tanpa kartu status; Sistem > Info menampilkan status dan info perangkat; ketuk baris yt-dlp membuka Paket; pencarian "status" membuka Info
+- [ ] Usulan: halaman About masih punya kartu Status Molina sendiri (duplikat); tunggu keputusan
