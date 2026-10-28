@@ -479,6 +479,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         }
 
         PlaybackLog.attach()
+        WatchStats.attach(applicationContext)
         player.addObserver(this)
         rolling = playlistFrom(intent, filepath)
         player.initialize(filesDir.path, cacheDir.path)
@@ -556,6 +557,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         // register the noisy receiver again right after it is unregistered below.
         player.removeObserver(this)
         PlaybackLog.detach()
+        WatchStats.flush()
         streamScope.cancel()
         eventUiHandler.removeCallbacksAndMessages(null)
         fadeHandler.removeCallbacksAndMessages(null)
@@ -2668,6 +2670,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
     }
 
     override fun eventProperty(property: String, value: Boolean) {
+        if (property == "pause") WatchStats.onPause(value)
         val metaUpdated = psc.update(property, value)
         if (metaUpdated)
             updateMediaSession()
@@ -2714,6 +2717,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
 
     override fun event(eventId: Int) {
         if (eventId == MpvEvent.MPV_EVENT_END_FILE) {
+            WatchStats.onEnd()
             PlaybackLog.onEnd(psc.position, psc.duration)
             psc.eof()
             updateMediaSession()
@@ -2728,11 +2732,13 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         }
 
         if (eventId == MpvEvent.MPV_EVENT_FILE_LOADED) {
+            WatchStats.onLoaded()
             PlaybackLog.onLoaded()
             prefetchNext()
         }
 
         if (eventId == MpvEvent.MPV_EVENT_START_FILE) {
+            WatchStats.onStart()
             PlaybackLog.onStart()
             val cmds = onloadCommands.toTypedArray()
             onloadCommands.clear()

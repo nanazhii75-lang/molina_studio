@@ -1628,3 +1628,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: hanya :app (ScriptStore, ScriptRunner/ScriptNav, BackupManager, BackupUi, ScriptExecutionUi, MainActivity, TerminalChrome, file baru ScriptPickerUi.kt dan ScriptShortcuts.kt). Manifest, Gradle, JNI mpv TIDAK disentuh
 - [ ] BELUM dikompilasi (CI) dan belum diuji di perangkat. Uji (Android 8): Backup lalu hapus skrip lalu Pulihkan; PINTASAN lalu sematkan lalu ketuk dari layar utama: dialog muncul; Terminal > titik tiga > Pilih skrip
 - [ ] KETERBATASAN: Activity bisa menerima extra molina_run_script dari app lain, tetapi hanya memunculkan konfirmasi (tidak jalan diam-diam). Judul pintasan tidak ikut berubah bila skrip di-rename; pintasan lama dari skrip yang dihapus hanya dinonaktifkan. Paket B (favorit/cari/urutan, argumen + saklar percaya, status exit) belum dikerjakan
+
+## 2026-10-28 - Fitur baru: Statistik tontonan (lokal) [WATCH-STATS]
+- [x] feat(cinema): WatchStats (:feature:mpv) menghitung waktu putar AKTIF (dijeda tidak dihitung) per hari dan per judul; disimpan di filesDir/watch-stats.json (atomik, thread latar, maks 120 hari dan 200 judul). Judul URL disamarkan LogRedact. Tanpa jaringan, tanpa telemetri
+- [x] Hook di MPVActivity: attach (onCreate), pause (eventProperty Boolean), START_FILE, FILE_LOADED, END_FILE, flush (onDestroy). Hanya Kotlin, JNI/C++ mpv TIDAK disentuh
+- [x] feat(settings): ubin dan halaman "Statistik tontonan" (kartu Hari ini/7 hari/Total, grafik batang 7 hari emas, 5 judul teratas, saklar catat, hapus dengan konfirmasi). Masuk indeks pencarian Settings
+- [x] Dampak: :feature:mpv (WatchStats.kt baru, 6 baris di MPVActivity), :app (WatchStatsUi.kt baru, SettingsScreen). Manifest dan Gradle TIDAK disentuh
+- [ ] BELUM dikompilasi (CI) dan belum diuji di perangkat. Uji: putar video 1 menit, jeda 30 dtk, lanjut; Settings > Statistik tontonan: Hari ini sekitar 1 mnt; matikan saklar lalu putar lagi: angka tidak naik; Hapus lalu nol
+- [ ] KETERBATASAN: jam dinding (buffering ikut terhitung, kecepatan putar tidak memengaruhi); segmen belum ditutup hilang bila proses dibunuh paksa; statistik belum ikut cadangan gabungan (usulan berikutnya)

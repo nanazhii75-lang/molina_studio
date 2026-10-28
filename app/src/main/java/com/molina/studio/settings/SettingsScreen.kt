@@ -60,12 +60,12 @@ object SettingsNav {
 }
 
 private enum class Page {
-    Home, System, Terminal, Debugging, TerminalIO, TerminalView, Tampilan, CrashReports, About, Log, Stream, Network, Scripts, Packages, Code, TerminalApp, Downloads, Storage, Monitor, Automation, Player
+    Home, System, Terminal, Debugging, TerminalIO, TerminalView, Tampilan, CrashReports, About, Log, Stream, Network, Scripts, Packages, Code, TerminalApp, Downloads, Storage, Monitor, Automation, Player, Stats
 }
 
 private fun parentOf(p: Page): Page? = when (p) {
     Page.Home -> null
-    Page.System, Page.Scripts, Page.Packages, Page.TerminalApp, Page.Downloads, Page.Player -> Page.Home
+    Page.System, Page.Scripts, Page.Packages, Page.TerminalApp, Page.Downloads, Page.Player, Page.Stats -> Page.Home
     Page.Stream -> Page.Packages
     Page.Debugging, Page.TerminalIO, Page.TerminalView, Page.Tampilan -> Page.Terminal
     Page.CrashReports -> Page.Debugging
@@ -94,6 +94,7 @@ private fun titleOf(p: Page): String = when (p) {
     Page.Monitor -> "Monitor Sistem"
     Page.Automation -> "Otomasi dan pembaruan"
     Page.Player -> "Pemutar"
+    Page.Stats -> "Statistik tontonan"
 }
 
 private fun trailOf(p: Page): List<Page> = generateSequence(p) { parentOf(it) }.toList().reversed()
@@ -138,6 +139,8 @@ private val INDEX = listOf(
     Hit("Otomasi dan pembaruan", "Pemeriksaan pembaruan otomatis (Wi-Fi, 24 jam) dan cadangan harian", Page.Automation),
     Hit("Pembaruan otomatis", "Perbarui lencana paket Debian dan yt-dlp lewat WorkManager", Page.Automation),
     Hit("Cadangan otomatis", "Cadangan gabungan harian ke folder Backup", Page.Automation),
+    Hit("Statistik tontonan", "Waktu tonton per hari dan video paling sering diputar (lokal)", Page.Stats),
+    Hit("Waktu tonton", "Total jam putar aktif, grafik 7 hari, judul teratas", Page.Stats),
     Hit("Pemutar", "Molina Cinema: ingat posisi putar, dekoder, sumber IPTV", Page.Player),
     Hit("Ingat posisi putar", "Lanjutkan video dari posisi terakhir", Page.Player),
     Hit("Dekoder perangkat keras", "MediaCodec untuk pemutar mpv", Page.Player),
@@ -290,6 +293,13 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                             selected = lastTile == Page.Player,
                             onOpen = { lastTile = Page.Player; open(Page.Player) }
                         )
+                        W7CategoryTile(
+                            icon = { W7IconStatsBig(52.dp) },
+                            title = "Statistik tontonan",
+                            links = emptyList(),
+                            selected = lastTile == Page.Stats,
+                            onOpen = { lastTile = Page.Stats; open(Page.Stats) }
+                        )
                     }
                     Page.System -> {
                         W7Link({ W7IconTerminal() }, "Terminal", "Molina Terminal: debugging, I/O, tampilan") { open(Page.Terminal) }
@@ -327,6 +337,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                     Page.About -> HubAboutPage()
                     Page.Log -> {}
                     Page.Downloads -> {}
+                    Page.Stats -> WatchStatsPage()
                     Page.Player -> PlayerSettingsPage(onOpenCinema = { com.molina.studio.ShortcutNav.tab = 0 })
                     Page.Stream -> StreamEnginePage()
                     Page.Network -> NetworkSecurityPage()
