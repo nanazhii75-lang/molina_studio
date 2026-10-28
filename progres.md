@@ -1681,3 +1681,8 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] ui(explorer): Favorit/Terakhir/Komputer (W7NavPane) tersembunyi di potret; buka lewat swipe tepi kiri atau tombol ☰, tutup lewat swipe kiri, ketuk scrim, Back, atau pilih folder. Landscape tetap dock 92dp
 - [x] Dampak: hanya :app (Win7OpenDialog.kt). Manifest, Gradle, JNI mpv TIDAK disentuh
 - [ ] BELUM dikompilasi (CI) dan belum diuji di perangkat
+
+## 2026-10-28 - Bilah alat Penjelajah dirampingkan [TOOLBAR-SLIM]
+- [x] ui(explorer): tombol teks Naik dan Maju dihapus dari bilah alat; Mundur/Naik tetap lewat tombol bulat kiri atas. Sisa: Segarkan, Urut, Alat
+- [x] Dampak: hanya :app (Win7OpenDialog.kt). goForward() kini tak dipanggil (peringatan unused). Manifest, Gradle, JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi (CI) dan belum diuji di perangkat

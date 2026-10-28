@@ -533,8 +533,6 @@ fun Win7OpenDialog(
                         .background(Brush.verticalGradient(listOf(Win7.BarTop, Win7.BarBottom))),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    W7Cmd("Naik", canUp) { goUp() }
-                    W7Cmd("Maju", fwdStack.isNotEmpty()) { goForward() }
                     W7Cmd("Segarkan", true) { tick++ }
                     Box {
                         W7Cmd("Urut \u25BE", true) { sortOpen = !sortOpen }
