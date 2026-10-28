@@ -1359,3 +1359,14 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] KETERBATASAN: hanya baris 1 (belum baris `main`/`if __name__`)
 - [ ] LANGKAH BERIKUT: Ganti di semua berkas (Replace in Files)
 
+## 2026-10-28 - Ganti di semua berkas (Replace in Files) [CODE-REPLACE]
+- [x] feat(code): dialog "Cari di berkas" punya tombol "Ganti": kolom pengganti, lalu "Ganti semua..." membuka pratinjau per berkas (jumlah kemunculan, baris contoh - sebelum / + sesudah) sebelum "Terapkan"
+- [x] Aturan aman: penggantian per baris (EOL tidak disentuh); mode regex mendukung $0..$9, kecocokan kosong tidak diganti; berkas bukan UTF-8 murni, biner, > 1 MB, dan berkas dengan tab belum disimpan DILEWATI dan dilaporkan; maks. 200 berkas per operasi
+- [x] Terapkan menulis atomik (FileStore.writeUtf8Atomic) setelah memastikan isi disk sama dengan saat pratinjau; tab bersih yang terbuka dimuat ulang (doReload), panel direktori disegarkan
+- [x] Urungkan (menu "Urungkan ganti di berkas" dan tombol di dialog): memulihkan isi lama di memori (maks. 10 juta karakter), berkas yang berubah lagi setelah ganti dilewati
+- [x] Dampak: :feature:code saja (ReplaceInFiles.kt baru; FindInFiles.kt, CodeSession.kt, OverflowMenu.kt). Gradle, Manifest, JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: sedang (Compose dialog bersarang, Regex.replace dengan lambda)
+- [ ] uji perangkat: ganti kata di 2-3 berkas uji lalu cek git diff; regex dengan $1; tab dirty dilewati; Urungkan memulihkan; tab terbuka ikut ter-refresh
+- [ ] KETERBATASAN: Urungkan hilang saat aplikasi dimatikan (andalkan git diff / git checkout); pencarian hanya baris tunggal
+- [ ] LANGKAH BERIKUT: tombol Play di baris main/if __name__, Command Palette registry aksi tunggal
+

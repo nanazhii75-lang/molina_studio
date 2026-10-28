@@ -143,6 +143,8 @@ internal fun FindInFilesDialog(session: CodeSession, onDismiss: () -> Unit) {
     var result by remember { mutableStateOf<FifResult?>(null) }
     var searching by remember { mutableStateOf(false) }
     var badRegex by remember { mutableStateOf(false) }
+    var replaceOn by remember { mutableStateOf(false) } // [CODE-REPLACE]
+    var replacement by remember { mutableStateOf("") }
     val focus = remember { FocusRequester() }
     val root = session.dir.root
 
@@ -224,6 +226,8 @@ internal fun FindInFilesDialog(session: CodeSession, onDismiss: () -> Unit) {
                 FifToggle("Aa", caseOn) { caseOn = !caseOn }
                 Spacer(Modifier.width(8.dp))
                 FifToggle(".*", regexOn) { regexOn = !regexOn }
+                Spacer(Modifier.width(8.dp))
+                FifToggle("Ganti", replaceOn) { replaceOn = !replaceOn }
                 Spacer(Modifier.width(12.dp))
                 BasicText(
                     text = status,
@@ -231,6 +235,13 @@ internal fun FindInFilesDialog(session: CodeSession, onDismiss: () -> Unit) {
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     style = TextStyle(color = if (badRegex) CodeColors.Danger else CodeColors.SecondaryChampagne, fontSize = 12.sp)
+                )
+            }
+            if (replaceOn) {
+                ReplaceBar(
+                    session = session, files = files, query = query, regex = regexOn, caseSensitive = caseOn,
+                    hasHits = (result?.total ?: 0) > 0 && !badRegex, replacement = replacement,
+                    onReplacement = { replacement = it }, onDone = onDismiss
                 )
             }
             Box(Modifier.fillMaxWidth().padding(top = 10.dp).height(CodeDimens.Hairline).background(CodeColors.Hairline))

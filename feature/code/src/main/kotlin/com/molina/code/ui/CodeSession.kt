@@ -216,6 +216,9 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
     var findFilesOpen by mutableStateOf(false)
     var outlineOpen by mutableStateOf(false)
 
+    /** [CODE-REPLACE] Penggantian terakhir di berkas, untuk Urungkan (hanya di memori). */
+    internal var lastReplace by mutableStateOf<ReplaceUndo?>(null)
+
     /** [CODE-TEMPLATE] Dialog Live Template dan pemilih jenis Scratch terbuka. */
     var templatesOpen by mutableStateOf(false)
     var scratchOpen by mutableStateOf(false)
