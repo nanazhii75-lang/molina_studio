@@ -1350,3 +1350,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] KEPUTUSAN: menutup scratch berisi tetap memunculkan konfirmasi Simpan/Buang/Batal (aman dari kehilangan data). Opsi lanjutan: scratch tanpa konfirmasi
 - [ ] LANGKAH BERIKUT: tombol Play di gutter (baris shebang/main), Ganti di semua berkas
 
+## 2026-10-28 - Tombol Play di gutter [CODE-PLAYGUTTER]
+- [x] feat(code): untuk tab skrip (.sh/.py atau shebang) nomor baris 1 diganti segitiga Play hijau; saat skrip berjalan jadi kotak Stop merah. Ketuk gutter baris 1 = tombol Play toolbar (`session.playActive()`)
+- [x] Sentuhan di area gutter baris 1 dikonsumsi `MolinaCodeEditor.onTouchEvent` (toleransi touch slop), sentuhan lain diteruskan ke editor seperti biasa; batas gutter dari `measureTextRegionOffset()` (diverifikasi dari source sora-editor 0.23.6)
+- [x] Dampak: :feature:code saja (ChangeGutter.kt, EditorHost.kt). Gradle, Manifest, JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi Gradle (CI). Risiko: rendah-sedang (override onTouchEvent, import PreviewKind di EditorHost)
+- [ ] uji perangkat: Play muncul di .sh/.py dan tidak di .kt/.md; ketuk menjalankan skrip, ikon jadi Stop; ketuk lagi menghentikan; scroll/ketuk di baris lain tetap normal
+- [ ] KETERBATASAN: hanya baris 1 (belum baris `main`/`if __name__`)
+- [ ] LANGKAH BERIKUT: Ganti di semua berkas (Replace in Files)
+

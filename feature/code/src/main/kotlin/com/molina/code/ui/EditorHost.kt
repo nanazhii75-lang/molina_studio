@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.viewinterop.AndroidView
+import com.molina.code.preview.PreviewKind
 import io.github.rosemoe.sora.event.ContentChangeEvent
 import io.github.rosemoe.sora.event.PublishSearchResultEvent
 import io.github.rosemoe.sora.event.SelectionChangeEvent
@@ -27,6 +28,13 @@ internal fun EditorHost(session: CodeSession, modifier: Modifier = Modifier) {
         factory = { ctx -> FrameLayout(ctx).apply { setBackgroundColor(CodeColors.EditorBg.toArgb()) } },
         update = { container ->
             val editor = tab.editorOrCreate(container.context)
+            (editor as? MolinaCodeEditor)?.let { me -> // [CODE-PLAYGUTTER]
+                me.onPlay = { session.playActive() }
+                me.playRunning = session.run.running
+                val en = tab.previewKind() == PreviewKind.SCRIPT
+                if (me.playEnabled != en) me.playEnabled = en
+                me.invalidate()
+            }
             // membaca nama berkas di sini: ganti nama / Simpan sebagai ikut menyegarkan highlight
             syncSyntax(editor, tab.file?.name ?: tab.title)
             if (container.childCount != 1 || container.getChildAt(0) !== editor) {

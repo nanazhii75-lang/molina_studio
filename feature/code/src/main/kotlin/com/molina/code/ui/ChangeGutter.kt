@@ -3,6 +3,10 @@ package com.molina.code.ui
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
+import android.graphics.Path
+import android.view.MotionEvent
+import android.view.ViewConfiguration
+import kotlin.math.abs
 import androidx.compose.ui.graphics.toArgb
 import io.github.rosemoe.sora.widget.CodeEditor
 import io.github.rosemoe.sora.widget.EditorRenderer
@@ -94,6 +98,53 @@ internal class MolinaCodeEditor(context: Context) : CodeEditor(context) {
     internal var marks: ChangeMarks? = null
 
     override fun onCreateRenderer(): EditorRenderer = GutterRenderer(this)
+
+    /** [CODE-PLAYGUTTER] True = baris 1 menampilkan tombol Play di gutter; [playRunning] = skrip sedang berjalan (ikon kotak). */
+    @Volatile
+    internal var playEnabled: Boolean = false
+    @Volatile
+    internal var playRunning: Boolean = false
+    internal var onPlay: (() -> Unit)? = null
+    private var playGesture = false
+    private var downX = 0f
+    private var downY = 0f
+    private val slop = ViewConfiguration.get(context).scaledTouchSlop.toFloat()
+
+    /** Tepi kanan gutter di layar (sama dengan awal area teks). */
+    private fun gutterRight(): Float =
+        measureTextRegionOffset() - (if (isWordwrap || !isLineNumberPinned) offsetX else 0)
+
+    private fun playHit(x: Float, y: Float): Boolean {
+        if (!playEnabled || !isLineNumberEnabled) return false
+        if (x > gutterRight()) return false
+        val top = (getRowTop(0) - offsetY).toFloat()
+        val bottom = (getRowBottom(0) - offsetY).toFloat()
+        return y >= top && y <= bottom
+    }
+
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        if (playEnabled && onPlay != null) {
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> if (playHit(event.x, event.y)) {
+                    playGesture = true
+                    downX = event.x
+                    downY = event.y
+                    return true
+                }
+                MotionEvent.ACTION_MOVE -> if (playGesture) return true
+                MotionEvent.ACTION_UP -> if (playGesture) {
+                    playGesture = false
+                    if (abs(event.x - downX) <= slop && abs(event.y - downY) <= slop) onPlay?.invoke()
+                    return true
+                }
+                MotionEvent.ACTION_CANCEL -> if (playGesture) {
+                    playGesture = false
+                    return true
+                }
+            }
+        }
+        return super.onTouchEvent(event)
+    }
 }
 
 private class GutterRenderer(private val ed: MolinaCodeEditor) : EditorRenderer(ed) {
@@ -101,16 +152,38 @@ private class GutterRenderer(private val ed: MolinaCodeEditor) : EditorRenderer(
     private val colAdded = CodeColors.Clean.toArgb()
     private val colModified = 0xFF4A9EE0.toInt()
     private val colDeleted = CodeColors.Danger.toArgb()
+    private val colPlay = CodeColors.Clean.toArgb()
+    private val colStop = CodeColors.Danger.toArgb()
+    private val playPath = Path()
 
     override fun drawLineNumber(canvas: Canvas, line: Int, row: Int, offsetX: Float, width: Float, color: Int) {
-        super.drawLineNumber(canvas, line, row, offsetX, width, color)
+        val play = line == 0 && ed.playEnabled
+        if (!play) super.drawLineNumber(canvas, line, row, offsetX, width, color)
         if (width + offsetX <= 0f) return
-        val m = ed.marks ?: return
-        if (line < 0 || line >= m.kind.size) return
         val top = (ed.getRowTop(row) - ed.offsetY).toFloat()
         val bottom = (ed.getRowBottom(row) - ed.offsetY).toFloat()
         val dp = ed.dpUnit
         val left = maxOf(0f, offsetX)
+        if (play) {
+            // [CODE-PLAYGUTTER] menggantikan nomor baris 1: segitiga Play, atau kotak Stop saat berjalan
+            val cx = offsetX + width / 2f
+            val cy = (top + bottom) / 2f
+            val sz = minOf((bottom - top) * 0.5f, width * 0.8f)
+            if (ed.playRunning) {
+                paint.color = colStop
+                canvas.drawRect(cx - sz * 0.4f, cy - sz * 0.4f, cx + sz * 0.4f, cy + sz * 0.4f, paint)
+            } else {
+                paint.color = colPlay
+                playPath.reset()
+                playPath.moveTo(cx - sz * 0.35f, cy - sz * 0.5f)
+                playPath.lineTo(cx - sz * 0.35f, cy + sz * 0.5f)
+                playPath.lineTo(cx + sz * 0.55f, cy)
+                playPath.close()
+                canvas.drawPath(playPath, paint)
+            }
+        }
+        val m = ed.marks ?: return
+        if (line < 0 || line >= m.kind.size) return
         val k = m.kind[line]
         if (k != 0.toByte()) {
             paint.color = if (k == ChangeDiff.ADDED) colAdded else colModified
