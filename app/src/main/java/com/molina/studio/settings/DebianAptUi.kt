@@ -1,6 +1,7 @@
 package com.molina.studio.settings
 
 import androidx.compose.runtime.Composable
+import com.molina.studio.packages.StarterProfile
 import android.content.Context
 import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,6 +33,14 @@ internal enum class AptJob(val title: String, val command: String, val timeoutMs
         "apt-get autoremove -y -o APT::Sandbox::User=root && apt-get clean",
         10 * 60_000L,
         "Menghapus paket yang tidak lagi dibutuhkan (autoremove) dan cache unduhan apt. Aman dijalankan kapan saja dan menambah ruang kosong Debian."
+    ),
+    InstallStarter(
+        "Pasang paket Starter",
+        StarterProfile.SCRIPT,
+        40 * 60_000L,
+        "Memasang paket terkurasi: ${StarterProfile.PACKAGES.joinToString(", ")} (apt, repositori resmi Debian yang ditandatangani). " +
+            "Butuh internet dan ruang kosong minimal 1 GB; paket yang sudah terpasang dilewati. " +
+            "yt-dlp dipasang terpisah di Setelan > Paket (diverifikasi SHA-256)."
     )
 }
 
@@ -54,6 +63,13 @@ private fun aptSummary(lines: List<String>): String? {
     return if (lines.any { it.contains("up to date", ignoreCase = true) }) "Sistem sudah terbaru." else null
 }
 
+/** Ringkasan khusus profil Starter: "0 newly installed" berarti semuanya sudah ada, bukan "sistem terbaru". */
+private fun starterSummary(lines: List<String>): String? {
+    val m = lines.mapNotNull { APT_COUNTS.find(it) }.lastOrNull() ?: return null
+    val added = m.groupValues[2]
+    return if (added == "0") "Semua paket Starter sudah terpasang." else "$added paket baru dipasang (termasuk dependensi)."
+}
+
 private val COUNT_LINE = Regex("""^\d+$""")
 
 private fun countSummary(lines: List<String>): String? =
@@ -63,7 +79,11 @@ private fun countSummary(lines: List<String>): String? =
 internal fun DebianAptDialog(job: AptJob, onClose: () -> Unit) {
     val ctx = LocalContext.current
     val check = job == AptJob.CheckUpdates
-    val summarize: (List<String>) -> String? = if (check) ::countSummary else ::aptSummary
+    val summarize: (List<String>) -> String? = when (job) {
+        AptJob.CheckUpdates -> ::countSummary
+        AptJob.InstallStarter -> ::starterSummary
+        else -> ::aptSummary
+    }
     ToolRunDialog(
         ToolRun("Debian: ${job.title}", job.command, job.timeoutMs, job.note, !check, if (check) COUNT_LINE else APT_KEY_LINES, summarize),
         onClose = onClose
@@ -74,6 +94,7 @@ internal fun DebianAptDialog(job: AptJob, onClose: () -> Unit) {
             AptJob.CheckUpdates -> out.lineSequence().map { it.trim() }.lastOrNull { COUNT_LINE.matches(it) }
                 ?.toIntOrNull()?.let { AptHistory.setPending(ctx, it) }
             AptJob.CleanUp -> Unit
+            AptJob.InstallStarter -> Unit
         }
     }
 }

@@ -157,6 +157,7 @@ private val INDEX = listOf(
     Hit("About", "Versi, perangkat, status, dan lisensi (kini di Sistem > Info)", Page.Info),
     Hit("Salin info debug", "Salin ringkasan versi dan status untuk laporan bug", Page.Info),
     Hit("Info", "Status Molina dan informasi dasar perangkat", Page.Info),
+    Hit("Pasang paket Starter", "Profil utilitas: git, python3, ffmpeg, openssh-client, vim di Sistem > Debian", Page.System),
     Hit("Kelola rootfs Debian", "Backup, restore, dan reset rootfs Debian di Sistem", Page.System),
     Hit("Status Molina", "Ringkasan Debian, paket, yt-dlp, dan cadangan di Sistem > Info", Page.Info),
     Hit("Informasi perangkat", "Versi Molina Studio, Android, perangkat, arsitektur, dan RAM", Page.Info),
@@ -324,6 +325,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         W7Link({ W7IconAptSync() }, "Periksa pembaruan paket", AptHistory.checkSubtitle(aptPending)) { apt = AptJob.CheckUpdates }
                         W7Link({ W7IconAptSync() }, "Perbarui dan tingkatkan paket", AptHistory.subtitle(aptLast)) { apt = AptJob.UpdateUpgrade }
                         W7Link({ W7IconToolList() }, "Bersihkan cache dan paket yatim", "autoremove dan apt clean: menambah ruang kosong Debian") { apt = AptJob.CleanUp }
+                        W7Link({ W7IconToolList() }, "Pasang paket Starter", "git, python3, ffmpeg, openssh-client, vim sekali ketuk (apt resmi Debian)") { apt = AptJob.InstallStarter } // [TERM-STARTER1]
                         W7Link({ W7IconToolList() }, "Daftar tool terpasang", "Deteksi alat Molina di Debian beserta versinya") { showTools = true }
                         W7Link({ W7IconRootfs() }, "Kelola rootfs Debian", "Cadangkan, pulihkan, atau atur ulang seluruh rootfs (tar.gz)") { showRootfsAdmin = true } // [TERM-ROOTFS2]
                         W7Link({ W7IconToolList() }, "Cadangan dan pemulihan", "Penanda video, snippet, dan setelan dalam satu berkas Backup") { showBackup = true }

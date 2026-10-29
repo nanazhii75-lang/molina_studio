@@ -1979,3 +1979,13 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: HANYA :app (RootfsAdmin.kt, RootfsAdminUi.kt, SettingsScreen.kt). Gradle, AndroidManifest, JNI, izin TIDAK disentuh
 - [ ] BELUM dikompilasi (CI) dan belum diuji di perangkat. Uji: cadangkan lalu cek nama berkas; ikon M tampil di Sistem > Debian dan di judul dialog
 - [ ] Berikutnya (setelah CI hijau dan 2c lolos uji perangkat): profil utilitas satu ketuk, atau molina notify / hook pasca-unduh
+
+## 2026-10-29 - Profil utilitas satu ketuk: paket Starter [TERM-STARTER1]
+- [x] feat(term): packages/StarterProfile.kt (git, python3, ffmpeg, openssh-client, vim; apt-get --no-install-recommends, repositori resmi Debian). Cek ruang kosong 1 GB (exit 4; df gagal = lanjut), update lalu install berantai (&&), idempoten
+- [x] feat(settings): AptJob.InstallStarter memakai ToolRunDialog yang ada (konfirmasi dengan pratinjau perintah, progres, timeout 40 menit, Batalkan); ringkasan khusus "N paket baru dipasang" atau "Semua paket Starter sudah terpasang"; tautan Setelan > Sistem > Debian > "Pasang paket Starter" dan entri pencarian
+- [x] Uji: scripts/app-tests/run_starter_profile.sh (13 kasus, apt-get dan df tiruan; jalankan dengan `bash`): sintaks, daftar paket sama dengan skrip, ruang cukup/kurang/df gagal/tepat 1 GB, update gagal tidak memanggil install
+- [x] Dampak: HANYA :app (packages/StarterProfile.kt baru, settings/DebianAptUi.kt, settings/SettingsScreen.kt). Gradle, AndroidManifest, JNI, izin, dependensi TIDAK disentuh. yt-dlp sengaja di luar profil (punya halaman sendiri dengan verifikasi SHA-256)
+- [ ] BELUM dikompilasi (CI) dan belum diuji di perangkat. Periksa di CI: `when (job)` eksaustif untuk AptJob baru, string raw dengan $ di StarterProfile.kt
+- [ ] Uji di perangkat: (1) ketuk Pasang paket Starter: dialog konfirmasi menampilkan skrip; (2) jalankan di rootfs baru: semua paket terpasang, git/python3/ffmpeg/ssh/vim jalan; (3) jalankan lagi: ringkasan "sudah terpasang"; (4) Batalkan di tengah unduhan lalu ulangi: lanjut tanpa rusak; (5) tanpa internet: gagal rapi dengan kode keluar tidak nol; (6) `df -Pk /root` di PRoot Android 8 memberi angka masuk akal (bila tidak, cek dilewati); (7) cek `Daftar tool terpasang` mengenali alat baru
+- [ ] Belum ada: pilihan paket kustom (ceklis), profil lain (Dev, Media), pemasangan otomatis saat rootfs pertama siap, deteksi mana yang sudah terpasang sebelum konfirmasi
+- [ ] Berikutnya: `molina notify` + opsi putar-otomatis pasca-unduh (PostDownload sudah menambah ke Terakhir diputar Cinema)
