@@ -108,6 +108,7 @@ internal fun TerminalHeader(onOpenSettings: () -> Unit) {
     var snippets by remember { mutableStateOf(false) }
     var scriptPicker by remember { mutableStateOf(false) }
     var toCode by remember { mutableStateOf(false) }
+    var links by remember { mutableStateOf(false) }
 
     Row(
         Modifier
@@ -151,6 +152,7 @@ internal fun TerminalHeader(onOpenSettings: () -> Unit) {
             if (snippets) SnippetDialog { snippets = false }
             if (scriptPicker) com.molina.studio.code.ScriptPickerDialog { scriptPicker = false }
             if (toCode) SendToCodeDialog { toCode = false }
+            if (links) LinksDialog { links = false }
             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                 DropdownMenuItem(
                     text = { Text("Hentikan proses (Ctrl+C)") },
@@ -192,6 +194,10 @@ internal fun TerminalHeader(onOpenSettings: () -> Unit) {
                         else CodeInbox.deliver(out)
                         if (msg != null) Toast.makeText(ctx, msg, Toast.LENGTH_SHORT).show()
                     }
+                )
+                DropdownMenuItem(
+                    text = { Text("Tautan di layar") },
+                    onClick = { menu = false; links = true }
                 )
                 DropdownMenuItem(
                     text = { Text("Pengaturan") },

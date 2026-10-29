@@ -2017,3 +2017,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: HANYA :app. Gradle, AndroidManifest, JNI mpv, izin, dependensi TIDAK disentuh. W7SecretField private -> internal
 - [ ] BELUM dikompilasi lewat CI dan belum diuji di perangkat (Compose hanya diperiksa sintaksnya)
 - [ ] Uji di perangkat: semua format dan level, ZIP + sandi, nama kustom, kompres dua kali (nama (1)), Hentikan membersihkan hasil, RAM tar.xz/7z level 6 di Android 8, layar 360dp
+
+## 2026-10-29 - Seragamkan tag logcat [LOG-TAGS1]
+- [x] Audit: LogcatReporter memfilter dengan --pid (bukan tag); LogScreen/BugReport/filter Cinema berbasis source dan label source/tag, jadi tag in-app TIDAK diubah
+- [x] refactor(log): MolinaLog (TerminalPrefs.kt) mengirim ke logcat dengan tag Molina/Term; MpvLog.emit dengan tag Molina/Mpv. Tag asal jadi awalan pesan ([TerminalEmulator], [playback]). AppLog tetap memakai tag asal
+- [x] Dampak: HANYA :app (terminal/TerminalPrefs.kt) dan :feature:mpv (MpvLog.kt). Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
+- [ ] BELUM dikompilasi (CI). Periksa di CI: const val dalam internal object MpvLog, fungsi private tagged() di dua object terpisah
+- [ ] Uji di perangkat: `logcat -s Molina/Term Molina/Mpv` (Log Level terminal Debug/Verbose); putar video lalu cek baris Molina/Mpv dengan awalan [playback]; halaman Log in-app: label tetap `mpv`, bukan `mpv/Molina/Mpv`
+- [ ] Belum diseragamkan: ytdlp, auto, CommandBridge, CommandServer, rootfs-admin, shield (lewat AppLog)
+- [ ] Berikutnya: pencarian scrollback + deteksi URL (terminal-view), command palette

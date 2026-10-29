@@ -12,6 +12,12 @@ import com.molina.core.common.LogRedact
 internal object MpvLog {
     private const val SOURCE = "mpv"
 
+    /** Tag logcat seragam; tag asal (mis. "playback") jadi awalan pesan. AppLog tetap memakai tag asal. */
+    const val LOGCAT_TAG = "Molina/Mpv"
+
+    private fun tagged(tag: String, msg: String) =
+        if (tag.isEmpty() || tag == SOURCE) msg else "[$tag] $msg"
+
     fun v(tag: String, msg: String, tr: Throwable? = null) =
         emit(Log.VERBOSE, LogLevel.Debug, tag, msg, tr)
 
@@ -43,7 +49,7 @@ internal object MpvLog {
         val safe = LogRedact.text(msg)
         val trace = if (tr == null) "" else
             "\n" + LogRedact.text(Log.getStackTraceString(tr))
-        Log.println(prio, tag, safe + trace)
+        Log.println(prio, LOGCAT_TAG, tagged(tag, safe) + trace)
         val summary = if (tr == null) safe else
             listOf(safe, LogRedact.text(tr.toString()))
                 .filter { it.isNotEmpty() }

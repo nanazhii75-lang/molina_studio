@@ -245,19 +245,24 @@ object TerminalPrefs {
 
 /** Logger yang menghormati Log Level di Settings (Off / Normal / Debug / Verbose), seperti Termux. */
 object MolinaLog {
+    /** Tag logcat seragam untuk sisi terminal; tag asal dipertahankan sebagai awalan pesan. */
+    const val LOGCAT_TAG = "Molina/Term"
+
     private fun on(min: Int) = TerminalPrefs.logLevel >= min
+    private fun tagged(tag: String, msg: String) =
+        if (tag.isEmpty() || tag == LOGCAT_TAG) msg else "[$tag] $msg"
 
     fun e(tag: String, msg: String, tr: Throwable? = null) {
         if (!on(TerminalPrefs.LOG_NORMAL)) return
-        if (tr != null) Log.e(tag, msg, tr) else Log.e(tag, msg)
+        if (tr != null) Log.e(LOGCAT_TAG, tagged(tag, msg), tr) else Log.e(LOGCAT_TAG, tagged(tag, msg))
     }
-    fun w(tag: String, msg: String) { if (on(TerminalPrefs.LOG_NORMAL)) Log.w(tag, msg) }
-    fun i(tag: String, msg: String) { if (on(TerminalPrefs.LOG_NORMAL)) Log.i(tag, msg) }
-    fun d(tag: String, msg: String) { if (on(TerminalPrefs.LOG_DEBUG)) Log.d(tag, msg) }
-    fun v(tag: String, msg: String) { if (on(TerminalPrefs.LOG_VERBOSE)) Log.v(tag, msg) }
+    fun w(tag: String, msg: String) { if (on(TerminalPrefs.LOG_NORMAL)) Log.w(LOGCAT_TAG, tagged(tag, msg)) }
+    fun i(tag: String, msg: String) { if (on(TerminalPrefs.LOG_NORMAL)) Log.i(LOGCAT_TAG, tagged(tag, msg)) }
+    fun d(tag: String, msg: String) { if (on(TerminalPrefs.LOG_DEBUG)) Log.d(LOGCAT_TAG, tagged(tag, msg)) }
+    fun v(tag: String, msg: String) { if (on(TerminalPrefs.LOG_VERBOSE)) Log.v(LOGCAT_TAG, tagged(tag, msg)) }
 
     /** Log tombol; hanya bila "Terminal View Key Logging" aktif (dan Log Level bukan Off). */
     fun key(tag: String, msg: String) {
-        if (TerminalPrefs.keyLogging && on(TerminalPrefs.LOG_NORMAL)) Log.d(tag, msg)
+        if (TerminalPrefs.keyLogging && on(TerminalPrefs.LOG_NORMAL)) Log.d(LOGCAT_TAG, tagged(tag, msg))
     }
 }
