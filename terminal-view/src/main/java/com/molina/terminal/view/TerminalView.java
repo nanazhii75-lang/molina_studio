@@ -6,6 +6,7 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.os.Build;
 import android.os.Handler;
@@ -64,6 +65,14 @@ public final class TerminalView extends View {
     /** The top row of text to display. Ranges from -activeTranscriptRows to 0. */
     int mTopRow;
     int[] mDefaultSelectors = new int[]{-1,-1,-1,-1};
+
+    /** Sorotan hasil pencarian: baris layar (HIT_NONE = tidak ada) dan rentang kolom [mHitX1, mHitX2). */
+    private static final int HIT_NONE = Integer.MIN_VALUE;
+    private static final int HIT_COLOR = 0x66E6B450;
+    private final Paint mHitPaint = new Paint();
+    int mHitRow = HIT_NONE, mHitX1, mHitX2;
+    /** Saat true, pembaruan layar tidak mengembalikan tampilan ke bawah. Dilepas saat pengguna berinteraksi. */
+    boolean mSearchPinned;
 
     float mScaleFactor = 1.f;
     final GestureAndScaleRecognizer mGestureRecognizer;
@@ -304,6 +313,7 @@ public final class TerminalView extends View {
 
             @Override
             public boolean commitText(CharSequence text, int newCursorPosition) {
+                unpinSearch();
                 if (TERMINAL_VIEW_KEY_LOGGING_ENABLED) {
                     mClient.logInfo(LOG_TAG, "IME: commitText(\"" + text + "\", " + newCursorPosition + ")");
                 }
@@ -423,7 +433,19 @@ public final class TerminalView extends View {
             }
         }
 
-        if (!skipScrolling && mTopRow != 0) {
+        if (mSearchPinned) {
+            // Ikuti baris hasil saat riwayat bergeser karena output baru.
+            int shift = mEmulator.getScrollCounter();
+            if (shift > 0) {
+                mTopRow -= shift;
+                mHitRow -= shift;
+            }
+            rowsInHistory = mEmulator.getScreen().getActiveTranscriptRows();
+            if (mTopRow < -rowsInHistory) mTopRow = -rowsInHistory;
+            if (mHitRow < -rowsInHistory) unpinSearch();
+        }
+
+        if (!skipScrolling && mTopRow != 0 && !mSearchPinned) {
             // Scroll down if not already there.
             if (mTopRow < -3) {
                 // Awaken scroll bars only if scrolling a noticeable amount
@@ -538,6 +560,7 @@ public final class TerminalView extends View {
     @Override
     @TargetApi(23)
     public boolean onTouchEvent(MotionEvent event) {
+        if (event.getActionMasked() == MotionEvent.ACTION_DOWN) unpinSearch();
         if (mEmulator == null) return true;
         final int action = event.getAction();
 
@@ -697,6 +720,7 @@ public final class TerminalView extends View {
      */
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
+        unpinSearch();
         if (TERMINAL_VIEW_KEY_LOGGING_ENABLED)
             mClient.logInfo(LOG_TAG, "onKeyDown(keyCode=" + keyCode + ", isSystem()=" + event.isSystem() + ", event=" + event + ")");
         if (mEmulator == null) return true;
@@ -920,6 +944,14 @@ public final class TerminalView extends View {
 
             mRenderer.render(mEmulator, canvas, mTopRow, sel[0], sel[1], sel[2], sel[3]);
 
+            // sorotan hasil pencarian (di atas teks, transparan)
+            if (mHitRow != HIT_NONE && mHitRow >= mTopRow && mHitRow < mTopRow + mEmulator.mRows) {
+                float top = (mHitRow - mTopRow) * mRenderer.getFontLineSpacing();
+                float fw = mRenderer.getFontWidth();
+                mHitPaint.setColor(HIT_COLOR);
+                canvas.drawRect(mHitX1 * fw, top, mHitX2 * fw, top + mRenderer.getFontLineSpacing(), mHitPaint);
+            }
+
             // render the text selection handles
             renderTextSelection();
         }
@@ -950,6 +982,27 @@ public final class TerminalView extends View {
 
     public int getPointY(int cy) {
         return Math.round((cy - mTopRow) * mRenderer.mFontLineSpacing);
+    }
+
+    /** Gulir ke baris layar [row] (negatif = riwayat), sorot kolom [x1, x2), dan tahan tampilan di sana. */
+    public void showSearchHit(int row, int x1, int x2) {
+        if (mEmulator == null) return;
+        int rowsInHistory = mEmulator.getScreen().getActiveTranscriptRows();
+        mHitRow = row;
+        mHitX1 = x1;
+        mHitX2 = x2;
+        mTopRow = Math.max(-rowsInHistory, Math.min(0, row - mEmulator.mRows / 2));
+        mSearchPinned = true;
+        invalidate();
+    }
+
+    /** Lepas sorotan dan pin. Dipanggil saat pengguna mengetuk, menekan tombol, mengetik, atau menggulir. */
+    public void unpinSearch() {
+        if (mSearchPinned || mHitRow != HIT_NONE) {
+            mSearchPinned = false;
+            mHitRow = HIT_NONE;
+            invalidate();
+        }
     }
 
     public int getTopRow() {

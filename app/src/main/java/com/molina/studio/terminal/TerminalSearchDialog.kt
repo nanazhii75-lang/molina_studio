@@ -42,21 +42,39 @@ import androidx.compose.ui.window.DialogProperties
 import com.molina.studio.cinema.Win7
 import com.molina.studio.cinema.Win7Button
 import com.molina.studio.settings.Win7GlassWindow
+import com.molina.terminal.view.TerminalView
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+/** Salinan baris layar (riwayat + layar) saat dialog dibuka. [firstRow] = indeks baris pertama (negatif). */
+private class RowSnapshot(val firstRow: Int, val rows: List<String>)
+
+/** Ambil teks tiap baris layar di main thread (buffer emulator tidak thread-safe). Null saat layar penuh aktif. */
+private fun snapshotRows(): RowSnapshot? {
+    val em = TerminalSessions.currentSession?.emulator ?: return null
+    if (em.isAlternateBufferActive) return null
+    val screen = em.screen ?: return null
+    val cols = em.mColumns
+    val first = -screen.activeTranscriptRows
+    val rows = ArrayList<String>(-first + em.mRows)
+    for (r in first until em.mRows) rows.add(screen.getSelectedText(0, r, cols, r))
+    return RowSnapshot(first, rows)
+}
+
 /**
- * Dialog "Cari di scrollback": mencari teks di transkrip Terminal (snapshot saat dibuka).
- * Hasil terbaru di atas; tiap hasil bisa disalin atau disisipkan ke prompt tanpa Enter.
- * Pencarian berjalan di Dispatchers.Default dan dibatalkan otomatis saat kueri berubah.
+ * Dialog "Cari di scrollback": mencari per baris layar. "Lompat" menggulir Terminal ke baris itu dan menyorotnya
+ * sampai pengguna mengetuk, mengetik, atau menggulir. "Salin"/"Sisip" mengambil baris cuplikan.
  */
 @Composable
 internal fun TerminalSearchDialog(onDismiss: () -> Unit) {
     val ctx = LocalContext.current
-    val text = remember { TerminalSessions.currentSession?.emulator?.screen?.transcriptText.orEmpty() }
+    val snap = remember { snapshotRows() }
+    val view: TerminalView? = TerminalSessions.client.view
     var query by remember { mutableStateOf("") }
     val hits by produceState<List<TerminalSearch.Hit>>(emptyList(), query) {
-        value = withContext(Dispatchers.Default) { TerminalSearch.find(text, query) }
+        val s = snap ?: return@produceState
+        val q = query
+        value = withContext(Dispatchers.Default) { TerminalSearch.findRows(s.rows, s.firstRow, q) }
     }
     val fieldColors = OutlinedTextFieldDefaults.colors(
         focusedTextColor = Win7.Ink,
@@ -83,8 +101,12 @@ internal fun TerminalSearchDialog(onDismiss: () -> Unit) {
                     placeholder = { Text("Cari teks", fontSize = 13.sp) }, colors = fieldColors
                 )
                 when {
+                    snap == null -> Text(
+                        "Pencarian tidak tersedia saat program layar penuh (vim, htop) aktif.",
+                        color = Win7.TextDim, fontSize = 12.sp
+                    )
                     query.isBlank() -> Text(
-                        "Ketik untuk mencari di transkrip. Tidak membedakan huruf besar-kecil.",
+                        "Ketik untuk mencari di riwayat dan layar. Tidak membedakan huruf besar-kecil.",
                         color = Win7.TextDim, fontSize = 12.sp
                     )
                     hits.isEmpty() -> Text("Tidak ada hasil.", color = Win7.TextDim, fontSize = 12.sp)
@@ -92,7 +114,7 @@ internal fun TerminalSearchDialog(onDismiss: () -> Unit) {
                         val cap = if (hits.size >= TerminalSearch.MAX_HITS) " (dibatasi ${TerminalSearch.MAX_HITS})" else ""
                         Text("${hits.size} baris cocok$cap, terbaru di atas.", color = Win7.TextDim, fontSize = 12.sp)
                         Column(Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState())) {
-                            hits.forEach { h -> HitRow(ctx, h, onDismiss) }
+                            hits.forEach { h -> HitRow(ctx, h, view, onDismiss) }
                         }
                     }
                 }
@@ -105,17 +127,20 @@ internal fun TerminalSearchDialog(onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun HitRow(ctx: Context, h: TerminalSearch.Hit, onDismiss: () -> Unit) {
+private fun HitRow(ctx: Context, h: TerminalSearch.Hit, view: TerminalView?, onDismiss: () -> Unit) {
     val line = h.snippet.trim()
+    val where = if (h.row < 0) "riwayat ${-h.row} baris ke atas" else "layar baris ${h.row + 1}"
     Column(Modifier.fillMaxWidth().padding(vertical = 5.dp)) {
-        Text(
-            "baris ${h.line}", color = Win7.TextDim, fontSize = 10.sp, fontFamily = FontFamily.Monospace
-        )
+        Text(where, color = Win7.TextDim, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
         Text(
             h.snippet, color = Win7.Ink, fontSize = 11.sp, fontFamily = FontFamily.Monospace,
             maxLines = 2, overflow = TextOverflow.Ellipsis
         )
         Row(Modifier.fillMaxWidth().padding(top = 3.dp), horizontalArrangement = Arrangement.End) {
+            SearchBtn("Lompat") {
+                if (view == null) Toast.makeText(ctx, "Terminal belum siap", Toast.LENGTH_SHORT).show()
+                else { view.showSearchHit(h.row, h.col1, h.col2); onDismiss() }
+            }
             SearchBtn("Salin") {
                 val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 cm.setPrimaryClip(ClipData.newPlainText("molina-terminal-search", line))
