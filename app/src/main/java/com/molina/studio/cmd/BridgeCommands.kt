@@ -18,6 +18,7 @@ import com.molina.studio.R
 import com.molina.studio.log.LogBus
 import com.molina.studio.settings.MolinaExplorer
 import com.molina.studio.terminal.TerminalPrefs
+import com.molina.studio.ui.MolinaTheme
 import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
@@ -87,6 +88,7 @@ internal object BridgeCommands {
             )
             val n = Notification.Builder(app, CHANNEL)
                 .setSmallIcon(R.drawable.ic_stat_molina)
+                .setColor(MolinaTheme.GOLD_ARGB)
                 .setContentTitle(msg.title)
                 .setContentText(msg.text)
                 .setStyle(Notification.BigTextStyle().bigText(msg.text))

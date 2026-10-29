@@ -1,12 +1,16 @@
 package com.molina.studio.cinema
 
 import java.io.BufferedInputStream
+import java.io.BufferedOutputStream
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.FileInputStream
+import java.io.FileOutputStream
 import java.io.FilterInputStream
 import java.io.IOException
 import java.io.InputStream
+import java.io.OutputStream
+import java.nio.file.Files
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 import net.lingala.zip4j.ZipFile as Z4jZipFile
@@ -14,10 +18,20 @@ import net.lingala.zip4j.exception.ZipException as Z4jException
 import net.lingala.zip4j.model.FileHeader
 import org.apache.commons.compress.PasswordRequiredException
 import org.apache.commons.compress.archivers.sevenz.SevenZFile
+import org.apache.commons.compress.archivers.sevenz.SevenZMethod
+import org.apache.commons.compress.archivers.sevenz.SevenZMethodConfiguration
+import org.apache.commons.compress.archivers.sevenz.SevenZOutputFile
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
+import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream
+import org.apache.commons.compress.compressors.bzip2.BZip2CompressorOutputStream
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream
+import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream
+import org.apache.commons.compress.compressors.gzip.GzipParameters
 import org.apache.commons.compress.compressors.xz.XZCompressorInputStream
+import org.apache.commons.compress.compressors.xz.XZCompressorOutputStream
+import org.tukaani.xz.LZMA2Options
 
 /** [ARCHIVE] Hasil ekstrak: [dir] tempat hasil, [files] jumlah berkas (-1 = tidak dihitung), [renamed] berkas yang diganti nama karena bentrok. */
 internal class ExtractResult(val dir: File, val files: Int, val renamed: Int) {
@@ -287,6 +301,185 @@ internal object ArchiveEngine {
             val clean = sink.accept(ArchiveNames.stem(file.name), false) ?: return
             sink.write(clean, 0L, ins, false)
         }
+    }
+
+    // ---------------------------------------------------------------- kompres [ARCHIVE2]
+
+    /** Pengawas ruang kosong: periksa tiap [SPACE_CHECK_EVERY] byte masukan agar kompres tidak mengisi penuh penyimpanan. */
+    private class SpaceGuard(val dir: File) {
+        private var since = 0L
+        fun add(n: Int) {
+            since += n
+            if (since >= SPACE_CHECK_EVERY) {
+                since = 0
+                if (dir.usableSpace < MIN_FREE) throw Abort("Ruang penyimpanan tidak cukup")
+            }
+        }
+    }
+
+    private fun isLink(f: File): Boolean = try { Files.isSymbolicLink(f.toPath()) } catch (e: Exception) { false }
+
+    /**
+     * Telusuri [files] berurutan (folder lebih dulu, anak diurutkan nama). Tautan simbolik, berkas khusus (FIFO, soket), dan
+     * [skip] (arsip keluaran sendiri) dilewati. Folder yang tidak bisa dibaca = galat, bukan arsip yang diam-diam tidak lengkap.
+     */
+    private fun walk(files: List<File>, skip: File, ctl: FileOps.Ctl, visit: (path: String, f: File, dir: Boolean) -> Unit) {
+        fun rec(f: File, path: String) {
+            ctl.check()
+            if (isLink(f) || f.canonicalFile == skip) return
+            if (f.isDirectory) {
+                visit(path, f, true)
+                val kids = f.listFiles() ?: throw Abort("Folder tidak bisa dibaca: " + f.name)
+                for (k in kids.sortedBy { it.name }) rec(k, path + "/" + k.name)
+            } else if (f.isFile) {
+                visit(path, f, false)
+            }
+        }
+        for (f in files) rec(f, f.name)
+    }
+
+    /** Baca tepat [size] byte dari [f] ke [sink]; berkas yang menyusut saat dibaca = galat, yang membesar dipotong di [size]. */
+    private fun feed(f: File, size: Long, ctl: FileOps.Ctl, guard: SpaceGuard, sink: (ByteArray, Int) -> Unit) {
+        var left = size
+        FileInputStream(f).use { ins ->
+            val buf = ByteArray(128 * 1024)
+            while (left > 0) {
+                ctl.check()
+                val n = ins.read(buf, 0, minOf(buf.size.toLong(), left).toInt())
+                if (n < 0) throw Abort("Berkas berubah saat dikompres: " + f.name)
+                sink(buf, n)
+                left -= n
+                ctl.add(n.toLong())
+                guard.add(n)
+            }
+        }
+    }
+
+    /**
+     * Kompres [files] menjadi satu arsip bernama [CompressOptions.baseName] + ekstensi format di [destDir]; hasil tidak menimpa
+     * berkas lama (nama diberi " (1)"). Blocking: panggil dari Dispatchers.IO. Gagal/batal = berkas keluaran dihapus.
+     * ZIP lewat [FileOps.zipAll] (zip4j untuk AES); 7z dan tar(.gz/.bz2/.xz) lewat commons-compress. Tautan dilewati.
+     */
+    fun compress(files: List<File>, destDir: File, opt: CompressOptions, ctl: FileOps.Ctl): File {
+        val fmt = opt.format
+        val pw = opt.password?.takeIf { it.isNotEmpty() }
+        if (files.isEmpty()) throw IOException("Tidak ada yang dikompres")
+        for (f in files) if (!f.exists() && !isLink(f)) throw IOException("Sumber tidak ditemukan: " + f.name)
+        if (!destDir.isDirectory || !destDir.canWrite()) throw IOException("Folder tujuan tidak bisa ditulisi")
+        files.groupBy { it.name }.entries.firstOrNull { it.value.size > 1 }?.let {
+            throw IOException("Nama bentrok di dalam arsip: \"" + it.key + "\" ada di lebih dari satu folder. Kompres terpisah atau ubah namanya.")
+        }
+        CompressNames.baseNameError(opt.baseName, fmt)?.let { throw IOException(it) }
+        if (pw != null && !fmt.hasPassword) throw IOException("Format " + fmt.label + " belum mendukung kata sandi")
+        val base = CompressNames.cleanBaseName(opt.baseName, fmt)
+        val level = fmt.clampLevel(opt.level)
+        if (fmt == CompressFormat.ZIP) return FileOps.zipAll(files, destDir, ctl, pw, base, level)
+
+        val out = CompressNames.uniqueOutput(destDir, base, fmt.ext)
+        val skip = out.canonicalFile
+        val guard = SpaceGuard(destDir)
+        try {
+            val total = FileOps.sizeOf(files)
+            ctl.total = total
+            if (fmt == CompressFormat.TAR && destDir.usableSpace < total + MIN_FREE) throw Abort("Ruang penyimpanan tidak cukup")
+            if (destDir.usableSpace < MIN_FREE) throw Abort("Ruang penyimpanan tidak cukup")
+            val n = if (fmt == CompressFormat.SEVEN_Z) write7z(files, out, level, ctl, guard, skip) else writeTar(files, out, fmt, level, ctl, guard, skip)
+            if (n == 0) throw Abort("Tidak ada berkas yang bisa dikompres (tautan simbolik dan berkas khusus dilewati)")
+        } catch (e: OutOfMemoryError) {
+            out.delete()
+            throw IOException("Memori tidak cukup untuk level ini. Turunkan level kompresi.")
+        } catch (e: Exception) {
+            out.delete()
+            throw mapCompressError(e, ctl)
+        }
+        return out
+    }
+
+    /** Tulis tar (opsional dikompres gz/bz2/xz); mengembalikan jumlah entri. Nama non-ASCII dan panjang lewat PAX. */
+    private fun writeTar(files: List<File>, out: File, fmt: CompressFormat, level: Int, ctl: FileOps.Ctl, guard: SpaceGuard, skip: File): Int {
+        val raw = BufferedOutputStream(FileOutputStream(out), 64 * 1024)
+        var tos: TarArchiveOutputStream? = null
+        var count = 0
+        try {
+            val comp: OutputStream = when (fmt) {
+                CompressFormat.TAR_GZ -> GzipCompressorOutputStream(raw, GzipParameters().apply { compressionLevel = level })
+                CompressFormat.TAR_BZ2 -> BZip2CompressorOutputStream(raw, level)
+                CompressFormat.TAR_XZ -> XZCompressorOutputStream(raw, level)
+                else -> raw
+            }
+            val t = TarArchiveOutputStream(comp)
+            tos = t
+            t.setLongFileMode(TarArchiveOutputStream.LONGFILE_POSIX)
+            t.setBigNumberMode(TarArchiveOutputStream.BIGNUMBER_POSIX)
+            t.setAddPaxHeadersForNonAsciiNames(true)
+            walk(files, skip, ctl) { path, f, dir ->
+                val e = TarArchiveEntry(f, if (dir) "$path/" else path)
+                t.putArchiveEntry(e)
+                if (!dir) feed(f, e.size, ctl, guard) { b, n -> t.write(b, 0, n) }
+                t.closeArchiveEntry()
+                count++
+            }
+            t.finish()
+            t.close()
+            tos = null
+        } finally {
+            try { tos?.close() } catch (_: Exception) {}
+            try { raw.close() } catch (_: Exception) {}
+        }
+        return count
+    }
+
+    /** Tulis 7z (LZMA2, atau COPY bila level 0); mengembalikan jumlah entri. Tanpa kata sandi (penulis commons-compress tidak mengenkripsi). */
+    private fun write7z(files: List<File>, out: File, level: Int, ctl: FileOps.Ctl, guard: SpaceGuard, skip: File): Int {
+        val sz = SevenZOutputFile(out)
+        var count = 0
+        try {
+            walk(files, skip, ctl) { path, f, dir ->
+                val e = sz.createArchiveEntry(f, path)
+                // Atribut Windows (0x10 = folder, 0x20 = arsip): 7-Zip tidak butuh, tetapi pembaca lain (py7zr, dll.) memakainya untuk mengenali folder
+                e.setHasWindowsAttributes(true)
+                e.setWindowsAttributes(if (dir) 0x10 else 0x20)
+                if (dir) {
+                    sz.putArchiveEntry(e)
+                    sz.closeArchiveEntry()
+                } else {
+                    val size = f.length()
+                    e.setContentMethods(methods7z(level, size))
+                    sz.putArchiveEntry(e)
+                    feed(f, size, ctl, guard) { b, n -> sz.write(b, 0, n) }
+                    sz.closeArchiveEntry()
+                }
+                count++
+            }
+            sz.finish()
+        } finally {
+            try { sz.close() } catch (_: Exception) {}
+        }
+        return count
+    }
+
+    /**
+     * Metode isi per berkas. commons-compress menulis tiap berkas sebagai blok sendiri dan membuat enkoder LZMA2 baru,
+     * jadi kamus dikecilkan ke ukuran berkas (min 4 KB) agar ribuan berkas kecil tidak menelan puluhan MB per berkas.
+     */
+    private fun methods7z(level: Int, size: Long): List<SevenZMethodConfiguration> {
+        if (level <= 0) return listOf(SevenZMethodConfiguration(SevenZMethod.COPY))
+        val o = LZMA2Options()
+        o.setPreset(level)
+        var want = LZMA2Options.DICT_SIZE_MIN
+        while (want < o.getDictSize() && want < size) want = want shl 1
+        o.setDictSize(minOf(o.getDictSize(), want))
+        return listOf(SevenZMethodConfiguration(SevenZMethod.LZMA2, o))
+    }
+
+    private fun mapCompressError(e: Exception, ctl: FileOps.Ctl): IOException {
+        if (e is Abort) return e
+        if (ctl.cancelled()) return IOException("Dibatalkan")
+        if (e is IOException && e.message == "Dibatalkan") return e
+        val m = e.message ?: e.javaClass.simpleName
+        if (m.contains("No space left", ignoreCase = true) || m.contains("ENOSPC")) return IOException("Ruang penyimpanan tidak cukup")
+        if (e is java.io.FileNotFoundException) return IOException("Tidak bisa membaca atau menulis berkas ($m)", e)
+        return IOException("Gagal mengompres ($m)", e)
     }
 
     // ---------------------------------------------------------------- pembuka aliran

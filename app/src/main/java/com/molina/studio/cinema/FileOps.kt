@@ -8,6 +8,7 @@ import java.nio.file.Files
 import java.security.MessageDigest
 import java.util.Locale
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.zip.Deflater
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 import java.util.zip.ZipOutputStream
@@ -16,6 +17,8 @@ import net.lingala.zip4j.exception.ZipException as Z4jException
 import net.lingala.zip4j.model.ExcludeFileFilter
 import net.lingala.zip4j.model.ZipParameters
 import net.lingala.zip4j.model.enums.AesKeyStrength
+import net.lingala.zip4j.model.enums.CompressionLevel
+import net.lingala.zip4j.model.enums.CompressionMethod
 import net.lingala.zip4j.model.enums.EncryptionMethod
 import net.lingala.zip4j.progress.ProgressMonitor
 
@@ -244,8 +247,14 @@ internal object FileOps {
         return target
     }
 
-    /** Kompres [files] menjadi satu ZIP di [destDir]. Satu item: nama item; banyak: nama folder tujuan. Tautan dilewati. */
-    fun zipAll(files: List<File>, destDir: File, ctl: Ctl, password: String? = null): File {
+    /**
+     * Kompres [files] menjadi satu ZIP di [destDir]. Satu item: nama item; banyak: nama folder tujuan. Tautan dilewati.
+     * [ARCHIVE2] [baseName] = nama dasar bawaan pengguna (tanpa ".zip"); [level] 0..9 (0 = simpan saja), -1 = bawaan.
+     */
+    fun zipAll(
+        files: List<File>, destDir: File, ctl: Ctl, password: String? = null,
+        baseName: String? = null, level: Int = Deflater.DEFAULT_COMPRESSION
+    ): File {
         if (files.isEmpty()) throw IOException("Tidak ada yang dikompres")
         for (f in files) if (!present(f)) throw IOException("Sumber tidak ditemukan: " + f.name)
         if (!destDir.isDirectory || !destDir.canWrite()) throw IOException("Folder tujuan tidak bisa ditulisi")
@@ -253,14 +262,15 @@ internal object FileOps {
             throw IOException("Nama bentrok di dalam ZIP: \"" + it.key + "\" ada di lebih dari satu folder. Kompres terpisah atau ubah namanya.")
         } // [PICK-PERSIST]
         val one = files.singleOrNull()
-        val stem = if (one != null) {
+        val stem = baseName?.takeIf { it.isNotBlank() } ?: if (one != null) {
             if (one.isDirectory) one.name else one.nameWithoutExtension.ifEmpty { one.name }
         } else destDir.name.ifEmpty { "Arsip" }
         val out = uniqueTarget(destDir, "$stem.zip", keepExt = true)
-        if (!password.isNullOrEmpty()) return zipEncrypted(files, out, password, ctl)
+        if (!password.isNullOrEmpty()) return zipEncrypted(files, out, password, ctl, level)
         ctl.total = sizeOf(files)
         try {
             ZipOutputStream(out.outputStream().buffered()).use { z ->
+                z.setLevel(level.coerceIn(Deflater.DEFAULT_COMPRESSION, Deflater.BEST_COMPRESSION)) // [ARCHIVE2]
                 val skip = out.canonicalFile
                 for (f in files) addZip(z, f, f.name, skip, ctl)
             }
@@ -272,9 +282,14 @@ internal object FileOps {
     }
 
     /** [ZIP-AES] ZIP terenkripsi AES-256 (zip4j). Tautan dilewati; progres dan pembatalan lewat [ctl]. */
-    private fun zipEncrypted(files: List<File>, out: File, password: String, ctl: Ctl): File {
+    private fun zipEncrypted(files: List<File>, out: File, password: String, ctl: Ctl, level: Int = Deflater.DEFAULT_COMPRESSION): File {
         val skip = out.canonicalFile
         val params = ZipParameters()
+        if (level >= 0) { // [ARCHIVE2] level 0 = simpan saja; selain itu petakan 1..9 ke CompressionLevel zip4j
+            val l = level.coerceAtMost(9)
+            params.setCompressionLevel(CompressionLevel.values().first { it.getLevel() == l })
+            if (l == 0) params.setCompressionMethod(CompressionMethod.STORE)
+        }
         params.setEncryptFiles(true)
         params.setEncryptionMethod(EncryptionMethod.AES)
         params.setAesKeyStrength(AesKeyStrength.KEY_STRENGTH_256)

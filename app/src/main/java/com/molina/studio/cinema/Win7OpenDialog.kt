@@ -113,6 +113,7 @@ private class W7Clip(val files: List<File>, val cut: Boolean)
 private sealed class W7Sheet {
     class Rename(val file: File) : W7Sheet()
     class Zip(val files: List<File>) : W7Sheet()
+    class Compress(val files: List<File>) : W7Sheet() // [ARCHIVE2] dialog Kompres (format, level, nama, sandi ZIP)
     class Password(val zip: File, val wrong: Boolean) : W7Sheet()
     class ZipView(val zip: File) : W7Sheet() // [ZIP-VIEW]
     class Archive(val file: File, val pw: String?) : W7Sheet() // [ARCHIVE] 7z/tar/gz/bz2/xz (dan ZIP lewat "Ekstrak pilihan")
@@ -417,6 +418,17 @@ fun Win7OpenDialog(
             }
         }
         is W7Sheet.Info -> W7InfoDialog(s.files, if (s.files.size == 1) isVisibleInDebian?.invoke(s.files[0]) else null) { sheet = null }
+        is W7Sheet.Compress -> ArchiveCompressDialog( // [ARCHIVE2]
+            s.files, dir.name, onClose = { sheet = null }
+        ) { opt ->
+            sheet = null
+            val d = dir
+            val items = s.files
+            runOp(op = { ctl ->
+                val made = ArchiveEngine.compress(items, d, opt, ctl)
+                "Arsip dibuat: " + made.name + " (" + CompressNames.sizeText(made.length()) + ")"
+            })
+        }
         is W7Sheet.Zip -> W7PasswordDialog(
             title = "Kompres ZIP berkata sandi", okLabel = "Kompres", confirmField = true,
             note = "Enkripsi AES-256. Simpan kata sandinya: ZIP tidak bisa dibuka tanpa itu.",
@@ -720,6 +732,10 @@ fun Win7OpenDialog(
                                     W7MenuItem(W7Ico.ZIP, "Kompres ZIP + kata sandi\u2026", tg.isNotEmpty()) {
                                         toolsOpen = false
                                         if (tg.isNotEmpty()) sheet = W7Sheet.Zip(tg)
+                                    }
+                                    W7MenuItem(W7Ico.ZIP, "Kompres\u2026 (7z, tar.gz, ...)", tg.isNotEmpty()) { // [ARCHIVE2]
+                                        toolsOpen = false
+                                        if (tg.isNotEmpty()) sheet = W7Sheet.Compress(tg)
                                     }
                                     W7MenuItem(
                                         W7Ico.UNZIP, "Ekstrak arsip",
@@ -1361,7 +1377,7 @@ private fun W7NameDialog(
 }
 
 @Composable
-private fun W7SecretField(
+internal fun W7SecretField( // [ARCHIVE2] internal: dipakai ArchiveCompressDialog
     value: String, onChange: (String) -> Unit, show: Boolean,
     modifier: Modifier, onDone: () -> Unit
 ) {

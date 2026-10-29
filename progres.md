@@ -1999,3 +1999,21 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 ## 2026-10-29 - Audit UX terminal dan Bridge API [AUDIT-UX1]
 - [x] Ada: extra keys, pinch zoom, laci sesi, snippet. Belum ada: pencarian scrollback, deteksi URL, command palette terminal, verb CLI clip/notify/share, tag log Molina/Term dan Molina/Mpv
 - [ ] Menunggu keputusan pemilik; usulan urutan: molina clip/notify/share, pencarian scrollback + URL, palette, tag log
+
+## 2026-10-29 - Bridge API Android: molina clip/notify/share, protokol v2 [CLI3-BRIDGE]
+- [x] feat(cmd): verb clip (get/set, base64 UTF-8, maks 64 KB), notify (judul opsional, jeda 300 ms, 20 slot), share (berkas maks 10 lewat MolinaExplorer.share, atau teks); CommandProtocol.VERSION 2, MAX_LINE 131072, MAX_ARG 4096; handler Android di cmd/BridgeCommands.kt
+- [x] feat(settings): sakelar "Akses clipboard dari CLI" (default mati; tidak ikut BackupManager). Isi clipboard/notifikasi/share tidak dicatat ke log
+- [x] Uji: run_command_protocol.sh 95 kasus (+38), test_molina_cli.py 30 tes (+15), gerbang telemetri lulus, patch idempotent, 3 mutasi tertangkap
+- [x] Dampak: HANYA :app (cmd/, terminal/TerminalPrefs.kt, settings/SettingsScreen.kt, assets/molina/molina-cli.py). Gradle, AndroidManifest, JNI, izin, dependensi TIDAK disentuh
+- [ ] BELUM dikompilasi (CI) dan belum diuji di perangkat. Periksa di CI: return@runCatching, visibilitas MolinaExplorer, when eksaustif ClipParse
+- [ ] Batas: clip get kosong di Android 10+ saat latar belakang; share sheet dari latar belakang dibatasi Android 10+; hasil share tidak diketahui CLI
+- [ ] Berikutnya: pencarian scrollback + deteksi URL, command palette terminal, tag log Molina/Term dan Molina/Mpv, hook pasca-unduh memakai molina notify
+
+## 2026-10-29 - Dialog Kompres Penjelajah: 7z, tar.gz/bz2/xz, tar, level, nama, sandi ZIP [ARCHIVE2]
+- [x] feat(explorer): ArchiveEngine.compress: 7z (LZMA2, COPY di level 0), tar, tar.gz, tar.bz2, tar.xz lewat commons-compress; ZIP tetap lewat FileOps.zipAll (kini menerima nama dasar dan level 0..9, termasuk ZIP AES-256)
+- [x] feat(explorer): ArchiveCompressDialog (format, level, nama arsip, kata sandi khusus ZIP); menu Alat: "Kompres... (7z, tar.gz, ...)"
+- [x] Aman: tautan simbolik dilewati, arsip tidak memasukkan dirinya sendiri, tidak menimpa (nama diberi (1)), gagal/batal = keluaran dihapus. Level xz/7z maks 6 demi RAM
+- [x] Uji JVM lulus: run_archive_compress.sh (240 kasus) + verifikasi silang 48 arsip (zipfile, tarfile, py7zr, pyzipper, 7-Zip asli); regresi 52 dan 149 tetap lulus
+- [x] Dampak: HANYA :app. Gradle, AndroidManifest, JNI mpv, izin, dependensi TIDAK disentuh. W7SecretField private -> internal
+- [ ] BELUM dikompilasi lewat CI dan belum diuji di perangkat (Compose hanya diperiksa sintaksnya)
+- [ ] Uji di perangkat: semua format dan level, ZIP + sandi, nama kustom, kompres dua kali (nama (1)), Hentikan membersihkan hasil, RAM tar.xz/7z level 6 di Android 8, layar 360dp

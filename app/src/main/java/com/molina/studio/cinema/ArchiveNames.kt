@@ -1,6 +1,8 @@
 package com.molina.studio.cinema
 
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.LinkOption
 import java.util.Locale
 
 /** [ARCHIVE] Format arsip yang dikenali Penjelajah Molina. */
@@ -100,5 +102,89 @@ internal object ArchiveNames {
             if (!f.exists()) return f
             i++
         }
+    }
+}
+
+/**
+ * [ARCHIVE2] Format keluaran dialog Kompres. Level dibatasi demi RAM Android: xz/7z (LZMA2) maksimal 6 (kamus 8 MB,
+ * sekitar 100 MB memori enkoder); preset 7-9 butuh 190-670 MB sehingga tidak ditawarkan.
+ */
+internal enum class CompressFormat(
+    val label: String, val ext: String, val minLevel: Int, val maxLevel: Int, val defaultLevel: Int,
+    val hasPassword: Boolean, val note: String
+) {
+    ZIP("ZIP", ".zip", 0, 9, 6, true, "Paling kompatibel. Bisa dilindungi kata sandi (AES-256)."),
+    SEVEN_Z("7Z", ".7z", 0, 6, 6, false, "Rasio kecil (LZMA2). Belum mendukung kata sandi."),
+    TAR_GZ("TAR.GZ", ".tar.gz", 1, 9, 6, false, "Umum di Linux/Debian."),
+    TAR_BZ2("TAR.BZ2", ".tar.bz2", 1, 9, 9, false, "Lebih kecil dari gz, lebih lambat."),
+    TAR_XZ("TAR.XZ", ".tar.xz", 0, 6, 6, false, "Sangat kecil, paling lambat."),
+    TAR("TAR", ".tar", 0, 0, 0, false, "Hanya menggabungkan berkas, tanpa kompresi.");
+
+    val hasLevel: Boolean get() = maxLevel > minLevel
+    /** True bila hanya ZIP/7z yang punya level 0 = simpan saja (tanpa kompresi). */
+    val zeroIsStore: Boolean get() = this == ZIP || this == SEVEN_Z
+    fun clampLevel(level: Int): Int = level.coerceIn(minLevel, maxLevel)
+}
+
+/** [ARCHIVE2] Pilihan Kompres: [baseName] tanpa ekstensi (mentah dari pengguna; divalidasi [CompressNames]). */
+internal class CompressOptions(val format: CompressFormat, val level: Int, val baseName: String, val password: String?)
+
+/** [ARCHIVE2] Logika nama/level murni untuk Kompres (diuji JVM tanpa pustaka arsip). */
+internal object CompressNames {
+    const val MAX_NAME_BYTES = 255
+
+    /** Nama dasar: dipangkas, dan ekstensi format yang sama di belakangnya dibuang ("a.zip" + ZIP -> "a"). */
+    fun cleanBaseName(raw: String, fmt: CompressFormat): String {
+        val t = raw.trim()
+        return if (t.length > fmt.ext.length && t.lowercase(Locale.ROOT).endsWith(fmt.ext)) t.substring(0, t.length - fmt.ext.length).trim() else t
+    }
+
+    /** Pesan galat untuk nama dasar [raw], atau null bila valid. */
+    fun baseNameError(raw: String, fmt: CompressFormat): String? {
+        val n = cleanBaseName(raw, fmt)
+        if (n.isEmpty()) return "Nama tidak boleh kosong"
+        if (n == "." || n == "..") return "Nama tidak valid"
+        if (n.indexOf('/') >= 0 || n.indexOf('\\') >= 0 || n.indexOf('\u0000') >= 0) return "Nama tidak boleh memuat / atau \\"
+        if ((n + fmt.ext).toByteArray(Charsets.UTF_8).size > MAX_NAME_BYTES) return "Nama terlalu panjang"
+        return null
+    }
+
+    fun outputName(raw: String, fmt: CompressFormat): String = cleanBaseName(raw, fmt) + fmt.ext
+
+    /** Nama dasar bawaan: satu item = nama folder / nama berkas tanpa ekstensi; banyak item = nama folder induk atau "Arsip". */
+    fun defaultBaseName(singleName: String?, singleIsDir: Boolean, parentName: String): String {
+        if (singleName != null) {
+            if (singleIsDir) return singleName
+            val dot = singleName.lastIndexOf('.')
+            return if (dot > 0) singleName.substring(0, dot) else singleName
+        }
+        return parentName.ifEmpty { "Arsip" }
+    }
+
+    /** "nama.ext", "nama (1).ext", ... sampai belum dipakai (tautan rusak juga dianggap memakai nama). */
+    fun uniqueOutput(dir: File, base: String, ext: String): File {
+        fun taken(f: File) = Files.exists(f.toPath(), LinkOption.NOFOLLOW_LINKS)
+        var f = File(dir, base + ext)
+        var i = 1
+        while (taken(f)) { f = File(dir, "$base ($i)$ext"); i++ }
+        return f
+    }
+
+    /** Label level untuk dialog. */
+    fun levelLabel(fmt: CompressFormat, level: Int): String = when {
+        !fmt.hasLevel -> ""
+        level == 0 && fmt.zeroIsStore -> "0 \u2022 Simpan saja (tanpa kompresi)"
+        level == fmt.defaultLevel -> "$level \u2022 Seimbang"
+        level == fmt.minLevel -> "$level \u2022 Tercepat"
+        level == fmt.maxLevel -> "$level \u2022 Terkecil"
+        else -> level.toString()
+    }
+
+    /** Ukuran ramah-baca (B/KB/MB/GB) untuk pesan hasil. */
+    fun sizeText(b: Long): String = when {
+        b < 1024L -> "$b B"
+        b < 1024L * 1024L -> String.format(Locale.US, "%.1f KB", b / 1024.0)
+        b < 1024L * 1024L * 1024L -> String.format(Locale.US, "%.1f MB", b / 1048576.0)
+        else -> String.format(Locale.US, "%.2f GB", b / 1073741824.0)
     }
 }
