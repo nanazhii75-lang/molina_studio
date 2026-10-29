@@ -1775,3 +1775,8 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] fix(ci): CI gagal di telemetry_gate.py karena css.tmLanguage.json baris 1573 memuat http://dev.w3.org/csswg/mediaqueries/ di dalam komentar regex (grammar VS Code, langkah 2 TextMate). Itu tautan spesifikasi, bukan koneksi; dev.w3.org ditambahkan ke ALLOWED_HOSTS (sejajar www.w3.org)
 - [x] Dampak: hanya scripts/telemetry_gate.py. Manifest, Gradle, JNI mpv, dan source aplikasi TIDAK disentuh
 - [ ] Menunggu CI hijau. Bila gerbang menemukan host lain dari aset textmate, tambahkan hanya kalau juga berupa komentar/tautan spesifikasi
+
+## 2026-10-29 - Perbaikan build: OptIn Slider thumb [SLIDER-OPTIN]
+- [x] fix(settings): CI gagal di :app:compileDebugKotlin (SettingsScreen.kt:556, "This material API is experimental") karena parameter `thumb` pada Slider (perbaikan SLIDER-THUMB) masih ExperimentalMaterial3Api. TampilanPage diberi @OptIn(ExperimentalMaterial3Api::class)
+- [x] Dampak: hanya :app (SettingsScreen.kt). :feature:code sudah lolos kompilasi di run yang sama. Manifest, Gradle, JNI mpv TIDAK disentuh
+- [ ] Menunggu CI hijau. Uji tetap sama dengan SLIDER-THUMB: geser slider 8-14sp, garis kuning tidak menjulang
