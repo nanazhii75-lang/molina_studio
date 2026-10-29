@@ -302,6 +302,79 @@ fun main() {
         r.env.advance(LspLiveConfig().idleMs + 10)
         check("completion: sesi tidur (idle shutdown) = null", r.live.completeBlocking(FILE, "python", "x", 0, 1, 100) == null)
     }
+    // [CODE-LSP6] requestDefinition: tidak memblokir, cb tepat sekali
+    fun defId(r: Rig): Long = (r.exec.handle.sent.last { it["method"] == "textDocument/definition" }["id"] as Double).toLong()
+    class Got { val replies = ArrayList<com.molina.code.lsp.LspDefinitionReply>() }
+    fun askDef(r: Rig, g: Got, text: String = "os.path\n", path: String = FILE, timeoutMs: Long = 3000) =
+        r.live.requestDefinition(path, "python", text, 0, 3, timeoutMs) { g.replies.add(it) }
+    run {
+        val r = Rig(); val g = Got()
+        askDef(r, g)
+        check("definition: saklar mati = galat tanpa proses", g.replies.size == 1 && g.replies[0] is com.molina.code.lsp.LspDefinitionReply.Error && r.exec.handles.isEmpty())
+    }
+    run {
+        val r = Rig(); r.live.setEnabled(true); r.touch(); r.env.advance(700) // STARTING
+        val g = Got(); askDef(r, g)
+        check("definition: sesi masih STARTING = galat minta ulang, tanpa permintaan", g.replies.size == 1 &&
+            (g.replies[0] as com.molina.code.lsp.LspDefinitionReply.Error).reason.contains("dimulai") && !r.exec.handle.methods().contains("textDocument/definition"))
+    }
+    run {
+        val r = Rig(); r.live.setEnabled(true); r.ready()
+        val g = Got(); askDef(r, g)
+        val req = r.exec.handle.sent.last { it["method"] == "textDocument/definition" }["params"] as Map<*, *>
+        check("definition: uri guest dan posisi benar",
+            (req["textDocument"] as Map<*, *>)["uri"] == "file:///sdcard/molina-studio/a.py" && (req["position"] as Map<*, *>)["character"] == 3.0 && (req["position"] as Map<*, *>)["line"] == 0.0)
+        check("definition: teks terbaru dikirim lebih dulu", r.exec.handle.methods().indexOf("textDocument/didChange") in 0 until r.exec.handle.methods().lastIndexOf("textDocument/definition"))
+        check("definition: belum ada balasan = cb belum dipanggil", g.replies.isEmpty())
+        r.exec.server("""{"jsonrpc":"2.0","id":${defId(r)},"result":[{"uri":"file:///sdcard/molina-studio/b.py","range":{"start":{"line":4,"character":2},"end":{"line":4,"character":5}}},{"uri":"file:///usr/lib/python3/os.py","range":{"start":{"line":9,"character":0},"end":{"line":9,"character":2}}}]}""")
+        val ok = g.replies.singleOrNull() as? com.molina.code.lsp.LspDefinitionReply.Targets
+        check("definition: target diterjemahkan ke path Android, pustaka Debian null", ok != null && ok.list.size == 2 &&
+            ok.list[0].hostPath == "$ROOT/molina-studio/b.py" && ok.list[0].line == 4 && ok.list[0].column == 2 && ok.list[1].hostPath == null)
+        r.env.advance(5000)
+        check("definition: setelah dijawab, timeout tidak memanggil cb lagi", g.replies.size == 1)
+        val g2 = Got(); askDef(r, g2)
+        r.exec.server("""{"jsonrpc":"2.0","id":${defId(r)},"result":null}""")
+        check("definition: hasil null = Targets kosong (bukan galat)", (g2.replies.singleOrNull() as? com.molina.code.lsp.LspDefinitionReply.Targets)?.list?.isEmpty() == true)
+        val g3 = Got(); askDef(r, g3)
+        r.exec.server("""{"jsonrpc":"2.0","id":${defId(r)},"error":{"code":-32603,"message":"jedi rusak"}}""")
+        check("definition: galat server diteruskan", (g3.replies.singleOrNull() as? com.molina.code.lsp.LspDefinitionReply.Error)?.reason?.contains("jedi rusak") == true)
+    }
+    run {
+        val r = Rig(); r.live.setEnabled(true); r.ready()
+        val g = Got(); askDef(r, g, timeoutMs = 2000)
+        r.env.advance(1999)
+        check("definition: 1999 ms belum lewat waktu", g.replies.isEmpty())
+        r.env.advance(1)
+        check("definition: lewat waktu = galat tepat sekali", g.replies.size == 1 && (g.replies[0] as com.molina.code.lsp.LspDefinitionReply.Error).reason.contains("tidak menjawab"))
+        r.exec.server("""{"jsonrpc":"2.0","id":${defId(r)},"result":null}""")
+        check("definition: balasan terlambat diabaikan", g.replies.size == 1)
+    }
+    run {
+        val r = Rig(); r.live.setEnabled(true); r.ready()
+        val g = Got(); askDef(r, g, path = "/data/data/x/luar.py")
+        check("definition: berkas tak terlihat dari Debian = galat tanpa permintaan", (g.replies.singleOrNull() as? com.molina.code.lsp.LspDefinitionReply.Error)?.reason?.contains("tidak terlihat") == true &&
+            !r.exec.handle.methods().contains("textDocument/definition"))
+        val big = Rig(LspLiveConfig(maxDocChars = 10)); big.live.setEnabled(true); big.ready()
+        val gb = Got(); askDef(big, gb, text = "x".repeat(50))
+        check("definition: teks melebihi batas = galat tanpa permintaan", gb.replies.singleOrNull() is com.molina.code.lsp.LspDefinitionReply.Error && !big.exec.handle.methods().contains("textDocument/definition"))
+    }
+    run { // sesi tertutup saat menunggu: cb dipanggil sekali dengan galat
+        val r = Rig(); r.live.setEnabled(true); r.ready()
+        val g = Got(); askDef(r, g)
+        r.exec.listener.onExit(StreamResult(137, false, 10L))
+        check("definition: proses mati saat menunggu = galat tepat sekali", g.replies.size == 1 && g.replies[0] is com.molina.code.lsp.LspDefinitionReply.Error)
+        r.env.advance(10_000)
+        check("definition: timer tidak memanggil cb kedua kali", g.replies.size == 1)
+    }
+    run { // sesi tidur dibangunkan oleh permintaan
+        val r = Rig(); r.live.setEnabled(true); r.ready()
+        r.env.advance(LspLiveConfig().idleMs + 10)
+        r.exec.answerShutdown()
+        check("definition: prasyarat sesi tidur", r.live.state == LiveState.SLEEPING && r.exec.handles.size == 1)
+        val g = Got(); askDef(r, g)
+        check("definition: sesi tidur dibangunkan (proses kedua) dan pemanggil diminta mengulang", r.exec.handles.size == 2 &&
+            (g.replies.singleOrNull() as? com.molina.code.lsp.LspDefinitionReply.Error)?.reason?.contains("dimulai") == true)
+    }
     println(if (fails == 0) "SEMUA LULUS" else "$fails GAGAL")
     if (fails > 0) System.exit(1)
 }

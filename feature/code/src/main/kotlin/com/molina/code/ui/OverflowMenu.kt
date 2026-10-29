@@ -98,6 +98,7 @@ internal fun menuGroups(session: CodeSession, ctx: Context, onDismiss: () -> Uni
             MenuEntry("Urungkan ganti di berkas", enabled = session.lastReplace != null, icon = MenuIcon.Reload) { session.undoLastReplace(); onDismiss() }, // [CODE-REPLACE]
             MenuEntry("Struktur berkas", enabled = tab != null, icon = MenuIcon.Outline) { session.outlineOpen = true; onDismiss() },
             MenuEntry("Pergi ke simbol", enabled = true, icon = MenuIcon.Symbol) { session.symbolOpen = true; onDismiss() }, // [CODE-SYMBOL]
+            MenuEntry("Pergi ke definisi", enabled = session.liveEnabled && tab?.file != null && !tab.loading && !session.definitionBusy, icon = MenuIcon.Symbol) { session.goToDefinition(); onDismiss() }, // [CODE-LSP6]
             MenuEntry("Pergi ke baris", enabled = tab != null, icon = MenuIcon.GoToLine) { session.gotoOpen = true; onDismiss() },
             MenuEntry("Informasi berkas", enabled = tab != null, icon = MenuIcon.Stats) { session.infoOpen = true; onDismiss() } // [CODE-INFO]
         ),

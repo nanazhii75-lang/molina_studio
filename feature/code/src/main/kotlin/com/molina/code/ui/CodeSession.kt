@@ -462,6 +462,70 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
         }
     }
 
+    /** [CODE-LSP6] Permintaan definisi sedang menunggu server; menu "Pergi ke definisi" redup selama itu. */
+    var definitionBusy by mutableStateOf(false)
+        private set
+
+    /** [CODE-LSP6] Daftar tujuan bila definisi punya lebih dari satu hasil; null = dialog tertutup. */
+    var definitionChoices by mutableStateOf<List<com.molina.code.lsp.DefinitionChoice>?>(null)
+
+    /** [CODE-LSP6] Pergi ke definisi nama di kursor lewat pylsp (Jedi): lompat, pilih dari daftar, atau toast alasannya. */
+    fun goToDefinition() {
+        if (definitionBusy) return
+        val tab = active ?: return
+        val ed = tab.editor ?: return
+        val f = tab.file
+        if (!liveEnabled) return toast("Nyalakan \"Python langsung\" di menu titik tiga dulu")
+        if (f == null) return toast("Simpan berkas dulu agar server bisa membacanya")
+        if (tab.loading) return
+        val spec = com.molina.code.lsp.LspServers.of(f.name, tab.firstLineOrNull())
+            ?: return toast("Pergi ke definisi saat ini hanya untuk Python")
+        val text = tab.currentTextOrNull(MAX_LIVE_CHARS) ?: return toast("Berkas terlalu besar untuk server")
+        val pos = try {
+            val l = ed.cursor.leftLine
+            Triple(l, ed.cursor.leftColumn, ed.text.getLineString(l))
+        } catch (e: Exception) {
+            return // editor sedang dibuat ulang
+        }
+        val line = pos.first
+        val word = com.molina.code.lsp.LspDefinitionLogic.wordAt(pos.third, pos.second)
+            ?: return toast("Letakkan kursor pada sebuah nama")
+        val stamp = com.molina.code.lsp.TextStamp(text.length, text.hashCode())
+        val path = f.absolutePath
+        definitionBusy = true
+        liveSync(tab) // daftarkan dokumen supaya sesi yang tidur bisa dibangunkan
+        live.requestDefinition(path, spec.languageId, text, line, word.requestColumn, DEFINITION_TIMEOUT_MS) { reply ->
+            definitionBusy = false
+            onDefinitionReply(tab, stamp, path, word, line, reply)
+        }
+    }
+
+    private fun onDefinitionReply(
+        tab: EditorTab, stamp: com.molina.code.lsp.TextStamp, path: String,
+        word: com.molina.code.lsp.WordSpan, line: Int, reply: com.molina.code.lsp.LspDefinitionReply,
+    ) {
+        when (reply) {
+            is com.molina.code.lsp.LspDefinitionReply.Error -> toast(reply.reason)
+            is com.molina.code.lsp.LspDefinitionReply.Targets -> {
+                if (tabs.none { it === tab } || activeId != tab.id) return // pengguna sudah pindah tab: jangan melompat
+                val now = tab.currentTextOrNull(MAX_LIVE_CHARS)
+                if (now == null || !stamp.matches(now)) return toast("Teks berubah saat mencari, ketuk lagi")
+                val outcome = com.molina.code.lsp.LspDefinitionLogic.classify(reply.list, path, word, line, dir.root.path) { java.io.File(it).isFile }
+                when (outcome) {
+                    is com.molina.code.lsp.DefinitionOutcome.Jump -> openLocation(outcome.hostPath, outcome.line + 1, outcome.column)
+                    is com.molina.code.lsp.DefinitionOutcome.Choose -> definitionChoices = outcome.choices
+                    else -> com.molina.code.lsp.LspDefinitionLogic.message(outcome)?.let { toast(it) }
+                }
+            }
+        }
+    }
+
+    /** [CODE-LSP6] Pilihan dari daftar tujuan: tutup dialog lalu buka berkas dan lompat. */
+    internal fun openDefinitionChoice(c: com.molina.code.lsp.DefinitionChoice) {
+        definitionChoices = null
+        openLocation(c.hostPath, c.line + 1, c.column)
+    }
+
     fun toggleLive() {
         if (!liveEnabled && (lspExecutor == null || lspPathMap == null)) return toast("Diagnostik langsung belum tersedia di perangkat ini")
         liveEnabled = !liveEnabled
@@ -1258,5 +1322,6 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
         private const val MAX_RUN_CHARS = 500_000
         private const val MAX_LIVE_CHARS = 300_000
         internal const val LIVE_LABEL = "pylsp"
+        private const val DEFINITION_TIMEOUT_MS = 5_000L // [CODE-LSP6] Jedi pertama kali bisa lambat
     }
 }

@@ -155,6 +155,58 @@ class LspLive(
         return box.get()
     }
 
+    /**
+     * [CODE-LSP6] Definition untuk main thread: tidak memblokir. [cb] dipanggil TEPAT SEKALI di main thread (lewat
+     * [LspLiveEnv.post]) dengan target atau alasan gagal yang siap ditampilkan. [text] dikirim lebih dulu sebagai isi
+     * dokumen terbaru. Bila sesi belum READY, sesi yang tidur dibangunkan dan pemanggil diminta mengulang sebentar lagi.
+     */
+    fun requestDefinition(
+        hostPath: String, languageId: String, text: String, line: Int, column: Int, timeoutMs: Long,
+        cb: (LspDefinitionReply) -> Unit,
+    ) {
+        if (!enabled) return cb(LspDefinitionReply.Error("Python langsung belum dinyalakan"))
+        val s = readySession
+        if (s == null) {
+            if (state == LiveState.SLEEPING || state == LiveState.IDLE) {
+                cancelDebounce?.invoke(); cancelDebounce = null
+                flush() // membangunkan sesi bila ada dokumen terdaftar dan RAM cukup
+            }
+            return cb(
+                LspDefinitionReply.Error(
+                    when (state) {
+                        LiveState.STARTING -> "Server Python sedang dimulai, coba lagi sebentar"
+                        LiveState.ERROR -> "Server Python galat, lihat lencana status"
+                        LiveState.IDLE -> "Server Python belum bisa dimulai (RAM rendah?)"
+                        else -> "Server Python belum siap"
+                    },
+                ),
+            )
+        }
+        if (text.length > config.maxDocChars) return cb(LspDefinitionReply.Error("Berkas terlalu besar untuk server"))
+        if (!s.openDocument(hostPath, languageId, text)) return cb(LspDefinitionReply.Error("Berkas ini tidak terlihat dari Debian"))
+        var done = false
+        val cancelTimer = env.schedule(timeoutMs) {
+            if (done) return@schedule
+            done = true
+            cb(LspDefinitionReply.Error("Server tidak menjawab dalam ${timeoutMs / 1000} dtk"))
+        }
+        val sent = s.definition(hostPath, line, column) { list, err ->
+            env.post {
+                if (done) return@post
+                done = true
+                cancelTimer()
+                cb(if (list == null) LspDefinitionReply.Error(err ?: "Permintaan gagal") else LspDefinitionReply.Targets(list))
+            }
+        }
+        if (!sent && !done) {
+            done = true
+            cancelTimer()
+            cb(LspDefinitionReply.Error("Server belum siap menerima permintaan"))
+            return
+        }
+        bumpIdle()
+    }
+
     fun setEnabled(on: Boolean) {
         if (on == enabled) return
         enabled = on
