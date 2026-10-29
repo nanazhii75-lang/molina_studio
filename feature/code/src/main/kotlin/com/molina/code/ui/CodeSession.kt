@@ -391,6 +391,24 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
         get() = format.executor
         set(value) { format.executor = value }
 
+    /** [CODE-CHECK] Pemeriksa kode sekali jalan (bawaan + Debian), hasil terakhir, dan dialog daftar masalah. */
+    internal val checker = CheckController(mainHandler)
+    internal var problems by mutableStateOf<ProblemList?>(null)
+    var problemsOpen by mutableStateOf(false)
+
+    /** [CODE-CHECK] Dipasang :app (Debian PRoot, jalur CHECK). Null = pemeriksa Debian memberi tahu belum tersedia; JSON/XML tetap jalan. */
+    var checkExecutor: ScriptExecutor?
+        get() = checker.executor
+        set(value) { checker.executor = value }
+
+    /** [CODE-CHECK] Lompat ke masalah ([line], [col] basis 1) di tab [tabId]. */
+    internal fun jumpToProblem(tabId: Int, line: Int, col: Int) {
+        val tab = tabs.firstOrNull { it.id == tabId } ?: return
+        preview.open = false
+        activeId = tab.id
+        jumpWhenReady(tab, (line - 1).coerceAtLeast(0), (col - 1).coerceAtLeast(0), 40)
+    }
+
     /** Dipasang :app. Null = menu \"Kirim ke Script Execution\" redup. */
     var scriptSink: ScriptSink? = null
 
@@ -1120,6 +1138,7 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
     fun releaseAll() {
         run.release()
         format.release() // [CODE-FORMAT]
+        checker.release() // [CODE-CHECK]
         mainHandler.removeCallbacks(draftTask)
         tabs.forEach { it.disposeEditor() }
         io.shutdown()
