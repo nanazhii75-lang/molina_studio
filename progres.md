@@ -1917,3 +1917,16 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - Fitur pembeda: Molina CLI bridge (molina play/status/log), profil utilitas satu ketuk, manajer rootfs, Molina Git aman (Keystore)
 - UX: extra keys, tab/split, tema "Molina Amber", tag logcat Molina/Term dan Molina/Mpv
 - Ditunda: audit modul mpv dan skema Room untuk Player
+
+## 2026-10-29 - Jembatan CLI `molina` (Debian -> aplikasi) [CLI1]
+- [x] feat(cmd): perintah `molina` di Debian (ping, version, status, play, stop, log) lewat abstract Unix socket @molina.cmd; server cmd/CommandServer.kt (hanya UID sama), protokol murni cmd/CommandProtocol.kt, CLI dipasang ke rootfs oleh MolinaShell.installCli
+- [x] CI #281 hijau. Catatan .gitignore: pola `molina_*.py` membuang aset .py baru; aset bernama `molina-cli.py`
+- [ ] Belum diuji di perangkat. Risiko utama: abstract socket dari DALAM PRoot belum terbukti di Android 8; cadangan: TCP loopback + token
+
+## 2026-10-29 - molina open (Debian -> editor Code) [CLI2]
+- [x] feat(cmd): `molina open <berkas>...` (maks 10) membuka berkas di tab Code lewat CodeNav.pendingFiles (jalur yang sama dengan Penjelajah); penulisan state lewat Handler main thread; pemetaan path dan penolakan ".." sama dengan `play`
+- [x] Uji: test_molina_cli.py 15 kasus, run_command_protocol.sh 57 kasus, gerbang telemetri lulus, patch idempotent diuji di clone segar
+- [x] Dampak: HANYA :app (cmd/CommandProtocol.kt, cmd/CommandServer.kt, assets/molina/molina-cli.py). Gradle, AndroidManifest, JNI mpv, izin, dependensi TIDAK disentuh
+- [ ] BELUM dikompilasi lewat CI dan belum diuji di perangkat
+- [ ] Uji di perangkat: (1) molina ping = pong; (2) molina open progres.md membuka tab Code; (3) dua berkas, nama berspasi, path relatif; (4) berkas tak ada dan folder: pesan galat tanpa crash; (5) 11 berkas ditolak; (6) regresi play dan log
+- [ ] Berikutnya: hook pasca-unduh (automation/PostDownload.kt) memutar hasil unduhan, `molina notify`

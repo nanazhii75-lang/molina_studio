@@ -233,8 +233,15 @@ public final class TerminalSession extends TerminalOutput {
     /** Finish this terminal session by sending SIGKILL to the shell. */
     public void finishIfRunning() {
         if (isRunning()) {
+            final int pid = mShellPid;
             try {
-                Os.kill(mShellPid, OsConstants.SIGKILL);
+                // Shell adalah pemimpin grup (setsid di JNI): bunuh seluruh grup agar anak tidak yatim.
+                if (pid > 1) Os.kill(-pid, OsConstants.SIGKILL);
+            } catch (ErrnoException e) {
+                // grup tidak ada: lanjut ke PID tunggal
+            }
+            try {
+                Os.kill(pid, OsConstants.SIGKILL);
             } catch (ErrnoException e) {
                 mClient.logWarn(LOG_TAG, "Failed sending SIGKILL: " + e.getMessage());
             }

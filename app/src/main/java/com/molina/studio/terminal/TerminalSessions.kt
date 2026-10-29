@@ -23,6 +23,9 @@ import kotlin.math.min
 object TerminalSessions {
     const val MAX_SESSIONS = 5
 
+    /** Masa tenggang SIGHUP sebelum SIGKILL saat tab ditutup pengguna. */
+    private const val GRACE_MS = 400L
+
     /** Nama folder kerja Molina di storage bersama (satu-satunya yang di-bind secara default). */
     internal const val WORKSPACE_DIR = "molina-studio"
 
@@ -105,7 +108,7 @@ object TerminalSessions {
     fun closeSession(index: Int) {
         val s = sessions.getOrNull(index) ?: return
         LogBus.log("terminal", LogLevel.Info, "session", "Sesi [${index + 1}] ditutup pengguna")
-        kill(s)
+        terminate(s)
         remove(s, exitDelayMs = 0L)
     }
 
@@ -139,6 +142,15 @@ object TerminalSessions {
             return
         }
         appContext?.let { TerminalService.requestStop(it) }
+    }
+
+    /** Penutupan halus: SIGHUP ke grup proses (bash sempat menyimpan riwayat), SIGKILL bila masih hidup setelah [GRACE_MS]. */
+    private fun terminate(s: TerminalSession) {
+        if (!s.isRunning) return
+        val pid = s.pid
+        if (pid <= 1) { kill(s); return }
+        try { Os.kill(-pid, OsConstants.SIGHUP) } catch (e: Exception) { kill(s); return }
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({ kill(s) }, GRACE_MS)
     }
 
     private fun kill(s: TerminalSession) {
