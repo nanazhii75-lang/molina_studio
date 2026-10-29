@@ -115,6 +115,8 @@ private sealed class W7Sheet {
     class Zip(val files: List<File>) : W7Sheet()
     class Password(val zip: File, val wrong: Boolean) : W7Sheet()
     class ZipView(val zip: File) : W7Sheet() // [ZIP-VIEW]
+    class Archive(val file: File, val pw: String?) : W7Sheet() // [ARCHIVE] 7z/tar/gz/bz2/xz (dan ZIP lewat "Ekstrak pilihan")
+    class ArchivePw(val file: File, val wrong: Boolean) : W7Sheet() // [ARCHIVE]
     class Info(val files: List<File>) : W7Sheet()
     class Delete(val files: List<File>, val permanent: Boolean = false) : W7Sheet()
     object NewDir : W7Sheet()
@@ -362,6 +364,7 @@ fun Win7OpenDialog(
                 say(if (ok) "Memutar di mpv: " + f.name else "Gagal memutar " + f.name, ok)
             }
             f.extension.equals("zip", ignoreCase = true) -> sheet = W7Sheet.ZipView(f)
+            f.isFile && ArchiveNames.detect(f.name) != null -> sheet = W7Sheet.Archive(f, null) // [ARCHIVE]
             code != null && ExplorerList.looksText(f) -> code(listOf(f))
             onOpenWith != null && f.isFile -> onOpenWith?.invoke(f)
             else -> say("Tidak ada aplikasi Molina untuk membuka jenis berkas ini. Pakai menu Alat untuk menyalin atau mengompres.")
@@ -451,6 +454,30 @@ fun Win7OpenDialog(
                 op = { ctl -> "Diekstrak ke: " + FileOps.unzip(z, d, ctl).name },
                 onFail = { if (it is FileOps.NeedPassword) { say(""); sheet = W7Sheet.Password(z, false) } }
             )
+        }
+        is W7Sheet.Archive -> ArchiveExtractDialog( // [ARCHIVE]
+            s.file, s.pw,
+            onNeedPassword = { wrong -> sheet = W7Sheet.ArchivePw(s.file, wrong) },
+            onClose = { sheet = null }
+        ) { exTarget, exOnly ->
+            sheet = null
+            val a = s.file
+            val apw = s.pw
+            val d = a.parentFile?.takeIf { it.isDirectory && it.canWrite() } ?: dir
+            runOp(
+                op = { ctl -> ArchiveEngine.extract(a, d, exTarget, ctl, apw, exOnly).describe() },
+                onFail = {
+                    if (it is FileOps.NeedPassword) { say(""); sheet = W7Sheet.ArchivePw(a, false) }
+                    else if (it is FileOps.WrongPassword) { say(""); sheet = W7Sheet.ArchivePw(a, true) }
+                }
+            )
+        }
+        is W7Sheet.ArchivePw -> W7PasswordDialog( // [ARCHIVE]
+            title = "Buka arsip", okLabel = "Buka", confirmField = false,
+            note = if (s.wrong) "Kata sandi salah. Coba lagi." else "Arsip ini dilindungi kata sandi.",
+            onCancel = { sheet = null }
+        ) { pw ->
+            sheet = W7Sheet.Archive(s.file, pw)
         }
         null -> Unit
     }
@@ -695,17 +722,31 @@ fun Win7OpenDialog(
                                         if (tg.isNotEmpty()) sheet = W7Sheet.Zip(tg)
                                     }
                                     W7MenuItem(
-                                        W7Ico.UNZIP, "Ekstrak ZIP",
-                                        one != null && one.isFile && one.extension.equals("zip", ignoreCase = true)
-                                    ) {
+                                        W7Ico.UNZIP, "Ekstrak arsip",
+                                        one != null && one.isFile && ArchiveNames.detect(one.name) != null
+                                    ) { // [ARCHIVE] ZIP tetap lewat jalur lama; format lain lewat ArchiveEngine
                                         toolsOpen = false
                                         if (one != null) {
                                             val d = dir
-                                            runOp(
-                                                op = { ctl -> "Diekstrak ke: " + FileOps.unzip(one, d, ctl).name },
-                                                onFail = { if (it is FileOps.NeedPassword) { say(""); sheet = W7Sheet.Password(one, false) } }
-                                            )
+                                            if (one.extension.equals("zip", ignoreCase = true)) {
+                                                runOp(
+                                                    op = { ctl -> "Diekstrak ke: " + FileOps.unzip(one, d, ctl).name },
+                                                    onFail = { if (it is FileOps.NeedPassword) { say(""); sheet = W7Sheet.Password(one, false) } }
+                                                )
+                                            } else {
+                                                runOp(
+                                                    op = { ctl -> ArchiveEngine.extract(one, d, ExtractTarget.NAMED_FOLDER, ctl).describe() },
+                                                    onFail = { if (it is FileOps.NeedPassword) { say(""); sheet = W7Sheet.ArchivePw(one, false) } }
+                                                )
+                                            }
                                         }
+                                    }
+                                    W7MenuItem(
+                                        W7Ico.UNZIP, "Ekstrak pilihan\u2026",
+                                        one != null && one.isFile && ArchiveNames.detect(one.name) != null
+                                    ) { // [ARCHIVE] pilih tujuan dan entri
+                                        toolsOpen = false
+                                        if (one != null) sheet = W7Sheet.Archive(one, null)
                                     }
                                     W7MenuItem(W7Ico.DELETE, "Hapus", tg.isNotEmpty()) {
                                         toolsOpen = false
@@ -831,13 +872,14 @@ fun Win7OpenDialog(
                         val dkMedia = onPlay != null && dkFiles.isNotEmpty() && dkFiles.all { it.isFile && it.extension.lowercase() in W7_MEDIA }
                         val dkText = !dkMedia && onOpenInCode != null && dkFiles.size == 1 && dkFiles[0].isFile && ExplorerList.looksText(dkFiles[0])
                         val dkZip = !dkMedia && !dkText && dkFiles.size == 1 && dkFiles[0].isFile && dkFiles[0].extension.equals("zip", ignoreCase = true)
+                        val dkArc = !dkMedia && !dkText && !dkZip && dkFiles.size == 1 && dkFiles[0].isFile && ArchiveNames.detect(dkFiles[0].name) != null // [ARCHIVE]
                         W7BrowseDock(
                             files = dkFiles,
                             isDir = if (selected == null || multi) null else selected!!.isDir,
                             size = selected?.size ?: 0L,
                             modified = selected?.modified ?: 0L,
                             debian = if (dkFiles.size == 1) isVisibleInDebian?.invoke(dkFiles[0]) else null,
-                            quickLabel = if (dkMedia) "Putar" else if (dkText) "Edit" else if (dkZip) "Buka ZIP" else "Properti",
+                            quickLabel = if (dkMedia) "Putar" else if (dkText) "Edit" else if (dkZip) "Buka ZIP" else if (dkArc) "Buka arsip" else "Properti",
                             insertEnabled = onInsertPaths != null,
                             terminalEnabled = onOpenTerminal != null,
                             onQuick = {
@@ -849,6 +891,7 @@ fun Win7OpenDialog(
                                     }
                                 } else if (dkText) onOpenInCode?.invoke(dkFiles)
                                 else if (dkZip) sheet = W7Sheet.ZipView(dkFiles[0])
+                                else if (dkArc) sheet = W7Sheet.Archive(dkFiles[0], null) // [ARCHIVE]
                                 else sheet = W7Sheet.Info(dkFiles)
                             },
                             onInsert = { onInsertPaths?.invoke(dkFiles) },

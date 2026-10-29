@@ -43,6 +43,8 @@ internal object FileOps {
         private var done = 0L
         private var last = -1
         fun check() { if (cancel.get()) throw IOException("Dibatalkan") }
+        /** [ARCHIVE] True bila pengguna menekan Hentikan (untuk membedakan pembatalan dari galat arsip). */
+        fun cancelled(): Boolean = cancel.get()
         fun add(n: Long) {
             done += n
             val t = total
@@ -54,7 +56,7 @@ internal object FileOps {
     }
 
     /** [ZIP-AES] ZIP berkata sandi tetapi sandi belum diberikan. */
-    class NeedPassword : IOException("ZIP ini dilindungi kata sandi")
+    class NeedPassword : IOException("Arsip ini dilindungi kata sandi")
 
     /** [ZIP-AES] Kata sandi ZIP salah. */
     class WrongPassword : IOException("Kata sandi salah")
@@ -100,7 +102,7 @@ internal object FileOps {
         return n
     }
 
-    private fun pump(i: InputStream, o: OutputStream, ctl: Ctl) {
+    internal fun pump(i: InputStream, o: OutputStream, ctl: Ctl) {
         val buf = ByteArray(128 * 1024)
         while (true) {
             ctl.check()
@@ -314,7 +316,7 @@ internal object FileOps {
         if (last < 100) ctl.add((100 - last) * weight / 100L)
     }
 
-    private fun mapZip(e: Exception, fallback: String): IOException =
+    internal fun mapZip(e: Exception, fallback: String): IOException =
         if (e is Z4jException && e.getType() == Z4jException.Type.WRONG_PASSWORD) WrongPassword() else asIo(e, fallback)
 
     /** [ZIP-AES] True bila [zip] punya entri terenkripsi (butuh kata sandi untuk diekstrak). */
