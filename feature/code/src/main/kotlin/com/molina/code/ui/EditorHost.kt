@@ -38,7 +38,7 @@ internal fun EditorHost(session: CodeSession, modifier: Modifier = Modifier) {
             }
             // membaca nama berkas di sini: ganti nama / Simpan sebagai ikut menyegarkan highlight
             MolinaTextMate.syncTheme(session.editorTheme) // [CODE-TM] membaca state: tema ikut berubah
-            syncSyntax(editor, tab.file?.name ?: tab.title, session.tmEnabled)
+            syncSyntax(editor, tab.file?.name ?: tab.title, session.tmEnabled) { session.completionBackendFor(tab) } // [CODE-LSP5]
             syncEditorStyle(editor, session.editorFont, session.editorLigature, session.editorSticky) // [CODE-STYLE]
             syncFontSize(editor, session.editorFontSp) // [CODE-FONT] membaca state: ikut berubah saat ukuran diganti
             if (container.childCount != 1 || container.getChildAt(0) !== editor) {
@@ -115,6 +115,12 @@ internal fun applyMolinaColors(s: EditorColorScheme) {
     s.setColor(EditorColorScheme.SELECTION_HANDLE, CodeColors.Gold.toArgb())
     s.setColor(EditorColorScheme.SELECTED_TEXT_BACKGROUND, CodeColors.EditorSelection.toArgb())
     s.setColor(EditorColorScheme.MATCHED_TEXT_BACKGROUND, CodeColors.SearchMatch.toArgb())
+    // [CODE-LSP5] jendela completion: latar #111111, border hairline Molina, item aktif kapsul emas gelap
+    s.setColor(EditorColorScheme.COMPLETION_WND_BACKGROUND, 0xFF111111.toInt())
+    s.setColor(EditorColorScheme.COMPLETION_WND_CORNER, CodeColors.Hairline.toArgb())
+    s.setColor(EditorColorScheme.COMPLETION_WND_TEXT_PRIMARY, CodeColors.TextPrimary.toArgb())
+    s.setColor(EditorColorScheme.COMPLETION_WND_TEXT_SECONDARY, CodeColors.SecondaryChampagne.toArgb())
+    s.setColor(EditorColorScheme.COMPLETION_WND_ITEM_CURRENT, CodeColors.Capsule.toArgb())
 }
 
 private const val FLASH_MS = 1400L
@@ -170,18 +176,18 @@ internal const val TM_MAX_CHARS = 400_000
  * Pasang bahasa highlight sesuai nama berkas; hanya bila berubah. Lexer Molina dipasang seketika,
  * lalu diganti bahasa TextMate setelah selesai dimuat di latar (bila [tmEnabled] dan grammar ada).
  */
-internal fun syncSyntax(ed: CodeEditor, fileName: String?, tmEnabled: Boolean = false) {
+internal fun syncSyntax(ed: CodeEditor, fileName: String?, tmEnabled: Boolean = false, backend: (() -> LspCompletionBackend?)? = null) {
     val spec = SyntaxLanguages.specFor(fileName)
     val scope = if (tmEnabled && ed.text.length <= TM_MAX_CHARS && MolinaTextMate.ready) MolinaTextMate.scopeFor(fileName) else null
     val cur = appliedSyntax[ed]
     if (cur != null && cur.scope == scope && cur.spec === spec) return
     appliedSyntax[ed] = AppliedSyntax(scope, spec)
-    ed.setEditorLanguage(if (spec == null) null else MolinaLanguage(spec))
+    ed.setEditorLanguage(withLspCompletion(if (spec == null) null else MolinaLanguage(spec), backend)) // [CODE-LSP5]
     if (scope != null) {
         MolinaTextMate.createAsync(scope) { lang ->
             ed.post {
                 // abaikan hasil usang: berkas sudah diganti nama / saklar dimatikan saat memuat
-                if (lang != null && appliedSyntax[ed]?.scope == scope) ed.setEditorLanguage(lang)
+                if (lang != null && appliedSyntax[ed]?.scope == scope) ed.setEditorLanguage(withLspCompletion(lang, backend))
             }
         }
     }

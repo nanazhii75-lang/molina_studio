@@ -1,6 +1,9 @@
 package com.molina.code.lsp
 
 import com.molina.code.check.Diagnostic
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicReference
 
 /** [CODE-LSP3] Server yang dikenal. Sekarang hanya pylsp (Python); shell tetap sekali jalan (audit rootfs). */
 class ServerSpec(
@@ -127,6 +130,30 @@ class LspLive(
 
     var state: LiveState = LiveState.OFF
         private set
+
+    /** [CODE-LSP5] Cermin sesi yang READY untuk dibaca thread latar (completion). Hanya ditulis dari thread utama. */
+    @Volatile private var readySession: LspSession? = null
+
+    /**
+     * [CODE-LSP5] Completion untuk thread latar (CompletionThread Sora): memblokir sampai ada balasan atau [timeoutMs].
+     * [text] dikirim lebih dulu sebagai isi dokumen terbaru (satu pipa, berurutan). Null = tidak tersedia, gagal, atau
+     * lewat waktu; pemanggil jatuh ke completion bawaan editor. JANGAN dipanggil dari thread utama.
+     */
+    fun completeBlocking(hostPath: String, languageId: String, text: String, line: Int, column: Int, timeoutMs: Long): List<LspCompletionItem>? {
+        val s = readySession ?: return null
+        if (text.length > config.maxDocChars) return null
+        if (!s.openDocument(hostPath, languageId, text)) return null // dokumen sudah terbuka = ganti teks
+        val latch = CountDownLatch(1)
+        val box = AtomicReference<List<LspCompletionItem>?>(null)
+        if (!s.completion(hostPath, line, column) { list, _ -> box.set(list); latch.countDown() }) return null
+        try {
+            if (!latch.await(timeoutMs, TimeUnit.MILLISECONDS)) return null
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            return null
+        }
+        return box.get()
+    }
 
     fun setEnabled(on: Boolean) {
         if (on == enabled) return
@@ -262,6 +289,7 @@ class LspLive(
 
     private fun stopSession(why: StopWhy) {
         val s = session ?: return
+        readySession = null // [CODE-LSP5]
         stopWhy = why
         cancelIdle?.invoke(); cancelIdle = null
         cancelRam?.invoke(); cancelRam = null
@@ -278,6 +306,7 @@ class LspLive(
         val why = stopWhy
         stopWhy = null
         session = null
+        readySession = null // [CODE-LSP5]
         sessionSpec = null
         cancelIdle?.invoke(); cancelIdle = null
         cancelRam?.invoke(); cancelRam = null
@@ -310,6 +339,7 @@ class LspLive(
         override fun onReady() = env.post {
             if (id != sessionId || session == null) return@post
             failures = 0
+            readySession = session // [CODE-LSP5]
             setState(LiveState.READY, null)
             scheduleRamPoll()
             bumpIdle()

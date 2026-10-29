@@ -1,7 +1,9 @@
 import com.molina.code.check.Diagnostic
 import com.molina.code.lsp.LspClient
 import com.molina.code.lsp.LspCompletionItem
+import com.molina.code.lsp.LspCompletionUi
 import com.molina.code.lsp.LspCompletions
+import com.molina.code.lsp.LspTextEdit
 import com.molina.code.lsp.LspDecoder
 import com.molina.code.lsp.LspDefinitions
 import com.molina.code.lsp.LspFraming
@@ -149,6 +151,24 @@ fun main() {
         check("posisi negatif dijepit", c.completion("file:///sdcard/b.py", -3, -9) { _, _ -> } &&
             ((w.sent.last()["params"] as Map<*, *>)["position"] as Map<*, *>).values.all { it == 0.0 })
     }
+
+    // ---------------------------------------------------------------- aturan popup [CODE-LSP5]
+    fun item(edit: LspTextEdit?) = LspCompletionItem("x", "x", null, null, "x", edit)
+    check("prefix: tanpa textEdit memakai awalan pengenal", LspCompletionUi.prefixLength(item(null), 2, 6, 3) == 3)
+    check("prefix: awalan dijepit ke kolom", LspCompletionUi.prefixLength(item(null), 2, 2, 9) == 2)
+    check("prefix: textEdit berakhir di kursor", LspCompletionUi.prefixLength(item(LspTextEdit(2, 3, 2, 6, "x")), 2, 6, 1) == 3)
+    check("prefix: textEdit melewati kursor diabaikan", LspCompletionUi.prefixLength(item(LspTextEdit(2, 3, 2, 9, "x")), 2, 6, 1) == 1)
+    check("prefix: textEdit di baris lain diabaikan", LspCompletionUi.prefixLength(item(LspTextEdit(1, 3, 2, 6, "x")), 2, 6, 2) == 2)
+    check("prefix: textEdit mulai setelah kursor diabaikan", LspCompletionUi.prefixLength(item(LspTextEdit(2, 8, 2, 6, "x")), 2, 6, 0) == 0)
+    check("kind: 1 = Text, 9 = Module, 25 = TypeParameter",
+        LspCompletionUi.kindName(1) == "Text" && LspCompletionUi.kindName(9) == "Module" && LspCompletionUi.kindName(25) == "TypeParameter")
+    check("kind: di luar jangkauan = null", LspCompletionUi.kindName(0) == null && LspCompletionUi.kindName(26) == null && LspCompletionUi.kindName(null) == null)
+    check("pemicu: awalan pengenal", LspCompletionUi.shouldTrigger("os.pa", 5))
+    check("pemicu: tepat setelah titik", LspCompletionUi.shouldTrigger("os.", 3))
+    check("pemicu: baris kosong tidak", !LspCompletionUi.shouldTrigger("", 0))
+    check("pemicu: setelah spasi tidak", !LspCompletionUi.shouldTrigger("x = ", 4))
+    check("pemicu: setelah kurung tidak", !LspCompletionUi.shouldTrigger("f(", 2))
+    check("pemicu: kolom di luar baris dijepit", LspCompletionUi.shouldTrigger("abc", 99))
 
     if (fails > 0) { println("\n$fails uji GAGAL"); System.exit(1) } else println("\nSemua uji lulus")
 }

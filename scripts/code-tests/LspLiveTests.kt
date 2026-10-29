@@ -260,6 +260,48 @@ fun main() {
         r.exec.answerShutdown()
         check("shutdown(): OFF", r.live.state == LiveState.OFF)
     }
+    // [CODE-LSP5] completeBlocking dari thread lain; server dijawab dari thread uji
+    fun asyncComplete(r: Rig, text: String, timeoutMs: Long = 3000, answer: Boolean = true, result: String = "[]"): List<com.molina.code.lsp.LspCompletionItem>? {
+        var out: List<com.molina.code.lsp.LspCompletionItem>? = null
+        val before = r.exec.handle.methods().count { it == "textDocument/completion" }
+        val t = Thread { out = r.live.completeBlocking(FILE, "python", text, 0, 3, timeoutMs) }
+        t.start()
+        if (answer) {
+            val end = System.currentTimeMillis() + 2000
+            while (System.currentTimeMillis() < end && r.exec.handle.methods().count { it == "textDocument/completion" } == before) Thread.sleep(5)
+            val id = (r.exec.handle.sent.last { it["method"] == "textDocument/completion" }["id"] as Double).toLong()
+            r.exec.server("""{"jsonrpc":"2.0","id":$id,"result":$result}""")
+        }
+        t.join(5000)
+        return out
+    }
+    run {
+        val r = Rig(); r.live.setEnabled(true)
+        check("completion: sesi belum ada = null", r.live.completeBlocking(FILE, "python", "os.pa", 0, 5, 100) == null)
+        r.ready()
+        val got = asyncComplete(r, "os.pa", result = """[{"label":"path","kind":9},{"label":"pardir"}]""")
+        check("completion: item sampai dari thread lain", got?.map { it.label } == listOf("pardir", "path") && got[1].kind == 9)
+        val sent = r.exec.handle.sent.last { it["method"] == "textDocument/completion" }["params"] as Map<*, *>
+        check("completion: uri guest dan posisi benar",
+            (sent["textDocument"] as Map<*, *>)["uri"] == "file:///sdcard/molina-studio/a.py" && (sent["position"] as Map<*, *>)["character"] == 3.0)
+        check("completion: teks terbaru dikirim lebih dulu", r.exec.handle.methods().last { it != null }.let { it == "textDocument/completion" } &&
+            r.exec.handle.methods().indexOf("textDocument/didChange").let { it >= 0 })
+        val empty = asyncComplete(r, "os.pa", result = "null")
+        check("completion: hasil null = daftar kosong, bukan galat", empty != null && empty.isEmpty())
+        val t0 = System.currentTimeMillis()
+        val late = asyncComplete(r, "os.pab", timeoutMs = 150, answer = false)
+        check("completion: lewat waktu = null dan tidak menggantung", late == null && System.currentTimeMillis() - t0 < 2000)
+        val big = Rig(LspLiveConfig(maxDocChars = 10)); big.live.setEnabled(true); big.ready()
+        check("completion: teks melebihi batas = null tanpa permintaan",
+            big.live.completeBlocking(FILE, "python", "x".repeat(50), 0, 1, 100) == null && !big.exec.handle.methods().contains("textDocument/completion"))
+        r.live.setEnabled(false)
+        check("completion: setelah saklar mati = null", r.live.completeBlocking(FILE, "python", "os.pa", 0, 5, 100) == null)
+    }
+    run {
+        val r = Rig(); r.live.setEnabled(true); r.ready()
+        r.env.advance(LspLiveConfig().idleMs + 10)
+        check("completion: sesi tidur (idle shutdown) = null", r.live.completeBlocking(FILE, "python", "x", 0, 1, 100) == null)
+    }
     println(if (fails == 0) "SEMUA LULUS" else "$fails GAGAL")
     if (fails > 0) System.exit(1)
 }

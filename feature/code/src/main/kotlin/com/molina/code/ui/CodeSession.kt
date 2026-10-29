@@ -448,6 +448,20 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
         pathsProvider = { lspPathMap!!.invoke() },
     )
 
+    /**
+     * [CODE-LSP5] Pintu completion untuk bahasa editor [tab]; null bila saklar mati, berkas belum punya path, atau bukan
+     * Python. Dipanggil dari thread latar Sora: hanya membaca nilai, tidak menyentuh editor.
+     */
+    internal fun completionBackendFor(tab: EditorTab): LspCompletionBackend? {
+        if (!liveEnabled || tab.loading) return null
+        val f = tab.file ?: return null
+        val spec = com.molina.code.lsp.LspServers.of(f.name, null) ?: return null
+        val path = f.absolutePath
+        return LspCompletionBackend { text, line, column ->
+            live.completeBlocking(path, spec.languageId, text, line, column, COMPLETION_TIMEOUT_MS)
+        }
+    }
+
     fun toggleLive() {
         if (!liveEnabled && (lspExecutor == null || lspPathMap == null)) return toast("Diagnostik langsung belum tersedia di perangkat ini")
         liveEnabled = !liveEnabled

@@ -91,3 +91,37 @@ object LspDefinitions {
         return out.toList()
     }
 }
+
+/** [CODE-LSP5] Aturan murni untuk popup completion (tanpa Android, supaya teruji di JVM). */
+object LspCompletionUi {
+    /**
+     * Banyak karakter sebelum kursor yang digantikan saat item dipilih. Memakai textEdit server bila rentangnya satu baris
+     * dengan kursor dan berakhir tepat di kursor; selain itu memakai panjang awalan pengenal ([identifierPrefix]).
+     */
+    fun prefixLength(item: LspCompletionItem, line: Int, column: Int, identifierPrefix: Int): Int {
+        val e = item.edit
+        val fallback = identifierPrefix.coerceIn(0, column.coerceAtLeast(0))
+        if (e == null || e.startLine != line || e.endLine != line || e.endColumn != column || e.startColumn > column) return fallback
+        return (column - e.startColumn).coerceIn(0, column.coerceAtLeast(0))
+    }
+
+    private val KIND_NAMES = arrayOf(
+        "Text", "Method", "Function", "Constructor", "Field", "Variable", "Class", "Interface", "Module", "Property",
+        "Unit", "Value", "Enum", "Keyword", "Snippet", "Color", "File", "Reference", "Folder", "EnumMember",
+        "Constant", "Struct", "Event", "Operator", "TypeParameter",
+    )
+
+    /** Nama CompletionItemKind Sora untuk kode kind LSP (1..25); null bila tidak dikenal. */
+    fun kindName(kind: Int?): String? = if (kind == null || kind < 1 || kind > KIND_NAMES.size) null else KIND_NAMES[kind - 1]
+
+    /** Awalan pengenal Python/Java: huruf, angka, garis bawah. */
+    fun isIdentifierChar(ch: Char): Boolean = ch == '_' || Character.isLetterOrDigit(ch)
+
+    /** Apakah posisi kursor layak memicu completion: ada awalan pengenal, atau karakter tepat sebelum awalan adalah titik. */
+    fun shouldTrigger(lineText: String, column: Int): Boolean {
+        val col = column.coerceIn(0, lineText.length)
+        var b = col
+        while (b > 0 && isIdentifierChar(lineText[b - 1])) b--
+        return b < col || (b > 0 && lineText[b - 1] == '.')
+    }
+}
