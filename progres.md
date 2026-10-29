@@ -1940,3 +1940,14 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi (CI) dan belum diuji di perangkat
 - [ ] Uji di perangkat: (1) buka 2 sesi, jalankan `sleep 999 &` di sesi 2, tutup dengan ✕: `ps` di sesi 1 tidak menyisakan sleep; (2) ketik beberapa perintah lalu ✕: riwayat bash tersimpan di ~/.bash_history; (3) tutup 5 sesi bergantian: tidak ada fd bocor (`ls /proc/$(pidof com.molina.studio)/fd | wc -l` stabil); (4) `exit` di sesi terakhir: aplikasi tertutup seperti sebelumnya; (5) regresi `molina status/play/stop`
 - [ ] Berikutnya: langkah 2, konfigurasi PRoot per-sesi dan manajer rootfs
+
+## 2026-10-29 - Konfigurasi PRoot per-sesi, langkah 2a [TERM-PROOT1]
+- [x] refactor(term): ProotConfig (pembangun argumen proot murni Kotlin) menggantikan array hardcoded di TerminalSessions.debianShell; urutan argumen identik (diuji golden)
+- [x] feat(term): ProotCaps memindai libproot.so; --sysvipc dipasang hanya bila didukung. Binary bawaan (green-green-avk commit 01f83b88) TIDAK mengenal sysvipc, jadi perilaku saat ini tidak berubah
+- [x] feat(term): FakeProc: /proc/{loadavg,uptime,stat,version,vmstat} palsu, di-bind hanya bila berkas asli tak bisa dibuka (Android 10+)
+- [x] Uji JVM lulus: scripts/app-tests/run_proot_config.sh (25 kasus); gerbang telemetri lulus
+- [x] Dampak: HANYA :app (TerminalSessions.kt, ProotConfig.kt baru). Gradle, AndroidManifest, JNI TIDAK disentuh; tanpa dependensi/izin baru
+- [ ] BELUM dikompilasi (CI) dan belum diuji di perangkat
+- [ ] Uji di perangkat: (1) terminal terbuka normal, prompt user@localhost; (2) `ls /proc/stat && cat /proc/loadavg`; (3) apt update dan git tetap jalan; (4) bind /sdcard/molina-studio dan `molina status` tetap jalan; (5) 5 sesi bergantian
+- [ ] Catatan: argumen proot masih dibangun di 2 tempat lain (code/ScriptCommand.kt, core/common/YtdlpCommand.kt); penyatuan jadi item terpisah. Bila perlu --sysvipc (postgres dkk.), ganti libproot dengan build yang mendukungnya
+- [ ] Berikutnya: 2b manajer rootfs (backup, restore, ekspor tarball, hapus/reset, cek ruang kosong)
