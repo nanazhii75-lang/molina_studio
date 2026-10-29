@@ -78,6 +78,16 @@ internal fun ThemeDialog(session: CodeSession, onDismiss: () -> Unit) {
                 text = "Berkas di atas 400 ribu karakter dan bahasa tanpa grammar memakai lexer Molina",
                 style = TextStyle(color = CodeColors.SecondaryChampagne, fontSize = 11.sp)
             )
+            Spacer(Modifier.height(12.dp))
+            ChoiceChip(
+                "Diff kontras tinggi: ${if (session.diffContrast) "aktif" else "mati"}",
+                session.diffContrast, Modifier.fillMaxWidth()
+            ) { session.toggleDiffContrast() }
+            Spacer(Modifier.height(6.dp))
+            BasicText(
+                text = "Riwayat versi: latar hijau/merah lebih pekat dan tanda +/\u2212 tebal",
+                style = TextStyle(color = CodeColors.SecondaryChampagne, fontSize = 11.sp)
+            )
             Spacer(Modifier.height(16.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 Win7DialogButton("Selesai", onDismiss, isDefault = true)

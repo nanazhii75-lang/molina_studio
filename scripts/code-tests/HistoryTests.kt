@@ -2,6 +2,7 @@ import com.molina.code.history.DiffOp
 import com.molina.code.history.HistoryFormat
 import com.molina.code.history.HistoryKind
 import com.molina.code.history.HistoryStore
+import com.molina.code.history.HistoryVersion
 import com.molina.code.history.LineDiff
 import java.io.File
 import java.nio.file.Files
@@ -65,6 +66,50 @@ fun main() {
         check("trimGlobal: dibuang sampai di bawah batas", store.list(f).size < 5 && store.list(h).size < 5)
         store.trimGlobal(0)
         check("trimGlobal 0: semua kosong dan folder dibersihkan", store.list(f).isEmpty() && File(tmp, "history").listFiles()!!.none { it.name.startsWith("h") })
+
+        // ---- [CODE-HISTORY2] sematan (pin)
+        val pf = File(tmp, "pin/Main.kt")
+        t += 100
+        val p1 = store.record(pf, "v1\n", HistoryKind.SAVED)!!
+        t += 1
+        store.record(pf, "v2\n", HistoryKind.SAVED)
+        check("sematan: awalnya tidak ada", store.list(pf).none { it.pinned })
+        check("sematan: setPin berhasil", store.setPin(pf, p1, true))
+        check("sematan: terbaca di list", store.list(pf).count { it.pinned } == 1 && store.list(pf).first { it.pinned }.name == p1.name)
+        check("sematan: isi tetap terbaca", store.read(pf, store.list(pf).first { it.pinned }) == "v1\n")
+        for (i in 1..(HistoryStore.MAX_VERSIONS + 20)) { t += 1; store.record(pf, "isi pin $i\n", HistoryKind.SAVED) }
+        val pl = store.list(pf)
+        check("sematan: selamat dari pemangkasan", pl.any { it.name == p1.name && it.pinned })
+        check("sematan: tidak dihitung ke batas versi", pl.count { !it.pinned } == HistoryStore.MAX_VERSIONS && pl.size == HistoryStore.MAX_VERSIONS + 1)
+        check("sematan: versi terbaru tetap ada", store.read(pf, pl.first()) == "isi pin ${HistoryStore.MAX_VERSIONS + 20}\n")
+        check("sematan: lepas", store.setPin(pf, p1, false) && store.list(pf).none { it.pinned })
+        t += 1
+        store.record(pf, "setelah lepas\n", HistoryKind.SAVED)
+        check("sematan: setelah dilepas ikut terpangkas", store.list(pf).none { it.name == p1.name })
+        // batas MAX_PINS
+        val pg = File(tmp, "pin/Many.kt")
+        val made = ArrayList<HistoryVersion>()
+        for (i in 1..(HistoryStore.MAX_PINS + 2)) { t += 1; made.add(store.record(pg, "m$i\n", HistoryKind.SAVED)!!) }
+        val okPins: List<Boolean> = made.map { v -> store.setPin(pg, v, true) }
+        check("sematan: batas MAX_PINS", okPins.count { ok -> ok } == HistoryStore.MAX_PINS && !okPins.last())
+        check("sematan: sematkan ulang yang sudah disematkan tetap sukses", store.setPin(pg, made[0], true))
+        check("sematan: lepas membuka slot", store.setPin(pg, made[0], false) && store.setPin(pg, made.last(), true))
+        check("sematan: snapshot hilang = gagal", !store.setPin(File(tmp, "pin/Ghost.kt"), made[0], true))
+        // trimGlobal: yang tidak disematkan dibuang dulu
+        val tg1 = File(tmp, "pin/G1.kt"); val tg2 = File(tmp, "pin/G2.kt")
+        t += 1; val keep = store.record(tg1, "tua disematkan\n", HistoryKind.SAVED)!!
+        store.setPin(tg1, keep, true)
+        t += 1; store.record(tg1, "baru satu\n", HistoryKind.SAVED)
+        t += 1; store.record(tg2, "lain satu\n", HistoryKind.SAVED)
+        t += 1; store.record(tg2, "lain dua\n", HistoryKind.SAVED)
+        store.trimGlobal(keep.bytes + 200)
+        check("trimGlobal: sematan dibuang paling akhir", store.list(tg1).any { it.name == keep.name })
+        store.clear(tg1)
+        check("clear: sematan ikut hilang", store.list(tg1).isEmpty())
+        // pins.txt rusak tidak merusak daftar
+        val dirsNow = File(tmp, "history").listFiles()!!.filter { it.isDirectory }
+        dirsNow.forEach { File(it, "pins.txt").writeBytes(byteArrayOf(0, -1, 7)) }
+        check("pins.txt rusak: list tetap jalan", store.list(pg).isNotEmpty())
 
         // ---- LineDiff
         val d1 = LineDiff.diff("a\nb\nc\n", "a\nb\nc\n")

@@ -291,11 +291,21 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
         runStore?.get(RunPrefs.KEY_TM_THEME)?.let { editorTheme = MolinaTextMate.themeOf(it).id }
         runStore?.get(RunPrefs.KEY_TM_ON)?.let { tmEnabled = it != "0" }
         runStore?.get(RunPrefs.KEY_FORMAT_SAVE)?.let { formatOnSave = it == "1" } // [CODE-FORMAT]
+        runStore?.get(RunPrefs.KEY_DIFF_CONTRAST)?.let { diffContrast = it == "1" } // [CODE-HISTORY2]
     }
 
     /** [CODE-FORMAT] Format otomatis sebelum menyimpan berkas (bawaan mati). Galat format tidak pernah menahan simpan. */
     var formatOnSave by mutableStateOf(false)
         private set
+
+    /** [CODE-HISTORY2] Diff kontras tinggi di Riwayat versi (Tema kode). Bawaan mati: memakai token Clean/Danger transparan. */
+    var diffContrast by mutableStateOf(false)
+        private set
+
+    fun toggleDiffContrast() {
+        diffContrast = !diffContrast
+        runStore?.put(RunPrefs.KEY_DIFF_CONTRAST, if (diffContrast) "1" else "0")
+    }
 
     /** Catatan galat format untuk toast "Tersimpan" berikutnya. */
     private var saveNote: String? = null

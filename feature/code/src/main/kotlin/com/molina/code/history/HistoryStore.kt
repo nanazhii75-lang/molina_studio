@@ -28,7 +28,9 @@ class HistoryVersion(
     val fp: String,
     val chars: Int,
     val lines: Int,
-    val bytes: Long
+    val bytes: Long,
+    /** [CODE-HISTORY2] Versi disematkan: tidak ikut dipangkas otomatis (batas [HistoryStore.MAX_PINS] per berkas). */
+    val pinned: Boolean = false
 )
 
 /**
@@ -80,6 +82,25 @@ class HistoryStore(private val root: File, private val clock: () -> Long = { Sys
         null
     }
 
+    /**
+     * [CODE-HISTORY2] Sematkan/lepas sematan [v]. Penanda disimpan di `pins.txt` (satu nama snapshot per baris),
+     * ditulis atomik. False bila snapshot tidak ada, batas [MAX_PINS] tercapai, atau gagal menulis.
+     */
+    @Synchronized
+    fun setPin(file: File, v: HistoryVersion, pin: Boolean): Boolean = try {
+        val dir = dirFor(file)
+        if (!File(dir, v.name).isFile) false else {
+            val live = listIn(dir).filter { it.pinned }.map { it.name }.toMutableSet()
+            if (pin && v.name !in live && live.size >= MAX_PINS) false else {
+                if (pin) live.add(v.name) else live.remove(v.name)
+                writePins(dir, live)
+                true
+            }
+        }
+    } catch (e: Exception) {
+        false
+    }
+
     /** Hapus seluruh riwayat [file]. */
     @Synchronized
     fun clear(file: File) {
@@ -97,7 +118,8 @@ class HistoryStore(private val root: File, private val clock: () -> Long = { Sys
             val all = ArrayList<Pair<File, HistoryVersion>>()
             var total = 0L
             for (d in dirs) for (v in listIn(d)) { all.add(Pair(d, v)); total += v.bytes }
-            all.sortBy { it.second.time }
+            // [CODE-HISTORY2] versi tanpa sematan dibuang dulu (tertua dulu); yang disematkan hanya bila masih melebihi batas
+            all.sortWith(compareBy({ it.second.pinned }, { it.second.time }))
             var i = 0
             while (total > maxBytes && i < all.size) {
                 val (d, v) = all[i++]
@@ -117,6 +139,7 @@ class HistoryStore(private val root: File, private val clock: () -> Long = { Sys
     private fun listIn(dir: File): List<HistoryVersion> {
         val arr = dir.listFiles { f -> f.isFile && f.name.endsWith(".gz") } ?: return emptyList()
         val out = ArrayList<HistoryVersion>(arr.size)
+        val pins = readPins(dir)
         for (f in arr) {
             val p = f.name.removeSuffix(".gz").split('_')
             if (p.size != 5) continue
@@ -124,7 +147,7 @@ class HistoryStore(private val root: File, private val clock: () -> Long = { Sys
             val kind = p[1].singleOrNull()?.let { HistoryKind.of(it) } ?: continue
             val chars = p[3].toIntOrNull() ?: continue
             val lines = p[4].toIntOrNull() ?: continue
-            out.add(HistoryVersion(f.name, time, kind, p[2], chars, lines, f.length()))
+            out.add(HistoryVersion(f.name, time, kind, p[2], chars, lines, f.length(), f.name in pins))
         }
         out.sortByDescending { it.time }
         return out
@@ -133,18 +156,38 @@ class HistoryStore(private val root: File, private val clock: () -> Long = { Sys
     private fun prune(dir: File) {
         val vs = listIn(dir)
         var bytes = vs.sumOf { it.bytes }
-        var n = vs.size
-        for (v in vs.asReversed()) { // tertua dulu; versi terbaru tidak pernah dibuang
-            if (n <= 1) break
-            if (n > MAX_VERSIONS || bytes > MAX_DIR_BYTES) {
-                if (File(dir, v.name).delete()) { bytes -= v.bytes; n-- }
+        var unpinned = vs.count { !it.pinned }
+        for (i in vs.indices.reversed()) { // tertua dulu; versi terbaru dan yang disematkan tidak pernah dibuang
+            val v = vs[i]
+            if (i == 0) break
+            if (v.pinned) continue
+            if (unpinned > MAX_VERSIONS || bytes > MAX_DIR_BYTES) {
+                if (File(dir, v.name).delete()) { bytes -= v.bytes; unpinned-- }
             } else break
         }
+    }
+
+    private fun readPins(dir: File): Set<String> = try {
+        val f = File(dir, PINS_FILE)
+        if (f.isFile) f.readLines(Charsets.UTF_8).map { it.trim() }.filter { it.isNotEmpty() }.toSet() else emptySet()
+    } catch (e: Exception) {
+        emptySet()
+    }
+
+    private fun writePins(dir: File, names: Set<String>) {
+        val f = File(dir, PINS_FILE)
+        if (names.isEmpty()) { f.delete(); return }
+        val tmp = File(dir, "$PINS_FILE.tmp")
+        tmp.writeText(names.sorted().joinToString("\n") + "\n", Charsets.UTF_8)
+        if (!tmp.renameTo(f)) { tmp.delete(); throw java.io.IOException("pins") }
     }
 
     companion object {
         const val MAX_CHARS = 2_000_000
         const val MAX_VERSIONS = 60
+        /** [CODE-HISTORY2] Versi yang boleh disematkan per berkas (di luar [MAX_VERSIONS]). */
+        const val MAX_PINS = 10
+        private const val PINS_FILE = "pins.txt"
         const val MAX_DIR_BYTES = 8L * 1024 * 1024
         const val MAX_TOTAL_BYTES = 100L * 1024 * 1024
 
