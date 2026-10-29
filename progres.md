@@ -1909,3 +1909,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 ## 2026-10-29 - Verifikasi ARCHIVE1 [ARCHIVE1-VERIFIED]
 - [x] CI #279 hijau (feat(explorer): mesin arsip 7z/tar/gz/bz2/xz + dialog ekstrak)
 - [x] Sudah di-debug di perangkat oleh pengguna
+
+### Analisis gap Molina Terminal (jantung Molina)
+- Status: analisis selesai, belum ada perubahan kode
+- Keputusan arah: Terminal sebagai inti, Player menjadi klien Terminal
+- Fondasi: foreground service + siklus hidup PTY (batas background Android 8), emulasi terminal, konfigurasi PRoot per-sesi, cek lisensi saat rebranding
+- Fitur pembeda: Molina CLI bridge (molina play/status/log), profil utilitas satu ketuk, manajer rootfs, Molina Git aman (Keystore)
+- UX: extra keys, tab/split, tema "Molina Amber", tag logcat Molina/Term dan Molina/Mpv
+- Ditunda: audit modul mpv dan skema Room untuk Player
