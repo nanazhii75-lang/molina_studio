@@ -1905,3 +1905,7 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi lewat CI dan belum diuji di perangkat. Lapisan Compose (ArchiveExtractDialog, patch Win7OpenDialog/W7FileIcon) hanya diperiksa sintaksnya; mesin diuji JVM terhadap pustaka yang dikompilasi dari sumber (versi sama)
 - [ ] Uji di perangkat (Android 8): (1) ketuk .7z/.tar.gz/.tar.xz: dialog terbuka, isi terbaca; (2) Ekstrak ke folder bernama dan Di sini; ekstrak dua kali: tidak menimpa; (3) Ekstrak sebagian: centang folder dan berkas, hasil sesuai; (4) 7z berkata sandi: dialog sandi, salah/benar; (5) tar.xz besar: progres jalan, tombol Hentikan membersihkan hasil; (6) Menu Alat untuk .zip: "Ekstrak arsip" tetap seperti dulu, "Ekstrak pilihan..." membuka dialog baru termasuk ZIP AES; (7) ikon label 7Z/TAR/GZ di daftar; (8) layar 360dp: dialog tidak terpotong; (9) catat RAM saat 7z/LZMA2 besar (kamus besar bisa menekan RAM Android 8)
 - [ ] Belum ada: membuat 7z/tar (hanya baca/ekstrak), arsip multi-bagian, edit isi arsip non-ZIP, rar/iso/cab lewat 7z Debian, intent VIEW/SEND dari luar (menyentuh AndroidManifest), dialog Kompres dengan pilihan format/level, pilih folder tujuan bebas
+
+## 2026-10-29 - Verifikasi ARCHIVE1 [ARCHIVE1-VERIFIED]
+- [x] CI #279 hijau (feat(explorer): mesin arsip 7z/tar/gz/bz2/xz + dialog ekstrak)
+- [x] Sudah di-debug di perangkat oleh pengguna
