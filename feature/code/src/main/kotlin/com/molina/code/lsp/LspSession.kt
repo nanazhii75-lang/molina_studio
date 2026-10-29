@@ -3,6 +3,9 @@ package com.molina.code.lsp
 import com.molina.code.check.Diagnostic
 import java.io.IOException
 
+/** [CODE-LSP4] Target definition; [hostPath] null bila berkasnya tidak terlihat dari Android. Posisi basis 0. */
+data class LspDefinitionTarget(val hostPath: String?, val uri: String, val line: Int, val column: Int)
+
 /** Callback sesi. Datang dari thread latar DI DALAM kunci sesi: jangan memblokir; pindahkan kerja berat ke thread lain. */
 interface LspSessionListener {
     fun onReady() {}
@@ -76,6 +79,28 @@ class LspSession(
         val uri = paths.hostToGuestUri(hostPath) ?: return@synchronized
         client?.changeDocument(uri, text)
     }
+
+    /**
+     * [CODE-LSP4] Completion di (line, column) basis 0 untuk dokumen yang sudah dibuka. [cb] datang dari thread latar
+     * DI DALAM kunci sesi: jangan memblokir. False bila tidak bisa diminta (belum siap, dokumen tidak terlihat/belum dibuka).
+     */
+    fun completion(hostPath: String, line: Int, column: Int, cb: (List<LspCompletionItem>?, String?) -> Unit): Boolean =
+        synchronized(lock) {
+            val c = client ?: return false
+            val uri = paths.hostToGuestUri(hostPath) ?: return false
+            c.completion(uri, line, column, cb)
+        }
+
+    /** [CODE-LSP4] Definition di (line, column) basis 0. Tiap target membawa path Android bila terlihat di host, null bila tidak (mis. pustaka sistem Debian). */
+    fun definition(hostPath: String, line: Int, column: Int, cb: (List<LspDefinitionTarget>?, String?) -> Unit): Boolean =
+        synchronized(lock) {
+            val c = client ?: return false
+            val uri = paths.hostToGuestUri(hostPath) ?: return false
+            c.definition(uri, line, column) { list, err ->
+                if (list == null) cb(null, err)
+                else cb(list.map { LspDefinitionTarget(guestToHost[it.uri] ?: paths.guestUriToHostPath(it.uri), it.uri, it.line, it.column) }, null)
+            }
+        }
 
     fun closeDocument(hostPath: String) = synchronized(lock) {
         val uri = paths.hostToGuestUri(hostPath) ?: return@synchronized

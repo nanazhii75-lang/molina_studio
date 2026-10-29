@@ -14,15 +14,15 @@ import io.github.rosemoe.sora.widget.schemes.EditorColorScheme
  * Token kustom dipetakan ke slot warna bawaan Rosemoe (string = ATTRIBUTE_VALUE, angka = LITERAL).
  */
 internal object ObsidianClaude {
-    private const val KEYWORD = 0xFFD97757.toInt()
-    private const val TYPE = 0xFFE8B88A.toInt()
+    private const val KEYWORD = 0xFF8FBF7A.toInt()
+    private const val TYPE = 0xFF7FB5A8.toInt()
     private const val FUNC = 0xFF7FB4D6.toInt()
-    private const val STRING = 0xFF9DBE8A.toInt()
-    private const val NUMBER = 0xFFE5C07B.toInt()
-    private const val COMMENT = 0xFF7D766A.toInt()
-    private const val ANNOT = 0xFFB59AD9.toInt()
-    private const val ATTR = 0xFFE3A987.toInt()
-    private const val OPERATOR = 0xFFC9B8A8.toInt()
+    private const val STRING = 0xFFE08A47.toInt()
+    private const val NUMBER = 0xFFB7A0E8.toInt()
+    private const val COMMENT = 0xFF7C8A78.toInt()
+    private const val ANNOT = 0xFFD9A66B.toInt()
+    private const val ATTR = 0xFFF2C94C.toInt()
+    private const val OPERATOR = 0xFFC8C8C8.toInt()
 
     fun apply(s: EditorColorScheme) {
         s.setColor(EditorColorScheme.KEYWORD, KEYWORD)

@@ -21,6 +21,8 @@ internal class TmTheme(val id: String, val label: String, val asset: String, val
  */
 internal object MolinaTextMate {
     val THEMES = listOf(
+        TmTheme("molina", "Molina Night", "textmate/molina_night.json", // [CODE-THEME] bawaan: hijau lembut, kuning, teal, oren
+            listOf(0xFF8FBF7A.toInt(), 0xFFF2C94C.toInt(), 0xFF7FB5A8.toInt(), 0xFFE08A47.toInt())),
         TmTheme("obsidian", "Obsidian Claude", "textmate/obsidian_claude.json",
             listOf(0xFFD97757.toInt(), 0xFF9DBE8A.toInt(), 0xFFE5C07B.toInt(), 0xFF7D766A.toInt())),
         TmTheme("abyss", "Abyss", "textmate/abyss.json",
@@ -28,7 +30,7 @@ internal object MolinaTextMate {
         TmTheme("solarized", "Solarized Dark", "textmate/solarized_dark.json",
             listOf(0xFF859900.toInt(), 0xFF2AA198.toInt(), 0xFFD33682.toInt(), 0xFF586E75.toInt()))
     )
-    const val DEFAULT_THEME = "obsidian"
+    const val DEFAULT_THEME = "molina"
 
     @Volatile var ready = false
         private set

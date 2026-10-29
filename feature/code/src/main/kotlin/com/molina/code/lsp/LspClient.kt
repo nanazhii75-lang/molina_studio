@@ -85,6 +85,13 @@ class LspClient(
                 "textDocument" to mapOf(
                     "synchronization" to mapOf("dynamicRegistration" to false, "didSave" to false),
                     "publishDiagnostics" to mapOf("relatedInformation" to false, "versionSupport" to true),
+                    // [CODE-LSP4] completion polos (tanpa snippet) dan definition tanpa LocationLink
+                    "completion" to mapOf(
+                        "dynamicRegistration" to false,
+                        "contextSupport" to false,
+                        "completionItem" to mapOf("snippetSupport" to false, "documentationFormat" to listOf("plaintext")),
+                    ),
+                    "definition" to mapOf("dynamicRegistration" to false, "linkSupport" to false),
                 ),
             ),
         )
@@ -127,6 +134,37 @@ class LspClient(
                 ),
             )
         }
+    }
+
+    /**
+     * [CODE-LSP4] Minta completion di (line, column) basis 0 (UTF-16). Teks dokumen terbaru sudah lebih dulu terkirim
+     * (satu pipa, berurutan). [cb] dipanggil tepat sekali: (daftar, null) atau (null, alasan). Tanpa timeout di sini;
+     * pemanggil yang memutuskan membuang hasil basi. False bila klien belum siap atau dokumen tidak dikenal/belum terkirim.
+     */
+    fun completion(uri: String, line: Int, column: Int, cb: (List<LspCompletionItem>?, String?) -> Unit): Boolean =
+        positionRequest("textDocument/completion", uri, line, column) { r, err ->
+            if (err != null) cb(null, err) else cb(LspCompletions.convert(r), null)
+        }
+
+    /** [CODE-LSP4] Minta definition di (line, column) basis 0. Hasil kosong = tidak ditemukan (bukan galat). */
+    fun definition(uri: String, line: Int, column: Int, cb: (List<LspLocation>?, String?) -> Unit): Boolean =
+        positionRequest("textDocument/definition", uri, line, column) { r, err ->
+            if (err != null) cb(null, err) else cb(LspDefinitions.convert(r), null)
+        }
+
+    private fun positionRequest(method: String, uri: String, line: Int, column: Int, cb: (Any?, String?) -> Unit): Boolean {
+        if (state != LspState.READY) return false
+        val d = docs[uri] ?: return false
+        if (!d.sent) return false
+        request(
+            method,
+            mapOf(
+                "textDocument" to mapOf("uri" to uri),
+                "position" to mapOf("line" to line.coerceAtLeast(0), "character" to column.coerceAtLeast(0)),
+            ),
+            cb,
+        )
+        return true
     }
 
     fun closeDocument(uri: String) {
