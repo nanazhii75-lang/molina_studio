@@ -1829,3 +1829,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Ukur: pyflakes3 300 baris 1,7 dtk/16 MB. shellcheck bersih 1000 baris 3,0 dtk/39 MB (sampel padat 300 baris dengan 600 temuan: 5,8 dtk/273 MB). pylsp idle 28 MB, initialize 3,7 dtk, diagnostik 300 baris 0,57 dtk/29 MB
 - [x] Keputusan: 6c layak untuk Python (pylsp menetap, mati otomatis saat idle). Shell tetap sekali jalan. Tidak perlu batas jumlah baris untuk Periksa saat simpan
 - [ ] Rencana 6c: (1) klien JSON-RPC murni Kotlin + uji JVM, (2) mode stream dua arah di ProotScriptExecutor + Lane baru (menyentuh :app), (3) saklar "Diagnostik langsung (Python)", debounce, idle shutdown, penjaga RAM. Ukur ulang RAM bila completion/definition (Jedi) ditambah
+
+## 2026-10-29 - Klien LSP murni, tahap 1 dari 6c [CODE-LSP1]
+- [x] feat(code): paket lsp baru di :feature:code, Kotlin murni tanpa Android dan tanpa proses. LspProtocol.kt (LspJson, LspFraming, LspDecoder, LspUri) dan LspClient.kt (LspClient, LspListener, LspDiagnostics). Belum dipakai UI/transport
+- [x] Protokol: Content-Length dalam byte UTF-8; decoder bertahap (tahan potongan 1 byte, banyak pesan per potongan, header lain diabaikan); batas badan 8 MB dan header 4 KB; header/JSON rusak = LspException dan klien ditutup
+- [x] Klien: dokumen yang dibuka sebelum siap ditahan dan dikirim setelah initialize; didChange mengirim seluruh teks (tanpa range) dan dilewati bila teks sama; permintaan server (workspace/configuration, registerCapability, workDoneProgress/create) selalu dijawab, metode asing dijawab -32601; shutdown rapi (shutdown lalu exit); onClosed tepat sekali
+- [x] Diagnostik: severity 1 galat, 2/tanpa nilai peringatan, selain itu info; posisi LSP (0-based, UTF-16) jadi basis 1 dengan kolom akhir eksklusif; maks 2000 item, pesan maks 1000 karakter
+- [x] Uji JVM murni lulus: scripts/code-tests/run_lsp.sh (81 kasus); run_check.sh dan gerbang telemetri tetap lulus
+- [x] Dampak: hanya :feature:code (file baru). :app, AndroidManifest, Gradle, JNI mpv TIDAK disentuh; tanpa dependensi, aset, atau izin baru
+- [ ] BELUM dikompilasi (CI) dan belum dipakai di perangkat. Berikutnya: tahap 2, transport proses menetap di Debian (mode stream dua arah di ProotScriptExecutor + Lane baru, menyentuh :app), lalu tahap 3 UI (saklar, debounce, idle shutdown, penjaga RAM)
