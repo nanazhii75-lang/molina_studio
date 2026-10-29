@@ -206,24 +206,32 @@ object TerminalSessions {
             )
         }
 
-        val args = arrayOf(
-            "proot", "--link2symlink", "--kill-on-exit", "-0",
-            "--rootfs=$rootfs", "--cwd=$guestCwd",
-            "--bind=/dev", "--bind=/proc", "--bind=/sys",
-            *storageBinds,
-            "/usr/bin/env", "-i",
-            "HOME=/root", "TERM=xterm-256color", "LANG=C.UTF-8",
+        // /proc palsu hanya untuk berkas yang diblokir Android (di Android 8 biasanya tidak ada yang dipasang).
+        val procBinds = FakeProc.prepare(
+            File(rootfsDir, "etc/molina/proc"), Runtime.getRuntime().availableProcessors()
+        ) { path -> try { File(path).inputStream().use { it.read() }; true } catch (e: Exception) { false } }
+
+        val guestEnv = buildList {
+            add("HOME=/root"); add("TERM=xterm-256color"); add("LANG=C.UTF-8")
             // debconf tanpa dialog (PRoot tidak mengizinkan tcsetattr); arena glibc dibatasi demi RAM.
-            "DEBIAN_FRONTEND=noninteractive", "MALLOC_ARENA_MAX=2",
-            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-            "MOLINA_HOME=${MolinaShell.HOME_DIR}",
-            *(if (appVisible) arrayOf("MOLINA_ROOT=${MolinaShell.APP_ROOT}") else emptyArray<String>()),
-            "MOLINA_BRAND=${MolinaShell.BRAND}",
-            "MOLINA_BRAND_SGR=${MolinaShell.BRAND_SGR}",
-            "MOLINA_PS_HOME=${TerminalPrefs.promptTheme.homeSgr}",
-            "MOLINA_PS_OTHER=${TerminalPrefs.promptTheme.otherSgr}",
-            "/bin/bash", "--rcfile", "/etc/molina/bashrc", "-i"
+            add("DEBIAN_FRONTEND=noninteractive"); add("MALLOC_ARENA_MAX=2")
+            add("PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin")
+            add("MOLINA_HOME=${MolinaShell.HOME_DIR}")
+            if (appVisible) add("MOLINA_ROOT=${MolinaShell.APP_ROOT}")
+            add("MOLINA_BRAND=${MolinaShell.BRAND}")
+            add("MOLINA_BRAND_SGR=${MolinaShell.BRAND_SGR}")
+            add("MOLINA_PS_HOME=${TerminalPrefs.promptTheme.homeSgr}")
+            add("MOLINA_PS_OTHER=${TerminalPrefs.promptTheme.otherSgr}")
+        }
+        val config = ProotConfig(
+            rootfs = rootfs,
+            cwd = guestCwd,
+            binds = storageBinds.toList() + procBinds,
+            guestEnv = guestEnv,
+            // --sysvipc hanya bila binary proot bawaan mengenalnya (flag asing membuat proot langsung keluar).
+            sysvipc = ProotCaps.supports(File(nativeDir, "libproot.so"), "sysvipc"),
         )
+        val args = config.args()
         val env = buildList {
             add("PROOT_LOADER=$nativeDir/libproot_loader.so")
             add("PROOT_TMP_DIR=${tmp.absolutePath}")
