@@ -2026,3 +2026,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Uji di perangkat: `logcat -s Molina/Term Molina/Mpv` (Log Level terminal Debug/Verbose); putar video lalu cek baris Molina/Mpv dengan awalan [playback]; halaman Log in-app: label tetap `mpv`, bukan `mpv/Molina/Mpv`
 - [ ] Belum diseragamkan: ytdlp, auto, CommandBridge, CommandServer, rootfs-admin, shield (lewat AppLog)
 - [ ] Berikutnya: pencarian scrollback + deteksi URL (terminal-view), command palette
+
+## 2026-10-30 - Deteksi URL di Terminal [TERM-LINKS1]
+- [x] feat(term): TerminalLinkScan (JVM murni) memindai transkrip: skema http/https/rtsp/rtmp/rtmps, buang tanda baca penutup dan kurung tak berpasangan, tolak host kosong dan URL > 2048 karakter, unik, terbaru di atas, maks 30
+- [x] feat(term): menu header "Tautan di layar" membuka LinksDialog: Putar (CinemaActions.play), Buka (peramban, http/https saja), Salin, Sisip (ke prompt tanpa Enter). Pemindaian di Dispatchers.Default
+- [x] Uji: scripts/app-tests/run_terminal_links.sh, 29 pemeriksaan lulus (kotlinc 2.1.20)
+- [x] Dampak: HANYA :app (terminal/). terminal-view, terminal-emulator, Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh. Read-only atas transcriptText
+- [ ] BELUM dikompilasi (CI). Periksa: LinksDialog/LinkRow (Compose), impor CinemaActions.Input.Direct
+- [ ] Uji di perangkat: jalankan `echo https://example.com/a; yt-dlp --version`, buka menu ⋮ > Tautan di layar; uji URL panjang yang membungkus baris; uji Putar ke Cinema
+- [ ] Berikutnya: pencarian scrollback (Cari + sorot), command palette
