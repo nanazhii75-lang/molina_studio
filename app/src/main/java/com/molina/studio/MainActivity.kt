@@ -195,6 +195,7 @@ class MainActivity : ComponentActivity() {
                         it.scriptExecutor = com.molina.studio.code.ProotScriptExecutor(applicationContext)
                         it.formatExecutor = com.molina.studio.code.ProotScriptExecutor(applicationContext, com.molina.studio.code.ProotScriptExecutor.Lane.FORMAT) // [CODE-FORMAT]
                         it.checkExecutor = com.molina.studio.code.ProotScriptExecutor(applicationContext, com.molina.studio.code.ProotScriptExecutor.Lane.CHECK) // [CODE-CHECK]
+                        it.lspExecutor = com.molina.studio.code.ProotScriptExecutor(applicationContext, com.molina.studio.code.ProotScriptExecutor.Lane.LSP) // [CODE-LSP2]
                         it.terminalSink = { text, execute -> com.molina.studio.code.CodeTerminalBridge.deliver(text, execute) }
                         it.guestPathResolver = { f -> com.molina.studio.code.CodeTerminalBridge.guestPath(f) } // [CODE-PYRUN]
                         val runPrefs = this@MainActivity.getSharedPreferences("molina_code_run", android.content.Context.MODE_PRIVATE) // [CODE-PYRUN2]

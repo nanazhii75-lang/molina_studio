@@ -414,6 +414,9 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
         get() = checker.executor
         set(value) { checker.executor = value }
 
+    /** [CODE-LSP2] Dipasang :app (Debian PRoot, jalur LSP): proses menetap dua arah untuk language server. Null = LSP tidak tersedia. UI-nya menyusul (tahap 3). */
+    var lspExecutor: com.molina.code.lsp.StreamExecutor? = null
+
     /** [CODE-CHECK] Lompat ke masalah ([line], [col] basis 1) di tab [tabId]. */
     internal fun jumpToProblem(tabId: Int, line: Int, col: Int) {
         val tab = tabs.firstOrNull { it.id == tabId } ?: return
