@@ -2035,3 +2035,14 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi (CI). Periksa: LinksDialog/LinkRow (Compose), impor CinemaActions.Input.Direct
 - [ ] Uji di perangkat: jalankan `echo https://example.com/a; yt-dlp --version`, buka menu ⋮ > Tautan di layar; uji URL panjang yang membungkus baris; uji Putar ke Cinema
 - [ ] Berikutnya: pencarian scrollback (Cari + sorot), command palette
+
+## 2026-10-30 - Lompat dan sorot hasil pencarian Terminal [TERM-JUMP1]
+- [x] Koreksi: pencarian langkah 1 memakai baris logis (transcriptText menggabungkan baris terbungkus), tidak cocok dengan indeks topRow. Diganti pencarian per baris layar (TerminalSearch.findRows, termasuk kolom dengan karakter lebar)
+- [x] feat(term): tombol Lompat menggulir TerminalView (showSearchHit) dan menyorot kolom hasil (kotak #E6B450, alpha 40%)
+- [x] feat(view): pin tampilan (mSearchPinned): pembaruan output tidak mengembalikan ke bawah; riwayat yang bergeser ikut digeser; pin dilepas saat ACTION_DOWN, onKeyDown, atau commitText (IME)
+- [x] Layar penuh (vim/htop, buffer alternatif): pencarian dinonaktifkan dengan pesan
+- [x] Uji JVM: scripts/app-tests/run_terminal_search.sh, 32 pemeriksaan lulus (kotlinc 2.1.20)
+- [ ] BELUM dikompilasi (CI). Periksa: terminal-view TerminalView.java (Paint, onScreenUpdated, onDraw), TerminalSearchDialog.kt (akses screen, produceState)
+- [ ] Uji di perangkat: cetak >200 baris; cari kata lama, Lompat, pastikan sorotan di baris yang benar; lalu jalankan `yes | head -500` dan pastikan tampilan tetap di hasil; ketik sesuatu dan pastikan pin lepas
+- [ ] Uji regresi: seleksi teks dengan tahan-tekan, scroll manual, vim, tmux
+- [ ] Berikutnya: command palette
