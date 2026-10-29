@@ -82,7 +82,7 @@ object RootfsManager {
             } catch (e: Exception) {
                 if (cancelRequested) {
                     // Dibatalkan pengguna: buang ekstrak setengah jadi, sisa unduhan dipertahankan.
-                    File(app.filesDir, "rootfs/debian.tmp").deleteRecursively()
+                    SafeTree.delete(File(app.filesDir, "rootfs/debian.tmp"))
                     _state.value = RootfsState.Missing
                 } else {
                     _state.value = RootfsState.Failed(e.message ?: e.javaClass.simpleName)
@@ -129,7 +129,7 @@ object RootfsManager {
         }
 
         val tmp = File(base, "debian.tmp")
-        tmp.deleteRecursively()
+        SafeTree.delete(tmp)
         tmp.mkdirs()
         extract(archive, tmp)
 
@@ -145,7 +145,7 @@ object RootfsManager {
             .writeText("APT::Sandbox::User \"root\";\n")
 
         val dst = rootfsDir(ctx)
-        dst.deleteRecursively()
+        SafeTree.delete(dst)
         if (!tmp.renameTo(dst)) error("Gagal memindahkan rootfs ke lokasi akhir")
         marker(ctx).writeText(ROOTFS_SHA256)
         archive.delete()
