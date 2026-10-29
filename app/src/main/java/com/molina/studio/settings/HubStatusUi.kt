@@ -65,6 +65,7 @@ internal fun hubStatusRows(
         is RootfsState.Downloading -> Pair("Mengunduh ${rootfs.percent}%", HubTone.Idle)
         is RootfsState.Extracting -> Pair("Mengekstrak ${rootfs.percent}%", HubTone.Idle)
         is RootfsState.Failed -> Pair("Gagal dipasang", HubTone.Bad)
+        is RootfsState.Maintenance -> Pair("Sedang dikelola", HubTone.Idle)
     }
     val apt = when {
         aptPending < 0 -> Pair("Belum diperiksa", HubTone.Idle)

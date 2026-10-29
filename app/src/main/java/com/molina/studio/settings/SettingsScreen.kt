@@ -157,6 +157,7 @@ private val INDEX = listOf(
     Hit("About", "Versi, perangkat, status, dan lisensi (kini di Sistem > Info)", Page.Info),
     Hit("Salin info debug", "Salin ringkasan versi dan status untuk laporan bug", Page.Info),
     Hit("Info", "Status Molina dan informasi dasar perangkat", Page.Info),
+    Hit("Kelola rootfs Debian", "Backup, restore, dan reset rootfs Debian di Sistem", Page.System),
     Hit("Status Molina", "Ringkasan Debian, paket, yt-dlp, dan cadangan di Sistem > Info", Page.Info),
     Hit("Informasi perangkat", "Versi Molina Studio, Android, perangkat, arsitektur, dan RAM", Page.Info),
     Hit("Versi libmpv", "Versi Molina Terminal, Molina Cinema, libmpv, dan FFmpeg", Page.Info)
@@ -180,6 +181,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     var apt by remember { mutableStateOf<AptJob?>(null) }
     var showTools by remember { mutableStateOf(false) }
     var showBackup by remember { mutableStateOf(false) }
+    var showRootfsAdmin by remember { mutableStateOf(false) } // [TERM-ROOTFS2]
     var showProfiles by remember { mutableStateOf(false) }
     var showDiag by remember { mutableStateOf(false) }
     val aptCtx = LocalContext.current
@@ -242,6 +244,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
         apt?.let { job -> DebianAptDialog(job) { apt = null } }
         if (showTools) InstalledToolsDialog { showTools = false }
         if (showBackup) BackupDialog { showBackup = false }
+        if (showRootfsAdmin) RootfsAdminDialog { showRootfsAdmin = false } // [TERM-ROOTFS2]
         if (showProfiles) ProfileDialog { showProfiles = false }
         if (showDiag) DiagnosticsDialog { showDiag = false }
         when {
@@ -322,6 +325,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         W7Link({ W7IconAptSync() }, "Perbarui dan tingkatkan paket", AptHistory.subtitle(aptLast)) { apt = AptJob.UpdateUpgrade }
                         W7Link({ W7IconToolList() }, "Bersihkan cache dan paket yatim", "autoremove dan apt clean: menambah ruang kosong Debian") { apt = AptJob.CleanUp }
                         W7Link({ W7IconToolList() }, "Daftar tool terpasang", "Deteksi alat Molina di Debian beserta versinya") { showTools = true }
+                        W7Link({ W7IconToolList() }, "Kelola rootfs Debian", "Cadangkan, pulihkan, atau atur ulang seluruh rootfs (tar.gz)") { showRootfsAdmin = true } // [TERM-ROOTFS2]
                         W7Link({ W7IconToolList() }, "Cadangan dan pemulihan", "Penanda video, snippet, dan setelan dalam satu berkas Backup") { showBackup = true }
                         W7Link({ W7IconToolList() }, "Profil setelan", "Simpan dan ganti kumpulan setelan dengan satu ketukan") { showProfiles = true }
                     }

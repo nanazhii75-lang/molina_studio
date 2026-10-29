@@ -26,6 +26,8 @@ sealed interface RootfsState {
     data class Extracting(val percent: Int) : RootfsState
     data object Ready : RootfsState
     data class Failed(val message: String) : RootfsState
+    /** [TERM-ROOTFS2] backup/restore/reset sedang berjalan (RootfsAdmin); Terminal terkunci. */
+    data class Maintenance(val label: String) : RootfsState
 }
 
 private class InstallCancelled : RuntimeException()
@@ -61,7 +63,7 @@ object RootfsManager {
     private fun marker(ctx: Context) = File(ctx.filesDir, "rootfs/debian.ready")
 
     fun refresh(ctx: Context) {
-        if (running) return
+        if (running || _state.value is RootfsState.Maintenance) return
         _state.value =
             if (marker(ctx).exists() && rootfsDir(ctx).isDirectory) RootfsState.Ready
             else if (_state.value is RootfsState.Failed) _state.value
@@ -71,7 +73,7 @@ object RootfsManager {
     fun install(ctx: Context) {
         val app = ctx.applicationContext
         synchronized(this) {
-            if (running) return
+            if (running || _state.value is RootfsState.Maintenance) return
             running = true
             cancelRequested = false
         }
@@ -92,6 +94,25 @@ object RootfsManager {
             }
         }
     }
+
+    /** [TERM-ROOTFS2] Masuk mode Maintenance; false bila pemasangan berjalan atau sudah Maintenance. */
+    internal fun beginMaintenance(label: String): Boolean = synchronized(this) {
+        if (running || _state.value is RootfsState.Maintenance) return false
+        _state.value = RootfsState.Maintenance(label)
+        true
+    }
+
+    /** Keluar dari Maintenance; status dihitung ulang dari marker dan folder rootfs. */
+    internal fun endMaintenance(ctx: Context) = synchronized(this) {
+        _state.value =
+            if (marker(ctx).exists() && rootfsDir(ctx).isDirectory) RootfsState.Ready else RootfsState.Missing
+    }
+
+    internal fun markReady(ctx: Context) {
+        marker(ctx).apply { parentFile?.mkdirs(); writeText("restored") }
+    }
+
+    internal fun clearMarker(ctx: Context) { marker(ctx).delete() }
 
     /** Batalkan pemasangan yang berjalan (unduh, verifikasi, atau ekstrak). Sisa unduhan tetap disimpan. */
     fun cancel() {

@@ -82,6 +82,7 @@ fun SetupPanel(state: RootfsState, onInstall: () -> Unit, onCancel: () -> Unit) 
             Spacer(Modifier.height(10.dp))
             when {
                 state is RootfsState.Failed -> StatusPill("Gagal", SetupBad)
+                state is RootfsState.Maintenance -> StatusPill("Sedang dikelola", gold)
                 installing -> StatusPill("Sedang memasang", gold)
                 else -> StatusPill("Belum terpasang", SetupWarn)
             }
@@ -89,6 +90,7 @@ fun SetupPanel(state: RootfsState, onInstall: () -> Unit, onCancel: () -> Unit) 
 
             when (state) {
                 is RootfsState.Failed -> FailedSection(state.message, onInstall)
+                is RootfsState.Maintenance -> MaintenanceSection(state.label)
                 is RootfsState.Downloading, is RootfsState.Verifying, is RootfsState.Extracting ->
                     ProgressSection(state, onCancel)
                 else -> IdleSection(onInstall)
@@ -98,6 +100,18 @@ fun SetupPanel(state: RootfsState, onInstall: () -> Unit, onCancel: () -> Unit) 
             Text("Sumber resmi Debian \u00B7 tanpa akun \u00B7 tanpa telemetri",
                 color = SetupMuted, fontSize = 10.sp, textAlign = TextAlign.Center)
         }
+    }
+}
+
+@Composable
+private fun MaintenanceSection(label: String) {
+    val gold = MaterialTheme.colorScheme.primary
+    SetupCard {
+        Text(label, color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp)
+        Spacer(Modifier.height(8.dp))
+        LinearProgressIndicator(modifier = Modifier.fillMaxWidth().height(3.dp), color = gold, trackColor = SetupCardLine)
+        Spacer(Modifier.height(8.dp))
+        Text("Rootfs sedang dikelola dari Setelan > Sistem. Terminal aktif kembali setelah selesai.", color = SetupMuted, fontSize = 10.sp)
     }
 }
 
