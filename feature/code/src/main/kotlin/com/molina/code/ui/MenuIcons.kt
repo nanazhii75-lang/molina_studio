@@ -14,7 +14,7 @@ import androidx.compose.ui.graphics.drawscope.scale
 internal enum class MenuIcon {
     New, SaveAs, Open, Reload, Actions, Find, GoToLine, Share, Script, Insert, Run, Snippet,
     Export, Convert, Syntax, Encoding, Eol, Palette, Wrap, ReadOnly, Stats, Redo,
-    FolderUp, NewFolder, Rename, Copy, Reveal, Delete, Command, File, FindFiles, Outline, FontSize, Format, Symbol, History, Check
+    FolderUp, NewFolder, Rename, Copy, Reveal, Delete, Command, File, FindFiles, Outline, FontSize, Format, Symbol, History, Check, Back
 }
 
 private val MStroke = Stroke(width = 2f, cap = StrokeCap.Round, join = StrokeJoin.Round)
@@ -41,6 +41,10 @@ internal fun DrawScope.drawMenuIcon(kind: MenuIcon, color: Color) {
     val s = size.minDimension / 24f
     scale(s, s, pivot = Offset.Zero) {
         when (kind) {
+            MenuIcon.Back -> { // [CODE-BACK]
+                ln(color, 5f, 12f, 19f, 12f)
+                drawPath(mp { moveTo(11f, 6f); lineTo(5f, 12f); lineTo(11f, 18f) }, color, style = MStroke)
+            }
             MenuIcon.New -> {
                 drawPath(mp { moveTo(6f, 3f); lineTo(14f, 3f); lineTo(19f, 8f); lineTo(19f, 21f); lineTo(6f, 21f); close() }, color, style = MStroke)
                 ln(color, 12.5f, 11f, 12.5f, 17f)

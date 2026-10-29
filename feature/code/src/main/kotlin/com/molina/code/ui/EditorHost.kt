@@ -29,6 +29,7 @@ internal fun EditorHost(session: CodeSession, modifier: Modifier = Modifier) {
         factory = { ctx -> FrameLayout(ctx).apply { setBackgroundColor(CodeColors.EditorBg.toArgb()) } },
         update = { container ->
             val editor = tab.editorOrCreate(container.context)
+            installActionPanel(editor, session) // [CODE-ACTIONS]
             (editor as? MolinaCodeEditor)?.let { me -> // [CODE-PLAYGUTTER]
                 me.onPlay = { session.playActive() }
                 me.playRunning = session.run.running

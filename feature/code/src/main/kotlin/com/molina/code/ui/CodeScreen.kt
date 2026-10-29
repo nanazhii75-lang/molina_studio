@@ -85,7 +85,7 @@ fun CodeScreen(session: CodeSession, modifier: Modifier = Modifier) {
             session.active?.let { t ->
                 // [CODE-LSP3] lencana hanya untuk berkas yang didukung server (Python) dan saat saklar menyala
                 val supported = session.liveEnabled && t.file != null && com.molina.code.lsp.LspServers.of(t.file!!.name, if (t.revision >= 0) t.firstLineOrNull() else null) != null
-                CodeStatusBar(t, if (supported) liveBadge(session.liveState, session.liveDetail) else null)
+                CodeStatusBar(t, if (supported) liveBadge(session.liveState, session.liveDetail) else null, library = session.isLibraryFile(t.file)) // [CODE-DEBLIB]
             }
             if (session.find.open) {
                 session.active?.let { FindBar(session, it) }
@@ -133,6 +133,10 @@ fun CodeScreen(session: CodeSession, modifier: Modifier = Modifier) {
                 .fillMaxHeight()
                 .width(CodeDimens.EdgeSwipeWidth)
                 .padding(top = CodeDimens.HeaderHeight + CodeDimens.TabBarHeight, bottom = CodeDimens.ToolbarHeight + Win7Code.StatusHeight)
+        )
+        BackPill( // [CODE-BACK]
+            session,
+            Modifier.align(Alignment.BottomStart).padding(start = 12.dp, bottom = CodeDimens.ToolbarHeight + Win7Code.StatusHeight + 10.dp),
         )
         DirectoryPanel(session)
         // Halaman penuh: Tinjauan (Markdown/JSON/HTML) atau Keluaran skrip (.sh/.py), menutupi editor sampai ditutup.

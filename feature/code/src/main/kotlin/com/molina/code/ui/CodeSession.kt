@@ -455,6 +455,7 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
     internal fun completionBackendFor(tab: EditorTab): LspCompletionBackend? {
         if (!liveEnabled || tab.loading) return null
         val f = tab.file ?: return null
+        if (isLibraryFile(f)) return null // [CODE-DEBLIB]
         val spec = com.molina.code.lsp.LspServers.of(f.name, null) ?: return null
         val path = f.absolutePath
         return LspCompletionBackend { text, line, column ->
@@ -477,6 +478,7 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
         val f = tab.file
         if (!liveEnabled) return toast("Nyalakan \"Python langsung\" di menu titik tiga dulu")
         if (f == null) return toast("Simpan berkas dulu agar server bisa membacanya")
+        if (isLibraryFile(f)) return toast("Pergi ke definisi belum didukung dari berkas pustaka Debian") // [CODE-DEBLIB]
         if (tab.loading) return
         val spec = com.molina.code.lsp.LspServers.of(f.name, tab.firstLineOrNull())
             ?: return toast("Pergi ke definisi saat ini hanya untuk Python")
@@ -510,7 +512,14 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
                 if (tabs.none { it === tab } || activeId != tab.id) return // pengguna sudah pindah tab: jangan melompat
                 val now = tab.currentTextOrNull(MAX_LIVE_CHARS)
                 if (now == null || !stamp.matches(now)) return toast("Teks berubah saat mencari, ketuk lagi")
-                val outcome = com.molina.code.lsp.LspDefinitionLogic.classify(reply.list, path, word, line, dir.root.path) { java.io.File(it).isFile }
+                val first = com.molina.code.lsp.LspDefinitionLogic.classify(reply.list, path, word, line, dir.root.path) { java.io.File(it).isFile }
+                // [CODE-DEBLIB] tujuan hanya di Debian: buka lewat path rootfs (hanya-baca)
+                val debRoot = if (first is com.molina.code.lsp.DefinitionOutcome.OnlyInDebian) debianRoot?.invoke() else null
+                val outcome = if (debRoot != null) {
+                    com.molina.code.lsp.LspDefinitionLogic.classifyDebian(reply.list) { com.molina.code.nav.RootfsPaths.resolve(debRoot, it) }
+                } else {
+                    first
+                }
                 when (outcome) {
                     is com.molina.code.lsp.DefinitionOutcome.Jump -> openLocation(outcome.hostPath, outcome.line + 1, outcome.column)
                     is com.molina.code.lsp.DefinitionOutcome.Choose -> definitionChoices = outcome.choices
@@ -524,6 +533,72 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
     internal fun openDefinitionChoice(c: com.molina.code.lsp.DefinitionChoice) {
         definitionChoices = null
         openLocation(c.hostPath, c.line + 1, c.column)
+    }
+
+    // ---------------------------------------------------------------- [CODE-BACK] Kembali setelah lompat
+
+    private val jumps = com.molina.code.nav.JumpStack()
+
+    /** Jumlah posisi yang bisa dikembalikan; menu Kembali redup bila 0. */
+    var backDepth by mutableIntStateOf(0)
+        private set
+
+    /** Label "nama:baris" untuk pil Kembali yang tampil sebentar setelah lompat; null = pil tersembunyi. */
+    var backHint by mutableStateOf<String?>(null)
+
+    private fun tabAlive(id: Int): Boolean = tabs.any { it.id == id }
+
+    /** Posisi kursor tab aktif untuk dicatat sebelum melompat. Null bila tab kosong, memuat, atau editor belum ada. */
+    private fun currentJumpPoint(): com.molina.code.nav.JumpPoint? {
+        val tab = active ?: return null
+        val ed = tab.editor ?: return null
+        if (tab.loading || tab.isPristine()) return null
+        return try {
+            com.molina.code.nav.JumpPoint(tab.id, ed.cursor.leftLine, ed.cursor.leftColumn + 1)
+        } catch (e: Exception) {
+            null // editor sedang dibuat ulang
+        }
+    }
+
+    private fun recordJump(origin: com.molina.code.nav.JumpPoint?, destTabId: Int, destLine: Int) {
+        if (jumps.push(origin, com.molina.code.nav.JumpPoint(destTabId, destLine, 0))) {
+            backDepth = jumps.size
+            backHint = backLabel()
+        }
+    }
+
+    private fun backLabel(): String? {
+        val p = jumps.peek { tabAlive(it) } ?: return null
+        val t = tabs.firstOrNull { it.id == p.tabId } ?: return null
+        return (t.file?.name ?: t.title) + ":" + (p.line + 1)
+    }
+
+    /** Kembali ke posisi sebelum lompatan terakhir; tab yang sudah ditutup dilewati. */
+    fun jumpBack() {
+        val p = jumps.pop { tabAlive(it) }
+        val tab = if (p == null) null else tabs.firstOrNull { it.id == p.tabId }
+        backDepth = jumps.size
+        backHint = if (backDepth > 0) backLabel() else null
+        if (p == null || tab == null) return toast("Tidak ada posisi sebelumnya")
+        preview.open = false
+        activeId = tab.id
+        jumpWhenReady(tab, p.line, p.column, 40)
+    }
+
+    // ---------------------------------------------------------------- [CODE-DEBLIB] Berkas pustaka Debian (hanya-baca)
+
+    /** Dipasang :app. Folder rootfs Debian di Android; null = fitur buka pustaka Debian tidak tersedia. */
+    var debianRoot: (() -> File?)? = null
+
+    private val libCache = java.util.concurrent.ConcurrentHashMap<String, Boolean>()
+    @Volatile private var libRootPath: String? = null
+
+    /** True bila [f] berada di dalam rootfs Debian: tab-nya dikunci hanya-baca, tanpa Aksi file, Simpan, dan LSP. */
+    internal fun isLibraryFile(f: File?): Boolean {
+        if (f == null) return false
+        val root = debianRoot?.invoke() ?: return false
+        if (libRootPath != root.path) { libRootPath = root.path; libCache.clear() }
+        return libCache.getOrPut(f.path) { com.molina.code.nav.RootfsPaths.isUnder(root, f) }
     }
 
     fun toggleLive() {
@@ -545,6 +620,7 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
         if (!liveEnabled) return
         val f = tab.file
         if (f == null || tab.loading) { if (f == null) live.release(tab.id); return }
+        if (isLibraryFile(f)) { live.release(tab.id); return } // [CODE-DEBLIB] pustaka Debian tidak dikirim ke pylsp
         if (tab.editor == null) return
         val spec = com.molina.code.lsp.LspServers.of(f.name, tab.firstLineOrNull())
         if (spec == null) { live.release(tab.id); return }
@@ -840,6 +916,9 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
         val index = tabs.indexOfFirst { it.id == id }
         if (index < 0) return
         live.release(id) // [CODE-LSP3]
+        jumps.dropTab(id) // [CODE-BACK]
+        backDepth = jumps.size
+        if (backDepth == 0) backHint = null
         tabs.removeAt(index).disposeEditor()
         if (tabs.isEmpty()) {
             newTab()
@@ -884,6 +963,7 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
         val tab = reuse ?: newTab()
         tab.file = file
         tab.title = file.name
+        if (isLibraryFile(file)) tab.readOnly = true // [CODE-DEBLIB]
         tab.loading = true
         tab.editor?.setEditable(false)
         dir.selected = file.path
@@ -1029,6 +1109,7 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
     }
 
     private fun writeTab(tab: EditorTab, target: File, after: (() -> Unit)?) {
+        if (isLibraryFile(target)) return toast("Berkas pustaka Debian hanya-baca. Gunakan Simpan sebagai ke folder kerja") // [CODE-DEBLIB]
         val text = tab.currentTextOrNull(Int.MAX_VALUE) ?: ""
         val eol = tab.eol
         val formatNote = saveNote // [CODE-FORMAT]
@@ -1261,6 +1342,7 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
 
     // [CODE-PALETTE] buka berkas:baris dari tautan error di panel Keluaran
     internal fun openLocation(path: String, line: Int, col: Int) {
+        val origin = currentJumpPoint() // [CODE-BACK]
         val f = resolveLocation(path)
         val base = path.substringAfterLast('/')
         val tab: EditorTab? = if (f != null) {
@@ -1276,6 +1358,7 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
         }
         preview.open = false
         activeId = tab.id
+        recordJump(origin, tab.id, line - 1) // [CODE-BACK]
         jumpWhenReady(tab, line - 1, col, 40)
     }
 

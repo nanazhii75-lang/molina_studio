@@ -94,11 +94,37 @@ object LspDefinitionLogic {
         return name + ":" + (line + 1)
     }
 
+    /**
+     * [CODE-DEBLIB] Dipanggil bila [classify] hanya menemukan tujuan di dalam Debian. [resolve] mengubah path guest
+     * jadi berkas di rootfs (null bila tidak ada). Hasil: Jump (1 berkas), Choose (beberapa, label "[Debian] path:baris"),
+     * atau OnlyInDebian bila tak satu pun bisa dibuka.
+     */
+    fun classifyDebian(targets: List<LspDefinitionTarget>, resolve: (String) -> java.io.File?): DefinitionOutcome {
+        val found = ArrayList<DefinitionChoice>()
+        val seen = HashSet<Triple<String, Int, Int>>()
+        for (t in targets) {
+            val guest = LspUri.toPath(t.uri) ?: continue
+            val f = resolve(guest) ?: continue
+            if (!seen.add(Triple(f.path, t.line, t.column))) continue
+            found.add(DefinitionChoice(f.path, t.line, t.column, labelDebian(guest, t.line)))
+        }
+        if (found.isEmpty()) {
+            val first = targets.firstOrNull()?.uri
+            return DefinitionOutcome.OnlyInDebian(first?.let { LspUri.toPath(it) ?: it } ?: "", targets.size)
+        }
+        found.sortWith(compareBy({ it.label }, { it.line }, { it.column }))
+        if (found.size == 1) return DefinitionOutcome.Jump(found[0].hostPath, found[0].line, found[0].column)
+        return DefinitionOutcome.Choose(found.take(MAX_CHOICES))
+    }
+
+    /** "[Debian] /usr/lib/python3/x.py:12" (baris basis 1). */
+    fun labelDebian(guestPath: String, line: Int): String = "[Debian] " + guestPath + ":" + (line + 1)
+
     /** Pesan toast untuk hasil yang tidak berpindah; null bila hasilnya Jump/Choose. */
     fun message(outcome: DefinitionOutcome): String? = when (outcome) {
         is DefinitionOutcome.NotFound -> "Definisi tidak ditemukan"
         is DefinitionOutcome.AtDefinition -> "Kursor sudah di definisi"
-        is DefinitionOutcome.OnlyInDebian -> "Definisi ada di Debian (${outcome.guestPath}), tidak terbuka dari Android"
+        is DefinitionOutcome.OnlyInDebian -> "Definisi ada di Debian (${outcome.guestPath}), berkasnya tidak ditemukan di rootfs"
         is DefinitionOutcome.Jump, is DefinitionOutcome.Choose -> null
     }
 }

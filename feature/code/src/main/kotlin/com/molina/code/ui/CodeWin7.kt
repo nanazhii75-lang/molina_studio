@@ -83,7 +83,7 @@ internal fun languageOf(name: String): String = when (name.substringAfterLast('.
 
 /** Bilah status bawah editor: Ln/Kol, jumlah baris, bahasa, UTF-8, dan status simpan. */
 @Composable
-internal fun CodeStatusBar(tab: EditorTab, live: LiveBadge? = null) { // [CODE-LSP3]
+internal fun CodeStatusBar(tab: EditorTab, live: LiveBadge? = null, library: Boolean = false) { // [CODE-LSP3] [CODE-DEBLIB]
     var pos by remember(tab.id) { mutableStateOf("Ln 1, Kol 1") }
     var lines by remember(tab.id) { mutableStateOf(1) }
     var chars by remember(tab.id) { mutableStateOf(0) } // [CODE-STATUS]
@@ -109,6 +109,7 @@ internal fun CodeStatusBar(tab: EditorTab, live: LiveBadge? = null) { // [CODE-L
     val stateColor: Color
     when {
         tab.loading -> { state = "Memuat"; stateColor = Win7Code.InkDim }
+        library -> { state = "Debian - hanya baca"; stateColor = CodeColors.GoldSoft } // [CODE-DEBLIB]
         tab.dirty -> { state = "Diubah"; stateColor = CodeColors.Danger }
         tab.file != null -> { state = "Tersimpan"; stateColor = CodeColors.Clean }
         else -> { state = "Baru"; stateColor = Win7Code.InkDim }

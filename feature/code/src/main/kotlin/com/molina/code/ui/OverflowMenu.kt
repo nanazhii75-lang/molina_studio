@@ -87,7 +87,7 @@ internal fun menuGroups(session: CodeSession, ctx: Context, onDismiss: () -> Uni
                 onDismiss()
             },
             MenuEntry("Riwayat versi", enabled = tab?.file != null && !tab.loading && session.history != null, icon = MenuIcon.History) { session.historyOpen = true; onDismiss() }, // [CODE-HISTORY]
-            MenuEntry("Aksi file", enabled = tab?.file != null, icon = MenuIcon.Actions) {
+            MenuEntry("Aksi file", enabled = tab?.file != null && !session.isLibraryFile(tab.file), icon = MenuIcon.Actions) { // [CODE-DEBLIB]
                 tab?.file?.let { session.fileDialog = FileDialog.Menu(it) }
                 onDismiss()
             }
@@ -99,6 +99,7 @@ internal fun menuGroups(session: CodeSession, ctx: Context, onDismiss: () -> Uni
             MenuEntry("Struktur berkas", enabled = tab != null, icon = MenuIcon.Outline) { session.outlineOpen = true; onDismiss() },
             MenuEntry("Pergi ke simbol", enabled = true, icon = MenuIcon.Symbol) { session.symbolOpen = true; onDismiss() }, // [CODE-SYMBOL]
             MenuEntry("Pergi ke definisi", enabled = session.liveEnabled && tab?.file != null && !tab.loading && !session.definitionBusy, icon = MenuIcon.Symbol) { session.goToDefinition(); onDismiss() }, // [CODE-LSP6]
+            MenuEntry("Kembali ke posisi sebelumnya", enabled = session.backDepth > 0, icon = MenuIcon.Back) { session.jumpBack(); onDismiss() }, // [CODE-BACK]
             MenuEntry("Pergi ke baris", enabled = tab != null, icon = MenuIcon.GoToLine) { session.gotoOpen = true; onDismiss() },
             MenuEntry("Informasi berkas", enabled = tab != null, icon = MenuIcon.Stats) { session.infoOpen = true; onDismiss() } // [CODE-INFO]
         ),
@@ -155,7 +156,7 @@ internal fun menuGroups(session: CodeSession, ctx: Context, onDismiss: () -> Uni
                     it.editor?.setWordwrap(it.wordWrap)
                 }
             },
-            MenuEntry("Hanya baca", enabled = tab != null, checked = tab?.readOnly ?: false, icon = MenuIcon.ReadOnly) {
+            MenuEntry("Hanya baca", enabled = tab != null && !session.isLibraryFile(tab.file), checked = tab?.readOnly ?: false, icon = MenuIcon.ReadOnly) {
                 tab?.let {
                     it.readOnly = !it.readOnly
                     it.editor?.setEditable(!it.readOnly && !it.loading)
