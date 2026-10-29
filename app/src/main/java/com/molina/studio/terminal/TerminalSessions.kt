@@ -171,6 +171,7 @@ object TerminalSessions {
         // bashrc Molina (prompt berwarna + banner) dan titik mount /storage/emulated/0 di guest.
         MolinaShell.installRc(ctx, File(rootfsDir, "etc/molina/bashrc"))
         MolinaShell.installAptConf(rootfsDir)
+        MolinaShell.installCli(ctx, rootfsDir)
         MolinaShell.writePromptEnv(rootfsDir, TerminalPrefs.promptTheme)
         MolinaDns.writeResolvConf(ctx, rootfsDir)
 

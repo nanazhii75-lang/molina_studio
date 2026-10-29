@@ -33,6 +33,28 @@ object MolinaShell {
         if (!target.isFile || target.readText() != text) target.writeText(text)
     }
 
+    /**
+     * Pasang CLI `molina` di Debian (jembatan Debian -> aplikasi, lihat cmd/CommandServer).
+     * Hanya menulis bila isinya berbeda; gagal tulis dicatat, tidak menghentikan sesi.
+     */
+    fun installCli(ctx: Context, rootfsDir: File) {
+        val files = listOf(
+            Triple("molina/molina-cli.sh", "usr/local/bin/molina", true),
+            Triple("molina/molina-cli.py", "usr/local/lib/molina/molina_cli.py", false),
+        )
+        for ((asset, rel, exec) in files) {
+            runCatching {
+                val data = ctx.assets.open(asset).use { it.readBytes() }
+                val f = File(rootfsDir, rel)
+                f.parentFile?.mkdirs()
+                if (!f.isFile || !f.readBytes().contentEquals(data)) f.writeBytes(data)
+                if (exec && !f.canExecute()) f.setExecutable(true, false)
+            }.onFailure {
+                LogBus.log("sistem", LogLevel.Warn, "Shell", "Gagal memasang CLI molina ($rel): ${it.message}")
+            }
+        }
+    }
+
     private const val APT_CONF = """// Molina: default apt/dpkg yang aman dan hemat (dibuat otomatis, ditimpa tiap sesi).
 Acquire::AllowInsecureRepositories "false";
 Acquire::AllowDowngradeToInsecureRepositories "false";

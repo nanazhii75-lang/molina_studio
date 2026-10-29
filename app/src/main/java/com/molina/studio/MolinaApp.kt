@@ -30,6 +30,7 @@ class MolinaApp : Application() {
         com.molina.studio.code.CodePrefs.init(this)
         com.molina.studio.code.ScriptStore.init(this)
         MpvControl.install(this)
+        com.molina.studio.cmd.CommandServer.start(this)
         SystemRefresh.install(this)
         com.molina.studio.automation.AutoPrefs.init(this)
         com.molina.studio.automation.AutoWork.sync(this)
