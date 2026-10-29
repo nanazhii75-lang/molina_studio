@@ -124,6 +124,9 @@ object CommandServer {
             CommandProtocol.ok(if (MpvControl.shutdown(app)) "pemutar dihentikan" else "tidak ada pemutar aktif")
         CommandProtocol.Verb.PLAY -> play(NewTaskContext(app), r.arg)
         CommandProtocol.Verb.OPEN -> open(r.arg)
+        CommandProtocol.Verb.CLIP -> BridgeCommands.clip(app, CommandProtocol.parseClip(r.arg))
+        CommandProtocol.Verb.NOTIFY -> BridgeCommands.notify(app, r.arg)
+        CommandProtocol.Verb.SHARE -> BridgeCommands.share(app, r.arg)
     }
 
     private fun play(ctx: Context, arg: String): String {

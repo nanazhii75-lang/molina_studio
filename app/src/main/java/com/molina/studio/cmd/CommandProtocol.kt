@@ -8,11 +8,14 @@ package com.molina.studio.cmd
 object CommandProtocol {
     /** Abstract-namespace Unix socket (sama gaya dengan @molina.log). */
     const val SOCKET_NAME = "molina.cmd"
-    const val VERSION = 1
-    const val MAX_LINE = 4096
+    const val VERSION = 2
+    const val MAX_LINE = 131072
+
+    /** Batas argumen verb biasa; clip dan share punya batas sendiri (base64). */
+    const val MAX_ARG = 4096
 
     enum class Verb(val wire: String) {
-        PING("ping"), VERSION("version"), STATUS("status"), PLAY("play"), STOP("stop"), OPEN("open")
+        PING("ping"), VERSION("version"), STATUS("status"), PLAY("play"), STOP("stop"), OPEN("open"), CLIP("clip"), NOTIFY("notify"), SHARE("share")
     }
 
     class Request(val verb: Verb, val arg: String)
@@ -30,7 +33,13 @@ object CommandProtocol {
         val arg = if (tab < 0) "" else t.substring(tab + 1).trim()
         val verb = Verb.entries.firstOrNull { it.wire == word }
             ?: return Parsed.Bad("unknown", "perintah tidak dikenal: ${oneLine(word)}")
-        if ((verb == Verb.PLAY || verb == Verb.OPEN) && arg.isEmpty()) return Parsed.Bad("usage", "${verb.wire} butuh argumen")
+        if (verb != Verb.CLIP && verb != Verb.SHARE && arg.length > MAX_ARG) return Parsed.Bad("toolong", "argumen terlalu panjang")
+        if ((verb == Verb.PLAY || verb == Verb.OPEN || verb == Verb.NOTIFY || verb == Verb.SHARE) && arg.isEmpty()) {
+            return Parsed.Bad("usage", "${verb.wire} butuh argumen")
+        }
+        if (verb == Verb.NOTIFY && parseNotify(arg) == null) return Parsed.Bad("usage", "notify butuh teks")
+        if (verb == Verb.CLIP) (parseClip(arg) as? ClipParse.Bad)?.let { return Parsed.Bad(it.code, it.message) }
+        if (verb == Verb.SHARE) (parseShare(arg) as? ShareParse.Bad)?.let { return Parsed.Bad(it.code, it.message) }
         return Parsed.Ok(Request(verb, arg))
     }
 
@@ -64,5 +73,91 @@ object CommandProtocol {
         if (parts.any { it == ".." }) return null
         val root = storageRoot.trimEnd('/')
         return if (parts.isEmpty()) root else root + "/" + parts.joinToString("/")
+    }
+    // ---- Bridge API Android: clip, notify, share (protokol v2) ----
+
+    /** Batas teks clipboard/share (byte UTF-8 sebelum base64). */
+    const val MAX_CLIP = 65536
+    const val MAX_NOTIFY_TITLE = 64
+    const val MAX_NOTIFY_TEXT = 500
+    const val DEFAULT_NOTIFY_TITLE = "Molina"
+
+    fun encodeB64(text: String): String =
+        java.util.Base64.getEncoder().encodeToString(text.toByteArray(Charsets.UTF_8))
+
+    /** Null bila bukan base64 baku atau bukan UTF-8 yang sah. */
+    fun decodeB64(b64: String): String? = try {
+        val bytes = java.util.Base64.getDecoder().decode(b64)
+        Charsets.UTF_8.newDecoder().decode(java.nio.ByteBuffer.wrap(bytes)).toString()
+    } catch (e: IllegalArgumentException) {
+        null
+    } catch (e: java.nio.charset.CharacterCodingException) {
+        null
+    }
+
+    /** Balasan bermuatan panjang (tanpa pemotongan [oneLine]); muatan base64 tanpa spasi. */
+    fun okPayload(payload: String): String =
+        if (payload.isEmpty()) "OK\n" else "OK " + payload.filterNot { it.isWhitespace() } + "\n"
+
+    sealed interface ClipParse {
+        object Get : ClipParse
+        class Put(val text: String) : ClipParse
+        class Bad(val code: String, val message: String) : ClipParse
+    }
+
+    /** Argumen clip: "get" atau "set[TAB]<base64 UTF-8>" (maks [MAX_CLIP] byte; set tanpa muatan = kosongkan). */
+    fun parseClip(arg: String): ClipParse {
+        if (arg == "get") return ClipParse.Get
+        if (arg == "set" || arg.startsWith("set\t")) {
+            val b64 = if (arg == "set") "" else arg.substring(4)
+            val tooBig = ClipParse.Bad("toolong", "teks clipboard lebih dari $MAX_CLIP byte")
+            if (b64.length > (MAX_CLIP / 3 + 1) * 4) return tooBig
+            val text = decodeB64(b64) ?: return ClipParse.Bad("usage", "muatan clip set bukan base64/UTF-8 yang sah")
+            return if (text.toByteArray(Charsets.UTF_8).size > MAX_CLIP) tooBig else ClipParse.Put(text)
+        }
+        return ClipParse.Bad("usage", "clip butuh get atau set")
+    }
+
+    class NotifyMsg(val title: String, val text: String)
+
+    /** Argumen notify: "teks" atau "judul[TAB]teks". Null bila teks kosong. */
+    fun parseNotify(arg: String): NotifyMsg? {
+        val tab = arg.indexOf('\t')
+        val title = if (tab < 0) DEFAULT_NOTIFY_TITLE else arg.substring(0, tab).trim().ifEmpty { DEFAULT_NOTIFY_TITLE }
+        val text = (if (tab < 0) arg else arg.substring(tab + 1)).replace('\t', ' ').trim()
+        if (text.isEmpty()) return null
+        return NotifyMsg(title.take(MAX_NOTIFY_TITLE), text.take(MAX_NOTIFY_TEXT))
+    }
+
+    sealed interface ShareParse {
+        class Text(val text: String) : ShareParse
+        class Files(val paths: List<String>) : ShareParse
+        class Bad(val code: String, val message: String) : ShareParse
+    }
+
+    /** Argumen share: "text[TAB]<base64>" atau "file[TAB]<path>[TAB]<path>..." (maks [MAX_OPEN] berkas). */
+    fun parseShare(arg: String): ShareParse {
+        val tab = arg.indexOf('\t')
+        if (tab < 0) return ShareParse.Bad("usage", "share butuh text atau file")
+        val rest = arg.substring(tab + 1)
+        return when (arg.substring(0, tab)) {
+            "text" -> {
+                val t = decodeB64(rest.trim()) ?: return ShareParse.Bad("usage", "muatan share text bukan base64/UTF-8 yang sah")
+                when {
+                    t.isBlank() -> ShareParse.Bad("usage", "teks kosong")
+                    t.toByteArray(Charsets.UTF_8).size > MAX_CLIP -> ShareParse.Bad("toolong", "teks lebih dari $MAX_CLIP byte")
+                    else -> ShareParse.Text(t)
+                }
+            }
+            "file" -> {
+                val p = splitPaths(rest)
+                when {
+                    p.isEmpty() -> ShareParse.Bad("usage", "share file butuh minimal satu berkas")
+                    p.size > MAX_OPEN -> ShareParse.Bad("many", "maksimal $MAX_OPEN berkas")
+                    else -> ShareParse.Files(p)
+                }
+            }
+            else -> ShareParse.Bad("usage", "share butuh text atau file")
+        }
     }
 }

@@ -1989,3 +1989,13 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Uji di perangkat: (1) ketuk Pasang paket Starter: dialog konfirmasi menampilkan skrip; (2) jalankan di rootfs baru: semua paket terpasang, git/python3/ffmpeg/ssh/vim jalan; (3) jalankan lagi: ringkasan "sudah terpasang"; (4) Batalkan di tengah unduhan lalu ulangi: lanjut tanpa rusak; (5) tanpa internet: gagal rapi dengan kode keluar tidak nol; (6) `df -Pk /root` di PRoot Android 8 memberi angka masuk akal (bila tidak, cek dilewati); (7) cek `Daftar tool terpasang` mengenali alat baru
 - [ ] Belum ada: pilihan paket kustom (ceklis), profil lain (Dev, Media), pemasangan otomatis saat rootfs pertama siap, deteksi mana yang sudah terpasang sebelum konfirmasi
 - [ ] Berikutnya: `molina notify` + opsi putar-otomatis pasca-unduh (PostDownload sudah menambah ke Terakhir diputar Cinema)
+
+## 2026-10-29 - Sinkronisasi konteks dari ringkasan Claude lain [SYNC-20261029]
+- [x] Clone ulang repo resmi dan bandingkan ringkasan dengan kode: langkah 1-4 (PTY, PRoot per-sesi/rootfs, CLI bridge, paket Starter) sudah ada di kode, ringkasan tertinggal
+- [x] Dicatat: emas merek tetap #E6B450 (MolinaTheme), bukan #E8B04A
+- [ ] Status CI commit terbaru belum terverifikasi dari sesi ini; cek tab Actions
+- [ ] Menunggu keputusan pemilik untuk langkah berikutnya
+
+## 2026-10-29 - Audit UX terminal dan Bridge API [AUDIT-UX1]
+- [x] Ada: extra keys, pinch zoom, laci sesi, snippet. Belum ada: pencarian scrollback, deteksi URL, command palette terminal, verb CLI clip/notify/share, tag log Molina/Term dan Molina/Mpv
+- [ ] Menunggu keputusan pemilik; usulan urutan: molina clip/notify/share, pencarian scrollback + URL, palette, tag log

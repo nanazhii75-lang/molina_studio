@@ -70,7 +70,8 @@ data class TerminalSettings(
     val softKeyboardOnlyIfNoHardware: Boolean = false,
     val marginAdjustment: Boolean = true,
     val logcatReporter: Boolean = false,
-    val fullStorageAccess: Boolean = false
+    val fullStorageAccess: Boolean = false,
+    val cliClipboard: Boolean = false
 )
 
 /**
@@ -94,6 +95,7 @@ private object PrefKeys {
     val MARGIN_ADJ = booleanPreferencesKey("margin_adjustment")
     val LOGCAT = booleanPreferencesKey("logcat_reporter")
     val FULL_STORAGE = booleanPreferencesKey("full_storage_access")
+    val CLI_CLIPBOARD = booleanPreferencesKey("cli_clipboard")
 }
 
 private fun Preferences.toSettings(): TerminalSettings {
@@ -111,7 +113,8 @@ private fun Preferences.toSettings(): TerminalSettings {
         softKeyboardOnlyIfNoHardware = this[PrefKeys.SOFT_KEYBOARD_NO_HW] ?: d.softKeyboardOnlyIfNoHardware,
         marginAdjustment = this[PrefKeys.MARGIN_ADJ] ?: d.marginAdjustment,
         logcatReporter = this[PrefKeys.LOGCAT] ?: d.logcatReporter,
-        fullStorageAccess = this[PrefKeys.FULL_STORAGE] ?: d.fullStorageAccess
+        fullStorageAccess = this[PrefKeys.FULL_STORAGE] ?: d.fullStorageAccess,
+        cliClipboard = this[PrefKeys.CLI_CLIPBOARD] ?: d.cliClipboard
     )
 }
 
@@ -127,6 +130,7 @@ private fun MutablePreferences.write(s: TerminalSettings) {
     this[PrefKeys.MARGIN_ADJ] = s.marginAdjustment
     this[PrefKeys.LOGCAT] = s.logcatReporter
     this[PrefKeys.FULL_STORAGE] = s.fullStorageAccess
+    this[PrefKeys.CLI_CLIPBOARD] = s.cliClipboard
 }
 
 /**
@@ -168,6 +172,7 @@ object TerminalPrefs {
     val marginAdjustment: Boolean get() = ui.marginAdjustment
     val logcatReporter: Boolean get() = ui.logcatReporter
     val fullStorageAccess: Boolean get() = ui.fullStorageAccess
+    val cliClipboard: Boolean get() = ui.cliClipboard
 
     /**
      * Aman dipanggil berulang; hanya memuat sekali. Pemuatan awal sengaja sinkron
@@ -225,6 +230,7 @@ object TerminalPrefs {
     fun setMarginAdjustment(v: Boolean) = update { copy(marginAdjustment = v) }
     fun setLogcatReporter(v: Boolean) = update { copy(logcatReporter = v) }
     fun setFullStorageAccess(v: Boolean) = update { copy(fullStorageAccess = v) }
+    fun setCliClipboard(v: Boolean) = update { copy(cliClipboard = v) }
 
     /** Keyboard layar boleh tampil? (Soft Keyboard Enabled + Only If No Hardware). */
     fun softKeyboardAllowed(ctx: Context): Boolean {

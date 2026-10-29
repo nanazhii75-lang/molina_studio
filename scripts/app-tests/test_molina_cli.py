@@ -198,5 +198,96 @@ class GarbageReplyTests(unittest.TestCase):
             srv.close()
 
 
+import base64
+
+
+class BridgeTests(unittest.TestCase):
+    CLIP = "isi clip \u2713\nbaris 2"
+
+    def setUp(self):
+        self.srv = FakeServer(CMD, self.reply)
+
+    def tearDown(self):
+        self.srv.close()
+
+    def reply(self, line):
+        if line == "clip\tget":
+            return "OK " + base64.b64encode(self.CLIP.encode()).decode() + "\n"
+        if line == "clip\tset\t" + base64.b64encode(b"deny").decode():
+            return "ERR denied akses clipboard mati\n"
+        return "OK ok\n"
+
+    @staticmethod
+    def b(s):
+        return base64.b64encode(s.encode()).decode()
+
+    def test_clip_get_decodes_utf8_without_extra_newline(self):
+        self.assertEqual(run_cli("clip", "get"), (0, self.CLIP, ""))
+
+    def test_clip_get_empty(self):
+        self.srv.reply = lambda line: "OK\n"
+        self.assertEqual(run_cli("clip", "get")[0:2], (0, ""))
+
+    def test_clip_set_args_joined(self):
+        self.assertEqual(run_cli("clip", "set", "halo", "dunia")[0], 0)
+        self.assertEqual(self.srv.lines[-1], "clip\tset\t" + self.b("halo dunia"))
+
+    def test_clip_set_stdin(self):
+        self.assertEqual(run_cli("clip", "set", "-", stdin="a\nb\n")[0], 0)
+        self.assertEqual(self.srv.lines[-1], "clip\tset\t" + self.b("a\nb\n"))
+
+    def test_clip_set_stdin_too_big(self):
+        code, _, err = run_cli("clip", "set", "-", stdin="x" * 70000)
+        self.assertEqual(code, 2)
+        self.assertEqual(self.srv.lines, [])
+
+    def test_clip_usage(self):
+        self.assertEqual(run_cli("clip")[0], 2)
+        self.assertEqual(run_cli("clip", "get", "x")[0], 2)
+        self.assertEqual(run_cli("clip", "set")[0], 2)
+        self.assertEqual(self.srv.lines, [])
+
+    def test_clip_denied_exit_1(self):
+        code, out, err = run_cli("clip", "set", "deny")
+        self.assertEqual((code, out), (1, ""))
+        self.assertIn("akses clipboard mati", err)
+
+    def test_notify_text(self):
+        self.assertEqual(run_cli("notify", "Build", "selesai")[0], 0)
+        self.assertEqual(self.srv.lines[-1], "notify\tBuild selesai")
+
+    def test_notify_title(self):
+        self.assertEqual(run_cli("notify", "-t", "Judul", "isi pesan")[0], 0)
+        self.assertEqual(self.srv.lines[-1], "notify\tJudul\tisi pesan")
+
+    def test_notify_tabs_cleaned(self):
+        self.assertEqual(run_cli("notify", "a\tb")[0], 0)
+        self.assertEqual(self.srv.lines[-1], "notify\ta b")
+
+    def test_notify_usage(self):
+        for args in ((), ("-t",), ("-t", "X"), ("  ",)):
+            self.assertEqual(run_cli("notify", *args)[0], 2, args)
+        self.assertEqual(self.srv.lines, [])
+
+    def test_share_files(self):
+        self.assertEqual(run_cli("share", "/sdcard/a.png", "/sdcard/b c.png")[0], 0)
+        self.assertEqual(self.srv.lines[-1], "share\tfile\t/sdcard/a.png\t/sdcard/b c.png")
+
+    def test_share_text(self):
+        self.assertEqual(run_cli("share", "-t", "halo dunia")[0], 0)
+        self.assertEqual(self.srv.lines[-1], "share\ttext\t" + self.b("halo dunia"))
+
+    def test_share_stdin(self):
+        self.assertEqual(run_cli("share", "-", stdin="baris1\nbaris2\n")[0], 0)
+        self.assertEqual(self.srv.lines[-1], "share\ttext\t" + self.b("baris1\nbaris2\n"))
+
+    def test_share_usage(self):
+        self.assertEqual(run_cli("share")[0], 2)
+        self.assertEqual(run_cli("share", *["/sdcard/x"] * 11)[0], 2)
+        self.assertEqual(run_cli("share", "/sdcard/a\tb")[0], 2)
+        self.assertEqual(run_cli("share", "-t", "  ")[0], 2)
+        self.assertEqual(self.srv.lines, [])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

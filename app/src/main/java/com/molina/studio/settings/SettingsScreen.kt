@@ -413,6 +413,13 @@ private fun DebuggingPage(onOpenCrash: () -> Unit, onOpenLog: () -> Unit) {
         TerminalPrefs.crashNotifications
     ) { TerminalPrefs.setCrashNotifications(it) }
 
+    Category("Molina CLI")
+    SwitchRow(
+        "Akses clipboard dari CLI",
+        "Izinkan perintah molina clip membaca dan menulis clipboard. Semua program di Debian bisa memakainya; biarkan mati bila tidak perlu.",
+        TerminalPrefs.cliClipboard
+    ) { TerminalPrefs.setCliClipboard(it) }
+
     Category("Molina Reporter")
     SettingsItem("Crash Reporter", "Lihat, salin, atau hapus laporan crash", onOpenCrash)
     SwitchRow(

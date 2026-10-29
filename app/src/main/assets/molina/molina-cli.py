@@ -2,6 +2,7 @@
 # Molina CLI: kirim perintah dari Debian ke aplikasi Molina lewat abstract Unix socket @molina.cmd.
 # Dibuat otomatis oleh aplikasi (jangan diedit). Hanya pustaka standar Python 3.
 # Kode keluar: 0 berhasil, 1 ditolak aplikasi, 2 salah pakai, 3 aplikasi tidak terjangkau.
+import base64
 import os
 import socket
 import sys
@@ -55,7 +56,7 @@ def call(verb, arg="", timeout=10.0):
     return data.decode("utf-8", "replace").split("\n", 1)[0]
 
 
-def run(verb, arg=""):
+def run(verb, arg="", on_ok=None):
     try:
         reply = call(verb, arg)
     except (ConnectionRefusedError, FileNotFoundError):
@@ -66,6 +67,8 @@ def run(verb, arg=""):
         return 3
     if reply == "OK" or reply.startswith("OK "):
         text = reply[3:]
+        if on_ok is not None:
+            return on_ok(text)
         if text:
             print(text)
         return 0
@@ -151,6 +154,109 @@ def cmd_log(args):
     return send_log(level, tag, " ".join(words))
 
 
+MAX_CLIP = 65536
+
+
+def b64(text):
+    return base64.b64encode(text.encode("utf-8", "replace")).decode("ascii")
+
+
+def read_stdin_text():
+    data = sys.stdin.buffer.read(MAX_CLIP + 1)
+    if len(data) > MAX_CLIP:
+        sys.stderr.write("molina: masukan lebih dari %d byte\n" % MAX_CLIP)
+        return None
+    try:
+        return data.decode("utf-8")
+    except UnicodeDecodeError:
+        sys.stderr.write("molina: masukan bukan UTF-8\n")
+        return None
+
+
+def too_big(text):
+    if len(text.encode("utf-8", "replace")) > MAX_CLIP:
+        sys.stderr.write("molina: teks lebih dari %d byte\n" % MAX_CLIP)
+        return True
+    return False
+
+
+def clip_out(text):
+    try:
+        raw = base64.b64decode(text.encode("ascii"), validate=True) if text else b""
+    except ValueError:
+        sys.stderr.write("molina: balasan clipboard tidak sah\n")
+        return 1
+    sys.stdout.buffer.write(raw)
+    sys.stdout.buffer.flush()
+    return 0
+
+
+def cmd_clip(args):
+    if args == ["get"]:
+        return run("clip", "get", clip_out)
+    if args and args[0] == "set":
+        rest = args[1:]
+        if rest == ["-"]:
+            text = read_stdin_text()
+            if text is None:
+                return 2
+        elif rest:
+            text = " ".join(rest)
+        else:
+            sys.stderr.write("molina: clip set butuh teks atau -\n")
+            return 2
+        if too_big(text):
+            return 2
+        return run("clip", "set\t" + b64(text))
+    sys.stderr.write("molina: pakai: molina clip get | molina clip set <teks...|->\n")
+    return 2
+
+
+def cmd_notify(args):
+    title, words = None, list(args)
+    if words and words[0] == "-t":
+        if len(words) < 2:
+            sys.stderr.write("molina: opsi -t butuh nilai\n")
+            return 2
+        title, words = clean(words[1]).strip(), words[2:]
+    text = clean(" ".join(words)).strip()
+    if not text:
+        sys.stderr.write("molina: notify butuh pesan\n")
+        return 2
+    return run("notify", (title + "\t" + text) if title else text)
+
+
+def cmd_share(args):
+    words = list(args)
+    if words and words[0] == "-t":
+        text = " ".join(words[1:])
+    elif words == ["-"]:
+        text = read_stdin_text()
+        if text is None:
+            return 2
+    elif words:
+        if len(words) > 10:
+            sys.stderr.write("molina: share maksimal 10 berkas sekaligus\n")
+            return 2
+        paths = []
+        for a in words:
+            p = os.path.abspath(os.path.expanduser(a))
+            if "\t" in p or "\n" in p or "\r" in p:
+                sys.stderr.write("molina: nama berkas mengandung TAB atau baris baru (tidak didukung)\n")
+                return 2
+            paths.append(p)
+        return run("share", "file\t" + "\t".join(paths))
+    else:
+        sys.stderr.write("molina: share butuh berkas, -t <teks>, atau -\n")
+        return 2
+    if not text.strip():
+        sys.stderr.write("molina: teks kosong\n")
+        return 2
+    if too_big(text):
+        return 2
+    return run("share", "text\t" + b64(text))
+
+
 def main(argv):
     if not argv or argv[0] in ("-h", "--help", "help"):
         sys.stdout.write(HELP)
@@ -167,6 +273,12 @@ def main(argv):
         return cmd_open(rest)
     if verb == "log":
         return cmd_log(rest)
+    if verb == "clip":
+        return cmd_clip(rest)
+    if verb == "notify":
+        return cmd_notify(rest)
+    if verb == "share":
+        return cmd_share(rest)
     sys.stderr.write("molina: perintah tidak dikenal: %s (coba: molina help)\n" % verb)
     return 2
 
