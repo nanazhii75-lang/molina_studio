@@ -1951,3 +1951,13 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Uji di perangkat: (1) terminal terbuka normal, prompt user@localhost; (2) `ls /proc/stat && cat /proc/loadavg`; (3) apt update dan git tetap jalan; (4) bind /sdcard/molina-studio dan `molina status` tetap jalan; (5) 5 sesi bergantian
 - [ ] Catatan: argumen proot masih dibangun di 2 tempat lain (code/ScriptCommand.kt, core/common/YtdlpCommand.kt); penyatuan jadi item terpisah. Bila perlu --sysvipc (postgres dkk.), ganti libproot dengan build yang mendukungnya
 - [ ] Berikutnya: 2b manajer rootfs (backup, restore, ekspor tarball, hapus/reset, cek ruang kosong)
+
+## 2026-10-29 - Manajer rootfs, langkah 2b: engine backup/restore + hapus aman [TERM-ROOTFS1]
+- [x] fix(term): SafeTree.delete menggantikan File.deleteRecursively di Rootfs.kt (3 tempat). deleteRecursively mengikuti symlink: symlink guest ke storage nyata (mis. ln -s /sdcard/molina-studio ~/ws) bisa membuat data di luar rootfs ikut terhapus saat install ulang. Terbukti di JVM
+- [x] feat(term): RootfsBackup (export tar.gz via .part, inspect, restore atomik dengan rollback), AndroidRootfsPosix (Os.lstat/chmod/symlink). Murni JVM kecuali lapisan Android; tanpa dependensi baru (commons-compress sudah ada)
+- [x] Uji JVM lulus: scripts/app-tests/run_rootfs_backup.sh (42 kasus; butuh ARCHIVE_DEPS). Mutation check: SafeTree, cek parent-di-dalam-rootfs, dan normalisasi '../' terbukti menangkap kerusakan
+- [x] Dampak: HANYA :app (terminal/). Gradle, AndroidManifest, JNI, izin TIDAK disentuh. Engine belum dipanggil dari UI (tahap 2c)
+- [ ] BELUM dikompilasi (CI) dan belum diuji di perangkat. Periksa di CI: ekstensi properti TarArchiveEntry (lastModifiedTime, setUserId), visibilitas internal AndroidRootfsPosix
+- [ ] Uji di perangkat (setelah 2c): backup rootfs bersimbol ~/ws -> /sdcard/...; restore; install ulang; cek data di /sdcard utuh
+- [ ] Catatan: run_proot_config.sh tercatat mode 644 di git (storage Android tidak menyimpan bit eksekusi); jalankan dengan `bash scripts/app-tests/...`
+- [ ] Berikutnya: 2c pembungkus RootfsManager (backup/restore/reset dengan StateFlow, hentikan sesi dulu) + kartu UI di Setelan
