@@ -1930,3 +1930,13 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi lewat CI dan belum diuji di perangkat
 - [ ] Uji di perangkat: (1) molina ping = pong; (2) molina open progres.md membuka tab Code; (3) dua berkas, nama berspasi, path relatif; (4) berkas tak ada dan folder: pesan galat tanpa crash; (5) 11 berkas ditolak; (6) regresi play dan log
 - [ ] Berikutnya: hook pasca-unduh (automation/PostDownload.kt) memutar hasil unduhan, `molina notify`
+
+## 2026-10-29 - Siklus hidup PTY, langkah 1 [TERM-PTY1]
+- [x] Audit: TerminalService sudah sesuai batas Android 8 (channel di onCreate, startForeground pertama di onStartCommand); waiter waitpid dan sapuan AppExit sudah ada
+- [x] fix(term/jni): ReleaseStringUTFChars untuk cwd memakai objek yang benar; fd ptm ditutup di jalur galat grantpt/unlockpt dan fork
+- [x] fix(term): TerminalSession.finishIfRunning membunuh grup proses (-pid) sebelum PID shell
+- [x] feat(term): closeSession memakai SIGHUP ke grup, lalu SIGKILL setelah 400 ms bila masih hidup (TerminalSessions.terminate)
+- [x] Dampak: :terminal-emulator (molina_pty.c = kode native PTY, bukan binding mpv; TerminalSession.java) dan :app (TerminalSessions.kt). Gradle, AndroidManifest, JNI mpv TIDAK disentuh
+- [ ] BELUM dikompilasi (CI) dan belum diuji di perangkat
+- [ ] Uji di perangkat: (1) buka 2 sesi, jalankan `sleep 999 &` di sesi 2, tutup dengan ✕: `ps` di sesi 1 tidak menyisakan sleep; (2) ketik beberapa perintah lalu ✕: riwayat bash tersimpan di ~/.bash_history; (3) tutup 5 sesi bergantian: tidak ada fd bocor (`ls /proc/$(pidof com.molina.studio)/fd | wc -l` stabil); (4) `exit` di sesi terakhir: aplikasi tertutup seperti sebelumnya; (5) regresi `molina status/play/stop`
+- [ ] Berikutnya: langkah 2, konfigurasi PRoot per-sesi dan manajer rootfs
