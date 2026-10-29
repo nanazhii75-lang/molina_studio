@@ -10,6 +10,7 @@ ALLOWED_HOSTS = {
     "github.com",  # runtime, opt-in: unduh yt-dlp rilis resmi saat pengguna menekan Pasang/Perbarui (diverifikasi SHA2-256SUMS), bukan telemetri
     "raw.githubusercontent.com",  # rootfs Debian (dipin ke commit + SHA-256)
     "schemas.android.com", "www.w3.org",  # namespace XML, bukan koneksi
+    "dev.w3.org",  # komentar regex di grammar TextMate CSS (VS Code, MIT): tautan spesifikasi W3C, bukan koneksi
     "mozilla.org", "www.gnu.org",  # teks lisensi di header berkas (MPL/LGPL), bukan koneksi
 }
 ALLOWED_PERMISSIONS = {

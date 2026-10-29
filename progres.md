@@ -1770,3 +1770,8 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] BELUM dikompilasi (CI) dan belum diuji di perangkat. Hanya logika murni yang sudah diuji; SymbolDialog dan pemasangan menu baru ditinjau manual
 - [ ] Uji di perangkat: (1) menu titik tiga > Pergi ke simbol, ketik sebagian nama fungsi di proyek Kotlin/Python, ketuk hasil: berkas terbuka dan kursor di barisnya; (2) buka kedua kali, indeks terasa instan; (3) tambah fungsi di tab tanpa menyimpan lalu buka dialog: fungsi baru muncul; (4) "Berkas ini" membatasi ke tab aktif; (5) folder besar di Android 8: catat lama "Mengindeks"; (6) `inner class` kini tampil di Struktur berkas
 - [ ] Catatan: simbol hasil regex, bukan parser penuh (properti/val tidak diindeks; Kotlin/Java di bawah indentasi tidak rapi bisa meleset). Ide lanjutan: awalan "@" di Palet Perintah untuk langsung mencari simbol; tipe lain (go, rust, c/c++) bila diminta. Berikutnya: langkah 5 Riwayat versi lokal setelah CI hijau
+
+## 2026-10-29 - Gerbang telemetri: izinkan dev.w3.org [GATE-W3]
+- [x] fix(ci): CI gagal di telemetry_gate.py karena css.tmLanguage.json baris 1573 memuat http://dev.w3.org/csswg/mediaqueries/ di dalam komentar regex (grammar VS Code, langkah 2 TextMate). Itu tautan spesifikasi, bukan koneksi; dev.w3.org ditambahkan ke ALLOWED_HOSTS (sejajar www.w3.org)
+- [x] Dampak: hanya scripts/telemetry_gate.py. Manifest, Gradle, JNI mpv, dan source aplikasi TIDAK disentuh
+- [ ] Menunggu CI hijau. Bila gerbang menemukan host lain dari aset textmate, tambahkan hanya kalau juga berupa komentar/tautan spesifikasi
