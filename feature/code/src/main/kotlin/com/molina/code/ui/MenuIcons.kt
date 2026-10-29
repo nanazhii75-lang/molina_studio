@@ -14,7 +14,7 @@ import androidx.compose.ui.graphics.drawscope.scale
 internal enum class MenuIcon {
     New, SaveAs, Open, Reload, Actions, Find, GoToLine, Share, Script, Insert, Run, Snippet,
     Export, Convert, Syntax, Encoding, Eol, Palette, Wrap, ReadOnly, Stats, Redo,
-    FolderUp, NewFolder, Rename, Copy, Reveal, Delete, Command, File, FindFiles, Outline, FontSize
+    FolderUp, NewFolder, Rename, Copy, Reveal, Delete, Command, File, FindFiles, Outline, FontSize, Format
 }
 
 private val MStroke = Stroke(width = 2f, cap = StrokeCap.Round, join = StrokeJoin.Round)
@@ -179,6 +179,12 @@ internal fun DrawScope.drawMenuIcon(kind: MenuIcon, color: Color) {
                 ln(color, 5.5f, 14f, 12.5f, 14f)
                 ln(color, 19f, 6f, 19f, 12f)
                 ln(color, 16f, 9f, 22f, 9f)
+            }
+            MenuIcon.Format -> { // [CODE-FORMAT] rata kiri dengan panjang baris bertingkat
+                ln(color, 4f, 6f, 20f, 6f)
+                ln(color, 8f, 10f, 20f, 10f)
+                ln(color, 8f, 14f, 16f, 14f)
+                ln(color, 4f, 18f, 20f, 18f)
             }
             else -> Unit
         }

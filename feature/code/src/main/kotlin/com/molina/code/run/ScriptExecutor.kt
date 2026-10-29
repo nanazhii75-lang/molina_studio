@@ -26,7 +26,16 @@ class RunRequest(
     /** Variabel lingkungan tambahan di guest (mis. MOLINA_ROOT). Divalidasi oleh ScriptCommand.validate. */
     val env: Map<String, String> = emptyMap(),
     /** Batas total karakter keluaran yang diteruskan ke listener; kelebihannya dibuang (aliran tetap dikuras). */
-    val maxOutputChars: Long = 1_000_000L
+    val maxOutputChars: Long = 1_000_000L,
+    /**
+     * [CODE-FORMAT] Bila terisi, jalankan argv ini APA ADANYA di guest (tanpa berkas sementara dan tanpa
+     * shell); [plan] hanya dipakai untuk label. argv[0] dicari di PATH guest.
+     */
+    val guestArgv: List<String>? = null,
+    /** [CODE-FORMAT] Teks yang dikirim ke stdin proses (UTF-8) lalu stdin ditutup. Null = stdin langsung ditutup. */
+    val stdinText: String? = null,
+    /** [CODE-FORMAT] Pesan siap tampil bila argv[0] tidak ditemukan di Debian. */
+    val missingHint: String? = null
 )
 
 interface RunListener {

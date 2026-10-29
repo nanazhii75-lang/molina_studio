@@ -35,7 +35,7 @@ import java.util.concurrent.atomic.AtomicLong
  * - isi skrip tidak pernah masuk log (hanya kode keluar dan lamanya).
  */
 internal class ProotScriptExecutor(context: Context, private val lane: Lane = Lane.CODE) : ScriptExecutor {
-    enum class Lane { CODE, DOWNLOAD, AUTO }
+    enum class Lane { CODE, DOWNLOAD, AUTO, FORMAT }
 
     private val app = context.applicationContext
 
@@ -73,11 +73,25 @@ internal class ProotScriptExecutor(context: Context, private val lane: Lane = La
 
     private fun failed(msg: String) = RunResult(-1, false, false, false, 0L, msg)
 
+    /** [CODE-FORMAT] True bila [cmd] ada di rootfs. Symlink dihitung ada (banyak yang absolut di dalam rootfs). */
+    private fun guestHasCommand(rootfsDir: File, cmd: String): Boolean {
+        if (cmd.startsWith("/")) return File(rootfsDir, cmd.removePrefix("/")).let { it.exists() || java.nio.file.Files.isSymbolicLink(it.toPath()) }
+        return GUEST_BIN_DIRS.any { dir ->
+            File(rootfsDir, "$dir/$cmd").let { it.exists() || java.nio.file.Files.isSymbolicLink(it.toPath()) }
+        }
+    }
+
     private fun runSync(req: RunRequest, out: RunListener, handle: Handle): RunResult {
-        ScriptCommand.validate(req.args, req.env)?.let { return failed(it) }
+        ScriptCommand.validate(req.args + (req.guestArgv ?: emptyList()), req.env)?.let { return failed(it) }
         val rootfsDir = RootfsManager.rootfsDir(app)
         if (!File(rootfsDir, "usr/bin/env").exists()) {
             return failed("Debian belum terpasang. Buka Settings > Terminal untuk menyiapkannya.")
+        }
+        // [CODE-FORMAT] Mode argv (formatter): tanpa berkas sementara; argv[0] harus ada di Debian.
+        req.guestArgv?.let { argv ->
+            if (argv.isEmpty()) return failed("Perintah kosong.")
+            if (!guestHasCommand(rootfsDir, argv[0])) return failed(req.missingHint ?: "${argv[0]} belum ada di Debian.")
+            return exec(req, out, handle, rootfsDir, null)
         }
         if (req.plan.needsPython && !File(rootfsDir, "usr/bin/python3").exists()) {
             return failed("python3 belum ada di Debian. ${YtdlpCommand.INSTALL_PYTHON_HINT}")
@@ -103,7 +117,7 @@ internal class ProotScriptExecutor(context: Context, private val lane: Lane = La
         out: RunListener,
         handle: Handle,
         rootfsDir: File,
-        guestScript: String,
+        guestScript: String?,
     ): RunResult {
         val nativeDir = app.applicationInfo.nativeLibraryDir
         val tmp = File(app.cacheDir, "proot-tmp").apply { mkdirs() }
@@ -127,8 +141,13 @@ internal class ProotScriptExecutor(context: Context, private val lane: Lane = La
         }
         val cwd = req.hostDir?.let { GuestPaths.of(it, storage, workspace, full, listOf(com.molina.core.common.MolinaPaths.APP_FOLDER)) } ?: "/root"
 
-        val cmd = YtdlpCommand.SH_WRAPPER + "$nativeDir/libproot.so" +
-            ScriptCommand.prootArgs(rootfsDir.absolutePath, cwd, binds, req.plan.interpreter, guestScript, req.args, req.env)
+        val guestArgv = req.guestArgv
+        val prootArgs = if (guestArgv != null) {
+            ScriptCommand.prootArgv(rootfsDir.absolutePath, cwd, binds, guestArgv, req.env) // [CODE-FORMAT]
+        } else {
+            ScriptCommand.prootArgs(rootfsDir.absolutePath, cwd, binds, req.plan.interpreter, guestScript!!, req.args, req.env)
+        }
+        val cmd = YtdlpCommand.SH_WRAPPER + "$nativeDir/libproot.so" + prootArgs
         val pb = ProcessBuilder(cmd).directory(app.filesDir)
         pb.environment().apply {
             clear()
@@ -147,7 +166,21 @@ internal class ProotScriptExecutor(context: Context, private val lane: Lane = La
         } catch (e: Exception) {
             return failed("Gagal memulai proot: ${e.javaClass.simpleName}")
         }
-        try { proc.outputStream.close() } catch (e: Exception) { }
+        val stdin = req.stdinText
+        if (stdin == null) {
+            try { proc.outputStream.close() } catch (e: Exception) { }
+        } else {
+            // [CODE-FORMAT] Tulis di thread sendiri: stdout/stderr dikuras paralel sehingga pipa tidak buntu.
+            val writer = Thread({
+                try {
+                    proc.outputStream.use { it.write(stdin.toByteArray(Charsets.UTF_8)) }
+                } catch (e: Exception) {
+                    // proses mati lebih dulu (mis. galat sintaks); hasilnya dibaca dari keluaran
+                }
+            }, "molina-script-in")
+            writer.isDaemon = true
+            writer.start()
+        }
 
         val pid = AtomicInteger(-1)
         val sent = AtomicLong(0L)
@@ -259,6 +292,7 @@ internal class ProotScriptExecutor(context: Context, private val lane: Lane = La
     }
 
     companion object {
+        private val GUEST_BIN_DIRS = listOf("usr/local/sbin", "usr/local/bin", "usr/sbin", "usr/bin", "sbin", "bin")
         private val busyFlags: Map<Lane, AtomicBoolean> = Lane.values().associateWith { AtomicBoolean(false) }
         private val active = ConcurrentHashMap<Lane, Handle>()
 

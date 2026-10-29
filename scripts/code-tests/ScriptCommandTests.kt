@@ -24,6 +24,13 @@ fun main() {
     check("args menyusul setelah skrip, harfiah dan berurutan", a.takeLast(nasty.size) == nasty && a[a.size - nasty.size - 1] == "/s.sh")
     check("args tidak mengubah awalan", a.dropLast(nasty.size).dropLast(2).takeLast(1) == listOf("PATH=${YtdlpCommand.GUEST_PATH}"))
 
+    // [CODE-FORMAT] mode argv: awalan sama dengan prootArgs, perintah guest utuh dan harfiah
+    val av = ScriptCommand.prootArgv("/r", "/root", listOf("--bind=/a:/b"), listOf("black", "-q", "-"))
+    check("argv: awalan sama dengan prootArgs", av.dropLast(3) == golden.dropLast(2))
+    check("argv: perintah guest utuh di akhir", av.takeLast(3) == listOf("black", "-q", "-"))
+    val avEnv = ScriptCommand.prootArgv("/r", "/root", emptyList(), listOf("prettier", "--stdin-filepath=a b.ts"), linkedMapOf("X_Y" to "1"))
+    check("argv: env sebelum perintah, argumen harfiah", avEnv.takeLast(3) == listOf("X_Y=1", "prettier", "--stdin-filepath=a b.ts"))
+
     val e = ScriptCommand.prootArgs("/r", "/root", emptyList(), "/bin/sh", "/s.sh", env = linkedMapOf("MOLINA_ROOT" to "/sdcard/Molina", "B_VAR" to "x y"))
     val ip = e.indexOf("/bin/sh")
     check("env masuk sebelum interpreter, berurutan", e[ip - 2] == "MOLINA_ROOT=/sdcard/Molina" && e[ip - 1] == "B_VAR=x y")

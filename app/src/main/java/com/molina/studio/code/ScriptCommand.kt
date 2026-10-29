@@ -37,6 +37,18 @@ internal object ScriptCommand {
         guestScript: String,
         args: List<String> = emptyList(),
         env: Map<String, String> = emptyMap(),
+    ): List<String> = prootArgv(rootfs, cwd, storageBinds, listOf(interpreter, guestScript) + args, env)
+
+    /**
+     * [CODE-FORMAT] Seperti [prootArgs] tetapi perintah guest diberikan utuh sebagai [argv] (mis. formatter
+     * yang membaca stdin). Awalan dan [env] identik dengan [prootArgs]; tanpa shell.
+     */
+    fun prootArgv(
+        rootfs: String,
+        cwd: String,
+        storageBinds: List<String>,
+        argv: List<String>,
+        env: Map<String, String> = emptyMap(),
     ): List<String> = buildList {
         add("--link2symlink"); add("--kill-on-exit"); add("-0")
         add("--rootfs=$rootfs"); add("--cwd=$cwd")
@@ -48,7 +60,6 @@ internal object ScriptCommand {
         add("PYTHONDONTWRITEBYTECODE=1"); add("PYTHONIOENCODING=utf-8"); add("PYTHONUNBUFFERED=1")
         add("PATH=${YtdlpCommand.GUEST_PATH}")
         for ((k, v) in env) add("$k=$v")
-        add(interpreter); add(guestScript)
-        addAll(args)
+        addAll(argv)
     }
 }

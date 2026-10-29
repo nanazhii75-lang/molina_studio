@@ -349,6 +349,14 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
         get() = run.executor
         set(value) { run.executor = value }
 
+    /** [CODE-FORMAT] Pemformat kode (bawaan + Debian). */
+    internal val format = FormatController(mainHandler)
+
+    /** [CODE-FORMAT] Dipasang :app (Debian PRoot, jalur FORMAT). Null = pemformat Debian memberi tahu belum tersedia; JSON/XML tetap jalan. */
+    var formatExecutor: ScriptExecutor?
+        get() = format.executor
+        set(value) { format.executor = value }
+
     /** Dipasang :app. Null = menu \"Kirim ke Script Execution\" redup. */
     var scriptSink: ScriptSink? = null
 
@@ -1040,6 +1048,7 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
 
     fun releaseAll() {
         run.release()
+        format.release() // [CODE-FORMAT]
         mainHandler.removeCallbacks(draftTask)
         tabs.forEach { it.disposeEditor() }
         io.shutdown()
