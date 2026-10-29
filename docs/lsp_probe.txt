@@ -1,0 +1,7 @@
+== shellcheck (bersih, bukan sampel padat)
+shellcheck    1 baris: 0.12 dtk, puncak 8 MB
+shellcheck  300 baris: 0.91 dtk, puncak 20 MB
+shellcheck 1000 baris: 3.03 dtk, puncak 39 MB
+== pylsp
+initialize: ok, 3.73 dtk, RAM 28 MB
+diagnostik 300 baris: ok (102 temuan), 0.57 dtk, RAM 29 MB
