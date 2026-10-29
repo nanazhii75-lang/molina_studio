@@ -8,6 +8,8 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.molina.code.history.HistoryKind
+import com.molina.code.history.HistoryStore
 import com.molina.code.preview.PreviewKind
 import com.molina.code.preview.PythonTerminalRun
 import com.molina.code.preview.TerminalRunLang
@@ -338,6 +340,11 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
         Thread(r, "molina-code-io").apply { isDaemon = true }
     }
     private val store: DraftStore? = draftDir?.let { DraftStore(it) }
+
+    /** [CODE-HISTORY] Riwayat versi per berkas (folder privat, bersama folder draf); null bila sesi tanpa folder draf. */
+    internal val history: HistoryStore? = draftDir?.let { HistoryStore(File(it, "history")) }
+    var historyOpen by mutableStateOf(false)
+    private var historyTrimmed = false
 
     /** [CODE-TEMPLATE] Template buatan pengguna (disimpan di folder draf privat). */
     internal val templates = TemplateStore(draftDir?.let { File(it, "live_templates.json") })
@@ -830,12 +837,15 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
         val formatNote = saveNote // [CODE-FORMAT]
         saveNote = null
         runIo {
+            val hist = history
+            if (hist != null) recordHistoryBefore(hist, target) // [CODE-HISTORY] isi disk sebelum ditimpa
             val err = try {
                 FileStore.writeUtf8Atomic(target, FileStore.applyEol(text, eol))
                 null
             } catch (e: Exception) {
                 e
             }
+            if (err == null && hist != null) recordHistorySaved(hist, target, text)
             mainHandler.post {
                 if (err != null) {
                     toast("Gagal menyimpan: ${err.message ?: err.javaClass.simpleName}")
@@ -856,6 +866,28 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
                     }
                 }
             }
+        }
+    }
+
+    /** [CODE-HISTORY] Di thread IO: catat isi disk saat ini bila beda dari versi terbaru (menangkap perubahan dari luar). */
+    private fun recordHistoryBefore(h: HistoryStore, target: File) {
+        try {
+            if (!target.isFile || target.length() > HistoryStore.MAX_CHARS * 4L) return
+            FileStore.readForOpen(target).text?.let { h.record(target, it, HistoryKind.BEFORE) }
+        } catch (e: Exception) {
+            // best-effort: riwayat tidak boleh menggagalkan simpan
+        }
+    }
+
+    private fun recordHistorySaved(h: HistoryStore, target: File, text: String) {
+        try {
+            h.record(target, text, HistoryKind.SAVED)
+            if (!historyTrimmed) {
+                historyTrimmed = true
+                h.trimGlobal(HistoryStore.MAX_TOTAL_BYTES)
+            }
+        } catch (e: Exception) {
+            // best-effort
         }
     }
 

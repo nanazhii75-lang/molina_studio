@@ -86,6 +86,7 @@ internal fun menuGroups(session: CodeSession, ctx: Context, onDismiss: () -> Uni
                 session.dir.refresh()
                 onDismiss()
             },
+            MenuEntry("Riwayat versi", enabled = tab?.file != null && !tab.loading && session.history != null, icon = MenuIcon.History) { session.historyOpen = true; onDismiss() }, // [CODE-HISTORY]
             MenuEntry("Aksi file", enabled = tab?.file != null, icon = MenuIcon.Actions) {
                 tab?.file?.let { session.fileDialog = FileDialog.Menu(it) }
                 onDismiss()
