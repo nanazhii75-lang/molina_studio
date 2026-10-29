@@ -18,6 +18,7 @@ Pemakaian:
   molina play <path|URL|->       putar berkas, folder, atau URL di Molina Cinema
                                  ("-" = baca satu baris dari stdin)
   molina stop                    hentikan pemutar
+  molina open <berkas>...        buka berkas (maks 10) di editor Code
   molina log [-l D|I|W|E] [-t tag] pesan...
                                  kirim baris ke Log Molina (sumber "cli")
 
@@ -113,6 +114,23 @@ def cmd_play(args):
     return run("play", target)
 
 
+def cmd_open(args):
+    if not args:
+        sys.stderr.write("molina: open butuh minimal satu berkas\n")
+        return 2
+    if len(args) > 10:
+        sys.stderr.write("molina: open maksimal 10 berkas sekaligus\n")
+        return 2
+    paths = []
+    for a in args:
+        p = os.path.abspath(os.path.expanduser(a))
+        if "\t" in p or "\n" in p or "\r" in p:
+            sys.stderr.write("molina: nama berkas mengandung TAB atau baris baru (tidak didukung)\n")
+            return 2
+        paths.append(p)
+    return run("open", "\t".join(paths))
+
+
 def cmd_log(args):
     level, tag, words = "I", "molina", list(args)
     while words and words[0] in ("-l", "-t"):
@@ -145,6 +163,8 @@ def main(argv):
         return run(verb)
     if verb == "play":
         return cmd_play(rest)
+    if verb == "open":
+        return cmd_open(rest)
     if verb == "log":
         return cmd_log(rest)
     sys.stderr.write("molina: perintah tidak dikenal: %s (coba: molina help)\n" % verb)

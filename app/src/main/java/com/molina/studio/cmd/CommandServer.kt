@@ -6,10 +6,13 @@ import android.content.Intent
 import android.net.LocalServerSocket
 import android.net.LocalSocket
 import android.os.Environment
+import android.os.Handler
+import android.os.Looper
 import android.os.Process
 import com.molina.cinema.MpvFolder
 import com.molina.core.common.LogLevel
 import com.molina.studio.cinema.CinemaActions
+import com.molina.studio.code.CodeNav
 import com.molina.studio.log.LogBus
 import com.molina.studio.system.MpvControl
 import java.io.ByteArrayOutputStream
@@ -120,6 +123,7 @@ object CommandServer {
         CommandProtocol.Verb.STOP ->
             CommandProtocol.ok(if (MpvControl.shutdown(app)) "pemutar dihentikan" else "tidak ada pemutar aktif")
         CommandProtocol.Verb.PLAY -> play(NewTaskContext(app), r.arg)
+        CommandProtocol.Verb.OPEN -> open(r.arg)
     }
 
     private fun play(ctx: Context, arg: String): String {
@@ -149,6 +153,26 @@ object CommandServer {
             }
             else -> CommandProtocol.err("missing", "berkas tidak ditemukan")
         }
+    }
+
+    /** Buka berkas di editor Code (tab Code); MainActivity yang mengonsumsi CodeNav.pendingFiles. */
+    private fun open(arg: String): String {
+        val paths = CommandProtocol.splitPaths(arg)
+        if (paths.isEmpty()) return CommandProtocol.err("usage", "open butuh minimal satu berkas")
+        if (paths.size > CommandProtocol.MAX_OPEN) {
+            return CommandProtocol.err("many", "maksimal ${CommandProtocol.MAX_OPEN} berkas")
+        }
+        val root = Environment.getExternalStorageDirectory().absolutePath
+        val files = ArrayList<File>(paths.size)
+        for (p in paths) {
+            val host = CommandProtocol.guestToHost(p, root)
+                ?: return CommandProtocol.err("path", "path harus di bawah /sdcard atau /storage/emulated/0: $p")
+            val f = File(host)
+            if (!f.isFile) return CommandProtocol.err("missing", "bukan berkas: $p")
+            files.add(f)
+        }
+        Handler(Looper.getMainLooper()).post { CodeNav.pendingFiles = files }
+        return CommandProtocol.ok("membuka ${files.size} berkas di Code")
     }
 
     /** startActivity dari konteks Application wajib FLAG_ACTIVITY_NEW_TASK; CinemaActions tidak menambahkannya. */

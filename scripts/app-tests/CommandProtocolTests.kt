@@ -71,6 +71,16 @@ fun main() {
     eq("nama berawalan titik tetap sah", CommandProtocol.guestToHost("/sdcard/.hidden/a.mp4", root), "$root/.hidden/a.mp4")
     eq("nama dengan dua titik di dalamnya sah", CommandProtocol.guestToHost("/sdcard/a..b/c.mp4", root), "$root/a..b/c.mp4")
 
+    // open: parse dan pemisah path
+    eq("open verb", okReq("open\t/sdcard/a.py\n")?.verb, Verb.OPEN)
+    eq("open arg", okReq("open\t/sdcard/a.py\n")?.arg, "/sdcard/a.py")
+    eq("open tanpa arg", badCode("open\n"), "usage")
+    eq("splitPaths dua", CommandProtocol.splitPaths("/sdcard/a b.py\t/sdcard/c.py"), listOf("/sdcard/a b.py", "/sdcard/c.py"))
+    eq("splitPaths kosong", CommandProtocol.splitPaths(""), emptyList<String>())
+    eq("splitPaths TAB saja", CommandProtocol.splitPaths("\t\t"), emptyList<String>())
+    eq("splitPaths dipangkas", CommandProtocol.splitPaths("  /sdcard/a  "), listOf("/sdcard/a"))
+    check("MAX_OPEN", CommandProtocol.MAX_OPEN == 10)
+
     check("konstanta", CommandProtocol.SOCKET_NAME == "molina.cmd" && CommandProtocol.VERSION == 1)
     check("verb unik", Verb.entries.map { it.wire }.toSet().size == Verb.entries.size)
 

@@ -73,6 +73,8 @@ def echo_reply(line):
         return "OK player=diam\n"
     if verb == "stop":
         return "OK\n"
+    if verb == "open":
+        return "OK membuka\n"
     if verb == "play":
         arg = line.split("\t", 1)[1]
         if arg.endswith("tidakada.mkv"):
@@ -120,6 +122,17 @@ class CliTests(unittest.TestCase):
         code, _, err = run_cli("play", "-", stdin="\n\n")
         self.assertEqual(code, 2)
         self.assertIn("stdin kosong", err)
+
+    def test_open_joins_paths_with_tab(self):
+        code, out, _ = run_cli("open", "/sdcard/a.py", "/sdcard/b c.py")
+        self.assertEqual(code, 0)
+        self.assertEqual(self.srv.lines[-1], "open\t/sdcard/a.py\t/sdcard/b c.py")
+
+    def test_open_usage(self):
+        self.assertEqual(run_cli("open")[0], 2)
+        self.assertEqual(run_cli("open", *["/sdcard/x"] * 11)[0], 2)
+        self.assertEqual(run_cli("open", "/sdcard/a\tb")[0], 2)
+        self.assertEqual(self.srv.lines, [])
 
     def test_server_error_exit_1(self):
         code, out, err = run_cli("play", "/sdcard/tidakada.mkv")

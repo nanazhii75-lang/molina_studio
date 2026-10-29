@@ -12,7 +12,7 @@ object CommandProtocol {
     const val MAX_LINE = 4096
 
     enum class Verb(val wire: String) {
-        PING("ping"), VERSION("version"), STATUS("status"), PLAY("play"), STOP("stop")
+        PING("ping"), VERSION("version"), STATUS("status"), PLAY("play"), STOP("stop"), OPEN("open")
     }
 
     class Request(val verb: Verb, val arg: String)
@@ -30,7 +30,7 @@ object CommandProtocol {
         val arg = if (tab < 0) "" else t.substring(tab + 1).trim()
         val verb = Verb.entries.firstOrNull { it.wire == word }
             ?: return Parsed.Bad("unknown", "perintah tidak dikenal: ${oneLine(word)}")
-        if (verb == Verb.PLAY && arg.isEmpty()) return Parsed.Bad("usage", "play butuh path atau URL")
+        if ((verb == Verb.PLAY || verb == Verb.OPEN) && arg.isEmpty()) return Parsed.Bad("usage", "${verb.wire} butuh argumen")
         return Parsed.Ok(Request(verb, arg))
     }
 
@@ -40,6 +40,12 @@ object CommandProtocol {
 
     /** Satu baris, tanpa TAB/CR/LF, maks 300 karakter (balasan dan log tidak boleh memecah protokol). */
     fun oneLine(s: String): String = s.replace('\n', ' ').replace('\r', ' ').replace('\t', ' ').take(300)
+
+    /** Batas berkas per perintah open. */
+    const val MAX_OPEN = 10
+
+    /** Argumen open: path dipisah TAB; entri kosong dibuang. */
+    fun splitPaths(arg: String): List<String> = arg.split('\t').map { it.trim() }.filter { it.isNotEmpty() }
 
     /**
      * Path yang terlihat di Debian (/sdcard atau /storage/emulated/0) -> path Android di bawah
