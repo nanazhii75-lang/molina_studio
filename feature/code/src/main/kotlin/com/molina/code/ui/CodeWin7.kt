@@ -83,7 +83,7 @@ internal fun languageOf(name: String): String = when (name.substringAfterLast('.
 
 /** Bilah status bawah editor: Ln/Kol, jumlah baris, bahasa, UTF-8, dan status simpan. */
 @Composable
-internal fun CodeStatusBar(tab: EditorTab) {
+internal fun CodeStatusBar(tab: EditorTab, live: LiveBadge? = null) { // [CODE-LSP3]
     var pos by remember(tab.id) { mutableStateOf("Ln 1, Kol 1") }
     var lines by remember(tab.id) { mutableStateOf(1) }
     var chars by remember(tab.id) { mutableStateOf(0) } // [CODE-STATUS]
@@ -130,7 +130,13 @@ internal fun CodeStatusBar(tab: EditorTab) {
         Spacer(Modifier.weight(1f))
         BasicText(languageOf(tab.file?.name ?: tab.title), style = style, maxLines = 1)
         Spacer(Modifier.width(12.dp))
-        BasicText("UTF-8", style = style, maxLines = 1)
+        if (live != null) { // [CODE-LSP3] menggantikan "UTF-8" agar muat di layar sempit
+            Box(Modifier.size(6.dp).background(live.color, CircleShape))
+            Spacer(Modifier.width(4.dp))
+            BasicText(live.label, style = TextStyle(color = live.color, fontSize = 11.sp, fontFamily = FontFamily.Monospace), maxLines = 1)
+        } else {
+            BasicText("UTF-8", style = style, maxLines = 1)
+        }
         Spacer(Modifier.width(12.dp))
         Box(Modifier.size(6.dp).background(stateColor, CircleShape))
         Spacer(Modifier.width(4.dp))

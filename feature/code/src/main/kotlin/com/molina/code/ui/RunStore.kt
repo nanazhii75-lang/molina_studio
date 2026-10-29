@@ -31,6 +31,9 @@ internal object RunPrefs {
     /** [CODE-CHECK-SAVE] Saklar "Periksa saat simpan" ("1" = aktif; bawaan mati). */
     const val KEY_CHECK_SAVE = "editor_check_save"
 
+    /** [CODE-LSP3] Saklar "Diagnostik langsung (Python)" ("1" = aktif; bawaan mati). */
+    const val KEY_LSP_LIVE = "editor_lsp_live"
+
     /** [CODE-HISTORY2] Diff kontras tinggi di Riwayat versi ("1" = aktif; bawaan mati). */
     const val KEY_DIFF_CONTRAST = "editor_diff_contrast"
 }

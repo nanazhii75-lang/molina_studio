@@ -139,18 +139,7 @@ private fun CodeSession.applyProblems(
         return
     }
     try {
-        val container = DiagnosticsContainer()
-        var id = 0L
-        val regions = CheckRange.spans(sent, items).map { sp ->
-            val d = sp.d
-            val sev: Short = when (d.severity) {
-                Severity.ERROR -> DiagnosticRegion.SEVERITY_ERROR
-                Severity.WARNING -> DiagnosticRegion.SEVERITY_WARNING
-                Severity.INFO -> DiagnosticRegion.SEVERITY_TYPO
-            }
-            DiagnosticRegion(sp.start, sp.end, sev, id++, DiagnosticDetail(d.message, (d.code?.let { "$it \u00B7 " } ?: "") + d.source))
-        }
-        container.addDiagnostics(regions)
+        val container = diagnosticsContainer(sent, items)
         ed.diagnostics = container
     } catch (e: Exception) {
         toast("Gagal menandai masalah di editor")
@@ -161,4 +150,21 @@ private fun CodeSession.applyProblems(
     val fixable = items.count { it.fix.isNotEmpty() }
     toast("${items.size} masalah ($label): $errors galat, $warns peringatan" + if (fixable > 0) ", $fixable bisa diperbaiki" else "")
     problemsOpen = openList
+}
+
+/** [CODE-LSP3] Garis bawah Sora dari [items] terhadap teks [sent]; dipakai Periksa kode dan diagnostik langsung. */
+internal fun diagnosticsContainer(sent: String, items: List<Diagnostic>): DiagnosticsContainer {
+    val container = DiagnosticsContainer()
+    var id = 0L
+    val regions = CheckRange.spans(sent, items).map { sp ->
+        val d = sp.d
+        val sev: Short = when (d.severity) {
+            Severity.ERROR -> DiagnosticRegion.SEVERITY_ERROR
+            Severity.WARNING -> DiagnosticRegion.SEVERITY_WARNING
+            Severity.INFO -> DiagnosticRegion.SEVERITY_TYPO
+        }
+        DiagnosticRegion(sp.start, sp.end, sev, id++, DiagnosticDetail(d.message, (d.code?.let { "$it \u00B7 " } ?: "") + d.source))
+    }
+    container.addDiagnostics(regions)
+    return container
 }

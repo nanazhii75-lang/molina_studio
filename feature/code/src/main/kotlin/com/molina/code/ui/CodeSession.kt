@@ -293,6 +293,7 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
         runStore?.get(RunPrefs.KEY_FORMAT_SAVE)?.let { formatOnSave = it == "1" } // [CODE-FORMAT]
         runStore?.get(RunPrefs.KEY_DIFF_CONTRAST)?.let { diffContrast = it == "1" } // [CODE-HISTORY2]
         runStore?.get(RunPrefs.KEY_CHECK_SAVE)?.let { checkOnSave = it == "1" } // [CODE-CHECK-SAVE]
+        runStore?.get(RunPrefs.KEY_LSP_LIVE)?.let { liveEnabled = it == "1"; live.setEnabled(liveEnabled) } // [CODE-LSP3]
     }
 
     /** [CODE-FORMAT] Format otomatis sebelum menyimpan berkas (bawaan mati). Galat format tidak pernah menahan simpan. */
@@ -414,8 +415,81 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
         get() = checker.executor
         set(value) { checker.executor = value }
 
-    /** [CODE-LSP2] Dipasang :app (Debian PRoot, jalur LSP): proses menetap dua arah untuk language server. Null = LSP tidak tersedia. UI-nya menyusul (tahap 3). */
+    /** [CODE-LSP2] Dipasang :app (Debian PRoot, jalur LSP): proses menetap dua arah untuk language server. Null = LSP tidak tersedia. */
     var lspExecutor: com.molina.code.lsp.StreamExecutor? = null
+
+    /** [CODE-LSP3] Dipasang :app: penerjemah path Android <-> Debian (aturan terlihat mengikuti Terminal; dibaca ulang tiap sesi mulai). */
+    var lspPathMap: (() -> com.molina.code.lsp.LspPathMap)? = null
+
+    /** [CODE-LSP3] Saklar "Diagnostik langsung (Python)" (bawaan mati) dan status sesi untuk lencana di bilah status. */
+    var liveEnabled by mutableStateOf(false)
+        private set
+    var liveState by mutableStateOf(com.molina.code.lsp.LiveState.OFF)
+        private set
+    var liveDetail by mutableStateOf<String?>(null)
+        private set
+
+    private val liveEvents = object : com.molina.code.lsp.LspLiveEvents {
+        override fun onState(state: com.molina.code.lsp.LiveState, detail: String?) {
+            liveState = state
+            liveDetail = detail
+        }
+
+        override fun onNotice(message: String) = toast(message)
+
+        override fun onDiagnostics(tabId: Int, hostPath: String, items: List<com.molina.code.check.Diagnostic>, stamp: com.molina.code.lsp.TextStamp?) =
+            applyLiveDiagnostics(tabId, items, stamp)
+    }
+
+    internal val live = com.molina.code.lsp.LspLive(
+        env = AndroidLiveEnv(mainHandler),
+        events = liveEvents,
+        executorProvider = { if (lspPathMap != null) lspExecutor else null },
+        pathsProvider = { lspPathMap!!.invoke() },
+    )
+
+    fun toggleLive() {
+        if (!liveEnabled && (lspExecutor == null || lspPathMap == null)) return toast("Diagnostik langsung belum tersedia di perangkat ini")
+        liveEnabled = !liveEnabled
+        runStore?.put(RunPrefs.KEY_LSP_LIVE, if (liveEnabled) "1" else "0")
+        live.setEnabled(liveEnabled)
+        if (liveEnabled) active?.let { liveSync(it) }
+        else tabs.forEach { t -> // matikan: buang garis bawah milik server
+            if (problems?.tabId == t.id && problems?.label == LIVE_LABEL) clearProblems(t)
+        }
+    }
+
+    /**
+     * [CODE-LSP3] Kabari sesi LSP bahwa isi [tab] berubah/dibuka (debounce di [com.molina.code.lsp.LspLive]). Hanya berkas
+     * Python yang sudah punya path di disk (server membaca path guest); selain itu dilepas dari sesi.
+     */
+    internal fun liveSync(tab: EditorTab) {
+        if (!liveEnabled) return
+        val f = tab.file
+        if (f == null || tab.loading) { if (f == null) live.release(tab.id); return }
+        if (tab.editor == null) return
+        val spec = com.molina.code.lsp.LspServers.of(f.name, tab.firstLineOrNull())
+        if (spec == null) { live.release(tab.id); return }
+        live.touch(tab.id, f.absolutePath, spec) { tab.currentTextOrNull(MAX_LIVE_CHARS) }
+    }
+
+    /** Pasang diagnostik server hanya bila isi editor masih persis yang dikirim; selain itu menunggu hasil yang lebih baru. */
+    private fun applyLiveDiagnostics(tabId: Int, items: List<com.molina.code.check.Diagnostic>, stamp: com.molina.code.lsp.TextStamp?) {
+        val tab = tabs.firstOrNull { it.id == tabId } ?: return
+        val ed = tab.editor ?: return
+        val text = tab.currentTextOrNull(MAX_LIVE_CHARS) ?: return
+        if (stamp == null || !stamp.matches(text)) return
+        if (items.isEmpty()) {
+            clearProblems(tab)
+            return
+        }
+        try {
+            ed.diagnostics = diagnosticsContainer(text, items)
+        } catch (e: Exception) {
+            return // editor sedang dibuat ulang
+        }
+        problems = ProblemList(tab.id, tab.file?.name ?: tab.title, LIVE_LABEL, items, null)
+    }
 
     /** [CODE-CHECK] Lompat ke masalah ([line], [col] basis 1) di tab [tabId]. */
     internal fun jumpToProblem(tabId: Int, line: Int, col: Int) {
@@ -629,7 +703,7 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
 
     fun newTab(): EditorTab {
         val tab = EditorTab(nextId++, nextUntitledTitle())
-        tab.onEdited = { scheduleDraft() }
+        tab.onEdited = { scheduleDraft(); liveSync(tab) } // [CODE-LSP3]
         tabs.add(tab)
         activeId = tab.id
         scheduleDraft()
@@ -647,7 +721,7 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
         }
         val title = if (n == 1) "Scratch.$ext" else "Scratch $n.$ext"
         val tab = EditorTab(nextId++, title)
-        tab.onEdited = { scheduleDraft() }
+        tab.onEdited = { scheduleDraft(); liveSync(tab) } // [CODE-LSP3]
         tabs.add(tab)
         activeId = tab.id
         scheduleDraft()
@@ -687,6 +761,7 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
     fun close(id: Int) {
         val index = tabs.indexOfFirst { it.id == id }
         if (index < 0) return
+        live.release(id) // [CODE-LSP3]
         tabs.removeAt(index).disposeEditor()
         if (tabs.isEmpty()) {
             newTab()
@@ -983,7 +1058,7 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
         snap.root?.let { dir.restoreRoot(File(it)) }
         for (t in snap.tabs) {
             val tab = EditorTab(t.id, t.title)
-            tab.onEdited = { scheduleDraft() }
+            tab.onEdited = { scheduleDraft(); liveSync(tab) } // [CODE-LSP3]
             tab.file = t.path?.let { File(it) }
             tab.wordWrap = t.wrap
             tab.readOnly = t.readOnly
@@ -1156,6 +1231,7 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
         run.release()
         format.release() // [CODE-FORMAT]
         checker.release() // [CODE-CHECK]
+        live.shutdown() // [CODE-LSP3]
         mainHandler.removeCallbacks(draftTask)
         tabs.forEach { it.disposeEditor() }
         io.shutdown()
@@ -1166,5 +1242,7 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
         private const val DRAFT_DELAY_MS = 1500L
         private const val MAX_DRAFT_CHARS = 2_000_000
         private const val MAX_RUN_CHARS = 500_000
+        private const val MAX_LIVE_CHARS = 300_000
+        internal const val LIVE_LABEL = "pylsp"
     }
 }

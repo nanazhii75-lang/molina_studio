@@ -196,6 +196,14 @@ class MainActivity : ComponentActivity() {
                         it.formatExecutor = com.molina.studio.code.ProotScriptExecutor(applicationContext, com.molina.studio.code.ProotScriptExecutor.Lane.FORMAT) // [CODE-FORMAT]
                         it.checkExecutor = com.molina.studio.code.ProotScriptExecutor(applicationContext, com.molina.studio.code.ProotScriptExecutor.Lane.CHECK) // [CODE-CHECK]
                         it.lspExecutor = com.molina.studio.code.ProotScriptExecutor(applicationContext, com.molina.studio.code.ProotScriptExecutor.Lane.LSP) // [CODE-LSP2]
+                        it.lspPathMap = { // [CODE-LSP3] lingkup storage sama dengan bind PRoot Terminal; dibaca ulang tiap sesi LSP mulai
+                            com.molina.code.lsp.LspPathMap(
+                                android.os.Environment.getExternalStorageDirectory().absolutePath,
+                                com.molina.studio.terminal.TerminalSessions.WORKSPACE_DIR,
+                                com.molina.studio.terminal.TerminalPrefs.fullStorageAccess,
+                                listOf(com.molina.core.common.MolinaPaths.APP_FOLDER),
+                            )
+                        }
                         it.terminalSink = { text, execute -> com.molina.studio.code.CodeTerminalBridge.deliver(text, execute) }
                         it.guestPathResolver = { f -> com.molina.studio.code.CodeTerminalBridge.guestPath(f) } // [CODE-PYRUN]
                         val runPrefs = this@MainActivity.getSharedPreferences("molina_code_run", android.content.Context.MODE_PRIVATE) // [CODE-PYRUN2]

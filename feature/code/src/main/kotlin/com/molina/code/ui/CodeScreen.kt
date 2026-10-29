@@ -57,6 +57,9 @@ fun CodeScreen(session: CodeSession, modifier: Modifier = Modifier) {
     var pendingClose by remember { mutableStateOf<EditorTab?>(null) }
     val ctx = LocalContext.current
     SideEffect { session.toast = { msg -> Toast.makeText(ctx, msg, Toast.LENGTH_SHORT).show() } }
+    session.active?.let { t -> // [CODE-LSP3] sinkron ke server saat tab aktif/dimuat/berkasnya berubah atau saklar dinyalakan
+        LaunchedEffect(t.id, t.loading, t.file, t.editor, session.liveEnabled) { session.liveSync(t) }
+    }
 
     // Pratinjau langsung: bangun ulang setelah mengetik berhenti sejenak (debounce). Pindah tab
     // atau membuka panel langsung dibangun tanpa jeda.
@@ -79,7 +82,11 @@ fun CodeScreen(session: CodeSession, modifier: Modifier = Modifier) {
                 if (tab.dirty) pendingClose = tab else session.close(tab.id)
             }
             EditorHost(session, Modifier.weight(1f).fillMaxWidth())
-            session.active?.let { CodeStatusBar(it) }
+            session.active?.let { t ->
+                // [CODE-LSP3] lencana hanya untuk berkas yang didukung server (Python) dan saat saklar menyala
+                val supported = session.liveEnabled && t.file != null && com.molina.code.lsp.LspServers.of(t.file!!.name, if (t.revision >= 0) t.firstLineOrNull() else null) != null
+                CodeStatusBar(t, if (supported) liveBadge(session.liveState, session.liveDetail) else null)
+            }
             if (session.find.open) {
                 session.active?.let { FindBar(session, it) }
             }
