@@ -28,6 +28,9 @@ internal object RunPrefs {
     /** [CODE-FORMAT] Saklar "Format saat simpan" ("1" = aktif; bawaan mati). */
     const val KEY_FORMAT_SAVE = "editor_format_save"
 
+    /** [CODE-CHECK-SAVE] Saklar "Periksa saat simpan" ("1" = aktif; bawaan mati). */
+    const val KEY_CHECK_SAVE = "editor_check_save"
+
     /** [CODE-HISTORY2] Diff kontras tinggi di Riwayat versi ("1" = aktif; bawaan mati). */
     const val KEY_DIFF_CONTRAST = "editor_diff_contrast"
 }

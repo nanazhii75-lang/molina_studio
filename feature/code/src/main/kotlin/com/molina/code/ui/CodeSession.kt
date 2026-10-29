@@ -292,11 +292,24 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
         runStore?.get(RunPrefs.KEY_TM_ON)?.let { tmEnabled = it != "0" }
         runStore?.get(RunPrefs.KEY_FORMAT_SAVE)?.let { formatOnSave = it == "1" } // [CODE-FORMAT]
         runStore?.get(RunPrefs.KEY_DIFF_CONTRAST)?.let { diffContrast = it == "1" } // [CODE-HISTORY2]
+        runStore?.get(RunPrefs.KEY_CHECK_SAVE)?.let { checkOnSave = it == "1" } // [CODE-CHECK-SAVE]
     }
 
     /** [CODE-FORMAT] Format otomatis sebelum menyimpan berkas (bawaan mati). Galat format tidak pernah menahan simpan. */
     var formatOnSave by mutableStateOf(false)
         private set
+
+    /** [CODE-CHECK-SAVE] Periksa kode otomatis SETELAH berkas tersimpan (bawaan mati). Tidak pernah menahan atau mengubah simpan. */
+    var checkOnSave by mutableStateOf(false)
+        private set
+
+    fun toggleCheckOnSave() {
+        checkOnSave = !checkOnSave
+        runStore?.put(RunPrefs.KEY_CHECK_SAVE, if (checkOnSave) "1" else "0")
+    }
+
+    /** [CODE-CHECK-SAVE] Galat pemeriksa saat simpan hanya dimunculkan sekali per sesi (mis. shellcheck belum terpasang). */
+    internal var checkFailNoted = false
 
     /** [CODE-HISTORY2] Diff kontras tinggi di Riwayat versi (Tema kode). Bawaan mati: memakai token Clean/Danger transparan. */
     var diffContrast by mutableStateOf(false)
@@ -892,6 +905,7 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
                     } else if (after != null) {
                         toast("Ada perubahan baru, tab tidak ditutup")
                     }
+                    if (checkOnSave && after == null) checkAfterSave(tab) // [CODE-CHECK-SAVE]
                 }
             }
         }

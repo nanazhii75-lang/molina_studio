@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.molina.code.check.CheckFix
 import com.molina.code.check.Severity
 
 /**
@@ -56,6 +57,7 @@ internal fun ProblemsDialog(session: CodeSession, list: ProblemList, onDismiss: 
             Box(Modifier.fillMaxWidth().height(CodeDimens.Hairline).background(CodeColors.Hairline))
             LazyColumn(Modifier.fillMaxWidth().heightIn(max = maxH)) {
                 itemsIndexed(list.items) { _, d ->
+                    val fixLabel = CheckFix.label(d) // [CODE-CHECK-FIX]
                     val tone = when (d.severity) {
                         Severity.ERROR -> CodeColors.Danger
                         Severity.WARNING -> CodeColors.Gold
@@ -85,6 +87,20 @@ internal fun ProblemsDialog(session: CodeSession, list: ProblemList, onDismiss: 
                                 overflow = TextOverflow.Ellipsis,
                                 style = TextStyle(color = CodeColors.TextPrimary, fontSize = 13.sp)
                             )
+                            if (fixLabel != null) {
+                                BasicText(
+                                    text = "Perbaikan: " + fixLabel,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    style = TextStyle(color = CodeColors.SecondaryChampagne, fontSize = 11.sp)
+                                )
+                            }
+                        }
+                        if (fixLabel != null) {
+                            Win7DialogButton("Perbaiki", {
+                                onDismiss()
+                                session.applyQuickFix(list, d)
+                            })
                         }
                     }
                 }

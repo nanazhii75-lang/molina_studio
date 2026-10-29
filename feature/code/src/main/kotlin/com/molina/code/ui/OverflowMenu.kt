@@ -108,6 +108,7 @@ internal fun menuGroups(session: CodeSession, ctx: Context, onDismiss: () -> Uni
             MenuEntry("Periksa kode", enabled = hasText && tab != null && !tab.loading && !session.checker.busy, icon = MenuIcon.Check) { session.checkActive(); onDismiss() }, // [CODE-CHECK]
             MenuEntry("Daftar masalah", enabled = tab != null && session.problems?.tabId == tab.id, icon = MenuIcon.Check) { session.problemsOpen = true; onDismiss() },
             MenuEntry("Format saat simpan", enabled = session.runStore != null, checked = session.formatOnSave, icon = MenuIcon.Format) { session.toggleFormatOnSave() },
+            MenuEntry("Periksa saat simpan", enabled = session.runStore != null, checked = session.checkOnSave, icon = MenuIcon.Check) { session.toggleCheckOnSave() }, // [CODE-CHECK-SAVE]
             MenuEntry("Bagikan", enabled = hasText, icon = MenuIcon.Share) {
                 val text = ed?.text?.toString().orEmpty()
                 if (text.length > MAX_SHARE_CHARS) {

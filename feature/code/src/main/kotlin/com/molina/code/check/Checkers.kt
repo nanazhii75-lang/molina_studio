@@ -10,6 +10,9 @@ import com.molina.code.preview.RunPlans
 
 enum class Severity { ERROR, WARNING, INFO }
 
+/** [CODE-CHECK-FIX] Satu penggantian dari saran perbaikan pemeriksa (posisi basis 1, kolom akhir eksklusif). */
+class FixEdit(val line: Int, val col: Int, val endLine: Int, val endCol: Int, val replacement: String)
+
 /** Semua posisi basis 1. [endLine]/[endCol] = 0 bila pemeriksa hanya memberi titik awal (UI memperluas ke akhir token). */
 class Diagnostic(
     val line: Int,
@@ -20,6 +23,7 @@ class Diagnostic(
     val code: String?,
     val message: String,
     val source: String,
+    val fix: List<FixEdit> = emptyList(), // [CODE-CHECK-FIX]
 )
 
 /** Galat pemeriksa dengan pesan siap tampil. */
@@ -156,9 +160,26 @@ object Parsers {
                 "warning" -> Severity.WARNING
                 else -> Severity.INFO
             }
-            out.add(Diagnostic(line.coerceAtLeast(1), col.coerceAtLeast(1), endLine, endCol, sev, code, (m["message"] as? String) ?: "shellcheck", "shellcheck"))
+            out.add(Diagnostic(line.coerceAtLeast(1), col.coerceAtLeast(1), endLine, endCol, sev, code, (m["message"] as? String) ?: "shellcheck", "shellcheck", parseFix(m["fix"])))
         }
         return out.sortedWith(compareBy({ it.line }, { it.col }))
+    }
+
+    /** [CODE-CHECK-FIX] `fix` shellcheck = {"replacements":[{line,column,endLine,endColumn,replacement,...}]} atau null. Bentuk janggal = tanpa perbaikan. */
+    private fun parseFix(raw: Any?): List<FixEdit> {
+        val reps = ((raw as? Map<*, *>)?.get("replacements") as? List<*>) ?: return emptyList()
+        if (reps.isEmpty() || reps.size > 16) return emptyList()
+        val out = ArrayList<FixEdit>(reps.size)
+        for (r in reps) {
+            val m = r as? Map<*, *> ?: return emptyList()
+            val line = (m["line"] as? Double)?.toInt() ?: return emptyList()
+            val col = (m["column"] as? Double)?.toInt() ?: return emptyList()
+            val endLine = (m["endLine"] as? Double)?.toInt() ?: line
+            val endCol = (m["endColumn"] as? Double)?.toInt() ?: col
+            val text = m["replacement"] as? String ?: return emptyList()
+            out.add(FixEdit(line, col, endLine, endCol, text))
+        }
+        return out
     }
 
     internal fun firstLine(stderr: String, stdout: String): String {
@@ -307,5 +328,88 @@ object CheckRange {
             if (e > s) out.add(Span(s, e, d))
         }
         return out
+    }
+}
+
+/**
+ * [CODE-CHECK-FIX] Quick fix dari saran pemeriksa (shellcheck): mis. SC2086 mengutip variabel. Murni (tanpa Android).
+ * Ditolak (null) bila tidak aman: posisi di luar teks, penggantian saling tumpang tindih, atau baris yang disentuh
+ * memuat tab/surrogate (shellcheck menghitung kolom tab per 8 spasi sehingga posisinya bisa meleset).
+ */
+object CheckFix {
+    class Edit(val start: Int, val end: Int, val replacement: String)
+    class Patch(val start: Int, val end: Int, val text: String)
+
+    /** Label tombol untuk diagnostik yang punya perbaikan, null bila tidak ada. */
+    fun label(d: Diagnostic): String? {
+        if (d.fix.isEmpty()) return null
+        return when (d.code) {
+            "SC2086", "SC2248" -> "Kutip variabel"
+            "SC2046" -> "Kutip substitusi perintah"
+            "SC2006" -> "Ganti backtick dengan \$()"
+            "SC2162" -> "Tambah -r pada read"
+            else -> "Terapkan perbaikan shellcheck"
+        }
+    }
+
+    /** Ubah penggantian berposisi baris/kolom jadi indeks teks, terurut. Null bila tidak aman. [text] memakai LF. */
+    fun edits(text: String, fix: List<FixEdit>): List<Edit>? {
+        if (fix.isEmpty()) return null
+        val starts = ArrayList<Int>()
+        starts.add(0)
+        for (k in text.indices) if (text[k] == '\n') starts.add(k + 1)
+        fun lineEnd(l: Int): Int = if (l + 1 < starts.size) starts[l + 1] - 1 else text.length
+        fun unsafeLine(l: Int): Boolean {
+            for (k in starts[l] until lineEnd(l)) {
+                val c = text[k]
+                if (c == '\t' || c.isSurrogate()) return true
+            }
+            return false
+        }
+        fun idx(line: Int, col: Int): Int {
+            val l = line - 1
+            if (l < 0 || l >= starts.size || col < 1 || unsafeLine(l)) return -1
+            val i = starts[l] + col - 1
+            return if (i <= lineEnd(l)) i else -1
+        }
+        val out = ArrayList<Edit>(fix.size)
+        for (f in fix) {
+            val s = idx(f.line, f.col)
+            val e = idx(f.endLine, f.endCol)
+            if (s < 0 || e < s) return null
+            out.add(Edit(s, e, f.replacement))
+        }
+        val sorted = out.sortedWith(compareBy({ it.start }, { it.end }))
+        for (k in 1 until sorted.size) if (sorted[k].start < sorted[k - 1].end) return null
+        return sorted
+    }
+
+    fun apply(text: String, edits: List<Edit>): String {
+        val sb = StringBuilder(text.length + 16)
+        var pos = 0
+        for (e in edits) {
+            sb.append(text, pos, e.start)
+            sb.append(e.replacement)
+            pos = e.end
+        }
+        sb.append(text, pos, text.length)
+        return sb.toString()
+    }
+
+    /** Teks hasil perbaikan [d] pada [text], atau null bila tak aman / tidak mengubah apa pun. */
+    fun fixed(text: String, d: Diagnostic): String? {
+        val ed = edits(text, d.fix) ?: return null
+        val r = apply(text, ed)
+        return if (r == text) null else r
+    }
+
+    /** Selisih minimal (awalan/akhiran sama dibuang) agar editor cukup satu `replace` = satu langkah undo. */
+    fun minimalPatch(old: String, new: String): Patch {
+        val max = minOf(old.length, new.length)
+        var p = 0
+        while (p < max && old[p] == new[p]) p++
+        var s = 0
+        while (s < max - p && old[old.length - 1 - s] == new[new.length - 1 - s]) s++
+        return Patch(p, old.length - s, new.substring(p, new.length - s))
     }
 }
