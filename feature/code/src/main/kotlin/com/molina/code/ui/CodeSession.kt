@@ -284,6 +284,19 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
         runStore?.get(RunPrefs.KEY_STICKY)?.let { editorSticky = it != "0" }
         runStore?.get(RunPrefs.KEY_TM_THEME)?.let { editorTheme = MolinaTextMate.themeOf(it).id }
         runStore?.get(RunPrefs.KEY_TM_ON)?.let { tmEnabled = it != "0" }
+        runStore?.get(RunPrefs.KEY_FORMAT_SAVE)?.let { formatOnSave = it == "1" } // [CODE-FORMAT]
+    }
+
+    /** [CODE-FORMAT] Format otomatis sebelum menyimpan berkas (bawaan mati). Galat format tidak pernah menahan simpan. */
+    var formatOnSave by mutableStateOf(false)
+        private set
+
+    /** Catatan galat format untuk toast "Tersimpan" berikutnya. */
+    private var saveNote: String? = null
+
+    fun toggleFormatOnSave() {
+        formatOnSave = !formatOnSave
+        runStore?.put(RunPrefs.KEY_FORMAT_SAVE, if (formatOnSave) "1" else "0")
     }
 
     /** [CODE-REPLACE] Penggantian terakhir di berkas, untuk Urungkan (hanya di memori). */
@@ -774,7 +787,17 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
     fun save(tab: EditorTab, after: (() -> Unit)? = null) {
         if (tab.loading) return
         val target = tab.file
-        if (target == null) saveAs = SaveAsRequest(tab, after) else writeTab(tab, target, after)
+        if (target == null) {
+            saveAs = SaveAsRequest(tab, after)
+        } else if (formatOnSave && !tab.readOnly && tab.editor != null && !format.busy) {
+            // [CODE-FORMAT] format dulu, lalu tulis apa pun hasilnya
+            formatForSave(tab) { note ->
+                saveNote = note
+                writeTab(tab, target, after)
+            }
+        } else {
+            writeTab(tab, target, after)
+        }
     }
 
     /** Menu titik tiga "Simpan sebagai": selalu membuka dialog untuk tab aktif. */
@@ -800,6 +823,8 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
     private fun writeTab(tab: EditorTab, target: File, after: (() -> Unit)?) {
         val text = tab.currentTextOrNull(Int.MAX_VALUE) ?: ""
         val eol = tab.eol
+        val formatNote = saveNote // [CODE-FORMAT]
+        saveNote = null
         runIo {
             val err = try {
                 FileStore.writeUtf8Atomic(target, FileStore.applyEol(text, eol))
@@ -819,7 +844,7 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
                     dir.selected = target.path
                     dir.refreshParentOf(target)
                     scheduleDraft()
-                    toast("Tersimpan: ${target.name}")
+                    toast("Tersimpan: ${target.name}" + (formatNote?.let { " \u00B7 tanpa format: $it" } ?: ""))
                     if (!tab.dirty) {
                         after?.invoke()
                     } else if (after != null) {

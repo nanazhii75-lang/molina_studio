@@ -102,6 +102,8 @@ internal fun menuGroups(session: CodeSession, ctx: Context, onDismiss: () -> Uni
         listOf(
             MenuEntry("Live Template", enabled = tab != null && !tab.loading && !tab.readOnly, icon = MenuIcon.Snippet) { session.templatesOpen = true; onDismiss() },
             MenuEntry("Format kode", enabled = hasText && tab != null && !tab.loading && !tab.readOnly && !session.format.busy, icon = MenuIcon.Format) { session.formatActive(); onDismiss() }, // [CODE-FORMAT]
+            MenuEntry("Format seleksi", enabled = hasText && tab != null && !tab.loading && !tab.readOnly && !session.format.busy && ed?.cursor?.isSelected == true, icon = MenuIcon.Format) { session.formatSelection(); onDismiss() },
+            MenuEntry("Format saat simpan", enabled = session.runStore != null, checked = session.formatOnSave, icon = MenuIcon.Format) { session.toggleFormatOnSave() },
             MenuEntry("Bagikan", enabled = hasText, icon = MenuIcon.Share) {
                 val text = ed?.text?.toString().orEmpty()
                 if (text.length > MAX_SHARE_CHARS) {

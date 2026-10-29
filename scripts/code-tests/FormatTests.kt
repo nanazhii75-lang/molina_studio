@@ -1,6 +1,7 @@
 import com.molina.code.format.BuiltinPlan
 import com.molina.code.format.ExternalPlan
 import com.molina.code.format.FormatException
+import com.molina.code.format.FragmentIndent
 import com.molina.code.format.Formatters
 import com.molina.code.format.JsonFormatter
 import com.molina.code.format.XmlFormatter
@@ -94,6 +95,20 @@ fun main() {
     check("pilih: nama berkas tanpa folder", pr2.argv[1] == "--stdin-filepath=style.css")
     check("pilih: kt belum didukung", Formatters.of("a.kt", null) == null)
     check("pilih: tanpa ekstensi belum didukung", Formatters.of("Baru", null) == null)
+
+    // ---- Format seleksi: jorokan bersama
+    val frag = "    def a():\n        return 1\n\n    x=2"
+    check("indent: awalan bersama terdeteksi", FragmentIndent.common(frag) == "    ")
+    check("indent: baris kosong diabaikan", FragmentIndent.common("  a\n\n  b") == "  ")
+    check("indent: tab dan spasi campur = awalan sama saja", FragmentIndent.common("\ta\n  b") == "")
+    check("indent: tanpa jorokan", FragmentIndent.common("a\n  b") == "")
+    val dd = FragmentIndent.dedent(frag, "    ")
+    check("indent: dedent melepas awalan", dd == "def a():\n    return 1\n\nx=2")
+    check("indent: bolak-balik identik", FragmentIndent.reindent(dd, "    ") == frag)
+    check("indent: baris kosong tak diberi spasi sisa", !FragmentIndent.reindent("a\n\nb", "  ").contains("  \n"))
+    val nestedJson = "    {\"a\":1,\"b\":[1,2]}"
+    val nf = FragmentIndent.reindent(JsonFormatter.format(FragmentIndent.dedent(nestedJson, "    ")).trimEnd('\n'), "    ")
+    check("indent: potongan JSON menjorok diformat dan dijorokkan lagi", nf == "    {\n      \"a\": 1,\n      \"b\": [\n        1,\n        2\n      ]\n    }")
 
     if (fails > 0) { println("\n$fails GAGAL"); System.exit(1) } else println("\nsemua lulus")
 }

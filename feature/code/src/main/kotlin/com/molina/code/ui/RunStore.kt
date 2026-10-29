@@ -24,4 +24,7 @@ internal object RunPrefs {
     /** [CODE-TM] Tema token TextMate (id) dan saklar highlight TextMate ("1"/"0"). */
     const val KEY_TM_THEME = "editor_tm_theme"
     const val KEY_TM_ON = "editor_tm_on"
+
+    /** [CODE-FORMAT] Saklar "Format saat simpan" ("1" = aktif; bawaan mati). */
+    const val KEY_FORMAT_SAVE = "editor_format_save"
 }

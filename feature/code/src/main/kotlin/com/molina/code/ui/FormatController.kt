@@ -45,7 +45,10 @@ internal class FormatController(private val main: Handler) {
     private var handle: RunHandle? = null
 
     /** False bila masih ada pemformatan yang berjalan. */
-    fun start(plan: FormatPlan, name: String, text: String, hostDir: String?, onDone: (FormatOutcome) -> Unit): Boolean {
+    fun start(
+        plan: FormatPlan, name: String, text: String, hostDir: String?,
+        timeoutMs: Long = TIMEOUT_MS, onDone: (FormatOutcome) -> Unit,
+    ): Boolean {
         if (busy) return false
         val gen = ++generation
         busy = true
@@ -74,12 +77,12 @@ internal class FormatController(private val main: Handler) {
             } catch (e: RejectedExecutionException) {
                 finish(FormatOutcome.Cancelled)
             }
-            is ExternalPlan -> startExternal(plan, name, text, hostDir, ::finish)
+            is ExternalPlan -> startExternal(plan, name, text, hostDir, timeoutMs, ::finish)
         }
         return true
     }
 
-    private fun startExternal(plan: ExternalPlan, name: String, text: String, hostDir: String?, finish: (FormatOutcome) -> Unit) {
+    private fun startExternal(plan: ExternalPlan, name: String, text: String, hostDir: String?, timeoutMs: Long, finish: (FormatOutcome) -> Unit) {
         val ex = executor
         if (ex == null) {
             finish(FormatOutcome.Failed("Eksekutor Debian belum terpasang"))
@@ -93,7 +96,7 @@ internal class FormatController(private val main: Handler) {
             scriptText = "", // tidak dipakai pada mode argv; isi tidak pernah dicatat
             plan = RunPlan(plan.label, plan.argv.first(), "txt", false),
             hostDir = hostDir,
-            timeoutMs = TIMEOUT_MS,
+            timeoutMs = timeoutMs,
             maxOutputChars = (input.length * 2L + 20_000L).coerceAtLeast(100_000L),
             guestArgv = plan.argv,
             stdinText = input,
@@ -106,7 +109,7 @@ internal class FormatController(private val main: Handler) {
             }
 
             override fun onFinished(result: RunResult) {
-                finish(outcomeOf(plan, input, result, synchronized(out) { out.toString() }, synchronized(err) { err.toString() }))
+                finish(outcomeOf(plan, input, result, synchronized(out) { out.toString() }, synchronized(err) { err.toString() }, timeoutMs))
             }
         })
     }
@@ -129,11 +132,11 @@ internal class FormatController(private val main: Handler) {
         private const val MAX_ERR_CHARS = 4_000
 
         /** Murni: ubah hasil proses jadi [FormatOutcome]. Keluaran kosong untuk masukan non-kosong dianggap gagal. */
-        internal fun outcomeOf(plan: ExternalPlan, input: String, r: RunResult, stdout: String, stderr: String): FormatOutcome {
+        internal fun outcomeOf(plan: ExternalPlan, input: String, r: RunResult, stdout: String, stderr: String, timeoutMs: Long = TIMEOUT_MS): FormatOutcome {
             r.startError?.let { return FormatOutcome.Failed(it) }
             return when {
                 r.cancelled -> FormatOutcome.Cancelled
-                r.timedOut -> FormatOutcome.Failed("${plan.label}: waktu habis (${TIMEOUT_MS / 1000} dtk)")
+                r.timedOut -> FormatOutcome.Failed("${plan.label}: waktu habis (${timeoutMs / 1000} dtk)")
                 r.truncated -> FormatOutcome.Failed("${plan.label}: keluaran terlalu besar, dibatalkan")
                 r.exitCode == 127 -> FormatOutcome.Failed(plan.installHint)
                 r.exitCode != 0 -> FormatOutcome.Failed("${plan.label}: ${firstError(stderr, stdout)}")
