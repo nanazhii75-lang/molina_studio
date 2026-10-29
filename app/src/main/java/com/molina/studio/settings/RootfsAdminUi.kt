@@ -1,6 +1,17 @@
 package com.molina.studio.settings
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
+import com.molina.studio.ui.MolinaTheme
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -37,6 +48,18 @@ private sealed interface Pending {
     data object Reset : Pending
 }
 
+/** [TERM-ROOTFS3] Monogram "M" emas Molina (MolinaTheme.Gold), sama dengan emas Terminal dan Cinema. */
+@Composable
+internal fun W7IconRootfs() {
+    val shape = RoundedCornerShape(7.dp)
+    Box(
+        Modifier.size(34.dp).clip(shape).background(MolinaTheme.Background, shape).border(1.5.dp, MolinaTheme.Gold, shape),
+        Alignment.Center
+    ) {
+        Text("M", color = MolinaTheme.Gold, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
 private fun mb(bytes: Long) = "${bytes / (1024 * 1024)} MB"
 
 /** Settings > Sistem > "Kelola rootfs Debian" (TERM-ROOTFS2): cadangkan, pulihkan, atur ulang. */
@@ -67,7 +90,13 @@ internal fun RootfsAdminDialog(onDismiss: () -> Unit) {
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Kelola rootfs Debian") },
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                W7IconRootfs()
+                Spacer(Modifier.width(10.dp))
+                Text("Kelola rootfs Debian")
+            }
+        },
         text = {
             Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
                 when {

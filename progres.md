@@ -1972,3 +1972,10 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Uji di perangkat: (1) Cadangkan sekarang: berkas muncul di Backup/rootfs, progres jalan, sesi Terminal tertutup; (2) Batalkan di tengah: tidak ada .part tersisa, Terminal normal kembali; (3) Pulihkan dari cadangan: isi rootfs sesuai, prompt dan `molina status` jalan; (4) Reset: rootfs hilang, /sdcard utuh, SetupPanel muncul dan install ulang jalan; (5) symlink ~/ws -> /sdcard/molina-studio: backup, reset, restore tidak menghapus data di /sdcard; (6) mulai skrip Code/unduhan lalu coba Cadangkan: ditolak dengan pesan; (7) buka tab Terminal saat operasi: panel "Sedang dikelola", tanpa crash; (8) rootfs Missing: Pulihkan tetap bisa
 - [ ] Batas yang diketahui: restore hanya dari berkas di folder Backup/rootfs (belum ada pemilih berkas SAF); sesi dihentikan dengan SIGKILL sehingga riwayat bash sesi aktif tidak tersimpan; cek ruang kosong backup hanya ambang tetap 128 MB; belum ada wake lock/foreground service khusus bila aplikasi dibackground saat proses panjang
 - [ ] Berikutnya: 3 profil utilitas satu ketuk, atau `molina notify` / hook pasca-unduh (CLI)
+
+## 2026-10-29 - Rootfs 2d: nama cadangan berversi + ikon Molina [TERM-ROOTFS3]
+- [x] feat(term): nama cadangan jadi molina-rootfs-debian<versi>-molina<versi>-<stempel>.tar.gz (versi dari /etc/debian_version dan versionName; dibersihkan ke [A-Za-z0-9.-], maks 16 karakter, cadangan "x"). Daftar restore tetap mengenali semua *.tar.gz lama
+- [x] feat(settings): ikon monogram "M" emas (MolinaTheme.Gold #E6B450) pada tautan dan judul dialog Kelola rootfs. Emas merek TIDAK diubah ke #E8B04A: nilai resmi ada di MolinaTheme dan harus sama dengan SGR ANSI
+- [x] Dampak: HANYA :app (RootfsAdmin.kt, RootfsAdminUi.kt, SettingsScreen.kt). Gradle, AndroidManifest, JNI, izin TIDAK disentuh
+- [ ] BELUM dikompilasi (CI) dan belum diuji di perangkat. Uji: cadangkan lalu cek nama berkas; ikon M tampil di Sistem > Debian dan di judul dialog
+- [ ] Berikutnya (setelah CI hijau dan 2c lolos uji perangkat): profil utilitas satu ketuk, atau molina notify / hook pasca-unduh

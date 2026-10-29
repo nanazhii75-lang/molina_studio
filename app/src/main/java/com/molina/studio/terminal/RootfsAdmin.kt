@@ -70,7 +70,11 @@ object RootfsAdmin {
         val dir = backupDir(app)
         if (!dir.isDirectory && !dir.mkdirs()) throw RootfsBackupException("Folder cadangan tidak bisa dibuat: ${dir.path}. Periksa izin penyimpanan")
         if (dir.usableSpace < MIN_FREE_BACKUP) throw RootfsBackupException("Ruang kosong di tujuan kurang dari 128 MB")
-        val dest = File(dir, "molina-rootfs-${STAMP.format(Date())}.tar.gz")
+        val debianVer = runCatching {
+            File(rootfs, "etc/debian_version").takeIf { it.isFile }?.readLines()?.firstOrNull()
+        }.getOrNull()
+        val molinaVer = runCatching { app.packageManager.getPackageInfo(app.packageName, 0).versionName }.getOrNull()
+        val dest = File(dir, backupFileName(debianVer, molinaVer, STAMP.format(Date())))
         stopSessions(app)
         val r = RootfsBackup.export(rootfs, dest, AndroidRootfsPosix, ctl) { ph, pct -> progress(RootfsOp.Backup, ph, pct) }
         "Cadangan tersimpan: ${dest.name} (${r.entries} entri, ${r.skipped} dilewati)"
@@ -90,6 +94,12 @@ object RootfsAdmin {
         RootfsManager.clearMarker(app)
         if (!SafeTree.delete(RootfsManager.rootfsDir(app))) throw RootfsBackupException("Sebagian berkas rootfs gagal dihapus")
         "Rootfs dihapus. Buka Terminal untuk memasang ulang"
+    }
+
+    /** [TERM-ROOTFS3] Nama cadangan memuat versi: molina-rootfs-debian13.1-molina1.2.3-20261029-101500.tar.gz */
+    internal fun backupFileName(debianVersion: String?, molinaVersion: String?, stamp: String): String {
+        fun clean(v: String?) = (v ?: "").trim().replace(Regex("[^A-Za-z0-9.\\-]"), "_").take(16).ifEmpty { "x" }
+        return "molina-rootfs-debian${clean(debianVersion)}-molina${clean(molinaVersion)}-$stamp.tar.gz"
     }
 
     private fun progress(op: RootfsOp, phase: BackupPhase, pct: Int) {

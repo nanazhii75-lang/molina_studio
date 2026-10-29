@@ -325,7 +325,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         W7Link({ W7IconAptSync() }, "Perbarui dan tingkatkan paket", AptHistory.subtitle(aptLast)) { apt = AptJob.UpdateUpgrade }
                         W7Link({ W7IconToolList() }, "Bersihkan cache dan paket yatim", "autoremove dan apt clean: menambah ruang kosong Debian") { apt = AptJob.CleanUp }
                         W7Link({ W7IconToolList() }, "Daftar tool terpasang", "Deteksi alat Molina di Debian beserta versinya") { showTools = true }
-                        W7Link({ W7IconToolList() }, "Kelola rootfs Debian", "Cadangkan, pulihkan, atau atur ulang seluruh rootfs (tar.gz)") { showRootfsAdmin = true } // [TERM-ROOTFS2]
+                        W7Link({ W7IconRootfs() }, "Kelola rootfs Debian", "Cadangkan, pulihkan, atau atur ulang seluruh rootfs (tar.gz)") { showRootfsAdmin = true } // [TERM-ROOTFS2]
                         W7Link({ W7IconToolList() }, "Cadangan dan pemulihan", "Penanda video, snippet, dan setelan dalam satu berkas Backup") { showBackup = true }
                         W7Link({ W7IconToolList() }, "Profil setelan", "Simpan dan ganti kumpulan setelan dengan satu ketukan") { showProfiles = true }
                     }
