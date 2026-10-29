@@ -115,7 +115,7 @@ internal object FindInFiles {
 private class FifRow(val file: File, val rel: String, val count: Int, val match: FifMatch?)
 
 @Composable
-private fun FifToggle(label: String, on: Boolean, onClick: () -> Unit) {
+internal fun FifToggle(label: String, on: Boolean, onClick: () -> Unit) {
     val shape = RoundedCornerShape(6.dp)
     Box(
         Modifier

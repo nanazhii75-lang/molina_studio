@@ -218,6 +218,10 @@ class CodeSession(val workDir: String, draftDir: File? = null) {
     var findFilesOpen by mutableStateOf(false)
     var outlineOpen by mutableStateOf(false)
 
+    /** [CODE-SYMBOL] Dialog Pergi ke simbol terbuka, dan indeks simbol folder utama (cache per berkas, hidup selama sesi). */
+    var symbolOpen by mutableStateOf(false)
+    internal val symbolIndex = SymbolIndex()
+
     /** [CODE-INFO] Layar Informasi berkas (statistik teks dan jenis berkas) terbuka. */
     var infoOpen by mutableStateOf(false)
 

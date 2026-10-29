@@ -55,31 +55,6 @@ internal class PaletteItem(
     val action: () -> Unit
 )
 
-/**
- * Skor pencocokan fuzzy (subsequence, tanpa beda huruf besar/kecil): huruf berurutan dan awal kata
- * (setelah / . _ - spasi, atau huruf besar camelCase) bernilai lebih. -1 = tidak cocok; query kosong = 0.
- */
-internal fun fuzzyScore(query: String, text: String): Int {
-    if (query.isEmpty()) return 0
-    val ql = query.lowercase()
-    val tl = text.lowercase()
-    val orig = if (text.length == tl.length) text else tl
-    var qi = 0
-    var score = 0
-    var prev = -2
-    for (i in tl.indices) {
-        if (qi < ql.length && tl[i] == ql[qi]) {
-            score += 1
-            if (i == prev + 1) score += 5
-            if (i == 0 || orig[i - 1] in "/._- :" || (orig[i].isUpperCase() && orig[i - 1].isLowerCase())) score += 8
-            prev = i
-            qi++
-        }
-    }
-    if (qi < ql.length) return -1
-    return score * 10 - minOf(text.length, 90)
-}
-
 /** Pemindai berkas folder utama untuk "Pergi ke berkas": berbatas kedalaman dan jumlah, tanpa tautan simbolik. */
 internal object PaletteScan {
     private val SKIP_DIRS = setOf(".git", "node_modules", "build", ".gradle", ".idea", "__pycache__", ".cache", "zipbak", "zipview")
