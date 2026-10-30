@@ -114,20 +114,28 @@ internal enum class CompressFormat(
     val hasPassword: Boolean, val note: String
 ) {
     ZIP("ZIP", ".zip", 0, 9, 6, true, "Paling kompatibel. Bisa dilindungi kata sandi (AES-256)."),
-    SEVEN_Z("7Z", ".7z", 0, 6, 6, false, "Rasio kecil (LZMA2). Belum mendukung kata sandi."),
+    SEVEN_Z("7Z", ".7z", 0, 6, 6, true, "Rasio kecil (LZMA2). Bisa dilindungi kata sandi (AES-256); sandi dikerjakan 7z di Debian."),
     TAR_GZ("TAR.GZ", ".tar.gz", 1, 9, 6, false, "Umum di Linux/Debian."),
     TAR_BZ2("TAR.BZ2", ".tar.bz2", 1, 9, 9, false, "Lebih kecil dari gz, lebih lambat."),
     TAR_XZ("TAR.XZ", ".tar.xz", 0, 6, 6, false, "Sangat kecil, paling lambat."),
     TAR("TAR", ".tar", 0, 0, 0, false, "Hanya menggabungkan berkas, tanpa kompresi.");
 
     val hasLevel: Boolean get() = maxLevel > minLevel
+    /** [ARCHIVE6] Hanya 7z yang bisa mengenkripsi nama berkas (`-mhe=on`); ZIP AES tidak. */
+    val hasNameEncryption: Boolean get() = this == SEVEN_Z
     /** True bila hanya ZIP/7z yang punya level 0 = simpan saja (tanpa kompresi). */
     val zeroIsStore: Boolean get() = this == ZIP || this == SEVEN_Z
     fun clampLevel(level: Int): Int = level.coerceIn(minLevel, maxLevel)
 }
 
-/** [ARCHIVE2] Pilihan Kompres: [baseName] tanpa ekstensi (mentah dari pengguna; divalidasi [CompressNames]). */
-internal class CompressOptions(val format: CompressFormat, val level: Int, val baseName: String, val password: String?)
+/**
+ * [ARCHIVE2] Pilihan Kompres: [baseName] tanpa ekstensi (mentah dari pengguna; divalidasi [CompressNames]).
+ * [ARCHIVE6] [encryptNames] (khusus 7z bersandi): true = isi DAN nama berkas dienkripsi, false = isi saja.
+ */
+internal class CompressOptions(
+    val format: CompressFormat, val level: Int, val baseName: String, val password: String?,
+    val encryptNames: Boolean = false,
+)
 
 /** [ARCHIVE2] Logika nama/level murni untuk Kompres (diuji JVM tanpa pustaka arsip). */
 internal object CompressNames {

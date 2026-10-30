@@ -19,4 +19,11 @@ internal object ArchiveRoute {
 
     /** Apakah dialog perlu menawarkan kata sandi bila isi terenkripsi. Format Debian (RAR/7z/ZIP multi-bagian) bisa berkata sandi. */
     fun canPassword(name: String): Boolean = ArchiveNames.detect(name)?.hasPassword ?: DebianFormats.supports(name)
+
+    /**
+     * [ARCHIVE6] True bila kompres harus lewat `7z` di Debian: HANYA 7z bersandi (pustaka bawaan tidak bisa mengenkripsi 7z).
+     * Semua format lain, termasuk 7z tanpa sandi dan ZIP AES, tetap lewat [ArchiveEngine] seperti sebelumnya.
+     */
+    fun compressViaDebian(opt: CompressOptions): Boolean =
+        opt.format == CompressFormat.SEVEN_Z && !opt.password.isNullOrEmpty()
 }

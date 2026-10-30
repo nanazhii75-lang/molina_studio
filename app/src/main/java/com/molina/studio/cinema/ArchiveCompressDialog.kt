@@ -56,7 +56,8 @@ private fun ArcChip(label: String, on: Boolean, modifier: Modifier, onClick: () 
 
 /**
  * [ARCHIVE2] Dialog Kompres: pilih format (ZIP, 7z, tar.gz/bz2/xz, tar), level, nama arsip, dan (khusus ZIP) kata sandi AES-256.
- * Hasil dikirim lewat [onCompress]; pemanggil menjalankan [ArchiveEngine.compress] dengan progres dan tombol Hentikan.
+ * Hasil dikirim lewat [onCompress]; pemanggil menjalankan [ArchiveOps.compress] dengan progres dan tombol Hentikan.
+ * [ARCHIVE6] 7z juga bisa bersandi: pilih "Isi saja" atau "Isi + nama berkas" (-mhe=on).
  * [parentName] = nama folder yang sedang dibuka (dipakai sebagai nama bawaan bila banyak item terpilih).
  */
 @Composable
@@ -74,6 +75,7 @@ internal fun ArchiveCompressDialog(
     var pw by remember(files) { mutableStateOf("") }
     var pw2 by remember(files) { mutableStateOf("") }
     var show by remember(files) { mutableStateOf(false) }
+    var encNames by remember(files) { mutableStateOf(true) } // [ARCHIVE6] 7z: true = isi + nama berkas, false = isi saja
 
     val level = fmt.clampLevel(levels[fmt] ?: fmt.defaultLevel)
     val nameErr = CompressNames.baseNameError(name, fmt)
@@ -86,7 +88,7 @@ internal fun ArchiveCompressDialog(
     }
     val pwOk = !pwOn || (pw.length >= 4 && pw == pw2)
     val canGo = nameErr == null && pwOk
-    fun go() { if (canGo) onCompress(CompressOptions(fmt, level, name, if (pwOn) pw else null)) }
+    fun go() { if (canGo) onCompress(CompressOptions(fmt, level, name, if (pwOn) pw else null, pwOn && fmt.hasNameEncryption && encNames)) }
 
     W7Panel("Kompres", onClose) {
         Text(
@@ -163,7 +165,26 @@ internal fun ArchiveCompressDialog(
                     Text("Lindungi dengan kata sandi (AES-256)", color = Win7.Ink, fontSize = 13.sp)
                 }
                 if (usePw) {
-                    Text("Simpan kata sandinya: ZIP tidak bisa dibuka tanpa itu.", color = Win7.TextDim, fontSize = 11.sp)
+                    Text("Simpan kata sandinya: arsip tidak bisa dibuka tanpa itu.", color = Win7.TextDim, fontSize = 11.sp)
+                    if (fmt.hasNameEncryption) { // [ARCHIVE6] dua pilihan enkripsi 7z
+                        Spacer(Modifier.height(6.dp))
+                        Text("Yang dienkripsi", color = Win7.Ink, fontSize = 12.sp)
+                        Spacer(Modifier.height(4.dp))
+                        Row(Modifier.fillMaxWidth()) {
+                            ArcChip("Isi saja", !encNames, Modifier.weight(1f)) { encNames = false }
+                            Spacer(Modifier.width(6.dp))
+                            ArcChip("Isi + nama berkas", encNames, Modifier.weight(1f)) { encNames = true }
+                        }
+                        Text(
+                            if (encNames) "Nama berkas ikut disembunyikan: daftar isi pun butuh kata sandi."
+                            else "Hanya isi yang dienkripsi: nama berkas tetap terlihat tanpa kata sandi.",
+                            color = Win7.TextDim, fontSize = 11.sp, modifier = Modifier.padding(top = 2.dp)
+                        )
+                        Text(
+                            "Dibuat lewat 7z di Debian (Molina Terminal); paket 7zip harus terpasang.",
+                            color = Win7.TextDim, fontSize = 11.sp, modifier = Modifier.padding(top = 2.dp)
+                        )
+                    }
                     Spacer(Modifier.height(6.dp))
                     Text("Kata sandi", color = Win7.Ink, fontSize = 12.sp)
                     Spacer(Modifier.height(4.dp))

@@ -21,6 +21,12 @@ object SevenZipCommand {
     const val GUEST_SRC = "/mnt/molina-src"
     const val GUEST_OUT = "/mnt/molina-out"
 
+    /** [ARCHIVE6] Titik mount sumber kompres: satu per folder induk (`/mnt/molina-in/0`, `/1`, ...). Tidak dipakai bersamaan dengan [GUEST_SRC]. */
+    const val GUEST_IN = "/mnt/molina-in"
+    /** [ARCHIVE6] Nama berkas keluaran DI DALAM staging; diberi nama akhir oleh pemanggil saat commit. */
+    const val OUT_FILE = "archive.7z"
+    const val MAX_SOURCE_DIRS = 8
+
     private const val ANDROID_STORAGE = "/storage/emulated/0"
     private const val GUEST_SDCARD = "/sdcard"
 
@@ -67,6 +73,48 @@ object SevenZipCommand {
             clean
         }
         return base + names
+    }
+
+    /**
+     * [ARCHIVE6] Argumen `7z a` untuk membuat arsip 7z ke [guestOut] dari [guestSources] (jalur guest ABSOLUT).
+     * Diverifikasi terhadap 7-Zip 23.01 asli:
+     * - Jalur sumber absolut: 7z menyimpan HANYA nama item (`/mnt/molina-in/0/foto` -> `foto/...`), jadi tidak perlu `--cwd`.
+     * - `-p` tanpa nilai membaca sandi dari stdin (satu baris; non-TTY tidak meminta verifikasi). Sandi TIDAK ada di argumen.
+     * - [encryptNames] = `-mhe=on`: nama berkas ikut terenkripsi (daftar isi pun butuh sandi). Wajib bersama [hasPassword].
+     * - Sumber yang namanya (komponen terakhir) memuat `*` atau `?` DITOLAK: lihat komentar di badan fungsi. Nama bersarang di dalam
+     *   folder sumber tidak terpengaruh.
+     * - [excludes] = jalur dalam arsip (`nama/sub/tautan`) yang DILEWATI, satu `-x!` per entri; literal karena `-spd`.
+     *   Dipakai untuk tautan simbolik: tanpa ini 7z MENGIKUTI tautan folder (mis. -> /etc di rootfs) dan mengarsipkan isi targetnya.
+     * - `-snl`: lapis kedua; tautan yang lolos dari [excludes] disimpan sebagai tautan, tidak diikuti.
+     * - `-spd`: tanpa wildcard (nama berisi `*` aman). `--` melindungi nama berawalan `-`. `-y` aman: keluaran di staging kosong.
+     * - Sumber yang tak terbaca membuat 7z keluar 1 TETAPI arsip tetap tertulis; pemanggil wajib menganggapnya gagal.
+     */
+    fun createArgs(
+        guestOut: String, guestSources: List<String>, level: Int, hasPassword: Boolean, encryptNames: Boolean,
+        excludes: List<String> = emptyList(),
+    ): List<String> {
+        requireGuestAbs(guestOut)
+        require(guestSources.isNotEmpty()) { "Tidak ada sumber untuk dikompres" }
+        guestSources.forEach {
+            requireGuestAbs(it)
+            // 7-Zip 23.01 (terukur): bila komponen TERAKHIR sebuah sumber memuat * atau ?, sumber lain yang hilang diabaikan
+            // DIAM-DIAM (exit 0, tanpa peringatan) walau -spd aktif. Arsip bersandi yang tidak lengkap tanpa tanda = berbahaya, maka ditolak.
+            val leaf = it.substringAfterLast('/')
+            require(leaf.none { c -> c == '*' || c == '?' }) { "Nama berisi * atau ? tidak didukung untuk 7z bersandi: $leaf" }
+        }
+        require(level in 0..9) { "Level kompresi tidak valid: $level" }
+        require(!encryptNames || hasPassword) { "Enkripsi nama berkas membutuhkan kata sandi" }
+        excludes.forEach {
+            require(it.isNotEmpty() && !it.startsWith("/") && it.none { c -> c == '\u0000' || c == '\n' || c == '\r' }) { "Nama pengecualian tidak valid" }
+        }
+        return buildList {
+            add("a"); add("-t7z"); add("-mx=$level"); add("-snl"); add("-spd"); add("-bsp1"); add("-y")
+            if (hasPassword) add("-p")
+            if (encryptNames) add("-mhe=on")
+            for (e in excludes) add("-x!$e")
+            add("--"); add(guestOut)
+            addAll(guestSources)
+        }
     }
 
     /** True bila [p] aman dipakai sebagai sisi host `--bind=host:guest` (proot memecah di ':'). */
@@ -229,6 +277,7 @@ object SevenZipCommand {
         DATA_ERROR("Data arsip rusak (galat CRC atau data)."),
         BAD_COMMAND("Perintah 7z ditolak (argumen tidak valid)."),
         CANCELLED("Dibatalkan."),
+        SOURCE_UNREADABLE("Sebagian berkas sumber tidak bisa dibaca. Arsip tidak dibuat."),
         UNKNOWN("7z gagal tanpa sebab yang dikenali."),
     }
 
@@ -257,6 +306,13 @@ object SevenZipCommand {
             else -> Failure.UNKNOWN
         }
     }
+
+    /**
+     * [ARCHIVE6] Klasifikasi galat `7z a`. Berbeda dari [classify]: exit 1 (peringatan, mis. sumber hilang/tak terbaca)
+     * di sini FATAL karena arsip yang tertulis tidak lengkap, dan pada arsip bersandi itu berbahaya (pengguna mengira semuanya aman).
+     */
+    fun classifyCreate(exit: Int, output: String, passwordGiven: Boolean): Failure =
+        if (exit == 1) Failure.SOURCE_UNREADABLE else classify(exit, output, passwordGiven)
 
     // ---------------------------------------------------------------- progres
 

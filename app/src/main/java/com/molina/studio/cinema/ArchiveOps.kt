@@ -19,4 +19,12 @@ internal object ArchiveOps {
     ): ExtractResult =
         if (ArchiveRoute.viaDebian(file.name)) DebianArchive(ctx).extract(file, destDir, target, ctl, password, only)
         else ArchiveEngine.extract(file, destDir, target, ctl, password, only)
+
+    /**
+     * [ARCHIVE6] Kompres: 7z bersandi lewat [DebianArchive.create]; semua format lain lewat [ArchiveEngine.compress]
+     * (tidak berubah). Keputusan ada di [ArchiveRoute.compressViaDebian].
+     */
+    fun compress(ctx: Context, files: List<File>, destDir: File, opt: CompressOptions, ctl: FileOps.Ctl): File =
+        if (ArchiveRoute.compressViaDebian(opt)) DebianArchive(ctx).create(files, destDir, opt, ctl)
+        else ArchiveEngine.compress(files, destDir, opt, ctl)
 }

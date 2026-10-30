@@ -425,8 +425,8 @@ fun Win7OpenDialog(
             val d = dir
             val items = s.files
             runOp(op = { ctl ->
-                val made = ArchiveEngine.compress(items, d, opt, ctl)
-                "Arsip dibuat: " + made.name + " (" + CompressNames.sizeText(made.length()) + ")"
+                val made = ArchiveOps.compress(ctx, items, d, opt, ctl) // [ARCHIVE6] 7z bersandi lewat Debian
+                "Arsip dibuat: " + made.name + " (" + CompressNames.sizeText(made.length()) + (if (!opt.password.isNullOrEmpty()) ", bersandi" else "") + ")"
             })
         }
         is W7Sheet.Zip -> W7PasswordDialog(

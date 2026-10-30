@@ -370,6 +370,8 @@ internal object ArchiveEngine {
             throw IOException("Nama bentrok di dalam arsip: \"" + it.key + "\" ada di lebih dari satu folder. Kompres terpisah atau ubah namanya.")
         }
         CompressNames.baseNameError(opt.baseName, fmt)?.let { throw IOException(it) }
+        // [ARCHIVE6] FAIL-CLOSED: pustaka bawaan tidak bisa mengenkripsi 7z. Tanpa baris ini 7z + sandi akan menulis arsip TANPA sandi.
+        if (pw != null && fmt == CompressFormat.SEVEN_Z) throw IOException("7z dengan kata sandi harus dibuat lewat ArchiveOps.compress (7z di Debian)")
         if (pw != null && !fmt.hasPassword) throw IOException("Format " + fmt.label + " belum mendukung kata sandi")
         val base = CompressNames.cleanBaseName(opt.baseName, fmt)
         val level = fmt.clampLevel(opt.level)

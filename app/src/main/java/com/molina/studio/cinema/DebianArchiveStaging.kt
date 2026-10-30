@@ -2,6 +2,7 @@ package com.molina.studio.cinema
 
 import java.io.File
 import java.io.IOException
+import java.nio.file.FileAlreadyExistsException
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.util.Locale
@@ -177,5 +178,62 @@ internal object DebianArchiveStaging {
             throw e
         }
         return Committed(base, files, renamed)
+    }
+
+    /**
+     * [ARCHIVE6] Pindahkan SATU berkas hasil kompres [produced] (anak langsung [stage]) ke [dest] sebagai `base + ext`,
+     * atau `base (1)+ext`, ... bila nama sudah ada. Berkas yang ada TIDAK pernah ditimpa: pemindahan memakai
+     * [Files.move] tanpa REPLACE_EXISTING dan mengulang dengan nama berikutnya bila ada yang menyela. Mengembalikan berkas akhir.
+     */
+    fun commitFile(stage: File, produced: String, dest: File, base: String, ext: String, cancelled: () -> Boolean): File {
+        val d = dest.canonicalFile
+        if (stage.canonicalFile.parentFile != d) throw IOException("Folder sementara harus berada di folder tujuan")
+        val src = File(stage, produced)
+        val sp = src.toPath()
+        if (Files.isSymbolicLink(sp) || !Files.isRegularFile(sp, LinkOption.NOFOLLOW_LINKS)) throw IOException("Hasil kompres tidak ditemukan")
+        if (src.length() == 0L) throw IOException("Hasil kompres kosong")
+        var tries = 0
+        while (true) {
+            if (cancelled()) throw IOException("Dibatalkan")
+            val target = CompressNames.uniqueOutput(d, base, ext)
+            try {
+                Files.move(sp, target.toPath())
+                return target
+            } catch (e: FileAlreadyExistsException) {
+                if (++tries > 100) throw IOException("Gagal memberi nama hasil kompres")
+            } catch (e: IOException) {
+                throw IOException("Gagal memindahkan hasil kompres: " + (e.message ?: e.javaClass.simpleName))
+            }
+        }
+    }
+
+    const val MAX_LINK_EXCLUDES = 2000
+    const val TOO_MANY_LINKS = "Sumber memuat terlalu banyak tautan simbolik (lebih dari 2000). Hapus tautannya atau pakai format lain."
+
+    /**
+     * [ARCHIVE6] Jalur dalam arsip (`nama/sub/tautan`) dari SEMUA tautan simbolik di dalam [sources] (folder; tautan tingkat atas
+     * sudah disaring pemanggil). Penelusuran TIDAK mengikuti tautan. Dilewatkan ke 7z sebagai `-x!` supaya tautan dilewati seperti
+     * di [ArchiveEngine]: 7z sendiri mengikuti tautan folder, dan arsip berisi tautan absolut gagal diekstrak ("Dangerous link").
+     */
+    fun symlinkExcludes(sources: List<File>, max: Int = MAX_LINK_EXCLUDES, cancelled: () -> Boolean = { false }): List<String> {
+        val out = ArrayList<String>()
+        val todo = ArrayDeque<Pair<File, String>>()
+        for (s in sources) if (Files.isDirectory(s.toPath(), LinkOption.NOFOLLOW_LINKS)) todo.addLast(s to s.name)
+        while (todo.isNotEmpty()) {
+            val (dir, rel) = todo.removeLast()
+            val kids = dir.listFiles() ?: continue // tak terbaca: 7z akan memperingatkan (exit 1) dan kompres gagal
+            for (k in kids) {
+                if (cancelled()) throw IOException("Dibatalkan")
+                val r = rel + "/" + k.name
+                val p = k.toPath()
+                if (Files.isSymbolicLink(p)) {
+                    out.add(r)
+                    if (out.size > max) throw IOException(TOO_MANY_LINKS)
+                } else if (Files.isDirectory(p, LinkOption.NOFOLLOW_LINKS)) {
+                    todo.addLast(k to r)
+                }
+            }
+        }
+        return out
     }
 }
