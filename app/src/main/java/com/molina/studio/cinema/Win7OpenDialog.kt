@@ -1511,6 +1511,10 @@ private fun W7InfoDialog(files: List<File>, debian: Boolean?, onDismiss: () -> U
                     val media by produceState<List<Pair<String, String>>?>(null, first.path) { value = W7MediaInfo.read(first) }
                     media?.forEach { W7InfoRow(it.first, it.second) }
                 }
+                if (!p.isDir && !p.symlink && W7Thumb.isVideo(first)) {
+                    val side by produceState<List<Pair<String, String>>?>(null, first.path) { value = W7MediaInfo.sidecar(first) }
+                    side?.forEach { W7InfoRow(it.first, it.second) }
+                }
                 if (!p.isDir && !p.symlink) {
                     val h = sha
                     if (h != null) {

@@ -76,6 +76,71 @@ fun main() {
     } finally {
         d.deleteRecursively()
     }
+
+    // ---- ResumeMark / ShelfScan / SidecarRows
+    check("resume: key MD5 huruf besar 32 hex", ShelfCard.Entry("/a", "", true).ref.let { ResumeMark.key(it) }.matches(Regex("[0-9A-F]{32}")))
+    check("resume: key vektor MD5 'abc'", ResumeMark.key("abc") == "900150983CD24FB0D6963F7D28E17F72")
+    check("resume: parse start", ResumeMark.parseStart("start=75.5\n") == 75.5)
+    check("resume: start < 1 detik diabaikan", ResumeMark.parseStart("start=0.4") == null)
+    check("resume: bukan angka -> null", ResumeMark.parseStart("start=abc") == null && ResumeMark.parseStart("x=1") == null)
+    check("resume: NaN/Inf -> null", ResumeMark.parseStart("start=NaN") == null && ResumeMark.parseStart("start=Infinity") == null)
+    check("resume: fraction normal", ResumeMark.fraction(50.0, 100) == 0.5f)
+    check("resume: fraction durasi tak diketahui", ResumeMark.fraction(50.0, null) == null && ResumeMark.fraction(50.0, 0) == null)
+    check("resume: fraction posisi >= durasi -> null", ResumeMark.fraction(120.0, 100) == null)
+    check("resume: fraction dijepit", ResumeMark.fraction(1.0, 10000) == 0.02f && ResumeMark.fraction(9999.0, 10000) == 0.98f)
+
+    val d2 = Files.createTempDirectory("shelf2").toFile()
+    try {
+        val wl = File(d2, "watch_later").also { it.mkdirs() }
+        val wl2 = File(d2, "state/watch_later").also { it.mkdirs() }
+        val vid = put(d2, "Lanjut.mp4")
+        put(d2, "Lanjut.info.json", """{"title":"Lanjut","duration":200}""")
+        File(wl2, ResumeMark.key(vid.path)).writeText("start=50.0\nspeed=1.0\n")
+        check("resume: readStart mencari di beberapa folder", ResumeMark.readStart(listOf(wl, wl2), vid.path) == 50.0)
+        check("resume: readStart tanpa berkas -> null", ResumeMark.readStart(listOf(wl), vid.path) == null)
+        check("resume: readStart ref kosong -> null", ResumeMark.readStart(listOf(wl2), " ") == null)
+        File(wl, ResumeMark.key("/rusak")).writeText("a".repeat(5000))
+        check("resume: berkas terlalu besar diabaikan", ResumeMark.readStart(listOf(wl), "/rusak") == null)
+        val rc = ShelfCard.of(ShelfCard.Entry(vid.path, "Lanjut.mp4", true), listOf(wl, wl2))
+        check("card: resumeSec + fraction", rc.resumeSec == 50 && rc.resumeFraction == 0.25f)
+        val nc = ShelfCard.of(ShelfCard.Entry(vid.path, "Lanjut.mp4", true))
+        check("card: tanpa folder resume -> null", nc.resumeSec == null && nc.resumeFraction == null)
+        val au = ShelfCard.of(ShelfCard.Entry(vid.path, "x", false), listOf(wl, wl2))
+        check("card: audio tidak diberi penanda lanjut", au.resumeSec == null)
+        val plainv = put(d2, "TanpaInfo.mkv")
+        File(wl, ResumeMark.key(plainv.path)).writeText("start=30")
+        val pc = ShelfCard.of(ShelfCard.Entry(plainv.path, "TanpaInfo.mkv", true), listOf(wl))
+        check("card: lanjut tanpa durasi -> sec ada, fraction null", pc.resumeSec == 30 && pc.resumeFraction == null)
+        val bc = ShelfCard.build(listOf(ShelfCard.Entry(vid.path, "L", true)), 8, listOf(wl, wl2))
+        check("build: meneruskan resumeDirs", bc.single().resumeSec == 50)
+
+        // ---- ShelfScan
+        val dl = File(d2, "dl").also { it.mkdirs() }
+        val old = put(dl, "lama.mp4").also { it.setLastModified(1_000_000_000_000L) }
+        val neu = put(dl, "baru.mkv").also { it.setLastModified(1_700_000_000_000L) }
+        put(dl, "catatan.txt"); put(dl, "film.mp4.part"); put(dl, "poster.jpg"); put(dl, ".tersembunyi.mp4")
+        val sub = File(dl, "playlist").also { it.mkdirs() }
+        val mid = put(sub, "tengah.webm").also { it.setLastModified(1_500_000_000_000L) }
+        val deep = File(File(sub, "a"), "b").also { it.mkdirs() }
+        put(deep, "terlalu-dalam.mp4")
+        val sc = ShelfScan.scan(dl)
+        check("scan: hanya video, terbaru dulu", sc.map { it.title } == listOf("baru", "tengah", "lama"))
+        check("scan: entri berjenis video dengan path", sc.all { it.video } && sc.first().ref == neu.path)
+        check("scan: kedalaman dibatasi", sc.none { it.title == "terlalu-dalam" })
+        check("scan: dibatasi max", ShelfScan.scan(dl, 2).size == 2 && ShelfScan.scan(dl, 0).isEmpty())
+        check("scan: folder tidak ada -> kosong", ShelfScan.scan(File(d2, "tidak-ada")).isEmpty())
+        check("scan: ekstensi besar-kecil", put(dl, "BESAR.MP4").let { ShelfScan.scan(dl).any { e -> e.title == "BESAR" } })
+        check("scan: mp4 sama dgn lama", old.exists() && mid.exists())
+
+        // ---- SidecarRows
+        val rows = SidecarRows.of(MediaSidecar.Info("T", "K", 10, 2023, "Desk", "https://x.test/v"))
+        check("rows: urutan dan label", rows.map { it.first } == listOf("Judul unduhan", "Kanal", "Tahun", "Deskripsi", "Sumber"))
+        check("rows: nilai", rows[2].second == "2023" && rows[4].second == "https://x.test/v")
+        check("rows: null -> kosong", SidecarRows.of(null).isEmpty())
+        check("rows: field null dilewati", SidecarRows.of(MediaSidecar.Info(null, "K", null, null, null, null)).map { it.first } == listOf("Kanal"))
+    } finally {
+        d2.deleteRecursively()
+    }
     if (fails > 0) { println("$fails GAGAL"); System.exit(1) }
     println("semua lulus")
 }

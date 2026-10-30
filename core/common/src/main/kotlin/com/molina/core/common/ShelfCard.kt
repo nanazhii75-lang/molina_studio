@@ -24,20 +24,25 @@ object ShelfCard {
         val thumbPath: String?,
         val hasPoster: Boolean,
         val monogram: String,
+        /** Posisi lanjut mpv (detik, dibulatkan) bila pernah dilanjutkan; null bila belum. */
+        val resumeSec: Int? = null,
+        /** Pecahan 0..1 posisi/durasi untuk garis aksen; null bila durasi tidak diketahui. */
+        val resumeFraction: Float? = null,
     )
 
     const val MAX_CARDS = 8
 
-    fun build(entries: List<Entry>, max: Int = MAX_CARDS): List<Card> =
-        entries.asSequence().filter { it.ref.isNotBlank() }.take(max.coerceAtLeast(0)).map { of(it) }.toList()
+    fun build(entries: List<Entry>, max: Int = MAX_CARDS, resumeDirs: List<File> = emptyList()): List<Card> =
+        entries.asSequence().filter { it.ref.isNotBlank() }.take(max.coerceAtLeast(0)).map { of(it, resumeDirs) }.toList()
 
-    fun of(e: Entry): Card {
+    fun of(e: Entry, resumeDirs: List<File> = emptyList()): Card {
         val local = e.ref.startsWith("/")
         val file = if (local) File(e.ref) else null
         val found = if (file != null && e.video) MediaSidecar.find(file) else null
         val info = MediaSidecar.readInfo(found?.info)
         val title = info?.title ?: e.title.ifBlank { fallbackTitle(e.ref) }
         val parts = listOfNotNull(info?.channel, info?.year?.toString()).ifEmpty { listOfNotNull(origin(e.ref)) }
+        val start = if (e.video) ResumeMark.readStart(resumeDirs, e.ref) else null
         return Card(
             ref = e.ref,
             title = title,
@@ -47,6 +52,8 @@ object ShelfCard {
             thumbPath = if (local && e.video) e.ref else null,
             hasPoster = found?.poster != null,
             monogram = monogram(title),
+            resumeSec = start?.toInt(),
+            resumeFraction = ResumeMark.fraction(start, info?.durationSec),
         )
     }
 

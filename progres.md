@@ -2254,3 +2254,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: hanya core/common (1 berkas); resolveArgs, urutan hasil (SearchOrderTests), Gradle, AndroidManifest, JNI mpv TIDAK disentuh
 - [ ] Belum dikompilasi/diuji di sandbox (perubahan satu string): tunggu CI; uji perangkat: cari judul berbahasa Indonesia, bandingkan dengan YouTube asli
 - [ ] Berikutnya: samakan bahasa judul di fetch_info/nama berkas unduhan (molina_dl.py) bila masih berbeda; pertimbangkan bahasa pencarian mengikuti pengaturan
+
+## [SIDE4-SHELF-PLUS] Aksen lanjut, tab Unduhan, info.json di Properti
+- [x] feat(core): ResumeMark (baca watch_later mpv: MD5 huruf besar dari path/URL, `start=`; pecahan posisi/durasi), ShelfScan (video terbaru di Unduhan, kedalaman 2, maks. 800 entri ditelusuri), SidecarRows (baris Properti dari info.json)
+- [x] feat(cinema): CinemaShelf punya tab Terakhir/Unduhan (ketuk ulang = pindai ulang); kartu yang pernah dilanjutkan diberi garis emas tipis di tepi bawah poster (panjang = posisi/durasi; redup penuh bila durasi tak diketahui)
+- [x] feat(cinema): dialog Properti menampilkan Judul unduhan, Kanal, Tahun, Deskripsi, Sumber dari .info.json (W7MediaInfo.sidecar, hanya video)
+- [x] test: run_shelf.sh 57 pemeriksaan lulus (kotlinc 2.1.21)
+- [x] Dampak: :core:common (+3 berkas), :app (CinemaShelf.kt, W7MediaInfo.kt, Win7OpenDialog.kt +4 baris); Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
+- [ ] Verifikasi di perangkat: lokasi watch_later mpv (filesDir/watch_later atau filesDir/state/watch_later) dan kecocokan hash path; Compose belum dikompilasi di sandbox, tunggu CI
+- [ ] Catatan: berkas watch_later yang tertinggal setelah film selesai bisa tetap menandai kartu (app tidak menyimpan saat EOF, tapi entri lama tidak dihapus)

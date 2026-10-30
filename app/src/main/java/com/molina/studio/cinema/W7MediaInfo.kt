@@ -1,6 +1,8 @@
 package com.molina.studio.cinema
 
 import android.media.MediaMetadataRetriever
+import com.molina.core.common.MediaSidecar
+import com.molina.core.common.SidecarRows
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -11,6 +13,11 @@ import java.io.File
  */
 internal object W7MediaInfo {
     suspend fun read(f: File): List<Pair<String, String>> = withContext(Dispatchers.IO) { extract(f) }
+
+    /** Baris tambahan dari `.info.json` sidecar (`molina_dl --sidecar`); kosong bila tidak ada atau rusak. */
+    suspend fun sidecar(f: File): List<Pair<String, String>> = withContext(Dispatchers.IO) {
+        SidecarRows.of(MediaSidecar.readInfo(MediaSidecar.find(f).info))
+    }
 
     private fun extract(f: File): List<Pair<String, String>> {
         val r = MediaMetadataRetriever()
