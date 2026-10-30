@@ -114,6 +114,15 @@ fun main() {
         val bc = ShelfCard.build(listOf(ShelfCard.Entry(vid.path, "L", true)), 8, listOf(wl, wl2))
         check("build: meneruskan resumeDirs", bc.single().resumeSec == 50)
 
+        // ---- clear ("Mulai dari awal")
+        val keepKey = ResumeMark.key("/lain/film.mp4")
+        File(wl, keepKey).writeText("start=99")
+        check("resume: clear menghapus di semua folder", ResumeMark.clear(listOf(wl, wl2), vid.path) && ResumeMark.readStart(listOf(wl, wl2), vid.path) == null)
+        check("resume: clear tidak menyentuh kunci lain", File(wl, keepKey).isFile)
+        check("resume: clear tanpa berkas -> false", !ResumeMark.clear(listOf(wl, wl2), vid.path))
+        check("resume: clear ref kosong -> false", !ResumeMark.clear(listOf(wl), " "))
+        check("resume: clear tanpa folder -> false", !ResumeMark.clear(emptyList(), "/x"))
+
         // ---- ShelfScan
         val dl = File(d2, "dl").also { it.mkdirs() }
         val old = put(dl, "lama.mp4").also { it.setLastModified(1_000_000_000_000L) }

@@ -1,6 +1,11 @@
 package com.molina.studio.cinema
 
+import android.content.Context
+import android.content.ContextWrapper
 import android.os.Environment
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -23,6 +28,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -41,17 +48,25 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.molina.core.common.MolinaDir
+import com.molina.core.common.ResumeMark
 import com.molina.core.common.ShelfCard
 import com.molina.core.common.TvGuide
 import com.molina.studio.AppPaths
 import com.molina.studio.ui.MolinaTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 
 private val TvBg = Color(0xFF0E0B10)
 private val TileShape = RoundedCornerShape(6.dp)
+
+private tailrec fun Context.lifecycleOwner(): LifecycleOwner? = when (this) {
+    is LifecycleOwner -> this
+    is ContextWrapper -> baseContext.lifecycleOwner()
+    else -> null
+}
 
 private class TvData(val rows: List<TvGuide.Row>, val cards: Map<String, ShelfCard.Card>)
 
@@ -86,6 +101,23 @@ internal fun TvBrowser(onPlay: (File) -> Unit, onClose: () -> Unit) {
     var dir by remember { mutableStateOf(channels.firstOrNull()?.dir) }
     var focus by remember { mutableStateOf<TvGuide.Item?>(null) }
     var tick by remember { mutableIntStateOf(0) }
+    val scope = rememberCoroutineScope()
+
+    // Muat ulang setelah layar kembali dari pemutar (ON_PAUSE lalu ON_RESUME), agar garis "dilanjutkan" mutakhir.
+    val owner = remember { ctx.lifecycleOwner() }
+    DisposableEffect(owner) {
+        var armed = false
+        val obs = LifecycleEventObserver { _, e ->
+            if (e == Lifecycle.Event.ON_PAUSE) {
+                armed = true
+            } else if (e == Lifecycle.Event.ON_RESUME && armed) {
+                armed = false
+                tick++
+            }
+        }
+        owner?.lifecycle?.addObserver(obs)
+        onDispose { owner?.lifecycle?.removeObserver(obs) }
+    }
 
     val clock by produceState("") {
         while (true) {
@@ -201,6 +233,13 @@ internal fun TvBrowser(onPlay: (File) -> Unit, onClose: () -> Unit) {
             item = focus,
             extra = focus?.let { f -> data?.cards?.get(f.file.path)?.let { c -> listOfNotNull(c.duration, c.subtitle.takeIf { it.isNotEmpty() }).joinToString(" \u00B7 ") } },
             fallback = cur?.path.orEmpty() + (data?.let { dd -> "  \u00B7  " + dd.rows.joinToString(", ") { it.total.toString() + " " + it.title.lowercase() } } ?: ""),
+            resumeSec = focus?.let { f -> data?.cards?.get(f.file.path)?.resumeSec },
+            onReset = { f ->
+                scope.launch {
+                    withContext(Dispatchers.IO) { ResumeMark.clear(resumeDirs, f.file.path) }
+                    tick++
+                }
+            },
             onOpen = { f ->
                 when (f.kind) {
                     TvGuide.Kind.Folder -> { dir = f.file; focus = null }
@@ -243,6 +282,8 @@ private fun TvInfoPanel(
     item: TvGuide.Item?,
     extra: String?,
     fallback: String,
+    resumeSec: Int?,
+    onReset: (TvGuide.Item) -> Unit,
     onOpen: (TvGuide.Item) -> Unit,
     onClear: () -> Unit,
 ) {
@@ -255,6 +296,12 @@ private fun TvInfoPanel(
         } else {
             Text(item.title, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 2, overflow = TextOverflow.Ellipsis)
             Text(TvGuide.describe(item, extra), color = Win7.TextDim, fontSize = 11.sp, modifier = Modifier.padding(top = 2.dp))
+            if (resumeSec != null) {
+                Text(
+                    "Dilanjutkan di " + ShelfCard.clock(resumeSec), color = MolinaTheme.Gold, fontSize = 11.sp,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+            }
             Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (item.kind != TvGuide.Kind.Other) {
                     Text(
@@ -262,6 +309,13 @@ private fun TvInfoPanel(
                         color = Color.Black, fontSize = 12.sp, fontWeight = FontWeight.Medium,
                         modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(MolinaTheme.Gold)
                             .clickable { onOpen(item) }.padding(horizontal = 16.dp, vertical = 6.dp)
+                    )
+                }
+                if (resumeSec != null) {
+                    Text(
+                        "Mulai dari awal", color = MolinaTheme.Gold, fontSize = 12.sp,
+                        modifier = Modifier.clip(RoundedCornerShape(12.dp)).border(1.dp, MolinaTheme.Gold, RoundedCornerShape(12.dp))
+                            .clickable { onReset(item) }.padding(horizontal = 14.dp, vertical = 6.dp)
                     )
                 }
                 Text(

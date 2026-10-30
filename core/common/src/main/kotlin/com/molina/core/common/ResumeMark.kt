@@ -35,6 +35,22 @@ object ResumeMark {
         return null
     }
 
+    /** Hapus penanda lanjut [ref] dari semua [dirs] ("Mulai dari awal"); true bila ada berkas yang terhapus. */
+    fun clear(dirs: List<File>, ref: String): Boolean {
+        if (ref.isBlank()) return false
+        val name = key(ref)
+        var any = false
+        for (d in dirs) {
+            try {
+                val f = File(d, name)
+                if (f.isFile && f.delete()) any = true
+            } catch (e: SecurityException) {
+                // dilewati: folder berikutnya tetap dicoba
+            }
+        }
+        return any
+    }
+
     /** Ambil nilai `start=` pertama yang terbatas dan >= [MIN_START_SEC]. */
     fun parseStart(text: String): Double? {
         for (line in text.lineSequence()) {
