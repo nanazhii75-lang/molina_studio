@@ -52,6 +52,7 @@ import com.molina.core.common.DownloadUrls
 import com.molina.core.common.DownloadItemState
 import com.molina.core.common.DownloadItemStatus
 import com.molina.core.common.DownloadMode
+import com.molina.core.common.DownloadPreset
 import com.molina.core.common.DownloadReducer
 import com.molina.core.common.DownloadRequest
 import com.molina.core.common.DownloadEvent
@@ -215,18 +216,18 @@ fun UnduhanScreen(modifier: Modifier = Modifier) {
                     }
                     // [win7-preset] preset cepat; pilihan tetap bisa disesuaikan lewat chip di bawahnya.
                     Text("Preset", color = W7D.TextDim, fontSize = 12.sp)
+                    val now = DownloadChoices(video, height, videoExt, audioFmt, bitrate, subs, subsMode, cover, limitRate)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Chip("Cinema", video && height == 1080 && videoExt == "mp4", !run.running) {
-                            video = true; height = 1080; videoExt = "mp4"
-                        }
-                        Chip("Hemat", video && height == 480 && videoExt == "mp4", !run.running) {
-                            video = true; height = 480; videoExt = "mp4"
-                        }
-                        Chip("Musik", !video && audioFmt == "mp3" && bitrate == "320k", !run.running) {
-                            video = false; audioFmt = "mp3"; bitrate = "320k"
+                        DownloadPreset.values().forEach { p ->
+                            Chip(p.label, p.matches(now), !run.running) {
+                                val n = p.apply(now)
+                                video = n.video; height = n.height; videoExt = n.videoExt
+                                audioFmt = n.audioFmt; bitrate = n.bitrate
+                                subs = n.subs; subsMode = n.subsMode; cover = n.cover
+                            }
                         }
                     }
-                    Text("Cinema = 1080p MP4 · Hemat = 480p MP4 · Musik = MP3 320k", color = W7D.TextDim, fontSize = 11.sp)
+                    Text(DownloadPreset.HINT, color = W7D.TextDim, fontSize = 11.sp)
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Chip("Video", video, !run.running) { video = true }

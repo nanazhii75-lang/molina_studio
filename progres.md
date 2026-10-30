@@ -2168,3 +2168,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Uji perangkat Android 8 arm64: subtitle/sampul/batas kecepatan nyata via proot belum
 - [ ] Preset cepat (Cinema/Hemat/Musik) belum mengatur subtitle/sampul/batas; belum ada input bahasa subtitle bebas
 - [ ] Berikutnya: sidecar poster.jpg/.info.json untuk Molina Cinema, playlist terkontrol
+
+## 2026-10-30 - Preset cepat mengatur subtitle dan sampul [DL-PKG4-PRESET]
+- [x] feat(core): DownloadPreset (CINEMA/HEMAT/MUSIK) murni JVM dengan apply/matches/active; Cinema = 1080p MP4 + subtitle ID+EN embed, Hemat = 480p MP4 tanpa subtitle, Musik = MP3 320k + sampul; batas kecepatan dan format yang bukan milik preset tidak disentuh
+- [x] feat(ui): chip preset di form Unduhan dibangun dari DownloadPreset (status terpilih ikut subtitle/sampul); petunjuk di bawahnya diperbarui
+- [x] test: scripts/core-tests/run_presets.sh (apply/matches konsisten, lolos validasi perintah, idempoten, hanya satu preset aktif, kolom pengguna tidak tersentuh)
+- [x] Dampak: :core:common (1 berkas baru) + :app (UnduhanScreen saja); Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
+- [ ] Compose belum dikompilasi di sandbox: tunggu CI; preset belum bisa dikustomisasi/disimpan pengguna
+- [ ] Berikutnya: sidecar poster.jpg/.info.json untuk Molina Cinema, playlist terkontrol
