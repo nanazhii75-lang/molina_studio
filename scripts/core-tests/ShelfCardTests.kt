@@ -123,6 +123,17 @@ fun main() {
         check("resume: clear ref kosong -> false", !ResumeMark.clear(listOf(wl), " "))
         check("resume: clear tanpa folder -> false", !ResumeMark.clear(emptyList(), "/x"))
 
+        // ---- move (ganti nama / pindah)
+        File(wl, ResumeMark.key("/a/lama.mp4")).writeText("start=42")
+        check("resume: move memindah penanda", ResumeMark.move(listOf(wl, wl2), "/a/lama.mp4", "/b/baru.mp4") &&
+            ResumeMark.readStart(listOf(wl), "/b/baru.mp4") == 42.0 && ResumeMark.readStart(listOf(wl), "/a/lama.mp4") == null)
+        File(wl, ResumeMark.key("/c/x.mp4")).writeText("start=10")
+        File(wl, ResumeMark.key("/c/y.mp4")).writeText("start=20")
+        check("resume: move tidak menimpa penanda tujuan", !ResumeMark.move(listOf(wl), "/c/x.mp4", "/c/y.mp4") &&
+            ResumeMark.readStart(listOf(wl), "/c/y.mp4") == 20.0 && ResumeMark.readStart(listOf(wl), "/c/x.mp4") == 10.0)
+        check("resume: move tanpa sumber/ref sama/kosong -> false",
+            !ResumeMark.move(listOf(wl), "/tidak/ada.mp4", "/z.mp4") && !ResumeMark.move(listOf(wl), "/q", "/q") && !ResumeMark.move(listOf(wl), " ", "/q"))
+
         // ---- ShelfScan
         val dl = File(d2, "dl").also { it.mkdirs() }
         val old = put(dl, "lama.mp4").also { it.setLastModified(1_000_000_000_000L) }

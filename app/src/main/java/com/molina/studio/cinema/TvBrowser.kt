@@ -102,6 +102,13 @@ internal fun TvBrowser(onPlay: (File) -> Unit, onClose: () -> Unit) {
     var focus by remember { mutableStateOf<TvGuide.Item?>(null) }
     var tick by remember { mutableIntStateOf(0) }
     val scope = rememberCoroutineScope()
+    var sheet by remember { mutableStateOf<TvSheet?>(null) }
+    val guard = remember(channels) {
+        TvGuide.guard(tvVolumes(), AppPaths.get(ctx).appRoot, channels.map { it.dir })
+    }
+    val ops = remember(channels) {
+        TvOps(ctx, scope, tvVolumes(), guard, resumeDirs) { focus = null; tick++ }
+    }
 
     // Muat ulang setelah layar kembali dari pemutar (ON_PAUSE lalu ON_RESUME), agar garis "dilanjutkan" mutakhir.
     val owner = remember { ctx.lifecycleOwner() }
@@ -247,9 +254,12 @@ internal fun TvBrowser(onPlay: (File) -> Unit, onClose: () -> Unit) {
                     TvGuide.Kind.Other -> {}
                 }
             },
-            onClear = { focus = null }
+            onClear = { focus = null },
+            ops = ops,
+            onSheet = { sheet = it }
         )
     }
+    TvOpsDialogs(sheet, ops, channels) { sheet = null }
 }
 
 @Composable
@@ -286,10 +296,26 @@ private fun TvInfoPanel(
     onReset: (TvGuide.Item) -> Unit,
     onOpen: (TvGuide.Item) -> Unit,
     onClear: () -> Unit,
+    ops: TvOps,
+    onSheet: (TvSheet) -> Unit,
 ) {
     Column(
         Modifier.fillMaxWidth().background(Color(0xFF17121B)).padding(horizontal = 14.dp, vertical = 10.dp)
     ) {
+        if (ops.message.isNotEmpty()) {
+            Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    ops.message + (if (ops.busy) ops.progress?.let { " " + (it * 100).toInt() + "%" }.orEmpty() else ""),
+                    color = if (ops.ok) MolinaTheme.Gold else Color(0xFFFF8A80), fontSize = 12.sp,
+                    modifier = Modifier.weight(1f), maxLines = 3, overflow = TextOverflow.Ellipsis
+                )
+                if (ops.busy) {
+                    Text("Batal", color = Win7.TextDim, fontSize = 12.sp, modifier = Modifier.clickable { ops.cancelOp() }.padding(8.dp))
+                } else if (ops.undo != null) {
+                    Text("Urungkan", color = MolinaTheme.Gold, fontSize = 12.sp, modifier = Modifier.clickable { ops.undoTrash() }.padding(8.dp))
+                }
+            }
+        }
         if (item == null) {
             Text(fallback, color = Win7.TextDim, fontSize = 11.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
             Text("Tekan lama kartu untuk melihat info.", color = Win7.TextDim, fontSize = 10.sp, modifier = Modifier.padding(top = 2.dp))
@@ -324,6 +350,25 @@ private fun TvInfoPanel(
                         .clickable(onClick = onClear).padding(horizontal = 14.dp, vertical = 6.dp)
                 )
             }
+            if (!ops.busy) {
+                val editable = TvGuide.canModify(item.file, ops.guard)
+                Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (editable) TvAction("Ganti nama") { onSheet(TvSheet.Rename(item.file)) }
+                    TvAction("Salin") { onSheet(TvSheet.Dest(item.file, false)) }
+                    if (editable) TvAction("Pindah") { onSheet(TvSheet.Dest(item.file, true)) }
+                    if (editable) TvAction("Hapus", danger = true) { onSheet(TvSheet.Delete(item.file)) }
+                }
+            }
         }
     }
+}
+
+@Composable
+private fun TvAction(label: String, danger: Boolean = false, onClick: () -> Unit) {
+    val c = if (danger) Color(0xFFFF8A80) else Win7.Ink
+    Text(
+        label, color = c, fontSize = 11.sp, maxLines = 1,
+        modifier = Modifier.clip(RoundedCornerShape(10.dp)).background(Color(0x14FFFFFF))
+            .clickable(onClick = onClick).padding(horizontal = 10.dp, vertical = 6.dp)
+    )
 }

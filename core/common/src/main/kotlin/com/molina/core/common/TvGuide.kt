@@ -100,6 +100,36 @@ object TvGuide {
         return parts.joinToString(" \u00B7 ")
     }
 
+    /**
+     * Jalur absolut yang tidak boleh dihapus/diubah namanya/dipindah dari Mode TV: akar volume, folder
+     * Recycle Bin tiap volume, akar data aplikasi, dan folder saluran itu sendiri (isinya tetap boleh diubah).
+     */
+    fun guard(volumes: List<File>, appRoot: File, channelDirs: List<File>): Set<String> {
+        val out = HashSet<String>()
+        for (v in volumes) {
+            out.add(v.absolutePath)
+            out.add(File(v, TrashBin.DIR).absolutePath)
+        }
+        out.add(appRoot.absolutePath)
+        for (c in channelDirs) out.add(c.absolutePath)
+        return out
+    }
+
+    fun canModify(file: File, guard: Set<String>): Boolean = file.absolutePath !in guard
+
+    /**
+     * Folder tujuan salin/pindah yang ditawarkan: folder saluran. Untuk pindah, folder tempat berkas sudah
+     * berada dikeluarkan; untuk berkas yang folder, folder itu sendiri dan isinya juga dikeluarkan.
+     */
+    fun destinations(channels: List<Channel>, source: File, move: Boolean): List<Channel> {
+        val parent = source.absoluteFile.parentFile?.absolutePath
+        val own = source.absolutePath
+        return channels.filter { ch ->
+            val p = ch.dir.absolutePath
+            !(move && p == parent) && p != own && !(source.isDirectory && p.startsWith(own + File.separator))
+        }
+    }
+
     /** Pindah saluran dengan batas (tanpa melingkar): arah -1/+1; hasil selalu indeks sah, -1 bila kosong. */
     fun step(current: Int, delta: Int, count: Int): Int =
         if (count <= 0) -1 else (current + delta).coerceIn(0, count - 1)

@@ -72,6 +72,23 @@ fun main() {
         val fd = TvGuide.Item(a, TvGuide.Kind.Folder, 0, 1_706_659_200_000L)
         check("describe: folder tanpa ukuran", TvGuide.describe(fd, null, utc) == "Folder \u00B7 31/01/2024 00.00")
 
+        // ---- guard / destinations
+        val root = File(d, "root").also { it.mkdirs() }
+        val app = File(root, "Molina").also { it.mkdirs() }
+        val unduh = File(app, "Downloads").also { it.mkdirs() }
+        val vid = File(app, "Video").also { it.mkdirs() }
+        val g = TvGuide.guard(listOf(root), app, listOf(unduh, vid))
+        check("guard: akar volume, trash, appRoot, saluran dilindungi",
+            root.absolutePath in g && File(root, TrashBin.DIR).absolutePath in g && app.absolutePath in g && unduh.absolutePath in g)
+        check("guard: isi saluran boleh diubah", TvGuide.canModify(File(unduh, "film.mp4"), g) && !TvGuide.canModify(unduh, g))
+        val chs = TvGuide.channels(listOf("Unduhan" to unduh, "Video" to vid))
+        val src = File(unduh, "film.mp4").also { it.writeText("x") }
+        check("destinations: pindah mengeluarkan folder asal", TvGuide.destinations(chs, src, true).map { it.label } == listOf("Video"))
+        check("destinations: salin menawarkan semua", TvGuide.destinations(chs, src, false).map { it.label } == listOf("Unduhan", "Video"))
+        val sub = File(unduh, "pl").also { it.mkdirs() }
+        val chs2 = TvGuide.channels(listOf("Unduhan" to unduh, "Dalam" to sub, "Video" to vid))
+        check("destinations: folder tidak ditawarkan ke dirinya/isinya", TvGuide.destinations(chs2, sub, false).map { it.label } == listOf("Unduhan", "Video"))
+
         // ---- freeLabel
         check("freeLabel: folder ada -> berakhiran bebas", TvGuide.freeLabel(d)?.endsWith(" bebas") == true)
         check("freeLabel: folder hilang -> null", TvGuide.freeLabel(File(d, "gaib")) == null)

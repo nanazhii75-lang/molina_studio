@@ -51,6 +51,28 @@ object ResumeMark {
         return any
     }
 
+    /**
+     * Pindahkan penanda lanjut saat berkas diganti nama/dipindah: berkas `key(oldRef)` jadi `key(newRef)` di
+     * folder yang sama, sehingga film tetap dilanjutkan. Tidak menimpa penanda [newRef] yang sudah ada.
+     * Mengembalikan true bila ada yang dipindah; kegagalan tidak melempar.
+     */
+    fun move(dirs: List<File>, oldRef: String, newRef: String): Boolean {
+        if (oldRef.isBlank() || newRef.isBlank() || oldRef == newRef) return false
+        val from = key(oldRef)
+        val to = key(newRef)
+        var any = false
+        for (d in dirs) {
+            try {
+                val src = File(d, from)
+                val dst = File(d, to)
+                if (src.isFile && !dst.exists() && src.renameTo(dst)) any = true
+            } catch (e: SecurityException) {
+                // dilewati
+            }
+        }
+        return any
+    }
+
     /** Ambil nilai `start=` pertama yang terbatas dan >= [MIN_START_SEC]. */
     fun parseStart(text: String): Double? {
         for (line in text.lineSequence()) {
