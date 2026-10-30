@@ -2066,3 +2066,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: tidak ada perubahan kode; Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
 - [ ] Uji perangkat ARCHIVE1 dan ARCHIVE2: hasil per item belum dicatat
 - [ ] RAM tar.xz/7z level 6 di Android 8: belum terukur
+
+## 2026-10-30 - SevenZipCommand (argv 7z di PRoot, parse, galat) [ARCHIVE3-CMD]
+- [x] feat(core): SevenZipCommand: -spd, --, -o<dir>, sandi via stdin, bind /sdcard, parseList, classify, parseProgress (commit b834bb8)
+- [x] CI hijau (dikonfirmasi pemilik)
+- [x] Uji JVM lulus di sandbox: run_7zip_command.sh (81 kasus, termasuk integrasi 7-Zip 23.01 asli); mutation check -spd dan urutan classify menangkap kerusakan
+- [x] Dampak: HANYA core/common dan scripts. Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
+- [ ] Belum diuji pada 7z 25.01 di perangkat
+- [ ] Klasifikasi RAR (Unsupported Method) belum diuji dengan berkas RAR nyata
+- [ ] Berikutnya: DebianArchive.kt (runner proses, staging, validasi jalur) di :app
