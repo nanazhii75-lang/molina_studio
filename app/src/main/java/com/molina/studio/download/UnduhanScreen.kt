@@ -450,7 +450,13 @@ private fun statusLine(item: DownloadItemState, pct: Double?): String = when (it
             p?.etaSec?.let { append(" · sisa ").append(fmtEta(it)) }
         }
     }
-    DownloadItemStatus.PROCESSING -> item.stage?.let { "Memproses: $it" } ?: "Memproses"
+    DownloadItemStatus.PROCESSING -> when (item.stage) {
+        null -> "Memproses"
+        "merge" -> "Menggabungkan video dan audio"
+        "extract" -> "Mengonversi audio"
+        "recode" -> "Menyesuaikan format agar kompatibel (H.264/AAC)"
+        else -> "Memproses: ${item.stage}"
+    }
     DownloadItemStatus.DONE -> if (item.existed) "Selesai (berkas sudah ada)" else "Selesai"
     DownloadItemStatus.FAILED -> item.errorMsg ?: "Gagal"
 }

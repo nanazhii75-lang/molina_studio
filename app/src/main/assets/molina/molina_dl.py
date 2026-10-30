@@ -11,7 +11,7 @@ Mode interaktif (menu, antrian banyak URL, bar progres):
 
 Mode non-interaktif (dipakai halaman Unduhan native; stdout hanya berisi JSON, satu objek per baris):
     python3 molina_dl.py --json URL [URL ...] [--mode video|audio] [--height 720] [--ext mp4|mkv]
-                         [--audio-format mp3|m4a|flac] [--bitrate 128k|192k|320k] [--dir FOLDER]
+                         [--audio-format mp3|m4a|flac] [--bitrate 128k|192k|320k] [--dir FOLDER] [--no-compat]
     python3 molina_dl.py --info --json URL      (hanya metadata + daftar resolusi)
     python3 molina_dl.py --version
 
@@ -24,7 +24,7 @@ Kontrak event JSON (v=1), tiap baris satu objek dengan kunci "v" dan "ev":
     item     {i, n, url}                            item i dari n mulai
     info     {i, title, id, duration, uploader, thumbnail, heights}
     progress {i, stream, pct, done, total, speed, eta}   stream = video|audio|single; pct/total bisa null
-    stage    {i, stage}                             merge | extract
+    stage    {i, stage}                             merge | extract | recode
     done     {i, dir, files:[{name, path, size}], existed}
     error    {i, code, msg}                         i = 0 untuk galat global
     summary  {ok, failed, cancelled}                akhir sesi
@@ -50,7 +50,7 @@ import sys
 import time
 
 SCRIPT_NAME = "molina_dl"
-SCRIPT_VERSION = 3
+SCRIPT_VERSION = 4
 PROTOCOL = 1
 
 URL_RE = re.compile(r"^https?://[^\s/$.?#][^\s]*$", re.IGNORECASE)
@@ -219,7 +219,8 @@ class TextReporter:
         self.note(f"Judul: {info.get('title') or '(tanpa judul)'}")
 
     def stage(self, i, stage):
-        self.note({"merge": "Menggabungkan video + audio...", "extract": "Mengonversi audio..."}.get(stage, stage))
+        self.note({"merge": "Menggabungkan video + audio...", "extract": "Mengonversi audio...",
+                                       "recode": "Menyesuaikan ke H.264/AAC (kompatibel WhatsApp)..."}.get(stage, stage))
 
     def progress(self, i, stream, pct, done, total, speed, eta, final=False):
         label = {"video": "Video", "audio": "Audio"}.get(stream, "Data ")
@@ -407,12 +408,18 @@ def available_heights(info):
     return sorted(heights, reverse=True)[:8] or list(FALLBACK_HEIGHTS)
 
 
-def video_format(height, ext, has_ffmpeg):
-    """Selector format yt-dlp. Tanpa ffmpeg hanya format gabungan (satu berkas) yang aman."""
+def video_format(height, ext, has_ffmpeg, compat=True):
+    """Selector format yt-dlp. Mode compat: MP4 diprioritaskan H.264+AAC (WhatsApp/HP lain).
+    Tanpa ffmpeg hanya format gabungan (satu berkas) yang aman."""
     cap = f"[height<={height}]" if height else ""
     if not has_ffmpeg:
         return f"b{cap}/b"
     if ext == "mp4":
+        if compat:
+            return (f"bv*{cap}[vcodec^=avc1]+ba[acodec^=mp4a]/"
+                    f"bv*{cap}[vcodec^=avc1]+ba[ext=m4a]/"
+                    f"b{cap}[vcodec^=avc1][acodec^=mp4a]/"
+                    f"bv*{cap}+ba/b{cap}")
         return f"bv*{cap}[ext=mp4]+ba[ext=m4a]/bv*{cap}+ba/b{cap}"
     return f"bv*{cap}+ba/b{cap}"
 
@@ -430,12 +437,14 @@ def build_cmd(ytdlp, url, outdir, spec, has_ffmpeg):
     ]
     if has_ffmpeg:
         cmd.append("--embed-metadata")
+    if has_ffmpeg and spec["mode"] == "video" and spec["ext"] == "mp4":
+        cmd += ["--ppa", "Merger+ffmpeg_o:-movflags +faststart"]
     if spec["mode"] == "audio":
         cmd += ["-f", "bestaudio/best", "-x", "--audio-format", spec["afmt"]]
         if spec.get("bitrate") and spec["afmt"] != "flac":  # FLAC lossless: tanpa bitrate
             cmd += ["--audio-quality", spec["bitrate"].upper()]
     else:
-        cmd += ["-f", video_format(spec.get("height"), spec["ext"], has_ffmpeg)]
+        cmd += ["-f", video_format(spec.get("height"), spec["ext"], has_ffmpeg, spec.get("compat", True))]
         if has_ffmpeg:
             cmd += ["--merge-output-format", spec["ext"]]
     return cmd + [url]
@@ -551,8 +560,59 @@ def run_item(ytdlp, rep, i, n, url, spec, outdir, has_ffmpeg, info=None):
             except OSError:
                 pass
         existed = not result
+    if spec["mode"] == "video" and spec["ext"] == "mp4" and has_ffmpeg and spec.get("compat", True):
+        result = [ensure_compat(rep, i, n_, p_, s_) for n_, p_, s_ in result]
     rep.done(i, outdir, result, existed)
     return "ok"
+
+
+def probe_codecs(path):
+    """(vcodec, acodec, pix_fmt) via ffprobe; (None, None, None) bila tidak terbaca."""
+    try:
+        res = subprocess.run(
+            ["ffprobe", "-v", "error", "-show_entries", "stream=codec_type,codec_name,pix_fmt",
+             "-of", "json", path],
+            capture_output=True, text=True, timeout=30, stdin=subprocess.DEVNULL)
+        streams = json.loads(res.stdout).get("streams", [])
+    except (OSError, subprocess.TimeoutExpired, json.JSONDecodeError):
+        return None, None, None
+    v = next((s for s in streams if s.get("codec_type") == "video"), {})
+    a = next((s for s in streams if s.get("codec_type") == "audio"), {})
+    return v.get("codec_name"), a.get("codec_name"), v.get("pix_fmt")
+
+
+def ensure_compat(rep, i, name, path, size):
+    """Pastikan MP4 = H.264 + AAC + yuv420p + faststart. Konversi hanya bila perlu."""
+    if not path.lower().endswith(".mp4") or not shutil.which("ffprobe"):
+        return name, path, size
+    vcodec, acodec, pix = probe_codecs(path)
+    if vcodec is None:
+        return name, path, size
+    video_ok = vcodec == "h264" and pix in (None, "yuv420p")
+    audio_ok = acodec in (None, "aac")
+    if video_ok and audio_ok:
+        return name, path, size
+    rep.stage(i, "recode")
+    tmp = path[:-4] + ".compat.mp4"
+    cmd = ["ffmpeg", "-y", "-v", "error", "-i", path, "-map", "0:v:0", "-map", "0:a:0?"]
+    cmd += ["-c:v", "copy"] if video_ok else ["-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-pix_fmt", "yuv420p"]
+    cmd += ["-c:a", "copy"] if audio_ok else ["-c:a", "aac", "-b:a", "160k"]
+    cmd += ["-movflags", "+faststart", tmp]
+    try:
+        rc = subprocess.run(cmd, stdin=subprocess.DEVNULL, capture_output=True).returncode
+        if rc == 0 and os.path.getsize(tmp) > 0:
+            os.replace(tmp, path)
+            return name, path, os.path.getsize(path)
+        rep.warn("recode_failed", f"Gagal mengonversi {name} ke H.264/AAC; file asli dipertahankan.")
+    except OSError:
+        rep.warn("recode_failed", f"Gagal mengonversi {name} ke H.264/AAC; file asli dipertahankan.")
+    finally:
+        if os.path.exists(tmp):
+            try:
+                os.remove(tmp)
+            except OSError:
+                pass
+    return name, path, size
 
 
 def snapshot(folder):
@@ -684,6 +744,8 @@ def parse_args(argv):
     ap.add_argument("--ext", choices=VIDEO_EXTS, default="mp4")
     ap.add_argument("--audio-format", choices=AUDIO_FORMATS, default="mp3", dest="afmt")
     ap.add_argument("--bitrate", choices=BITRATES, default="192k")
+    ap.add_argument("--no-compat", action="store_true", dest="no_compat",
+                    help="MP4 kualitas maksimum (boleh AV1/VP9), tanpa konversi H.264/AAC")
     ap.add_argument("--dir", help="folder simpan (menimpa folder bawaan)")
     ap.add_argument("--version", action="store_true")
     return ap.parse_args(argv)
@@ -720,7 +782,7 @@ def run_cli(args, ytdlp, has_ffmpeg, urls):
         rep.warn("dir_fallback", warn)
     outdir = audio_dir if args.mode == "audio" else video_dir
     spec = {"mode": args.mode, "height": args.height or None, "ext": args.ext,
-            "afmt": args.afmt, "bitrate": args.bitrate}
+            "afmt": args.afmt, "bitrate": args.bitrate, "compat": not args.no_compat}
     ok, failed, cancelled = run_queue(ytdlp, rep, [(u, None) for u in urls], spec, outdir, has_ffmpeg)
     return 130 if cancelled else (1 if failed else 0)
 
