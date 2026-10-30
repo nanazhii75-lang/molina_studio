@@ -1,0 +1,106 @@
+package com.molina.core.common
+
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
+
+/**
+ * Model "Mode TV" untuk penjelajah berkas Molina Cinema (SIDE-5): folder sebagai saluran bernomor,
+ * isi folder sebagai baris-baris ala rak streaming, dan teks panel info ala panduan acara (EPG).
+ * Murni JVM (tanpa Compose/Android) supaya bisa diuji; tidak melempar pada folder hilang/tak terbaca.
+ */
+object TvGuide {
+    const val MAX_ENTRIES = 500
+    const val ROW_MAX = 12
+
+    private val LOCALE = Locale("id", "ID")
+    private val AUDIO = setOf("mp3", "m4a", "aac", "flac", "wav", "ogg", "oga", "opus", "wma", "ac3", "dts", "mka")
+
+    enum class Kind { Folder, Video, Audio, Other }
+
+    class Channel(val number: Int, val label: String, val dir: File)
+
+    class Item(val file: File, val kind: Kind, val size: Long, val modified: Long) {
+        val name: String get() = file.name
+        val title: String get() = if (kind == Kind.Folder) file.name else file.nameWithoutExtension
+    }
+
+    class Row(val title: String, val items: List<Item>, val total: Int)
+
+    /** Beri nomor 1..n pada tempat yang foldernya ada; yang tidak ada dilewati tanpa melubangi nomor. */
+    fun channels(places: List<Pair<String, File>>): List<Channel> =
+        places.filter { it.second.isDirectory }.mapIndexed { i, p -> Channel(i + 1, p.first, p.second) }
+
+    fun kindOf(f: File): Kind {
+        if (f.isDirectory) return Kind.Folder
+        val ext = f.extension.lowercase()
+        return when {
+            ext in ShelfScan.VIDEO_EXTS -> Kind.Video
+            ext in AUDIO -> Kind.Audio
+            else -> Kind.Other
+        }
+    }
+
+    /**
+     * Baris untuk isi [dir]: Folder (urut nama), lalu Video, Audio, Lainnya (terbaru dulu). Berkas
+     * tersembunyi dilewati, penelusuran dibatasi [MAX_ENTRIES], tiap baris dipotong [perRow] item
+     * (`total` menyimpan jumlah sebenarnya untuk label "lihat semua"). Baris kosong dibuang.
+     */
+    fun rows(dir: File, perRow: Int = ROW_MAX): List<Row> {
+        val kids = try { dir.listFiles() } catch (e: SecurityException) { null } ?: return emptyList()
+        val items = kids.asSequence().filter { !it.name.startsWith(".") }.take(MAX_ENTRIES)
+            .map { Item(it, kindOf(it), if (it.isFile) it.length() else 0L, it.lastModified()) }.toList()
+        val cap = perRow.coerceAtLeast(1)
+        fun row(title: String, kind: Kind, folderOrder: Boolean): Row? {
+            val all = items.filter { it.kind == kind }
+            if (all.isEmpty()) return null
+            val sorted = if (folderOrder) all.sortedBy { it.name.lowercase() } else all.sortedByDescending { it.modified }
+            return Row(title, sorted.take(cap), all.size)
+        }
+        return listOfNotNull(
+            row("Folder", Kind.Folder, true),
+            row("Video", Kind.Video, false),
+            row("Audio", Kind.Audio, false),
+            row("Lainnya", Kind.Other, false),
+        )
+    }
+
+    /** "512 B", "1,5 KB", "2,0 MB", "3,4 GB" (koma desimal Indonesia, satu angka di belakang koma). */
+    fun size(bytes: Long): String {
+        val b = bytes.coerceAtLeast(0L)
+        if (b < 1024L) return "$b B"
+        val units = arrayOf("KB", "MB", "GB", "TB")
+        var v = b / 1024.0
+        var i = 0
+        while (v >= 1024.0 && i < units.lastIndex) { v /= 1024.0; i++ }
+        return String.format(LOCALE, "%.1f %s", v, units[i])
+    }
+
+    fun date(millis: Long, zone: TimeZone = TimeZone.getDefault()): String =
+        SimpleDateFormat("dd/MM/yyyy HH.mm", LOCALE).also { it.timeZone = zone }.format(Date(millis))
+
+    /** Jam bilah status: "07.05". */
+    fun clock(millis: Long, zone: TimeZone = TimeZone.getDefault()): String =
+        SimpleDateFormat("HH.mm", LOCALE).also { it.timeZone = zone }.format(Date(millis))
+
+    /** Teks "ruang tersisa" bilah status; [root] tidak terbaca -> null. */
+    fun freeLabel(root: File): String? =
+        try { root.usableSpace.takeIf { it > 0L }?.let { size(it) + " bebas" } } catch (e: SecurityException) { null }
+
+    /** Baris ringkas panel info untuk item terfokus; durasi/kanal diberikan [extra] (dari ShelfCard/info.json). */
+    fun describe(item: Item, extra: String? = null, zone: TimeZone = TimeZone.getDefault()): String {
+        val kind = when (item.kind) { Kind.Folder -> "Folder"; Kind.Video -> "Video"; Kind.Audio -> "Audio"; Kind.Other -> "Berkas" }
+        val parts = ArrayList<String>()
+        parts.add(kind)
+        if (item.kind != Kind.Folder) parts.add(size(item.size))
+        extra?.takeIf { it.isNotBlank() }?.let { parts.add(it) }
+        parts.add(date(item.modified, zone))
+        return parts.joinToString(" \u00B7 ")
+    }
+
+    /** Pindah saluran dengan batas (tanpa melingkar): arah -1/+1; hasil selalu indeks sah, -1 bila kosong. */
+    fun step(current: Int, delta: Int, count: Int): Int =
+        if (count <= 0) -1 else (current + delta).coerceIn(0, count - 1)
+}
