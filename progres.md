@@ -2207,3 +2207,15 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Tes W7Thumb memakai stub: perilaku API Android asli (BitmapFactory.decodeFile, orientasi EXIF, WebP) belum diuji di CI/perangkat; Compose belum dikompilasi di sandbox, tunggu CI
 - [ ] Efek samping yang disengaja: jpg/png/webp senama video buatan pengguna sendiri juga dipakai sebagai thumbnail
 - [ ] Berikutnya: rak film Molina Cinema (kartu poster dari MediaSidecar + readInfo), info.json di dialog Properti (W7MediaInfo)
+
+## 2026-10-30 - Kompres 7z bersandi via Debian [ARCHIVE6-7Z-BERSANDI]
+- [x] feat(archive): 7z bersandi lewat `7z a` di Debian; dua opsi enkripsi: isi saja, atau isi + nama berkas (-mhe=on); di-push ed60c7b
+- [x] feat(archive): SevenZipCommand.createArgs/classifyCreate, DebianArchive.create, DebianArchiveStaging.commitFile/symlinkExcludes, ArchiveRoute.compressViaDebian, ArchiveOps.compress, dialog Kompres (dua pilihan), Win7OpenDialog memanggil ArchiveOps.compress
+- [x] fix(archive): ArchiveEngine menolak 7z+sandi (fail-closed; sebelumnya akan menulis 7z TANPA sandi)
+- [x] Temuan 7z 23.01: tautan folder diikuti (isi /etc ikut), tautan absolut membuat ekstrak gagal -> semua tautan dilewati via -x!; sumber bernama * atau ? membuat sumber hilang lolos diam-diam -> ditolak; exit 1 tetap menulis arsip -> dianggap gagal
+- [x] Uji sandbox: SevenZipCommand (integrasi 7z asli), staging + e2e 7z asli, archive_names lulus; DebianArchive.create lulus dengan proot palsu + 7z asli; sandi non-ASCII dibuka py7zr
+- [x] Dampak: :app dan core/common saja; Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
+- [ ] Compose (ArchiveCompressDialog, Win7OpenDialog) belum dikompilasi: tunggu CI
+- [ ] Berkas uji ARCHIVE6 (SevenZipCommandTests, DebianArchiveStagingTests, ArchiveCompressTests, run_debian_archive_staging.sh) belum masuk repo
+- [ ] Uji perangkat: buat 7z bersandi (kedua opsi) via proot asli di Android 8, buka di aplikasi lain
+- [ ] Berikutnya: uji arsip (7z t), pemeriksaan ruang kosong di awal, tombol pasang 7zip sekali ketuk
