@@ -2295,3 +2295,14 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: :core:common (ResumeMark.kt), :app (TvBrowser.kt); Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
 - [ ] Compose belum dikompilasi di sandbox: tunggu CI
 - [ ] TV5 (usulan): menu tekan-lama salin/pindah/ganti nama/hapus lewat FileOps; perlu baca API FileOps dan dialog konfirmasi
+
+## [SIDE5-TV5] Mode TV: operasi berkas
+- [x] feat(core): TvGuide.guard/canModify/destinations (akar volume, Recycle Bin, akar Molina, folder saluran dilindungi; tujuan = folder saluran, pindah tidak menawarkan folder asal, folder tidak ke dirinya)
+- [x] feat(core): ResumeMark.move (penanda lanjut ikut pindah saat ganti nama/pindah)
+- [x] feat(cinema): TvFileOps.kt (TvOps + dialog): Ganti nama, Salin ke, Pindah ke, Hapus ke Recycle Bin dengan Urungkan; progres, Batal, pesan hilang sendiri; semua lewat FileOps/TrashBin yang sama dengan penjelajah Win7
+- [x] feat(cinema): panel info Mode TV punya baris aksi (tekan lama kartu lalu pilih aksi); aksi ubah disembunyikan untuk folder dilindungi
+- [x] test: run_shelf.sh 65 pemeriksaan, run_tv.sh 34 pemeriksaan lulus (kotlinc 2.1.21)
+- [x] Dampak: :core:common (TvGuide, ResumeMark), :app (TvFileOps.kt baru, TvBrowser.kt); Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
+- [ ] Compose belum dikompilasi di sandbox: tunggu CI
+- [ ] Uji di perangkat: izin tulis penyimpanan, salin/pindah antar volume, Urungkan hapus, penanda lanjut ikut setelah ganti nama
+- [ ] Batasan: ganti nama folder tidak memindahkan penanda lanjut file di dalamnya
