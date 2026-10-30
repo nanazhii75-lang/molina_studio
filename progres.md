@@ -2225,3 +2225,8 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - p7zip-full di trixie = paket transisi; gunakan paket 7zip (7zz).
 - Terkendala: kotlinc/java belum terpasang; langkah pasang JDK + kotlinc 2.1.21 dicatat.
 - Status: menunggu hasil run_debian_archive_staging.sh.
+
+## [SIDE3-SHELF-PREP] Persiapan rak film Molina Cinema
+- [x] Clone ulang repo, HEAD c8add17 sinkron dengan origin/main
+- [x] Patch poster paralel dibatalkan (duplikat DL-PKG6-SIDECAR-UI)
+- [ ] Berikutnya: model kartu poster (MediaSidecar.readInfo + CinemaRecent) lalu rak di CinemaWin7Home
