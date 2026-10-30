@@ -180,6 +180,43 @@ fun main() {
         check("parseListStream: prompt di depan tidak merusak entri pertama", n.map { it.path } == all.map { it.path })
     }
 
+    // [ARCHIVE6] createArgs: bentuk argumen, sandi tidak pernah di argumen, penolakan masukan berbahaya
+    run {
+        val g = listOf("/mnt/molina-in/0/a.txt", "/mnt/molina-in/0/-aneh (1).txt", "/mnt/molina-in/1/dir")
+        val out = SevenZipCommand.GUEST_OUT + "/" + SevenZipCommand.OUT_FILE
+        val a = SevenZipCommand.createArgs(out, g, 5, hasPassword = true, encryptNames = true)
+        check("createArgs: bentuk penuh (isi + nama)", a == listOf("a", "-t7z", "-mx=5", "-snl", "-spd", "-bsp1", "-y", "-p", "-mhe=on", "--", out) + g)
+        val b = SevenZipCommand.createArgs(out, g, 0, hasPassword = true, encryptNames = false)
+        check("createArgs: isi saja tanpa -mhe", "-mhe=on" !in b && "-p" in b && "-mx=0" in b)
+        check("createArgs: -p tanpa nilai (sandi hanya lewat stdin)", a.none { it.startsWith("-p") && it.length > 2 })
+        check("createArgs: -- mendahului keluaran dan sumber", a.indexOf("--") < a.indexOf(out) && g.all { a.indexOf("--") < a.indexOf(it) })
+        check("createArgs: -spd dan -snl ada", "-spd" in a && "-snl" in a)
+        val c = SevenZipCommand.createArgs(out, g, 3, hasPassword = false, encryptNames = false)
+        check("createArgs: tanpa sandi tanpa -p", "-p" !in c)
+        check("createArgs: tolak -mhe tanpa sandi", throwsIae { SevenZipCommand.createArgs(out, g, 5, hasPassword = false, encryptNames = true) })
+        check("createArgs: tolak level 10 dan -1", throwsIae { SevenZipCommand.createArgs(out, g, 10, true, false) } && throwsIae { SevenZipCommand.createArgs(out, g, -1, true, false) })
+        check("createArgs: tolak sumber kosong", throwsIae { SevenZipCommand.createArgs(out, emptyList(), 5, true, false) })
+        check("createArgs: tolak sumber relatif", throwsIae { SevenZipCommand.createArgs(out, listOf("rel/a.txt"), 5, true, false) })
+        check("createArgs: tolak keluaran relatif", throwsIae { SevenZipCommand.createArgs("archive.7z", g, 5, true, false) })
+        val ex = SevenZipCommand.createArgs(out, g, 5, true, true, listOf("foto/ln-dir", "a b/ln *.txt"))
+        check("createArgs: -x! per pengecualian sebelum --", ex.count { it.startsWith("-x!") } == 2 && "-x!a b/ln *.txt" in ex && ex.indexOf("-x!foto/ln-dir") < ex.indexOf("--"))
+        check("createArgs: tolak pengecualian absolut/kosong/baris baru", listOf("/etc", "", "a\nb").all { bad -> throwsIae { SevenZipCommand.createArgs(out, g, 5, true, true, listOf(bad)) } })
+        check("createArgs: tolak * atau ? di komponen terakhir sumber (7z diam-diam abaikan sumber hilang)", listOf("/mnt/molina-in/0/a*b", "/mnt/molina-in/0/x?y", "/mnt/molina-in/0/-aneh *.txt").all { bad -> throwsIae { SevenZipCommand.createArgs(out, listOf(bad), 5, true, false) } })
+        check("createArgs: * di folder induk guest (bukan komponen terakhir) tidak ditolak", SevenZipCommand.createArgs(out, listOf("/mnt/molina-in/0/d*/in"), 5, true, false).isNotEmpty())
+        check("createArgs: tolak baris baru di sumber", throwsIae { SevenZipCommand.createArgs(out, listOf("/mnt/molina-in/0/a\nb"), 5, true, false) })
+        check("konstanta: GUEST_IN tidak sama dengan SRC/OUT", SevenZipCommand.GUEST_IN != SevenZipCommand.GUEST_SRC && SevenZipCommand.GUEST_IN != SevenZipCommand.GUEST_OUT)
+        // bind berlingkup untuk kompres: n folder sumber + staging, tanpa bind penyimpanan lain
+        val argv = SevenZipCommand.prootArgsScoped("/rootfs", listOf("/sdcard/A" to "/mnt/molina-in/0", "/sdcard/B" to "/mnt/molina-in/1", "/sdcard/.molina-stage-x" to SevenZipCommand.GUEST_OUT), "/usr/bin/7z", a)
+        check("proot kompres: tepat 3 bind tambahan + /dev /proc /sys", argv.count { it.startsWith("--bind=") } == 6)
+        check("proot kompres: tidak ada bind /sdcard penuh", argv.none { it == "--bind=/sdcard:/sdcard" || it.endsWith(":/storage/emulated/0") })
+        // classifyCreate: exit 1 fatal; sisanya seperti classify
+        check("classifyCreate: exit 1 = SOURCE_UNREADABLE", SevenZipCommand.classifyCreate(1, "WARNING: No such file", true) == Failure.SOURCE_UNREADABLE)
+        check("classifyCreate: disk penuh", SevenZipCommand.classifyCreate(2, "ERROR: No space left on device", true) == Failure.DISK_FULL)
+        check("classifyCreate: memori", SevenZipCommand.classifyCreate(8, "", true) == Failure.OUT_OF_MEMORY)
+        check("classifyCreate: dihentikan", SevenZipCommand.classifyCreate(255, "Break signaled", true) == Failure.CANCELLED)
+        check("classifyCreate: prompt sandi TIDAK jadi NEED_PASSWORD saat sandi sudah diberikan", SevenZipCommand.classifyCreate(2, "Enter password (will not be echoed):\nERROR", true) != Failure.NEED_PASSWORD)
+    }
+
     // integrasi opsional dengan 7z asli: SEVENZIP_BIN=/usr/bin/7z
     val bin = System.getenv("SEVENZIP_BIN")
     if (bin.isNullOrBlank()) {
@@ -272,6 +309,67 @@ fun main() {
 
             // jalur relatif berbahaya tak pernah dibuat builder
             check("integrasi: builder menolak jalur relatif -dash.7z", throwsIae { SevenZipCommand.listArgs("-dash.7z") })
+
+            run {  // [ARCHIVE6-SCOPE] cakupan sendiri: nama variabel tidak bentrok dengan blok integrasi lama
+            // [ARCHIVE6] pembuatan 7z bersandi: argumen dari createArgs dijalankan terhadap 7z asli (jalur host = jalur "guest" di sini)
+            val mk = File(tmp, "mk").also { it.mkdirs() }
+            File(mk, "isi.txt").writeText("rahasia isi\n")
+            File(mk, "-aneh (1).txt").writeText("n\n")
+            val dirA = File(mk, "dirA").also { File(it, "sub").mkdirs() }
+            File(dirA, "sub/b.txt").writeText("bb\n")
+            File(dirA, "d *x").mkdirs(); File(dirA, "d *x/in.txt").writeText("q\n") // nama bersarang berisi * : aman
+            val other = File(tmp, "other").also { it.mkdirs() }
+            File(other, "lain.txt").writeText("lain\n")
+            val linked = try {
+                Files.createSymbolicLink(File(dirA, "tautan").toPath(), File("/etc/hostname").toPath())
+                Files.createSymbolicLink(File(dirA, "dirlink").toPath(), File("/etc").toPath())
+                Files.createSymbolicLink(File(dirA, "d *x/ln *.txt").toPath(), File("/etc/hostname").toPath()) // tanpa pengecualian 7z MENGIKUTI ini dan mengarsipkan isi /etc
+                true
+            } catch (e: Exception) { false }
+            val skip = if (linked) listOf("dirA/tautan", "dirA/dirlink", "dirA/d *x/ln *.txt") else emptyList()
+            val srcs = listOf(File(mk, "isi.txt"), File(mk, "-aneh (1).txt"), dirA, File(other, "lain.txt")).map { it.path }
+            val want = buildSet {
+                addAll(listOf("isi.txt", "-aneh (1).txt", "dirA", "dirA/sub", "dirA/sub/b.txt", "lain.txt", "dirA/d *x", "dirA/d *x/in.txt"))
+            }
+            fun mkArc(name: String, pw: String, enc: Boolean, sources: List<String> = srcs): Pair<Int, String> =
+                run7z(bin, SevenZipCommand.createArgs(File(tmp, name).path, sources, 1, true, enc, skip), SevenZipCommand.stdinFor(pw), tmp)
+            fun lsArc(name: String, pw: String?) = run7z(bin, SevenZipCommand.listArgs(File(tmp, name).path), SevenZipCommand.stdinFor(pw), tmp)
+
+            check("integrasi6: buat isi-saja rc=0", mkArc("c_data.7z", "rahasia", false).first == 0)
+            check("integrasi6: buat isi+nama rc=0", mkArc("c_names.7z", "rahasia", true).first == 0)
+
+            val (rd, od) = lsArc("c_data.7z", null)
+            val ed = SevenZipCommand.parseList(od)
+            check("integrasi6: isi-saja: nama TERLIHAT tanpa sandi, hanya nama item (tanpa jalur induk)", rd == 0 && ed.map { it.path }.toSet() == want)
+            check("integrasi6: isi-saja: berkas terenkripsi, folder tidak", ed.filter { !it.isDir && !it.isLink }.all { it.encrypted })
+            check("integrasi6: tautan (file dan folder->/etc) DILEWATI, isi target tidak ikut", ed.none { it.path.startsWith("dirA/tautan") || it.path.startsWith("dirA/dirlink") })
+
+            val (rn, on) = lsArc("c_names.7z", null)
+            check("integrasi6: isi+nama: tanpa sandi TIDAK ada nama (NEED_PASSWORD)", SevenZipCommand.parseList(on).isEmpty() && SevenZipCommand.classify(rn, on, false) == Failure.NEED_PASSWORD)
+            val (rn2, on2) = lsArc("c_names.7z", "rahasia")
+            check("integrasi6: isi+nama: dengan sandi daftar lengkap", rn2 == 0 && SevenZipCommand.parseList(on2).map { it.path }.toSet() == want)
+            val (rw, ow) = lsArc("c_names.7z", "salah")
+            check("integrasi6: isi+nama: sandi salah -> WRONG_PASSWORD", SevenZipCommand.classify(rw, ow, true) == Failure.WRONG_PASSWORD)
+
+            val xo = File(tmp, "xo_names").also { it.mkdirs() }
+            val (rx, _) = run7z(bin, SevenZipCommand.extractArgs(File(tmp, "c_names.7z").path, xo.path), SevenZipCommand.stdinFor("rahasia"), tmp)
+            check("integrasi6: ekstrak isi+nama dengan sandi: isi utuh dari dua folder induk", rx == 0 &&
+                File(xo, "isi.txt").readText() == "rahasia isi\n" && File(xo, "lain.txt").readText() == "lain\n" &&
+                File(xo, "dirA/sub/b.txt").readText() == "bb\n" && File(xo, "-aneh (1).txt").readText() == "n\n" && File(xo, "dirA/d *x/in.txt").readText() == "q\n")
+            val xd = File(tmp, "xo_data").also { it.mkdirs() }
+            val (rxd, oxd) = run7z(bin, SevenZipCommand.extractArgs(File(tmp, "c_data.7z").path, xd.path), SevenZipCommand.stdinFor("salah"), tmp)
+            check("integrasi6: isi-saja: sandi salah -> WRONG_PASSWORD", rxd != 0 && SevenZipCommand.classify(rxd, oxd, true) == Failure.WRONG_PASSWORD)
+
+            val uni = "k\u00e4t\u0101-\u5bc6\u7801-\u00e9"
+            check("integrasi6: sandi non-ASCII: buat", mkArc("c_uni.7z", uni, true).first == 0)
+            val xu = File(tmp, "xo_uni").also { it.mkdirs() }
+            val (ru, _) = run7z(bin, SevenZipCommand.extractArgs(File(tmp, "c_uni.7z").path, xu.path), SevenZipCommand.stdinFor(uni), tmp)
+            check("integrasi6: sandi non-ASCII: ekstrak balik utuh", ru == 0 && File(xu, "isi.txt").readText() == "rahasia isi\n")
+
+            val (rp, op) = mkArc("c_part.7z", "rahasia", true, srcs + File(mk, "tidak-ada.txt").path)
+            check("integrasi6: sumber hilang -> rc=1 (arsip TETAP tertulis; pemanggil wajib membuangnya)", rp == 1 && File(tmp, "c_part.7z").exists())
+            check("integrasi6: classifyCreate(rc=1) = SOURCE_UNREADABLE", SevenZipCommand.classifyCreate(rp, op, true) == Failure.SOURCE_UNREADABLE)
+            }
         } finally {
             tmp.deleteRecursively()
         }

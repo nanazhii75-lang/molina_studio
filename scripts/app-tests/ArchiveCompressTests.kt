@@ -93,6 +93,11 @@ fun main(args: Array<String>) {
             val e = throwsA<IOException>("${fmt.label}: sandi ditolak") { ArchiveEngine.compress(listOf(src), fresh(), opt(fmt, pw = "x1234"), ctl()) }
             check("${fmt.label}: pesan sandi jelas", e?.message?.contains("kata sandi") == true)
         }
+        run { // [ARCHIVE6] FAIL-CLOSED: engine bawaan tidak boleh menulis 7z TANPA sandi saat sandi diminta
+            val dd = fresh()
+            throwsA<IOException>("7z+sandi: ditolak engine") { ArchiveEngine.compress(listOf(src), dd, opt(CompressFormat.SEVEN_Z, pw = "x1234"), ctl()) }
+            check("7z+sandi: tidak ada berkas tertulis", (dd.listFiles()?.size ?: 0) == 0)
+        }
 
         // 4. penamaan: bentrok diberi (1), nama kustom, ekstensi ganda dicegah
         run {
