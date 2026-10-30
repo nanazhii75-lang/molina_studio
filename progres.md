@@ -2278,3 +2278,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: :app (TvBrowser.kt baru, CinemaShelf.kt diubah kecil); Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
 - [ ] Compose belum dikompilasi di sandbox: tunggu CI; layar belum punya titik masuk (tahap 3)
 - [ ] TV3: sakelar Mode TV di Setelan + titik masuk dari CinemaHome (onPlay = CinemaActions.playPath); uji di perangkat
+
+## [SIDE5-TV3] Mode TV: sakelar Setelan + titik masuk Beranda
+- [x] feat(cinema): TvMode.kt (flag di SharedPreferences molina_cinema_ui; state version agar Beranda langsung menyesuaikan) + TvBrowserDialog (dialog layar penuh, tombol Kembali menutup)
+- [x] feat(cinema): CinemaWin7Body punya parameter onTv (tile "Mode TV" hanya tampil bila sakelar aktif); CinemaHome memutar lewat CinemaActions.playPath
+- [x] feat(settings): sakelar "Mode TV" di halaman Pemutar (kategori Beranda Cinema) + entri pencarian Setelan
+- [x] Dampak: :app (TvMode.kt baru; CinemaHome, CinemaWin7Home, PlayerSettingsUi, SettingsScreen diubah kecil); Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
+- [ ] Compose belum dikompilasi di sandbox: tunggu CI
+- [ ] Uji di perangkat (ASUS Z01, Android 8 arm64): sakelar -> tile muncul -> TvBrowser -> putar -> kembali; cek lebar 5 tile di Beranda
