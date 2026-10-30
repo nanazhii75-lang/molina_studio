@@ -2270,3 +2270,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: hanya :core:common (+1 berkas) dan scripts/core-tests; app, Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
 - [ ] TV2: layar Compose TvBrowser (sidebar saluran, baris kartu, panel info) belum dibuat
 - [ ] TV3: sakelar Mode TV di Setelan dan titik masuk dari CinemaHome; uji di Android 8 arm64 (sentuh saja)
+
+## [SIDE5-TV2] Mode TV: layar TvBrowser (ponsel potret, sentuh)
+- [x] feat(cinema): TvBrowser.kt: bilah status (jam, ruang bebas, Tutup), chip saluran bernomor (Unduhan/Video/Audio/IPTV/Molina/Film/Musik), baris kartu Folder/Video/Audio/Lainnya, panel info ala EPG; ketuk = buka/putar, tekan lama = info
+- [x] refactor(cinema): ShelfCardView dibuka (internal) + dukung tekan-lama (detectTapGestures); dipakai ulang oleh TvBrowser
+- [x] Target desain: ponsel ASUS Z01 (asumsi 5,5-6,2 inci potret, Android 8 arm64), sentuh saja; tanpa D-pad/TV/tablet
+- [x] Dampak: :app (TvBrowser.kt baru, CinemaShelf.kt diubah kecil); Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
+- [ ] Compose belum dikompilasi di sandbox: tunggu CI; layar belum punya titik masuk (tahap 3)
+- [ ] TV3: sakelar Mode TV di Setelan + titik masuk dari CinemaHome (onPlay = CinemaActions.playPath); uji di perangkat
