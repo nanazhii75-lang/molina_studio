@@ -1,0 +1,210 @@
+package com.molina.core.common
+
+/**
+ * [ARCHIVE3] Perintah `7z` (paket Debian `7zip`) di Debian PRoot. Murni (tanpa Android) supaya bisa diuji JVM.
+ *
+ * Aturan yang diverifikasi terhadap 7-Zip 23.01 asli:
+ * - `-spd` WAJIB: tanpa itu nama arsip seperti `a*b.7z` diperluas jadi beberapa arsip.
+ * - `--` mencegah nama berawalan `-` dibaca sebagai opsi; jalur selalu absolut (`/sdcard/...`).
+ * - `-o<dir>` ditulis tanpa spasi (`-o /x` ditolak 7z).
+ * - Sandi lewat stdin (satu baris), TIDAK pernah di argumen proses (terlihat di `ps`).
+ * - `-ba` membuang header sehingga `-slt` berisi blok `Kunci = Nilai` dipisah baris kosong.
+ */
+object SevenZipCommand {
+    /** Urut prioritas. `7z` ada di paket `7zip`; `7zz` hanya di `7zip-standalone`. */
+    val GUEST_BINARIES = listOf("/usr/bin/7z", "/usr/bin/7zz")
+    const val GUEST_PATH = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+    const val INSTALL_CMD = "apt-get update && apt-get install -y --no-install-recommends 7zip"
+    const val HINT_INSTALL = "7zip belum terpasang di Debian. Di Terminal jalankan: $INSTALL_CMD"
+
+    private const val ANDROID_STORAGE = "/storage/emulated/0"
+    private const val GUEST_SDCARD = "/sdcard"
+
+    /** Jalur Android -> jalur Debian. Hanya yang di bawah penyimpanan bersama yang terlihat di guest; selain itu null. */
+    fun guestPath(androidPath: String): String? {
+        val p = androidPath
+        if (p.isEmpty() || p.indexOf('\u0000') >= 0 || p.indexOf('\n') >= 0 || p.indexOf('\r') >= 0) return null
+        if (p.split('/').any { it == ".." }) return null
+        return when {
+            p == ANDROID_STORAGE || p == GUEST_SDCARD -> GUEST_SDCARD
+            p.startsWith("$ANDROID_STORAGE/") -> GUEST_SDCARD + p.substring(ANDROID_STORAGE.length)
+            p.startsWith("$GUEST_SDCARD/") -> p
+            else -> null
+        }
+    }
+
+    /** Argumen `7z l`: daftar isi dalam format teknis (`-slt`), tanpa header (`-ba`). */
+    fun listArgs(guestArchive: String): List<String> {
+        requireGuestAbs(guestArchive)
+        return listOf("l", "-slt", "-ba", "-spd", "--", guestArchive)
+    }
+
+    /**
+     * Argumen `7z x` ke [guestOutDir] (folder staging yang sudah kosong). `-y` aman di staging kosong;
+     * `-bsp1` mencetak persen progres ke stdout. Sandi TIDAK dimasukkan di sini (lewat stdin).
+     */
+    fun extractArgs(guestArchive: String, guestOutDir: String): List<String> {
+        requireGuestAbs(guestArchive)
+        requireGuestAbs(guestOutDir)
+        return listOf("x", "-y", "-bsp1", "-spd", "-o$guestOutDir", "--", guestArchive)
+    }
+
+    /** Bahan stdin untuk sandi: satu baris, atau null bila tanpa sandi (stdin ditutup). Sandi berisi baris baru ditolak. */
+    fun stdinFor(password: String?): ByteArray? {
+        val pw = password?.takeIf { it.isNotEmpty() } ?: return null
+        require(pw.indexOf('\n') < 0 && pw.indexOf('\r') < 0 && pw.indexOf('\u0000') < 0) { "Sandi tidak boleh memuat baris baru" }
+        return (pw + "\n").toByteArray(Charsets.UTF_8)
+    }
+
+    /**
+     * Argv penuh untuk libproot.so (tanpa argv[0]). [storage] = jalur Android penyimpanan bersama (di-bind sebagai
+     * `/sdcard` dan `/storage/emulated/0`), [binary] = jalur guest 7z, [args] = argumen 7z.
+     * Beda dari [YtdlpCommand.prootArgs]: memanggil biner native langsung (bukan lewat python3).
+     */
+    fun prootArgs(rootfs: String, storage: String, binary: String, args: List<String>): List<String> = buildList {
+        add("--link2symlink"); add("--kill-on-exit"); add("-0")
+        add("--rootfs=$rootfs"); add("--cwd=/root")
+        add("--bind=/dev"); add("--bind=/proc"); add("--bind=/sys")
+        add("--bind=$storage:$GUEST_SDCARD"); add("--bind=$storage:$ANDROID_STORAGE")
+        add("/usr/bin/env"); add("-i")
+        add("HOME=/root"); add("LANG=C.UTF-8"); add("MALLOC_ARENA_MAX=2")
+        add("PATH=$GUEST_PATH")
+        add(binary)
+        addAll(args)
+    }
+
+    private fun requireGuestAbs(p: String) {
+        require(p.startsWith("/")) { "Jalur guest harus absolut: $p" }
+        require(p.indexOf('\u0000') < 0 && p.indexOf('\n') < 0 && p.indexOf('\r') < 0) { "Jalur tidak valid" }
+    }
+
+    // ---------------------------------------------------------------- daftar isi
+
+    data class Entry(
+        val path: String,
+        val size: Long,
+        val packed: Long,
+        val isDir: Boolean,
+        val isLink: Boolean,
+        val encrypted: Boolean,
+        val method: String,
+        val attributes: String,
+    )
+
+    /**
+     * Urai keluaran `7z l -slt -ba`. Toleran: baris yang bukan `Kunci = Nilai` (mis. prompt "Enter password")
+     * dilewati; blok tanpa `Path` dilewati.
+     */
+    fun parseList(stdout: String): List<Entry> {
+        val out = ArrayList<Entry>()
+        var cur: MutableMap<String, String>? = null
+        fun flush() {
+            val m = cur ?: return
+            cur = null
+            val path = m["Path"] ?: return
+            val attr = m["Attributes"].orEmpty()
+            val unixMode = attr.substringAfter(' ', "").trim()
+            val isDir = m["Folder"] == "+" || attr.startsWith("D") || unixMode.startsWith("d")
+            val isLink = unixMode.startsWith("l") || m.containsKey("Symbolic Link") || m.containsKey("Link")
+            out.add(Entry(
+                path = path,
+                size = m["Size"]?.toLongOrNull() ?: 0L,
+                packed = m["Packed Size"]?.toLongOrNull() ?: 0L,
+                isDir = isDir,
+                isLink = isLink,
+                encrypted = m["Encrypted"] == "+",
+                method = m["Method"].orEmpty(),
+                attributes = attr,
+            ))
+        }
+        for (raw in stdout.lineSequence()) {
+            val line = raw.trimEnd('\r')
+            if (line.isBlank()) { flush(); continue }
+            val i = line.indexOf(" = ")
+            if (i <= 0) continue
+            val key = line.substring(0, i)
+            val value = line.substring(i + 3)
+            if (key == "Path" && cur != null && cur!!.containsKey("Path")) flush()
+            if (cur == null) cur = LinkedHashMap()
+            cur!![key] = value
+        }
+        flush()
+        return out
+    }
+
+    /**
+     * Nama entri yang tidak tepercaya -> nama bersih (pemisah `/`, tanpa awalan `/`), atau null bila berbahaya:
+     * kosong, NUL, `..`, jalur absolut, huruf drive, atau pemisah Windows (`\`).
+     * Pemeriksaan ini peringatan dini; staging tetap divalidasi ulang setelah ekstrak.
+     */
+    fun safeEntryPath(raw: String): String? {
+        if (raw.isEmpty() || raw.indexOf('\u0000') >= 0 || raw.indexOf('\\') >= 0) return null
+        if (raw.startsWith("/") || (raw.length >= 2 && raw[1] == ':')) return null
+        val parts = raw.split('/').filter { it.isNotEmpty() && it != "." }
+        if (parts.isEmpty() || parts.any { it == ".." }) return null
+        return parts.joinToString("/")
+    }
+
+    // ---------------------------------------------------------------- hasil proses
+
+    enum class Failure(val hint: String) {
+        NEED_PASSWORD("Arsip dikunci. Masukkan kata sandi."),
+        WRONG_PASSWORD("Kata sandi salah."),
+        MISSING_VOLUME("Ada bagian arsip yang hilang. Pastikan semua bagian (.001, .002, ...) ada di folder yang sama."),
+        NOT_ARCHIVE("Berkas ini bukan arsip yang dikenali atau rusak."),
+        UNSUPPORTED_METHOD("Metode kompresi tidak didukung oleh 7zip build Debian ini (RAR berkompresi tidak didukung)."),
+        DISK_FULL("Ruang penyimpanan tidak cukup."),
+        OUT_OF_MEMORY("Memori tidak cukup untuk arsip ini."),
+        DATA_ERROR("Data arsip rusak (galat CRC atau data)."),
+        BAD_COMMAND("Perintah 7z ditolak (argumen tidak valid)."),
+        CANCELLED("Dibatalkan."),
+        UNKNOWN("7z gagal tanpa sebab yang dikenali."),
+    }
+
+    /** Kode keluar 7z: 0 sukses, 1 peringatan non-fatal, 2 fatal, 7 galat perintah, 8 memori, 255 dihentikan. */
+    fun isSuccess(exit: Int): Boolean = exit == 0
+
+    /**
+     * Petakan keluaran gagal ke [Failure]. Urutan penting: yang spesifik lebih dulu
+     * ("Data Error in encrypted file. Wrong password?" harus menjadi WRONG_PASSWORD, bukan DATA_ERROR).
+     * [passwordGiven] membedakan NEED_PASSWORD (prompt muncul, stdin kosong) dari WRONG_PASSWORD.
+     */
+    fun classify(exit: Int, output: String, passwordGiven: Boolean): Failure {
+        val e = output.lowercase()
+        fun has(vararg k: String) = k.any { it in e }
+        return when {
+            has("enter password") && !passwordGiven -> Failure.NEED_PASSWORD
+            has("wrong password") -> Failure.WRONG_PASSWORD
+            has("cannot find volume", "unexpected end of archive") -> Failure.MISSING_VOLUME
+            has("unsupported method", "unsupported compression") -> Failure.UNSUPPORTED_METHOD
+            has("no space left", "disk full", "not enough space", "there is not enough space") -> Failure.DISK_FULL
+            exit == 8 || has("can not allocate memory", "cannot allocate memory", "out of memory") -> Failure.OUT_OF_MEMORY
+            has("cannot open the file as archive", "can't open as archive", "is not archive") -> Failure.NOT_ARCHIVE
+            has("data error", "crc failed", "crc error") -> Failure.DATA_ERROR
+            exit == 7 || has("command line error") -> Failure.BAD_COMMAND
+            exit == 255 -> Failure.CANCELLED
+            else -> Failure.UNKNOWN
+        }
+    }
+
+    // ---------------------------------------------------------------- progres
+
+    private val PCT = Regex("""(\d{1,3})%""")
+    /** Backspace (U+0008) dan CR dari progres `-bsp1`; ditulis eksplisit karena `\b` di dalam kelas karakter tidak valid di Java/ICU. */
+    private val CTRL = Regex("[\u0008\r]+")
+
+    /** Persen terakhir (0..100) dari potongan stdout `-bsp1` (berisi `\b` dan `\r`); null bila belum ada. */
+    fun parseProgress(chunk: String): Int? {
+        val last = PCT.findAll(chunk).lastOrNull() ?: return null
+        val v = last.groupValues[1].toIntOrNull() ?: return null
+        return if (v in 0..100) v else null
+    }
+
+    /** Buang prompt, kontrol progres, dan baris kosong berlebih dari keluaran untuk ditampilkan/di-log. */
+    fun cleanOutput(raw: String): String =
+        raw.replace(CTRL, "\n")
+            .lineSequence()
+            .map { it.trim() }
+            .filter { it.isNotEmpty() && !PCT.matches(it) && !it.endsWith("Scan") }
+            .joinToString("\n")
+}

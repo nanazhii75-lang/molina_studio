@@ -1,0 +1,227 @@
+import com.molina.core.common.SevenZipCommand
+import com.molina.core.common.SevenZipCommand.Failure
+import java.io.File
+import java.nio.file.Files
+import java.util.concurrent.TimeUnit
+
+private var fails = 0
+private fun check(name: String, ok: Boolean) {
+    if (ok) println("ok   $name") else { fails++; println("GAGAL $name") }
+}
+private fun throwsIae(block: () -> Unit): Boolean = try { block(); false } catch (e: IllegalArgumentException) { true }
+
+/** Keluaran nyata `7z l -slt -ba` (7-Zip 23.01) untuk arsip berisi folder, berkas, dan tautan yang diikuti. */
+private val REAL_LIST = """
+Path = src
+Size = 0
+Packed Size = 0
+Modified = 2026-10-30 02:05:51.8757346
+Attributes = D drwxr-xr-x
+CRC = 
+Encrypted = -
+Method = 
+Block = 
+
+Path = src/a.txt
+Size = 6
+Packed Size = 5017
+Modified = 2026-10-30 02:05:51.8705890
+Attributes = A -rw-r--r--
+CRC = 363A3020
+Encrypted = -
+Method = LZMA2:6k
+Block = 0
+
+Path = src/lnk
+Size = 6
+Packed Size = 
+Modified = 2026-10-30 02:05:51.8705890
+Attributes = A -rw-r--r--
+CRC = 363A3020
+Encrypted = -
+Method = LZMA2:6k
+Block = 0
+
+Path = src/spasi nama é.txt
+Size = 1
+Packed Size = 
+Attributes = A -rw-r--r--
+Encrypted = +
+Method = LZMA2:6k 7zAES:19
+Block = 0
+
+""".trimIndent()
+
+private fun run7z(bin: String, args: List<String>, stdin: ByteArray?, cwd: File): Pair<Int, String> {
+    val pb = ProcessBuilder(listOf(bin) + args).directory(cwd).redirectErrorStream(true)
+    pb.environment()["LANG"] = "C.UTF-8"
+    val p = pb.start()
+    if (stdin != null) p.outputStream.write(stdin)
+    try { p.outputStream.close() } catch (e: Exception) { }
+    val out = p.inputStream.readBytes().toString(Charsets.UTF_8)
+    if (!p.waitFor(60, TimeUnit.SECONDS)) { p.destroyForcibly(); return -9 to out }
+    return p.exitValue() to out
+}
+
+fun main() {
+    // guestPath
+    check("guestPath: /storage/emulated/0/x -> /sdcard/x", SevenZipCommand.guestPath("/storage/emulated/0/Download/a.7z") == "/sdcard/Download/a.7z")
+    check("guestPath: /sdcard/x tetap", SevenZipCommand.guestPath("/sdcard/a.7z") == "/sdcard/a.7z")
+    check("guestPath: akar penyimpanan", SevenZipCommand.guestPath("/storage/emulated/0") == "/sdcard")
+    check("guestPath: di luar penyimpanan bersama -> null", SevenZipCommand.guestPath("/data/data/com.molina/files/a.7z") == null)
+    check("guestPath: awalan mirip tapi beda folder -> null", SevenZipCommand.guestPath("/storage/emulated/01/a.7z") == null && SevenZipCommand.guestPath("/sdcardx/a") == null)
+    check("guestPath: '..' ditolak", SevenZipCommand.guestPath("/sdcard/../data/x") == null)
+    check("guestPath: NUL/baris baru ditolak", SevenZipCommand.guestPath("/sdcard/a\u0000b") == null && SevenZipCommand.guestPath("/sdcard/a\nb") == null)
+    check("guestPath: kosong -> null", SevenZipCommand.guestPath("") == null)
+
+    // argv
+    val la = SevenZipCommand.listArgs("/sdcard/a*b.7z")
+    check("listArgs: -spd dan -- sebelum jalur", la == listOf("l", "-slt", "-ba", "-spd", "--", "/sdcard/a*b.7z"))
+    val xa = SevenZipCommand.extractArgs("/sdcard/-x.7z", "/sdcard/.st ag")
+    check("extractArgs: -o<dir> tanpa spasi pemisah", "-o/sdcard/.st ag" in xa && "-o" !in xa)
+    check("extractArgs: -spd, -- lalu jalur arsip terakhir", "-spd" in xa && xa[xa.size - 2] == "--" && xa.last() == "/sdcard/-x.7z")
+    check("extractArgs: tidak ada -p (sandi bukan di argumen)", xa.none { it.startsWith("-p") })
+    check("argv: jalur relatif ditolak", throwsIae { SevenZipCommand.listArgs("a.7z") } && throwsIae { SevenZipCommand.extractArgs("/sdcard/a.7z", "out") })
+    check("argv: baris baru di jalur ditolak", throwsIae { SevenZipCommand.listArgs("/sdcard/a\nb.7z") })
+
+    // stdin sandi
+    check("stdinFor: null/kosong -> null", SevenZipCommand.stdinFor(null) == null && SevenZipCommand.stdinFor("") == null)
+    check("stdinFor: satu baris UTF-8", SevenZipCommand.stdinFor("sandi é")!!.toString(Charsets.UTF_8) == "sandi é\n")
+    check("stdinFor: baris baru di sandi ditolak", throwsIae { SevenZipCommand.stdinFor("a\nb") } && throwsIae { SevenZipCommand.stdinFor("a\rb") })
+
+    // prootArgs
+    val pa = SevenZipCommand.prootArgs("/data/rootfs", "/storage/emulated/0", "/usr/bin/7z", SevenZipCommand.listArgs("/sdcard/a.7z"))
+    check("prootArgs: bind /sdcard dan /storage/emulated/0", "--bind=/storage/emulated/0:/sdcard" in pa && "--bind=/storage/emulated/0:/storage/emulated/0" in pa)
+    check("prootArgs: biner langsung, tanpa python3", "/usr/bin/7z" in pa && pa.none { it.contains("python") })
+    check("prootArgs: env bersih + UTF-8", pa.indexOf("/usr/bin/env") < pa.indexOf("/usr/bin/7z") && "-i" in pa && "LANG=C.UTF-8" in pa)
+    check("prootArgs: argumen 7z di akhir, urut", pa.takeLast(6) == SevenZipCommand.listArgs("/sdcard/a.7z"))
+    check("prootArgs: kill-on-exit", "--kill-on-exit" in pa)
+
+    // parseList (keluaran nyata)
+    val es = SevenZipCommand.parseList(REAL_LIST)
+    check("parseList: 4 entri", es.size == 4)
+    check("parseList: folder terdeteksi", es[0].path == "src" && es[0].isDir)
+    check("parseList: berkas, ukuran, metode", es[1].path == "src/a.txt" && !es[1].isDir && es[1].size == 6L && es[1].method == "LZMA2:6k")
+    check("parseList: Packed Size kosong -> 0", es[2].packed == 0L)
+    check("parseList: nama unicode dan spasi", es[3].path == "src/spasi nama é.txt")
+    check("parseList: Encrypted = +", es[3].encrypted && !es[1].encrypted)
+    check("parseList: prompt sandi dan baris sampah dilewati", SevenZipCommand.parseList("\nEnter password (will not be echoed):\n" + REAL_LIST).size == 4)
+    check("parseList: kosong -> kosong", SevenZipCommand.parseList("").isEmpty() && SevenZipCommand.parseList("ERROR: x\n").isEmpty())
+    check("parseList: CRLF", SevenZipCommand.parseList(REAL_LIST.replace("\n", "\r\n")).size == 4)
+    val lnk = SevenZipCommand.parseList("Path = l\nSize = 1\nAttributes = A lrwxrwxrwx\n")
+    check("parseList: tautan terdeteksi dari mode unix", lnk.single().isLink)
+    val dirFlag = SevenZipCommand.parseList("Path = d\nFolder = +\n")
+    check("parseList: Folder = + terdeteksi", dirFlag.single().isDir)
+    check("parseList: tanpa baris kosong antar blok tetap terpisah", SevenZipCommand.parseList("Path = a\nSize = 1\nPath = b\nSize = 2\n").map { it.path } == listOf("a", "b"))
+
+    // safeEntryPath
+    check("safeEntryPath: normal", SevenZipCommand.safeEntryPath("a/b/c.txt") == "a/b/c.txt")
+    check("safeEntryPath: ./ dan // dibersihkan", SevenZipCommand.safeEntryPath("./a//b") == "a/b")
+    check("safeEntryPath: .. ditolak", SevenZipCommand.safeEntryPath("a/../../x") == null && SevenZipCommand.safeEntryPath("..") == null)
+    check("safeEntryPath: absolut ditolak", SevenZipCommand.safeEntryPath("/etc/passwd") == null)
+    check("safeEntryPath: drive dan backslash ditolak", SevenZipCommand.safeEntryPath("C:/x") == null && SevenZipCommand.safeEntryPath("a\\b") == null)
+    check("safeEntryPath: NUL dan kosong ditolak", SevenZipCommand.safeEntryPath("a\u0000b") == null && SevenZipCommand.safeEntryPath("") == null && SevenZipCommand.safeEntryPath("./") == null)
+    check("safeEntryPath: nama berisi titik dua ganda tetap sah", SevenZipCommand.safeEntryPath("a..b/c") == "a..b/c")
+
+    // classify (pesan nyata)
+    check("classify: prompt tanpa sandi -> NEED_PASSWORD", SevenZipCommand.classify(255, "\nEnter password (will not be echoed):\n\n\nBreak signaled\n", false) == Failure.NEED_PASSWORD)
+    check("classify: header terenkripsi, sandi salah", SevenZipCommand.classify(2, "\nERROR: enc_he.7z : Cannot open encrypted archive. Wrong password?\n", true) == Failure.WRONG_PASSWORD)
+    check("classify: berkas terenkripsi, sandi salah (bukan DATA_ERROR)", SevenZipCommand.classify(2, "ERROR: Data Error in encrypted file. Wrong password? : src/sub/b.bin\n\nSub items Errors: 4\n", true) == Failure.WRONG_PASSWORD)
+    check("classify: volume hilang", SevenZipCommand.classify(2, "\nERRORS:\nUnexpected end of archive\n\nCan't open as archive: 1\n", false) == Failure.MISSING_VOLUME)
+    check("classify: bukan arsip", SevenZipCommand.classify(2, "\nERROR: junk.rar : Cannot open the file as archive\n", false) == Failure.NOT_ARCHIVE)
+    check("classify: argumen salah", SevenZipCommand.classify(7, "\n\nCommand Line Error:\nToo short switch:\n-o\n", false) == Failure.BAD_COMMAND)
+    check("classify: metode tidak didukung", SevenZipCommand.classify(2, "ERROR: Unsupported Method : a.txt\n", false) == Failure.UNSUPPORTED_METHOD)
+    check("classify: ruang penuh", SevenZipCommand.classify(2, "ERROR: No space left on device : x\n", false) == Failure.DISK_FULL)
+    check("classify: memori via kode 8", SevenZipCommand.classify(8, "", false) == Failure.OUT_OF_MEMORY)
+    check("classify: CRC", SevenZipCommand.classify(2, "CRC Failed : a.txt\n", false) == Failure.DATA_ERROR)
+    check("classify: dihentikan 255 tanpa prompt -> CANCELLED", SevenZipCommand.classify(255, "", true) == Failure.CANCELLED)
+    check("classify: tak dikenal", SevenZipCommand.classify(2, "sesuatu yang aneh", false) == Failure.UNKNOWN)
+    check("classify: sandi benar + ruang penuh tidak salah dilabeli sandi", SevenZipCommand.classify(2, "Enter password (will not be echoed):\nERROR: No space left on device : x\n", true) == Failure.DISK_FULL)
+    check("isSuccess: hanya 0", SevenZipCommand.isSuccess(0) && !SevenZipCommand.isSuccess(1) && !SevenZipCommand.isSuccess(2))
+    check("Failure.hint: semua terisi", Failure.values().all { it.hint.isNotBlank() })
+
+    // progres
+    check("parseProgress: persen terakhir dari keluaran -bsp1 nyata", SevenZipCommand.parseProgress("  0M Scan\b\b\b\b\b\b\b\b\b         \b\b\b\b\b\b\b\b\b  0%\b\b\b\b    \b\b\b\b 37%\b\b\b\b 64%") == 64)
+    check("parseProgress: tanpa persen -> null", SevenZipCommand.parseProgress("Scan\b\b") == null)
+    check("parseProgress: 100", SevenZipCommand.parseProgress(" 100%") == 100)
+    check("parseProgress: >100 diabaikan", SevenZipCommand.parseProgress("250%") == null)
+    check("cleanOutput: prompt dan persen dibuang, galat tetap", SevenZipCommand.cleanOutput("  0M Scan\b\b  5%\b\b\r\nERROR: x : y\n\n").contains("ERROR: x : y") && !SevenZipCommand.cleanOutput("  5%\b\b").contains("%"))
+
+    // integrasi opsional dengan 7z asli: SEVENZIP_BIN=/usr/bin/7z
+    val bin = System.getenv("SEVENZIP_BIN")
+    if (bin.isNullOrBlank()) {
+        println("lewati integrasi: SEVENZIP_BIN tidak diset")
+    } else {
+        val tmp = Files.createTempDirectory("sz3").toFile().canonicalFile
+        try {
+            val src = File(tmp, "src/sub").also { it.mkdirs() }
+            File(tmp, "src/a.txt").writeText("hello\n")
+            File(src, "b.bin").writeBytes(ByteArray(5000).also { java.util.Random(42).nextBytes(it) }) // acak: tidak terkompresi, sehingga -v2k menghasilkan 3 bagian
+            File(tmp, "src/spasi nama é.txt").writeText("x")
+            fun sz(vararg a: String, pw: String? = null) = run7z(bin, a.toList(), SevenZipCommand.stdinFor(pw), tmp)
+            check("integrasi: buat plain.7z", sz("a", "-bd", "-y", "plain.7z", "src").first == 0)
+            check("integrasi: buat enc.7z (sandi)", sz("a", "-bd", "-y", "-pSECRET", "enc.7z", "src").first == 0)
+            check("integrasi: buat enc_he.7z (header terenkripsi)", sz("a", "-bd", "-y", "-pSECRET", "-mhe=on", "enc_he.7z", "src").first == 0)
+            check("integrasi: buat split", sz("a", "-bd", "-y", "-v2k", "split.7z", "src/sub/b.bin").first == 0)
+
+            val (rc, out) = run7z(bin, SevenZipCommand.listArgs(File(tmp, "plain.7z").path), null, tmp)
+            val ents = SevenZipCommand.parseList(out)
+            val names = ents.map { it.path }.toSet()
+            check("integrasi: list plain rc=0 dan entri lengkap", rc == 0 && setOf("src", "src/sub", "src/a.txt", "src/sub/b.bin", "src/spasi nama é.txt") == names)
+            if (names != setOf("src", "src/sub", "src/a.txt", "src/sub/b.bin", "src/spasi nama é.txt")) println("  diagnostik: rc=$rc names=$names")
+            check("integrasi: ukuran b.bin = 5000 dan folder bertanda", ents.first { it.path == "src/sub/b.bin" }.size == 5000L && ents.first { it.path == "src/sub" }.isDir)
+            check("integrasi: semua jalur lolos safeEntryPath", ents.all { SevenZipCommand.safeEntryPath(it.path) != null })
+
+            val (rn, on) = run7z(bin, SevenZipCommand.listArgs(File(tmp, "enc_he.7z").path), null, tmp)
+            check("integrasi: header terenkripsi tanpa sandi -> NEED_PASSWORD", rn != 0 && SevenZipCommand.classify(rn, on, false) == Failure.NEED_PASSWORD)
+            val (rw, ow) = run7z(bin, SevenZipCommand.listArgs(File(tmp, "enc_he.7z").path), SevenZipCommand.stdinFor("SALAH"), tmp)
+            check("integrasi: sandi salah -> WRONG_PASSWORD", rw != 0 && SevenZipCommand.classify(rw, ow, true) == Failure.WRONG_PASSWORD)
+            val (rk, ok) = run7z(bin, SevenZipCommand.listArgs(File(tmp, "enc_he.7z").path), SevenZipCommand.stdinFor("SECRET"), tmp)
+            check("integrasi: sandi benar lewat stdin, entri terbaca meski ada prompt", rk == 0 && SevenZipCommand.parseList(ok).any { it.path == "src/a.txt" })
+
+            val o1 = File(tmp, "o1").also { it.mkdirs() }
+            val (rx, ox) = run7z(bin, SevenZipCommand.extractArgs(File(tmp, "plain.7z").path, o1.path), null, tmp)
+            check("integrasi: ekstrak rc=0, isi sama, unicode utuh", rx == 0 && File(o1, "src/a.txt").readText() == "hello\n" && File(o1, "src/spasi nama é.txt").readText() == "x" && File(o1, "src/sub/b.bin").length() == 5000L)
+            check("integrasi: keluaran ekstrak memuat persen progres", SevenZipCommand.parseProgress(ox) != null)
+
+            val o2 = File(tmp, "o2").also { it.mkdirs() }
+            val (rs, os) = run7z(bin, SevenZipCommand.extractArgs(File(tmp, "enc.7z").path, o2.path), SevenZipCommand.stdinFor("SALAH"), tmp)
+            check("integrasi: ekstrak sandi salah -> WRONG_PASSWORD dan tidak ada berkas utuh", rs != 0 && SevenZipCommand.classify(rs, os, true) == Failure.WRONG_PASSWORD && !File(o2, "src/sub/b.bin").exists())
+            val o3 = File(tmp, "o3").also { it.mkdirs() }
+            val (rg, _) = run7z(bin, SevenZipCommand.extractArgs(File(tmp, "enc.7z").path, o3.path), SevenZipCommand.stdinFor("SECRET"), tmp)
+            check("integrasi: ekstrak sandi benar via stdin", rg == 0 && File(o3, "src/sub/b.bin").length() == 5000L)
+
+            // multi-bagian: bagian pertama OK, bagian tengah hilang -> MISSING_VOLUME
+            val full = run7z(bin, SevenZipCommand.listArgs(File(tmp, "split.7z.001").path), null, tmp)
+            check("integrasi: split .001 lengkap terbaca", full.first == 0 && SevenZipCommand.parseList(full.second).any { it.path == "src/sub/b.bin" })
+            val miss = File(tmp, "miss").also { it.mkdirs() }
+            File(tmp, "split.7z.001").copyTo(File(miss, "split.7z.001"))
+            File(tmp, "split.7z.003").copyTo(File(miss, "split.7z.003"))
+            val om = File(tmp, "om").also { it.mkdirs() }
+            val (rm, omsg) = run7z(bin, SevenZipCommand.extractArgs(File(miss, "split.7z.001").path, om.path), null, tmp)
+            check("integrasi: volume tengah hilang -> MISSING_VOLUME", rm != 0 && SevenZipCommand.classify(rm, omsg, false) == Failure.MISSING_VOLUME)
+
+            // bukan arsip
+            File(tmp, "junk.rar").writeText("bukan arsip")
+            val (rj, oj) = run7z(bin, SevenZipCommand.listArgs(File(tmp, "junk.rar").path), null, tmp)
+            check("integrasi: berkas sampah -> NOT_ARCHIVE", rj != 0 && SevenZipCommand.classify(rj, oj, false) == Failure.NOT_ARCHIVE)
+
+            // wildcard + dash: -spd mencegah perluasan, -- mencegah nama dibaca sebagai opsi
+            File(tmp, "plain.7z").copyTo(File(tmp, "a*b.7z"))
+            File(tmp, "plain.7z").copyTo(File(tmp, "aXb.7z"))
+            val (rwc, owc) = run7z(bin, SevenZipCommand.listArgs(File(tmp, "a*b.7z").path), null, tmp)
+            check("integrasi: nama a*b.7z tidak diperluas (hanya 1 arsip)", rwc == 0 && SevenZipCommand.parseList(owc).size == ents.size)
+            File(tmp, "plain.7z").copyTo(File(tmp, "-dash.7z"))
+            val (rd, od) = run7z(bin, SevenZipCommand.listArgs(File(tmp, "-dash.7z").path), null, tmp)
+            check("integrasi: nama berawalan '-' aman (jalur absolut)", rd == 0 && SevenZipCommand.parseList(od).size == ents.size)
+
+            // jalur relatif berbahaya tak pernah dibuat builder
+            check("integrasi: builder menolak jalur relatif -dash.7z", throwsIae { SevenZipCommand.listArgs("-dash.7z") })
+        } finally {
+            tmp.deleteRecursively()
+        }
+    }
+
+    println(if (fails == 0) "SEMUA LULUS" else "$fails GAGAL")
+    if (fails > 0) System.exit(1)
+}
