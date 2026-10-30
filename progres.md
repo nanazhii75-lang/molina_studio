@@ -2114,3 +2114,14 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] RAR nyata belum diuji; lisensi RAR rootfs belum dicek
 - [ ] Uji perangkat (proot asli, Android 8, bind /mnt/molina-*) belum; refactor pembangun proses bersama ditunda
 - [ ] Berikutnya: hubungkan ke dialog, lalu uji arsip (7z t) dan edit non-ZIP
+
+## 2026-10-30 - Dialog ekstrak terhubung ke DebianArchive [ARCHIVE5-DIALOG]
+- [x] feat(archive): ArchiveRoute (murni: supports/viaDebian/label/folderName/canPassword; mesin bawaan selalu didahulukan) dan ArchiveOps (penghubung list/extract)
+- [x] feat(ui): ArchiveExtractDialog + Win7OpenDialog memakai ArchiveRoute/ArchiveOps; keterangan "Dibuka lewat 7z di Debian" untuk format Debian
+- [x] fix(archive): DebianArchive.list menolak bagian non-pertama dengan petunjuk
+- [x] Uji JVM sandbox: run_debian_archive_staging.sh 37 kasus (termasuk tidak ada tumpang tindih rute), run_archive_names.sh 52, run_7zip_command.sh, e2e proot palsu lulus
+- [x] Dampak: :app saja (2 berkas baru + 3 diubah); Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh; ArchiveFormat/ArchiveEngine TIDAK diubah
+- [ ] Compose (ArchiveExtractDialog, Win7OpenDialog) belum dikompilasi di sandbox: tunggu CI
+- [ ] Uji perangkat: ekstrak .iso/.cab/.rar nyata via proot asli di Android 8; RAR nyata belum pernah diuji; lisensi RAR rootfs belum dicek
+- [ ] Pemeriksaan ruang kosong di awal untuk jalur Debian (teruskan totalSize dari daftar) belum
+- [ ] Berikutnya: uji arsip (7z t) dan edit/buat 7z bersandi + enkripsi nama via Debian
