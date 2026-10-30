@@ -147,6 +147,39 @@ fun main() {
     check("parseProgress: >100 diabaikan", SevenZipCommand.parseProgress("250%") == null)
     check("cleanOutput: prompt dan persen dibuang, galat tetap", SevenZipCommand.cleanOutput("  0M Scan\b\b  5%\b\b\r\nERROR: x : y\n\n").contains("ERROR: x : y") && !SevenZipCommand.cleanOutput("  5%\b\b").contains("%"))
 
+    // [ARCHIVE4] bind berlingkup, ekstrak sebagian, pembaca daftar bertahap
+    val scoped = SevenZipCommand.prootArgsScoped("/r", listOf("/sdcard/Download" to SevenZipCommand.GUEST_SRC, "/sdcard/Download/.molina-stage-x" to SevenZipCommand.GUEST_OUT), "/usr/bin/7z", listOf("l", "--", "/mnt/molina-src/a.rar"))
+    check("scoped: hanya dua bind penyimpanan, tidak ada bind /sdcard penuh", scoped.count { it.startsWith("--bind=/sdcard") } == 2 && scoped.none { it == "--bind=/storage/emulated/0:/sdcard" })
+    check("scoped: bind host:guest benar", "--bind=/sdcard/Download:/mnt/molina-src" in scoped && "--bind=/sdcard/Download/.molina-stage-x:/mnt/molina-out" in scoped)
+    check("scoped: biner dan args di akhir, env bersih", scoped.takeLast(4) == listOf("/usr/bin/7z", "l", "--", "/mnt/molina-src/a.rar") && "-i" in scoped && "--kill-on-exit" in scoped)
+    check("scoped: host mengandung ':' ditolak", throwsIae { SevenZipCommand.prootArgsScoped("/r", listOf("/sdcard/a:b" to "/mnt/x"), "/usr/bin/7z", emptyList()) })
+    check("scoped: host relatif/.. ditolak", throwsIae { SevenZipCommand.prootArgsScoped("/r", listOf("sdcard" to "/mnt/x"), "/usr/bin/7z", emptyList()) } && throwsIae { SevenZipCommand.prootArgsScoped("/r", listOf("/a/../b" to "/mnt/x"), "/usr/bin/7z", emptyList()) })
+    check("scoped: guest relatif ditolak", throwsIae { SevenZipCommand.prootArgsScoped("/r", listOf("/sdcard/a" to "mnt/x"), "/usr/bin/7z", emptyList()) })
+    check("bindHostOk", SevenZipCommand.bindHostOk("/storage/emulated/0/Download") && !SevenZipCommand.bindHostOk("/a\nb") && !SevenZipCommand.bindHostOk(""))
+
+    val partial = SevenZipCommand.extractArgs("/mnt/molina-src/a.7z", "/mnt/molina-out", listOf("src/a.txt", "src/sub/"))
+    check("extractArgs sebagian: nama setelah arsip, akhiran / dibuang", partial.takeLast(3) == listOf("/mnt/molina-src/a.7z", "src/a.txt", "src/sub") && partial.indexOf("--") < partial.indexOf("src/a.txt"))
+    check("extractArgs sebagian: kosong = sama dengan penuh", SevenZipCommand.extractArgs("/a.7z", "/o", emptyList()) == SevenZipCommand.extractArgs("/a.7z", "/o"))
+    check("extractArgs sebagian: '..' ditolak", throwsIae { SevenZipCommand.extractArgs("/a.7z", "/o", listOf("../x")) })
+    check("extractArgs sebagian: '@' dan '!' ditolak", throwsIae { SevenZipCommand.extractArgs("/a.7z", "/o", listOf("@list")) } && throwsIae { SevenZipCommand.extractArgs("/a.7z", "/o", listOf("!x")) })
+    check("extractArgs sebagian: nama berawalan '-' aman setelah --", SevenZipCommand.extractArgs("/a.7z", "/o", listOf("-rf")).takeLast(2) == listOf("/a.7z", "-rf"))
+
+    run {
+        val all = ArrayList<SevenZipCommand.Entry>()
+        val trunc = SevenZipCommand.parseListStream(java.io.BufferedReader(java.io.StringReader(REAL_LIST)), 1000) { all.add(it) }
+        check("parseListStream: sama dengan parseList, tidak terpotong", !trunc && all.map { it.path } == SevenZipCommand.parseList(REAL_LIST).map { it.path } && all.isNotEmpty())
+        val two = ArrayList<SevenZipCommand.Entry>()
+        val t2 = SevenZipCommand.parseListStream(java.io.BufferedReader(java.io.StringReader(REAL_LIST)), 2) { two.add(it) }
+        check("parseListStream: batas entri -> terpotong", t2 && two.size == 2)
+        val exact = ArrayList<SevenZipCommand.Entry>()
+        val t3 = SevenZipCommand.parseListStream(java.io.BufferedReader(java.io.StringReader(REAL_LIST)), all.size) { exact.add(it) }
+        check("parseListStream: batas pas jumlah -> tidak terpotong", !t3 && exact.size == all.size)
+        val noisy = "Enter password (will not be echoed):\n" + REAL_LIST
+        val n = ArrayList<SevenZipCommand.Entry>()
+        SevenZipCommand.parseListStream(java.io.BufferedReader(java.io.StringReader(noisy)), 1000) { n.add(it) }
+        check("parseListStream: prompt di depan tidak merusak entri pertama", n.map { it.path } == all.map { it.path })
+    }
+
     // integrasi opsional dengan 7z asli: SEVENZIP_BIN=/usr/bin/7z
     val bin = System.getenv("SEVENZIP_BIN")
     if (bin.isNullOrBlank()) {
@@ -214,6 +247,28 @@ fun main() {
             File(tmp, "plain.7z").copyTo(File(tmp, "-dash.7z"))
             val (rd, od) = run7z(bin, SevenZipCommand.listArgs(File(tmp, "-dash.7z").path), null, tmp)
             check("integrasi: nama berawalan '-' aman (jalur absolut)", rd == 0 && SevenZipCommand.parseList(od).size == ents.size)
+
+            // [ARCHIVE4] ekstrak sebagian lewat nama setelah `--` (berkas, folder, dengan spasi/unicode)
+            val p1 = File(tmp, "p1").also { it.mkdirs() }
+            val (r1, _) = run7z(bin, SevenZipCommand.extractArgs(File(tmp, "plain.7z").path, p1.path, listOf("src/a.txt", "src/spasi nama é.txt")), null, tmp)
+            check("integrasi: sebagian berkas saja", r1 == 0 && File(p1, "src/a.txt").readText() == "hello\n" && File(p1, "src/spasi nama é.txt").exists() && !File(p1, "src/sub/b.bin").exists())
+            val p2 = File(tmp, "p2").also { it.mkdirs() }
+            val (r2, _) = run7z(bin, SevenZipCommand.extractArgs(File(tmp, "plain.7z").path, p2.path, listOf("src/sub/")), null, tmp)
+            check("integrasi: sebagian folder ikut isinya", r2 == 0 && File(p2, "src/sub/b.bin").length() == 5000L && !File(p2, "src/a.txt").exists())
+            val p3 = File(tmp, "p3").also { it.mkdirs() }
+            val (r3, o3x) = run7z(bin, SevenZipCommand.extractArgs(File(tmp, "plain.7z").path, p3.path, listOf("src/tidak-ada.txt")), null, tmp)
+            check("integrasi: nama tak ada -> rc 0 TAPI nol berkas (pemanggil wajib menganggap 0 berkas = galat)", r3 == 0 && (p3.listFiles()?.isEmpty() ?: true))
+            val p4 = File(tmp, "p4").also { it.mkdirs() }
+            val (r4, _) = run7z(bin, SevenZipCommand.extractArgs(File(tmp, "plain.7z").path, p4.path, listOf("src/*.txt")), null, tmp)
+            check("integrasi: wildcard di nama TIDAK diperluas (-spd), nol berkas", r4 == 0 && !File(p4, "src/a.txt").exists() && (p4.listFiles()?.isEmpty() ?: true))
+            val ps = File(tmp, "ps").also { it.mkdirs() }
+            val (r5, _) = run7z(bin, SevenZipCommand.extractArgs(File(tmp, "enc.7z").path, ps.path, listOf("src/a.txt")), SevenZipCommand.stdinFor("SECRET"), tmp)
+            check("integrasi: sebagian + sandi via stdin", r5 == 0 && File(ps, "src/a.txt").readText() == "hello\n" && !File(ps, "src/sub/b.bin").exists())
+            val stream = ArrayList<SevenZipCommand.Entry>()
+            val proc = ProcessBuilder(listOf(bin) + SevenZipCommand.listArgs(File(tmp, "plain.7z").path)).redirectErrorStream(true).start()
+            val tr = proc.inputStream.bufferedReader().use { SevenZipCommand.parseListStream(it, 2) { e -> stream.add(e) } }
+            proc.waitFor()
+            check("integrasi: parseListStream pada keluaran nyata terpotong di batas", tr && stream.size == 2)
 
             // jalur relatif berbahaya tak pernah dibuat builder
             check("integrasi: builder menolak jalur relatif -dash.7z", throwsIae { SevenZipCommand.listArgs("-dash.7z") })

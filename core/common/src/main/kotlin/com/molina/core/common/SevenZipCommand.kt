@@ -17,6 +17,10 @@ object SevenZipCommand {
     const val INSTALL_CMD = "apt-get update && apt-get install -y --no-install-recommends 7zip"
     const val HINT_INSTALL = "7zip belum terpasang di Debian. Di Terminal jalankan: $INSTALL_CMD"
 
+    /** [ARCHIVE4] Titik mount berlingkup di guest: HANYA folder arsip dan folder staging yang di-bind, bukan seluruh penyimpanan. */
+    const val GUEST_SRC = "/mnt/molina-src"
+    const val GUEST_OUT = "/mnt/molina-out"
+
     private const val ANDROID_STORAGE = "/storage/emulated/0"
     private const val GUEST_SDCARD = "/sdcard"
 
@@ -47,6 +51,48 @@ object SevenZipCommand {
         requireGuestAbs(guestArchive)
         requireGuestAbs(guestOutDir)
         return listOf("x", "-y", "-bsp1", "-spd", "-o$guestOutDir", "--", guestArchive)
+    }
+
+    /**
+     * [ARCHIVE4] Seperti [extractArgs] tetapi hanya entri [only] (nama dalam arsip; akhiran "/" dibuang, folder ikut
+     * beserta isinya). Nama diletakkan SETELAH `--` sehingga `-x` tidak dibaca sebagai opsi, dan `-spd` mematikan wildcard.
+     * Nama berawalan `@` (list file 7z) atau `!` ditolak karena tafsir 7z atasnya tidak dijamin.
+     */
+    fun extractArgs(guestArchive: String, guestOutDir: String, only: List<String>): List<String> {
+        val base = extractArgs(guestArchive, guestOutDir)
+        val names = only.map { raw ->
+            val clean = safeEntryPath(raw.trimEnd('/'))
+                ?: throw IllegalArgumentException("Nama entri tidak aman: $raw")
+            require(!clean.startsWith("@") && !clean.startsWith("!")) { "Nama entri tidak didukung untuk ekstrak sebagian: $raw" }
+            clean
+        }
+        return base + names
+    }
+
+    /** True bila [p] aman dipakai sebagai sisi host `--bind=host:guest` (proot memecah di ':'). */
+    fun bindHostOk(p: String): Boolean =
+        p.startsWith("/") && p.none { it == ':' || it == '\n' || it == '\r' || it == '\u0000' } && p.split('/').none { it == ".." }
+
+    /**
+     * [ARCHIVE4] Argv libproot.so dengan bind EKSPLISIT [binds] (host -> guest) dan tanpa bind penyimpanan lain.
+     * Dipakai ekstrak via Debian: 7z hanya melihat folder arsip dan folder staging, tidak mengikuti lingkup akses
+     * penyimpanan Terminal. Titik mount guest harus sudah ada di rootfs (dibuat pemanggil).
+     */
+    fun prootArgsScoped(rootfs: String, binds: List<Pair<String, String>>, binary: String, args: List<String>): List<String> = buildList {
+        add("--link2symlink"); add("--kill-on-exit"); add("-0")
+        add("--rootfs=$rootfs"); add("--cwd=/root")
+        add("--bind=/dev"); add("--bind=/proc"); add("--bind=/sys")
+        for ((host, guest) in binds) {
+            require(bindHostOk(host)) { "Jalur host tidak valid untuk bind: $host" }
+            requireGuestAbs(guest)
+            require(guest.indexOf(':') < 0) { "Jalur guest tidak valid untuk bind: $guest" }
+            add("--bind=$host:$guest")
+        }
+        add("/usr/bin/env"); add("-i")
+        add("HOME=/root"); add("LANG=C.UTF-8"); add("MALLOC_ARENA_MAX=2")
+        add("PATH=$GUEST_PATH")
+        add(binary)
+        addAll(args)
     }
 
     /** Bahan stdin untuk sandi: satu baris, atau null bila tanpa sandi (stdin ditutup). Sandi berisi baris baru ditolak. */
@@ -130,6 +176,31 @@ object SevenZipCommand {
         }
         flush()
         return out
+    }
+
+    /**
+     * [ARCHIVE4] Baca keluaran `7z l -slt -ba` blok demi blok (dipisah baris kosong) tanpa menampung seluruh keluaran,
+     * lalu panggil [sink] per entri. Berhenti setelah [maxEntries]; mengembalikan true bila MASIH ADA entri sesudahnya (terpotong).
+     */
+    fun parseListStream(reader: java.io.BufferedReader, maxEntries: Int, sink: (Entry) -> Unit): Boolean {
+        var count = 0
+        val block = StringBuilder()
+        fun flush(): Boolean {
+            if (block.isEmpty()) return false
+            val entries = parseList(block.toString())
+            block.setLength(0)
+            for (e in entries) {
+                if (count >= maxEntries) return true
+                sink(e)
+                count++
+            }
+            return false
+        }
+        while (true) {
+            val line = reader.readLine() ?: break
+            if (line.isBlank()) { if (flush()) return true } else block.append(line).append('\n')
+        }
+        return flush()
     }
 
     /**
