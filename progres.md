@@ -2286,3 +2286,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: :app (TvMode.kt baru; CinemaHome, CinemaWin7Home, PlayerSettingsUi, SettingsScreen diubah kecil); Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
 - [ ] Compose belum dikompilasi di sandbox: tunggu CI
 - [ ] Uji di perangkat (ASUS Z01, Android 8 arm64): sakelar -> tile muncul -> TvBrowser -> putar -> kembali; cek lebar 5 tile di Beranda
+
+## [SIDE5-TV4] Mode TV: segarkan otomatis + Mulai dari awal
+- [x] feat(core): ResumeMark.clear (hapus penanda watch_later dari semua folder; kunci lain tidak tersentuh)
+- [x] feat(cinema): TvBrowser memuat ulang setelah kembali dari pemutar (ON_PAUSE lalu ON_RESUME lewat LifecycleOwner activity, tanpa dependensi baru)
+- [x] feat(cinema): panel info menampilkan "Dilanjutkan di m:dd" dan tombol "Mulai dari awal" untuk kartu yang pernah dilanjutkan
+- [x] test: run_shelf.sh 62 pemeriksaan lulus (kotlinc 2.1.21)
+- [x] Dampak: :core:common (ResumeMark.kt), :app (TvBrowser.kt); Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
+- [ ] Compose belum dikompilasi di sandbox: tunggu CI
+- [ ] TV5 (usulan): menu tekan-lama salin/pindah/ganti nama/hapus lewat FileOps; perlu baca API FileOps dan dialog konfirmasi
