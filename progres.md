@@ -2263,3 +2263,10 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: :core:common (+3 berkas), :app (CinemaShelf.kt, W7MediaInfo.kt, Win7OpenDialog.kt +4 baris); Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
 - [ ] Verifikasi di perangkat: lokasi watch_later mpv (filesDir/watch_later atau filesDir/state/watch_later) dan kecocokan hash path; Compose belum dikompilasi di sandbox, tunggu CI
 - [ ] Catatan: berkas watch_later yang tertinggal setelah film selesai bisa tetap menandai kartu (app tidak menyimpan saat EOF, tapi entri lama tidak dihapus)
+
+## [SIDE5-TV1] Mode TV penjelajah berkas: model inti
+- [x] feat(core): TvGuide (saluran bernomor dari tempat, baris Folder/Video/Audio/Lainnya, teks panel info ala EPG, jam/ruang bebas bilah status, step saluran); murni JVM
+- [x] test: scripts/core-tests/run_tv.sh 29 pemeriksaan lulus (kotlinc 2.1.21)
+- [x] Dampak: hanya :core:common (+1 berkas) dan scripts/core-tests; app, Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
+- [ ] TV2: layar Compose TvBrowser (sidebar saluran, baris kartu, panel info) belum dibuat
+- [ ] TV3: sakelar Mode TV di Setelan dan titik masuk dari CinemaHome; uji di Android 8 arm64 (sentuh saja)
