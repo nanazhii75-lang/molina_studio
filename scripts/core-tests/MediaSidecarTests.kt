@@ -82,6 +82,17 @@ fun main() {
         check("args: video + sidecar memuat --sidecar sebelum --", on.contains("--sidecar") && on.indexOf("--sidecar") < on.indexOf("--"))
         check("args: audio mengabaikan sidecar", !args(DownloadRequest(urls = urls, mode = DownloadMode.AUDIO, sidecar = true)).contains("--sidecar"))
         check("args: sidecar lolos validasi", DownloadCommand.validate(DownloadRequest(urls = urls, sidecar = true)) == null)
+
+        // ---- ThumbMath.sampleSize
+        check("sampleSize: 1280x720 -> 160x90 = 8", ThumbMath.sampleSize(1280, 720, 160, 90) == 8)
+        check("sampleSize: 640x360 -> 4", ThumbMath.sampleSize(640, 360, 160, 90) == 4)
+        check("sampleSize: gambar sudah kecil -> 1", ThumbMath.sampleSize(160, 90, 160, 90) == 1 && ThumbMath.sampleSize(100, 50, 160, 90) == 1)
+        check("sampleSize: sisi terpendek menentukan (4000x300 -> 2)", ThumbMath.sampleSize(4000, 300, 160, 90) == 2)
+        val sizes = listOf(1280 to 720, 4000 to 3000, 1920 to 1080, 333 to 777, 90 to 5000)
+        check("sampleSize: hasil dekode tidak pernah di bawah target", sizes.all { (w, h) -> val s = ThumbMath.sampleSize(w, h, 160, 90); s == 1 || (w / s >= 160 && h / s >= 90) })
+        check("sampleSize: selalu pangkat dua", sizes.all { (w, h) -> val s = ThumbMath.sampleSize(w, h, 160, 90); s > 0 && (s and (s - 1)) == 0 })
+        check("sampleSize: masukan tidak sah -> 1", ThumbMath.sampleSize(0, 100, 160, 90) == 1 && ThumbMath.sampleSize(100, -1, 160, 90) == 1 && ThumbMath.sampleSize(100, 100, 0, 90) == 1)
+        check("sampleSize: dibatasi 4096", ThumbMath.sampleSize(Int.MAX_VALUE, Int.MAX_VALUE, 1, 1) == 4096)
     } finally {
         d.deleteRecursively()
     }

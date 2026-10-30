@@ -4,12 +4,16 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
 import android.util.LruCache
+import com.molina.core.common.MediaSidecar
+import com.molina.core.common.ThumbMath
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 
 /**
  * [FILES-THUMB] Thumbnail kecil untuk panel Penjelajah: frame video, atau cover art tertanam pada audio.
+ * [SIDE3-THUMB-POSTER] Video yang punya poster sidecar (Film.jpg/.png/.webp dari molina_dl --sidecar) memakai poster itu;
+ * poster rusak atau terlalu besar -> kembali ke frame video.
  * Dekode selalu di Dispatchers.IO, hasil disimpan di LruCache (32 entri, maks. 160x90 / 120x120)
  * sehingga thread utama tidak terblokir. Kegagalan dicatat agar tidak dicoba berulang.
  */
@@ -21,6 +25,7 @@ internal object W7Thumb {
     private const val MAX_W = 160
     private const val MAX_H = 90
     private const val MAX_COVER = 120
+    private const val MAX_POSTER_BYTES = 8L * 1024 * 1024
     private val cache = LruCache<String, Bitmap>(32)
     private val failed: MutableSet<String> = java.util.Collections.synchronizedSet(HashSet<String>())
 
@@ -28,13 +33,18 @@ internal object W7Thumb {
     fun isAudio(f: File): Boolean = f.isFile && f.extension.lowercase() in AUDIO
     fun hasThumb(f: File): Boolean = isVideo(f) || isAudio(f)
 
-    suspend fun load(f: File): Bitmap? {
-        val key = f.path + "|" + f.lastModified()
-        cache.get(key)?.let { return it }
-        if (key in failed) return null
-        val bmp = withContext(Dispatchers.IO) { if (isAudio(f)) cover(f) else frame(f) }
+    /**
+     * Semua kerja berkas (stat poster, cache, dekode) di Dispatchers.IO. Kunci cache memuat jalur + waktu ubah poster,
+     * jadi poster yang baru muncul/berubah menggantikan thumbnail frame lama tanpa menunggu video diubah.
+     */
+    suspend fun load(f: File): Bitmap? = withContext(Dispatchers.IO) {
+        val poster = if (isVideo(f)) MediaSidecar.find(f).poster else null
+        val key = f.path + "|" + f.lastModified() + (poster?.let { "|" + it.path + "|" + it.lastModified() } ?: "")
+        cache.get(key)?.let { return@withContext it }
+        if (key in failed) return@withContext null
+        val bmp = if (isAudio(f)) cover(f) else (poster?.let { poster(it) } ?: frame(f))
         if (bmp != null) cache.put(key, bmp) else failed.add(key)
-        return bmp
+        bmp
     }
 
     /** [ZIP-PREVIEW] Pratinjau gambar langsung dari entri ZIP (tanpa ekstrak ke disk); maks. 12 MB, sisi terpanjang <= 640 px. */
@@ -47,6 +57,21 @@ internal object W7Thumb {
             var sample = 1
             while (bounds.outWidth / (sample * 2) >= 640 || bounds.outHeight / (sample * 2) >= 640) sample *= 2
             BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sample })
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /** [SIDE3-THUMB-POSTER] Poster sidecar didekode hemat memori (inSampleSize); null bila rusak/terlalu besar sehingga pemanggil jatuh ke frame. */
+    private fun poster(p: File): Bitmap? {
+        return try {
+            if (p.length() !in 1L..MAX_POSTER_BYTES) return null
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeFile(p.path, bounds)
+            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+            val opts = BitmapFactory.Options().apply { inSampleSize = ThumbMath.sampleSize(bounds.outWidth, bounds.outHeight, MAX_W, MAX_H) }
+            val raw = BitmapFactory.decodeFile(p.path, opts) ?: return null
+            fit(raw, MAX_W, MAX_H)
         } catch (e: Exception) {
             null
         }

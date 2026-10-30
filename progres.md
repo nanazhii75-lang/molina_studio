@@ -2197,3 +2197,13 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Compose (UnduhanScreen) belum dikompilasi di sandbox: tunggu CI; tata letak keterangan poster di layar sempit perlu dicek di perangkat
 - [ ] Pengguna Cinema lama: chip Cinema tidak tampil terpilih sampai diketuk ulang (sidecar tersimpan mati)
 - [ ] Berikutnya: SIDE-3 (W7Thumb memprioritaskan poster sidecar + rak film Molina Cinema); DownloadSession belum menyimpan sidecars per item
+
+## 2026-10-30 - W7Thumb memprioritaskan poster sidecar di panel Penjelajah [SIDE3-THUMB-POSTER]
+- [x] feat(cinema): W7Thumb.load: video yang punya poster sidecar (Film.jpg/.jpeg/.png/.webp di samping video, dari molina_dl --sidecar) memakai poster itu; poster rusak atau > 8 MB -> kembali ke frame video; audio tetap memakai cover art tertanam (jpg senama diabaikan)
+- [x] perf(cinema): seluruh kerja berkas (stat poster, cache, dekode) kini di Dispatchers.IO (sebelumnya stat lastModified di thread pemanggil); poster didekode hemat memori (inSampleSize lewat ThumbMath.sampleSize); kunci cache memuat jalur + waktu ubah poster sehingga poster yang baru muncul menggantikan thumbnail frame lama
+- [x] feat(core): ThumbMath.sampleSize (pangkat dua terbesar yang hasilnya masih >= target, dibatasi 4096, tahan masukan tak sah)
+- [x] test: run_sidecar.sh +8 pemeriksaan ThumbMath; scripts/app-tests/run_w7thumb.sh (W7ThumbTests.kt, 12 pemeriksaan) memakai stub Android ringan (Bitmap/BitmapFactory berbasis ImageIO, MediaMetadataRetriever terkendali, LruCache, withContext inline); tes lama tetap lulus
+- [x] Dampak: :app (W7Thumb.kt saja) + :core:common (1 berkas baru); UI Compose (W7BrowseDock) TIDAK diubah; Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
+- [ ] Tes W7Thumb memakai stub: perilaku API Android asli (BitmapFactory.decodeFile, orientasi EXIF, WebP) belum diuji di CI/perangkat; Compose belum dikompilasi di sandbox, tunggu CI
+- [ ] Efek samping yang disengaja: jpg/png/webp senama video buatan pengguna sendiri juga dipakai sebagai thumbnail
+- [ ] Berikutnya: rak film Molina Cinema (kartu poster dari MediaSidecar + readInfo), info.json di dialog Properti (W7MediaInfo)
