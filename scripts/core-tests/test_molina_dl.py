@@ -110,6 +110,107 @@ class ParseTests(unittest.TestCase):
         self.assertEqual(dl.ytdlp_origin(["/usr/local/bin/yt-dlp"]), "pip")
 
 
+class SidecarUnitTests(unittest.TestCase):
+    def setUp(self):
+        self.d = tempfile.mkdtemp(prefix="mdl-side-")
+
+    def tearDown(self):
+        shutil.rmtree(self.d, ignore_errors=True)
+
+    def put(self, name, text="x"):
+        p = os.path.join(self.d, name)
+        with open(p, "w", encoding="utf-8") as f:
+            f.write(text)
+        return p
+
+    def test_build_cmd_sidecar_flags(self):
+        base = {"mode": "video", "ext": "mp4", "height": None}
+        c = dl.build_cmd(["y"], "http://x/1", "/o", base, True)
+        for flag in ("--write-thumbnail", "--write-info-json"):
+            self.assertNotIn(flag, c)  # bawaan mati: folder unduhan tetap bersih
+        c = dl.build_cmd(["y"], "http://x/1", "/o", dict(base, sidecar=True), True)
+        self.assertIn("--write-thumbnail", c)
+        self.assertIn("--write-info-json", c)
+        self.assertEqual(c[c.index("--convert-thumbnails") + 1], "jpg")
+        c = dl.build_cmd(["y"], "http://x/1", "/o", dict(base, sidecar=True), False)  # tanpa ffmpeg
+        self.assertIn("--write-thumbnail", c)
+        self.assertNotIn("--convert-thumbnails", c)
+        a = {"mode": "audio", "afmt": "mp3", "bitrate": "192k", "sidecar": True}
+        c = dl.build_cmd(["y"], "http://x/1", "/o", a, True)
+        self.assertNotIn("--write-info-json", c)
+        self.assertNotIn("--write-thumbnail", c)
+
+    def test_slim_info_json(self):
+        big = {"id": "abc", "title": "Pelajaran – Bab 1", "uploader": "Kanal", "duration": 61, "upload_date": "20240131",
+               "description": "d" * 5000, "tags": ["t%d" % i for i in range(50)] + [1],
+               "formats": [{"url": "http://x/%d" % i, "format_id": str(i)} for i in range(2000)],
+               "http_headers": {"User-Agent": "x"}, "view_count": 0, "like_count": None, "categories": []}
+        p = self.put("a.info.json", json.dumps(big))
+        before = os.path.getsize(p)
+        self.assertTrue(dl.slim_info_json(p))
+        with open(p, encoding="utf-8") as f:
+            slim = json.load(f)
+        self.assertLess(os.path.getsize(p), min(before // 10, 6000))
+        for gone in ("formats", "http_headers", "like_count", "categories"):
+            self.assertNotIn(gone, slim)
+        self.assertEqual(slim["title"], "Pelajaran – Bab 1")
+        self.assertEqual(len(slim["description"]), dl.INFO_DESC_MAX)
+        self.assertEqual(len(slim["tags"]), dl.INFO_TAGS_MAX)
+        self.assertEqual(slim["view_count"], 0)  # nol tetap disimpan
+        self.assertEqual(slim["_molina_slim"], 1)
+        with open(p, "rb") as f:
+            first = f.read()
+        self.assertIn("Pelajaran – Bab 1".encode("utf-8"), first)  # unicode tidak di-escape
+        self.assertTrue(dl.slim_info_json(p))
+        with open(p, "rb") as f:
+            self.assertEqual(f.read(), first)  # idempoten
+        self.assertFalse(os.path.exists(p + ".tmp"))
+
+    def test_slim_info_json_bad_input(self):
+        p = self.put("b.info.json", "{rusak")
+        self.assertFalse(dl.slim_info_json(p))
+        with open(p, encoding="utf-8") as f:
+            self.assertEqual(f.read(), "{rusak")  # berkas tidak disentuh
+        self.assertFalse(dl.slim_info_json(self.put("c.info.json", "[1]")))
+        self.assertFalse(dl.slim_info_json(os.path.join(self.d, "tidak-ada.info.json")))
+
+    def test_find_sidecars(self):
+        v = self.put("Mr. Film [abc].mp4")
+        self.assertEqual(dl.find_sidecars(v), [])
+        self.put("Mr. Film [abc].webp")
+        self.put("Mr. Film [abc].info.json", "{}")
+        self.assertEqual([n for n, _p, _s in dl.find_sidecars(v)], ["Mr. Film [abc].webp", "Mr. Film [abc].info.json"])
+        self.put("Mr. Film [abc].jpg")
+        names = [n for n, _p, _s in dl.find_sidecars(v)]
+        self.assertEqual(names, ["Mr. Film [abc].jpg", "Mr. Film [abc].info.json"])  # satu poster saja, jpg lebih dulu
+        self.put("Lain [zzz].jpg")  # milik video lain tidak ikut
+        self.assertEqual(len(dl.find_sidecars(v)), 2)
+
+    def test_collect_sidecars_slims_and_skips_non_video(self):
+        v = self.put("V [a].mp4")
+        srt = self.put("V [a].id.srt")
+        self.put("V [a].jpg")
+        info = self.put("V [a].info.json", json.dumps({"id": "a", "title": "V", "formats": [{"x": "y" * 3000}]}))
+        result = [(os.path.basename(p), p, 1) for p in (v, srt)]
+        got = dl.collect_sidecars(result)
+        self.assertEqual([n for n, _p, _s in got], ["V [a].jpg", "V [a].info.json"])
+        self.assertEqual(got[1][2], os.path.getsize(info))  # ukuran yang dilaporkan = setelah diringkas
+        self.assertLess(got[1][2], 300)
+
+    def test_json_done_sidecars_only_when_present(self):
+        import contextlib
+        import io
+        rep = dl.JsonReporter()
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rep.done(1, "/o", [("a.mp4", "/o/a.mp4", 5)], False)
+            rep.done(2, "/o", [("a.mp4", "/o/a.mp4", 5)], False, [("a.jpg", "/o/a.jpg", 3)])
+        first, second = [json.loads(ln) for ln in buf.getvalue().splitlines()]
+        self.assertNotIn("sidecars", first)
+        self.assertEqual(second["sidecars"], [{"name": "a.jpg", "path": "/o/a.jpg", "size": 3}])
+        self.assertEqual(len(second["files"]), 1)
+
+
 class UpdateTests(unittest.TestCase):
     def setUp(self):
         self.saved = (dl.run_capture, dl.pip_available, dl.find_ytdlp, dl.ytdlp_version, dl.ytdlp_origin)
@@ -349,6 +450,50 @@ class IntegrationTests(unittest.TestCase):
         rc, events = run_script("--json", "--mode", "audio", "--subs", "id", "--dir", d, f"{self.base}/subs.html")
         self.assertEqual(rc, 0)
         self.assertIn("subs_ignored", [w["code"] for w in ev(events, "warn")])
+
+    def test_default_has_no_sidecar_files(self):
+        d = self.outdir("nosidecar")
+        rc, events = run_script("--json", "--dir", d, f"{self.base}/nosubs.html")
+        self.assertEqual(rc, 0)
+        done = ev(events, "done")[0]
+        self.assertNotIn("sidecars", done)
+        self.assertEqual(os.listdir(d), [done["files"][0]["name"]])  # kontrak lama: folder tanpa sisa berkas
+
+    def test_sidecar_writes_poster_and_slim_info(self):
+        d = self.outdir("sidecar")
+        rc, events = run_script("--json", "--sidecar", "--dir", d, f"{self.base}/nosubs.html")
+        self.assertEqual(rc, 0)
+        done = ev(events, "done")[0]
+        self.assertEqual(len(done["files"]), 1)  # poster/metadata bukan hasil unduhan
+        mp4 = done["files"][0]["name"]
+        base = os.path.splitext(mp4)[0]
+        self.assertEqual(sorted(s["name"] for s in done["sidecars"]), sorted([base + ".jpg", base + ".info.json"]))
+        self.assertEqual(sorted(os.listdir(d)), sorted([mp4, base + ".jpg", base + ".info.json"]))
+        with open(os.path.join(d, base + ".info.json"), encoding="utf-8") as f:
+            info = json.load(f)
+        self.assertEqual(info["_molina_slim"], 1)
+        self.assertNotIn("formats", info)
+        sizes = {s["name"]: s["size"] for s in done["sidecars"]}
+        self.assertEqual(sizes[base + ".info.json"], os.path.getsize(os.path.join(d, base + ".info.json")))
+        self.assertNotIn("no_poster", [w["code"] for w in ev(events, "warn")])
+
+    def test_sidecar_survives_recode(self):
+        d = self.outdir("sidecarrecode")
+        rc, events = run_script("--json", "--sidecar", "--dir", d, f"{self.base}/old.html")
+        self.assertEqual(rc, 0)
+        done = ev(events, "done")[0]
+        self.assertTrue(os.path.isfile(done["files"][0]["path"]))
+        self.assertEqual(len(done["sidecars"]), 2)
+        for s in done["sidecars"]:
+            self.assertTrue(os.path.isfile(s["path"]), s)
+
+    def test_sidecar_ignored_for_audio(self):
+        d = self.outdir("audiosidecar")
+        rc, events = run_script("--json", "--mode", "audio", "--sidecar", "--dir", d, f"{self.base}/nosubs.html")
+        self.assertEqual(rc, 0)
+        self.assertIn("sidecar_ignored", [w["code"] for w in ev(events, "warn")])
+        self.assertNotIn("sidecars", ev(events, "done")[0])
+        self.assertFalse([n for n in os.listdir(d) if n.endswith(".info.json")])
 
 
 if __name__ == "__main__":

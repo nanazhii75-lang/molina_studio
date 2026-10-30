@@ -35,7 +35,14 @@ sealed interface DownloadEvent {
     ) : DownloadEvent
 
     data class Stage(val index: Int, val stage: String) : DownloadEvent
-    data class Done(val index: Int, val dir: String, val existed: Boolean, val files: List<DownloadedFile>) : DownloadEvent
+    data class Done(
+        val index: Int,
+        val dir: String,
+        val existed: Boolean,
+        val files: List<DownloadedFile>,
+        /** Poster/metadata dari `--sidecar`; kosong bila tidak diminta atau tidak ada. */
+        val sidecars: List<DownloadedFile> = emptyList(),
+    ) : DownloadEvent
     data class Error(val index: Int, val code: String, val msg: String) : DownloadEvent
     data class Summary(val ok: Int, val failed: Int, val cancelled: Boolean) : DownloadEvent
 
@@ -105,12 +112,8 @@ object DownloadEventParser {
                 index = o.int("i") ?: 0,
                 dir = o.str("dir") ?: "",
                 existed = o["existed"] == true,
-                files = (o["files"] as? List<*>).orEmpty().mapNotNull { f ->
-                    @Suppress("UNCHECKED_CAST")
-                    val m = f as? Map<String, Any?> ?: return@mapNotNull null
-                    val path = m.str("path") ?: return@mapNotNull null
-                    DownloadedFile(m.str("name") ?: path.substringAfterLast('/'), path, m.long("size") ?: 0L)
-                },
+                files = fileList(o["files"]),
+                sidecars = fileList(o["sidecars"]),
             )
             "error" -> DownloadEvent.Error(o.int("i") ?: 0, o.str("code") ?: "", o.str("msg") ?: "")
             "summary" -> DownloadEvent.Summary(o.int("ok") ?: 0, o.int("failed") ?: 0, o["cancelled"] == true)
@@ -136,6 +139,13 @@ object DownloadEventParser {
             )
             else -> null
         }
+    }
+
+    private fun fileList(v: Any?): List<DownloadedFile> = (v as? List<*>).orEmpty().mapNotNull { f ->
+        @Suppress("UNCHECKED_CAST")
+        val m = f as? Map<String, Any?> ?: return@mapNotNull null
+        val path = m.str("path") ?: return@mapNotNull null
+        DownloadedFile(m.str("name") ?: path.substringAfterLast('/'), path, m.long("size") ?: 0L)
     }
 
     private fun numToLong(v: Any?): Long? = when (v) {

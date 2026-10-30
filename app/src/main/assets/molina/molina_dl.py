@@ -16,6 +16,7 @@ Mode non-interaktif (dipakai halaman Unduhan native; stdout hanya berisi JSON, s
     python3 molina_dl.py --json URL --subs id,en [--subs-mode embed|file]   (subtitle: embed = disematkan, file = .srt di samping video)
     python3 molina_dl.py --json URL --mode audio [--no-cover]               (sampul + tag judul/artis disematkan ke MP3/M4A)
     python3 molina_dl.py --json URL --limit-rate 2M                         (batasi kecepatan, mis. 500K, 2M)
+    python3 molina_dl.py --json URL --sidecar                               (video: poster .jpg + metadata ringkas .info.json di samping video)
     python3 molina_dl.py --json --doctor        (cek yt-dlp, ffmpeg, folder, ruang kosong)
     python3 molina_dl.py --json --update-ytdlp  (perbarui atau pasang yt-dlp)
     python3 molina_dl.py --version
@@ -30,7 +31,8 @@ Kontrak event JSON (v=1), tiap baris satu objek dengan kunci "v" dan "ev":
     info     {i, title, id, duration, uploader, thumbnail, heights}
     progress {i, stream, pct, done, total, speed, eta}   stream = video|audio|single; pct/total bisa null
     stage    {i, stage}                             merge | extract | recode | subs | cover
-    done     {i, dir, files:[{name, path, size}], existed}
+    done     {i, dir, files:[{name, path, size}], existed, sidecars?:[{name, path, size}]}
+                                                    sidecars hanya ada bila --sidecar dan poster/metadata ditemukan
     error    {i, code, msg}                         i = 0 untuk galat global
     summary  {ok, failed, cancelled}                akhir sesi
     doctor   {ytdlp, ytdlp_method, ffmpeg, ffprobe, mutagen, python, video_dir, audio_dir, root_bound, free_mb, issues:[kode]}
@@ -57,7 +59,7 @@ import sys
 import time
 
 SCRIPT_NAME = "molina_dl"
-SCRIPT_VERSION = 5
+SCRIPT_VERSION = 6
 PROTOCOL = 1
 
 URL_RE = re.compile(r"^https?://[^\s/$.?#][^\s]*$", re.IGNORECASE)
@@ -74,6 +76,13 @@ MAX_SUB_LANGS = 5
 SUB_LANG_RE = re.compile(r"^[A-Za-z]{2,3}(?:[-_][A-Za-z0-9]{2,8}){0,2}$")
 SUB_EXTS = (".srt", ".vtt", ".ass")
 RATE_RE = re.compile(r"^[1-9][0-9]*(?:\.[0-9]+)?[KkMm]?$")
+THUMB_EXTS = (".jpg", ".jpeg", ".png", ".webp")
+INFO_SUFFIX = ".info.json"
+INFO_DESC_MAX = 2000
+INFO_TAGS_MAX = 20
+INFO_KEEP = ("id", "title", "fulltitle", "uploader", "channel", "duration", "upload_date", "release_year",
+             "description", "webpage_url", "extractor_key", "view_count", "like_count", "categories", "tags",
+             "width", "height", "fps", "ext", "thumbnail")
 
 PROGRESS_TEMPLATE = ("download:MDL|%(progress.status)s|%(progress.downloaded_bytes)s|"
                      "%(progress.total_bytes)s|%(progress.total_bytes_estimate)s|"
@@ -164,9 +173,10 @@ class JsonReporter:
     def stage(self, i, stage):
         self.emit("stage", i=i, stage=stage)
 
-    def done(self, i, outdir, files, existed):
+    def done(self, i, outdir, files, existed, sidecars=None):
+        extra = {"sidecars": [{"name": n, "path": p, "size": s} for n, p, s in sidecars]} if sidecars else {}
         self.emit("done", i=i, dir=outdir, existed=existed,
-                  files=[{"name": n, "path": p, "size": s} for n, p, s in files])
+                  files=[{"name": n, "path": p, "size": s} for n, p, s in files], **extra)
 
     def error(self, i, code, msg):
         self.emit("error", i=i, code=code, msg=msg)
@@ -276,13 +286,15 @@ class TextReporter:
         if final:
             self.finish_line()
 
-    def done(self, i, outdir, files, existed):
+    def done(self, i, outdir, files, existed, sidecars=None):
         self.finish_line()
         print(f"Selesai! Folder: {outdir}")
         if existed and not files:
             print("Berkas ini sudah ada, tidak diunduh ulang.")
         for name, _path, size in files:
             print(f"  - {name} ({human_size(size)})")
+        for name, _path, size in sidecars or ():
+            print(f"  + {name} ({human_size(size)})")
         sys.stdout.flush()
 
     def error(self, i, code, msg):
@@ -523,6 +535,10 @@ def build_cmd(ytdlp, url, outdir, spec, has_ffmpeg):
         cmd += ["--ppa", "Merger+ffmpeg_o:-movflags +faststart"]
     if spec.get("limit"):
         cmd += ["--limit-rate", spec["limit"]]
+    if spec["mode"] == "video" and spec.get("sidecar"):
+        cmd += ["--write-thumbnail", "--write-info-json"]
+        if has_ffmpeg:
+            cmd += ["--convert-thumbnails", "jpg"]
     if spec["mode"] == "video" and spec.get("subs"):
         embed = has_ffmpeg and spec.get("subs_mode", "embed") == "embed"
         cmd += ["--write-subs", "--write-auto-subs", "--sub-langs", ",".join(spec["subs"]), "--sleep-subtitles", "1"]
@@ -648,6 +664,8 @@ def run_item(ytdlp, rep, i, n, url, spec, outdir, has_ffmpeg, info=None):
         for name in sorted(snapshot(outdir) - before):
             if ".part" in name or name.endswith((".ytdl", ".temp")):
                 continue
+            if spec.get("sidecar") and name.lower().endswith(THUMB_EXTS + (INFO_SUFFIX,)):
+                continue  # poster/metadata dilaporkan terpisah (sidecars), bukan sebagai hasil unduhan
             path = os.path.join(outdir, name)
             try:
                 result.append((name, path, os.path.getsize(path)))
@@ -667,8 +685,80 @@ def run_item(ytdlp, rep, i, n, url, spec, outdir, has_ffmpeg, info=None):
         result = [ensure_compat(rep, i, n_, p_, s_) for n_, p_, s_ in result]
     if spec["mode"] == "video" and spec.get("subs") and not existed:
         warn_missing_subs(rep, result, spec, has_ffmpeg)
-    rep.done(i, outdir, result, existed)
+    sidecars = []
+    if spec["mode"] == "video" and spec.get("sidecar"):
+        sidecars = collect_sidecars(result)
+        if not existed and not any(n_.lower().endswith(THUMB_EXTS) for n_, _p, _s in sidecars):
+            rep.warn("no_poster", "Poster tidak tersedia untuk video ini; hanya metadata yang disimpan.")
+    rep.done(i, outdir, result, existed, sidecars)
     return "ok"
+
+
+# ---------------------------------------------------------------- sidecar poster + metadata
+
+def slim_info_json(path):
+    """Ringkas .info.json yt-dlp (bisa beberapa MB karena daftar format) jadi berkas kecil berisi kunci yang
+    dibutuhkan Molina Cinema. Idempoten (penanda _molina_slim) dan atomik. True bila hasilnya ringkas."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        return False
+    if not isinstance(data, dict):
+        return False
+    if data.get("_molina_slim") == 1:
+        return True
+    slim = {k: data[k] for k in INFO_KEEP if data.get(k) not in (None, "", [], {})}
+    desc = slim.get("description")
+    if isinstance(desc, str):
+        slim["description"] = desc[:INFO_DESC_MAX]
+    tags = slim.get("tags")
+    if isinstance(tags, list):
+        slim["tags"] = [t for t in tags if isinstance(t, str)][:INFO_TAGS_MAX]
+    slim["_molina_slim"] = 1
+    tmp = path + ".tmp"
+    try:
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(slim, f, ensure_ascii=False, separators=(",", ":"))
+        os.replace(tmp, path)
+    except OSError:
+        try:
+            os.remove(tmp)
+        except OSError:
+            pass
+        return False
+    return True
+
+
+def find_sidecars(media_path):
+    """Poster (.jpg/.jpeg/.png/.webp, satu saja) dan .info.json yang namanya sama dengan video, bila ada.
+    Mengembalikan [(name, path, size)], poster lebih dulu."""
+    base = os.path.splitext(media_path)[0]
+    found = []
+    for group in (THUMB_EXTS, (INFO_SUFFIX,)):
+        for suffix in group:
+            p = base + suffix
+            try:
+                if os.path.isfile(p):
+                    found.append((os.path.basename(p), p, os.path.getsize(p)))
+                    break
+            except OSError:
+                continue
+    return found
+
+
+def collect_sidecars(result):
+    """Sidecar tiap video di [result]. .info.json diringkas lebih dulu supaya ukuran yang dilaporkan sudah final."""
+    exts = tuple("." + e for e in VIDEO_EXTS)
+    out = []
+    for name, path, _size in result:
+        if not name.lower().endswith(exts):
+            continue
+        info = os.path.splitext(path)[0] + INFO_SUFFIX
+        if os.path.isfile(info):
+            slim_info_json(info)
+        out.extend(find_sidecars(path))
+    return out
 
 
 def probe_codecs(path):
@@ -1040,6 +1130,8 @@ def parse_args(argv):
     ap.add_argument("--subs-mode", choices=SUB_MODES, default="embed", dest="subs_mode",
                     help="embed = disematkan ke video (bawaan); file = .srt di samping video")
     ap.add_argument("--no-cover", action="store_true", dest="no_cover", help="audio tanpa sampul")
+    ap.add_argument("--sidecar", action="store_true",
+                    help="video: tulis poster (.jpg) dan metadata ringkas (.info.json) di samping video")
     ap.add_argument("--limit-rate", default="", dest="limit_rate", help="batas kecepatan, mis. 500K atau 2M")
     ap.add_argument("--doctor", action="store_true", help="periksa lingkungan (yt-dlp, ffmpeg, folder, ruang)")
     ap.add_argument("--update-ytdlp", action="store_true", dest="update_ytdlp", help="perbarui atau pasang yt-dlp")
@@ -1081,6 +1173,10 @@ def run_cli(args, ytdlp, has_ffmpeg, urls):
     if subs and args.mode == "audio":
         rep.warn("subs_ignored", "Subtitle hanya untuk mode video; opsi subtitle diabaikan.")
         subs = []
+    sidecar = bool(args.sidecar)
+    if sidecar and args.mode == "audio":
+        rep.warn("sidecar_ignored", "Poster/metadata hanya untuk mode video; opsi --sidecar diabaikan.")
+        sidecar = False
     if not has_ffmpeg:
         rep.warn("no_ffmpeg", "ffmpeg tidak ada: hanya format gabungan, resolusi tinggi bisa tidak tersedia.")
     if subs and not has_ffmpeg:
@@ -1092,7 +1188,7 @@ def run_cli(args, ytdlp, has_ffmpeg, urls):
     spec = {"mode": args.mode, "height": args.height or None, "ext": args.ext,
             "afmt": args.afmt, "bitrate": args.bitrate, "compat": not args.no_compat,
             "subs": subs, "subs_mode": args.subs_mode if has_ffmpeg else "file",
-            "cover": not args.no_cover, "limit": args.limit_rate or None}
+            "cover": not args.no_cover, "limit": args.limit_rate or None, "sidecar": sidecar}
     if args.mode == "audio" and has_ffmpeg and spec["cover"] and not cover_supported(args.afmt):
         rep.warn("no_cover", f"Sampul {args.afmt.upper()} butuh mutagen (apt install -y python3-mutagen); audio diunduh tanpa sampul.")
     ok, failed, cancelled = run_queue(ytdlp, rep, [(u, None) for u in urls], spec, outdir, has_ffmpeg)

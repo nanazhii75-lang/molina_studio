@@ -19,6 +19,8 @@ data class DownloadRequest(
     val cover: Boolean = true,
     /** Batas kecepatan, mis. "500K", "2M"; null = tanpa batas. */
     val limitRate: String? = null,
+    /** Tulis poster (.jpg) + metadata ringkas (.info.json) di samping video (mode video saja). Bawaan mati. */
+    val sidecar: Boolean = false,
 )
 
 /** Argumen `molina_dl.py --json ...` untuk halaman Unduhan. Murni (tanpa Android). */
@@ -91,6 +93,7 @@ object DownloadCommand {
             add("--subs-mode"); add(req.subsMode)
         }
         if (req.mode == DownloadMode.AUDIO && !req.cover) add("--no-cover")
+        if (req.mode == DownloadMode.VIDEO && req.sidecar) add("--sidecar")
         req.limitRate?.let { add("--limit-rate"); add(it) }
         req.dir?.let { add("--dir"); add(it) }
         add("--")

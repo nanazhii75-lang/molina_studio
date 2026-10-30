@@ -2176,3 +2176,14 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: :core:common (1 berkas baru) + :app (UnduhanScreen saja); Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
 - [ ] Compose belum dikompilasi di sandbox: tunggu CI; preset belum bisa dikustomisasi/disimpan pengguna
 - [ ] Berikutnya: sidecar poster.jpg/.info.json untuk Molina Cinema, playlist terkontrol
+
+## 2026-10-30 - Sidecar poster + metadata ringkas untuk Molina Cinema: sisi unduhan + core [DL-PKG5-SIDECAR]
+- [x] feat(dl): molina_dl v6 `--sidecar` (video saja, OPT-IN): --write-thumbnail --write-info-json (+ --convert-thumbnails jpg bila ada ffmpeg); nama sidecar = nama video (`Film [id].jpg`, `Film [id].info.json`); mode audio mengabaikan dengan peringatan `sidecar_ignored`; peringatan `no_poster` bila situs tidak punya poster
+- [x] feat(dl): `.info.json` diringkas (slim_info_json: ~20 kunci, deskripsi maks 2000, tag maks 20, atomik, idempoten) karena aslinya bisa beberapa MB (daftar format); event `done` membawa `sidecars` hanya bila ada (protokol tetap v1, parser lama mengabaikannya); cadangan selisih-folder tidak lagi memasukkan sidecar ke `files`
+- [x] feat(core): MediaSidecar.find (poster jpg|jpeg|png|webp + .info.json bernama sama dengan video) dan MediaSidecar.readInfo (judul, kanal, durasi, tahun, deskripsi pendek, URL http/https; tahan berkas hilang/rusak/besar); DownloadRequest.sidecar (bawaan false) + argumen `--sidecar` hanya untuk video; DownloadEvent.Done.sidecars
+- [x] keputusan: sidecar bawaan MATI (opt-in). Alasan: kontrak lama "folder unduhan tanpa sisa berkas" (test_embed_subs_mp4) dan poster/JSON akan muncul di galeri Android bila selalu dinyalakan
+- [x] test: scripts/core-tests/run_sidecar.sh (MediaSidecarTests.kt) + test_molina_dl.py (SidecarUnitTests dan 4 uji integrasi nyata yt-dlp/ffmpeg); 36 uji Python (naik dari 26) dan 33 pemeriksaan Kotlin baru lulus; run.sh (51), run_ui, run_feed, run_history, run_choices, run_maint, run_presets tetap lulus
+- [x] Dampak: skrip aset molina_dl.py + :core:common (1 berkas baru, DownloadCommand, DownloadEvent); Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh; hash skrip bawaan berubah (BundledScriptPolicy menyalin/menyiapkan .new seperti pkg1)
+- [ ] Belum ada UI: tombol/chip "Poster + info" di form Unduhan, DownloadChoices/riwayat/Ulangi, dan preset Cinema belum menyalakan sidecar; DownloadSession belum menyimpan sidecars per item
+- [ ] Rak film Molina Cinema (SIDE-3) belum ada: W7Thumb belum memprioritaskan poster sidecar; Compose belum dikompilasi di sandbox, tunggu CI
+- [ ] Uji perangkat Android 8 arm64 (yt-dlp apt Debian via proot, situs nyata) belum
