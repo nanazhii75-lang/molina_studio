@@ -2323,3 +2323,13 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Uji perangkat (potret): semua ikon muat tanpa scroll; dialog Buka, pemilih folder, Penjelajah Settings; mode Pilih + badge angka
 - [ ] ICON2: pencarian ikon yang mengembang; hapus header kolom di potret; tanggal+ukuran satu baris; baris 40dp -> 36dp
 - [ ] SWIPE1: geser baris (kanan = pilih, kiri = aksi cepat)
+
+## 2026-10-31 - Penjelajah Win7: pencarian mengembang + daftar ringkas potret [W7-ICON2]
+- [x] refactor(cinema): Win7OpenDialog.kt: ikon SEARCH; di potret breadcrumb lebar penuh + ikon cari yang mengembang (ikon tutup mengosongkan query); kotak cari tetap tampil selama query terisi
+- [x] refactor(cinema): W7FileArea(compact = portrait): header kolom dihapus di potret (urut lewat ikon Urut); baris min 36dp; tanggal + ukuran satu baris; kolom ukuran dibuang kecuali baris hasil pencarian (path relatif)
+- [x] Dampak: hanya :app (1 berkas); Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh; lanskap tidak berubah
+- [x] Catatan desain: keyboard tetap tidak muncul otomatis setelah ikon cari diketuk (tapToFocus, EXPLORER-KB-GOLD)
+- [ ] Compose belum dikompilasi di sandbox: tunggu CI
+- [ ] Uji perangkat (potret): ikon cari + tutup, filter lalu pindah folder, mode Pilih pada baris 36dp, dialog Buka, pemilih folder
+- [ ] Keputusan: fokus otomatis kotak cari saat ikon diketuk? (membalik keputusan EXPLORER-KB-GOLD)
+- [ ] SWIPE1: geser baris (kanan = pilih, kiri = aksi cepat)
