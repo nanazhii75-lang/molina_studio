@@ -2084,3 +2084,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Berikutnya: DebianArchive.kt (jalur 7z di PRoot) lalu uji arsip (7z t) dan edit non-ZIP
 - [ ] Cek lisensi RAR di rootfs (apt-cache policy p7zip-rar / 7zip-rar) dan perbarui THIRD_PARTY_NOTICES.md
 - [ ] Uji perangkat ARCHIVE1 dan ARCHIVE2 serta pengukuran RAM tar.xz/7z level 6 di Android 8 masih tertunda
+
+## 2026-10-30 - molina_dl kompatibel WhatsApp
+- [x] Diagnosis: selector `ext=mp4` memilih AV1/VP9+Opus (tidak diputar di WhatsApp/HP lain).
+- [x] `video_format` memprioritaskan avc1+mp4a; fallback ke codec lain.
+- [x] `+faststart` saat merge MP4.
+- [x] `ensure_compat` (ffprobe) -> konversi H.264/AAC/yuv420p hanya bila perlu; event JSON baru `stage=recode`.
+- [ ] Verifikasi: kirim hasil unduhan via WhatsApp ke device lain.
+- [ ] Pastikan parser Kotlin halaman Unduhan menoleransi `stage` baru.
