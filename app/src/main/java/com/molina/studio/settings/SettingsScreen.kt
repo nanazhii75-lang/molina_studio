@@ -152,6 +152,7 @@ private val INDEX = listOf(
     Hit("Pemutar", "Molina Cinema: ingat posisi putar, dekoder, sumber IPTV", Page.Player),
     Hit("Ingat posisi putar", "Lanjutkan video dari posisi terakhir", Page.Player),
     Hit("Dekoder perangkat keras", "MediaCodec untuk pemutar mpv", Page.Player),
+    Hit("Mode TV", "Tile Mode TV di Beranda Cinema: jelajah berkas ala saluran TV", Page.Player),
     Hit("Sumber IPTV", "Daftar playlist saluran dan Folder IPTV", Page.Player),
     Hit("Laporan bug", "Ekspor log gabungan dan per kelompok ke folder Export", Page.Info),
     Hit("About", "Versi, perangkat, status, dan lisensi (kini di Sistem > Info)", Page.Info),

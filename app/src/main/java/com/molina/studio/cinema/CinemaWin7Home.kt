@@ -67,7 +67,8 @@ internal fun CinemaWin7Body(
     onChannels: () -> Unit,
     onSettings: () -> Unit,
     onReset: () -> Unit,
-    onRecent: (CinemaRecent.Item) -> Unit
+    onRecent: (CinemaRecent.Item) -> Unit,
+    onTv: (() -> Unit)? = null
 ) {
     val ctx = LocalContext.current
     val recents = remember(CinemaRecent.version) { CinemaRecent.load(ctx) }
@@ -88,6 +89,7 @@ internal fun CinemaWin7Body(
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Tile("\uD83D\uDCC4", "Berkas", Modifier.weight(1f), onFile)
                         Tile("\uD83D\uDCFA", "Saluran", Modifier.weight(1f), onChannels)
+                        if (onTv != null) Tile("\uD83C\uDFAC", "Mode TV", Modifier.weight(1f), onTv)
                         Tile("\u2699", "Setelan", Modifier.weight(1f), onSettings)
                         Tile("\u21BB", "Segarkan", Modifier.weight(1f), onReset)
                     }

@@ -26,6 +26,7 @@ import com.molina.studio.cinema.CinemaActions
 import com.molina.studio.cinema.HwdecBridge
 import com.molina.studio.cinema.IptvSources
 import com.molina.studio.cinema.ResumeBridge
+import com.molina.studio.cinema.TvMode
 
 /** Ikon ubin Pemutar di beranda Settings: panel Aero biru dengan segitiga putar. */
 @Composable
@@ -54,6 +55,7 @@ internal fun PlayerSettingsPage(onOpenCinema: () -> Unit) {
     val ctx = LocalContext.current
     var resume by remember { mutableStateOf(ResumeBridge.enabled(ctx)) }
     var hw by remember { mutableStateOf(HwdecBridge.enabled(ctx)) }
+    var tvMode by remember { mutableStateOf(TvMode.enabled(ctx)) }
     var sources by remember { mutableStateOf(IptvSources.load(ctx)) }
     var removing by remember { mutableStateOf<IptvSources.Source?>(null) }
     val iptvPath = remember { runCatching { AppPaths.get(ctx).dir(MolinaDir.Iptv).path }.getOrDefault("") }
@@ -70,6 +72,16 @@ internal fun PlayerSettingsPage(onOpenCinema: () -> Unit) {
     ) {
         hw = it
         HwdecBridge.setEnabled(ctx, it)
+    }
+
+    Category("Beranda Cinema")
+    SwitchRow(
+        "Mode TV",
+        "Tambah tile Mode TV di Beranda: jelajah berkas ala saluran TV dengan kartu poster dan panel info.",
+        tvMode
+    ) {
+        tvMode = it
+        TvMode.setEnabled(ctx, it)
     }
 
     Category("Sumber IPTV")

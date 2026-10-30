@@ -65,6 +65,8 @@ fun CinemaHome(modifier: Modifier = Modifier) {
     var iptvTick by remember { mutableStateOf(0) }
     val iptvDir = remember { AppPaths.get(ctx).dir(MolinaDir.Iptv) } // /sdcard/Molina/Media/IPTV
     var folderDeep by rememberSaveable { mutableStateOf(false) }
+    var tvOpen by rememberSaveable { mutableStateOf(false) }
+    val tvOn = remember(TvMode.version) { TvMode.enabled(ctx) }
 
     fun search(q: String) {
         if (searching) return
@@ -123,7 +125,12 @@ fun CinemaHome(modifier: Modifier = Modifier) {
             if (r.ref.startsWith("/")) {
                 if (!CinemaActions.playPath(ctx, r.ref)) info = FAIL
             } else submit(r.ref)
-        }
+        },
+        onTv = if (tvOn) ({ tvOpen = true }) else null
+    )
+    if (tvOn && tvOpen) TvBrowserDialog(
+        onPlay = { f -> if (!CinemaActions.playPath(ctx, f.absolutePath)) info = FAIL },
+        onDismiss = { tvOpen = false }
     )
     if (channelsOpen) CinemaChannelsDialog(
         onDismiss = { channelsOpen = false },
