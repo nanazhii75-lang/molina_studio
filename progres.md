@@ -2219,3 +2219,9 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Berkas uji ARCHIVE6 (SevenZipCommandTests, DebianArchiveStagingTests, ArchiveCompressTests, run_debian_archive_staging.sh) belum masuk repo
 - [ ] Uji perangkat: buat 7z bersandi (kedua opsi) via proot asli di Android 8, buka di aplikasi lain
 - [ ] Berikutnya: uji arsip (7z t), pemeriksaan ruang kosong di awal, tombol pasang 7zip sekali ketuk
+
+## [ARCHIVE6-TESTS-RUN] Eksekusi tes manual
+- CI tidak terpicu (sengaja, [skip ci]); tes dijalankan manual di Debian PRoot.
+- p7zip-full di trixie = paket transisi; gunakan paket 7zip (7zz).
+- Terkendala: kotlinc/java belum terpasang; langkah pasang JDK + kotlinc 2.1.21 dicatat.
+- Status: menunggu hasil run_debian_archive_staging.sh.
