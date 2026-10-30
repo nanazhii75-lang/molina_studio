@@ -2101,3 +2101,16 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh
 - [ ] CI dan uji perangkat (kirim via WhatsApp) belum
 - [ ] Toggle UI "Kompatibel (WhatsApp)" vs "Kualitas maksimum" belum
+
+## 2026-10-30 - DebianArchive: runner 7z, staging, audit (belum terhubung ke UI) [ARCHIVE4-RUNNER]
+- [x] feat(archive): DebianArchive.kt (probe, list, extract via 7z di PRoot; proses bersih, stdin sandi, batal mematikan pohon proses)
+- [x] feat(archive): DebianArchiveStaging.kt (DebianFormats + volume .001/.partN.rar; staging .molina-stage-* di folder tujuan, audit tautan, commit tanpa menimpa, rollback, sapu sisa usang)
+- [x] feat(core): SevenZipCommand: prootArgsScoped (hanya folder arsip dan staging yang di-bind), extractArgs sebagian, bindHostOk, parseListStream
+- [x] Temuan 7z: nama yang diminta tidak ada tetap rc 0 dengan nol berkas, maka nol berkas dianggap galat di Kotlin; wildcard di nama tidak diperluas (-spd)
+- [x] Uji JVM sandbox: run_7zip_command.sh 103 kasus + run_debian_archive_staging.sh 30 kasus; uji ujung-ke-ujung dengan proot palsu (list, ekstrak penuh/sebagian, sandi, batal, progres, multi-bagian)
+- [x] Dampak: :app (2 berkas baru) + core/common; Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
+- [ ] CI belum dijalankan untuk commit ini; DebianArchive.kt hanya diverifikasi kompilasi dengan stub Android
+- [ ] Belum dihubungkan ke ArchiveExtractDialog / daftar format Penjelajah (ArchiveFormat tidak diubah)
+- [ ] RAR nyata belum diuji; lisensi RAR rootfs belum dicek
+- [ ] Uji perangkat (proot asli, Android 8, bind /mnt/molina-*) belum; refactor pembangun proses bersama ditunda
+- [ ] Berikutnya: hubungkan ke dialog, lalu uji arsip (7z t) dan edit non-ZIP
