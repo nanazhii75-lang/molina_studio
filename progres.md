@@ -2092,3 +2092,5 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] `ensure_compat` (ffprobe) -> konversi H.264/AAC/yuv420p hanya bila perlu; event JSON baru `stage=recode`.
 - [ ] Verifikasi: kirim hasil unduhan via WhatsApp ke device lain.
 - [ ] Pastikan parser Kotlin halaman Unduhan menoleransi `stage` baru.
+- [x] Patch awal: langkah pemanggilan `ensure_compat` terlewat (bug idempotency check); diperbaiki dengan patch lanjutan.
+- [ ] `molina_dl.py` ter-ignore .gitignore: tentukan salinan resmi (assets/) lalu commit.
