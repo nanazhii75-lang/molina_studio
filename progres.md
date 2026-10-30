@@ -2094,3 +2094,10 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Pastikan parser Kotlin halaman Unduhan menoleransi `stage` baru.
 - [x] Patch awal: langkah pemanggilan `ensure_compat` terlewat (bug idempotency check); diperbaiki dengan patch lanjutan.
 - [ ] `molina_dl.py` ter-ignore .gitignore: tentukan salinan resmi (assets/) lalu commit.
+
+## 2026-10-30 - molina_dl kompatibel WhatsApp [DL-COMPAT]
+- [x] molina_dl.py v4: selector avc1+mp4a, +faststart, ensure_compat (ffprobe), flag --no-compat, event stage=recode
+- [x] UnduhanScreen: label merge/extract/recode dalam bahasa Indonesia
+- [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh
+- [ ] CI dan uji perangkat (kirim via WhatsApp) belum
+- [ ] Toggle UI "Kompatibel (WhatsApp)" vs "Kualitas maksimum" belum
