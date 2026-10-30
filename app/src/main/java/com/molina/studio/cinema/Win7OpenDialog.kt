@@ -845,6 +845,16 @@ fun Win7OpenDialog(
                             else { selected = e; fileName = e.name; message = "" }
                         },
                         onEnter = { e -> go(e.file) },
+                        onSwipeRight = if (browse) ({ e: W7Entry ->
+                            if (!multi) { multi = true; picked = setOf(e.file.path); selected = null; fileName = "" }
+                            else picked = if (e.file.path in picked) picked - e.file.path else picked + e.file.path
+                        }) else null,
+                        onSwipeLeft = if (browse) ({ e: W7Entry ->
+                            if (multi) { if (e.file.path !in picked) picked = picked + e.file.path }
+                            else { selected = e; fileName = e.name }
+                            message = ""
+                            toolsOpen = true
+                        }) else null,
                         onAsk = { ask.launch(Manifest.permission.READ_EXTERNAL_STORAGE) }
                     )
                 }
@@ -875,8 +885,9 @@ fun Win7OpenDialog(
                         "Centang" to "Ketuk berkas atau folder untuk mencentang atau melepas centang.",
                         "Buka folder" to "Ketuk tanda \u203A di ujung baris untuk masuk ke folder.",
                         "Lintas folder" to "Centang tetap tersimpan saat Anda berpindah folder.",
-                        "Pilih cepat" to "Semua mencentang seluruh isi folder ini; Kosongkan menghapus semua centang.",
-                        "Selesai" to "Ketuk Selesai atau tombol Kembali untuk keluar dari Mode Pilih."
+                        "Geser baris" to "Geser ke kanan untuk mencentang atau melepas; geser ke kiri untuk membuka menu Alat bagi baris itu.",
+                        "Pilih cepat" to "Ikon pilih semua mencentang seluruh isi folder ini; ikon silang menghapus semua centang.",
+                        "Selesai" to "Ketuk ikon pilih sekali lagi atau tombol Kembali untuk keluar dari Mode Pilih."
                     )
                 ) { showSelectHelp = false } // [HELP-PANEL]
                 if (message.isNotBlank()) W7Toast(
@@ -1161,6 +1172,8 @@ private fun W7FileArea(
     recentRefs: List<String> = emptyList(),
     emptyNote: String = "Folder ini kosong.",
     compact: Boolean = false,
+    onSwipeRight: ((W7Entry) -> Unit)? = null,
+    onSwipeLeft: ((W7Entry) -> Unit)? = null,
     onSort: (ExplorerList.Key) -> Unit,
     onOpen: (W7Entry) -> Unit,
     onEnter: (W7Entry) -> Unit = {},
@@ -1191,7 +1204,8 @@ private fun W7FileArea(
                         val on = e.file.path in picked
                         W7EntryRow(
                             e, if (multi) on else e == selected, wide, onOpen, if (multi) on else null, if (multi) onEnter else null,
-                            played = if (e.isDir) -1 else recentRefs.indexOf(w7Norm(e.file.path))
+                            played = if (e.isDir) -1 else recentRefs.indexOf(w7Norm(e.file.path)),
+                            onSwipeRight = onSwipeRight, onSwipeLeft = onSwipeLeft
                         )
                     }
                 }
@@ -1222,12 +1236,19 @@ private fun W7Note(text: String, extra: @Composable ColumnScope.() -> Unit) {
 @Composable
 private fun W7EntryRow(
     e: W7Entry, selected: Boolean, wide: Boolean, onOpen: (W7Entry) -> Unit,
-    checked: Boolean? = null, onEnter: ((W7Entry) -> Unit)? = null, played: Int = -1
+    checked: Boolean? = null, onEnter: ((W7Entry) -> Unit)? = null, played: Int = -1,
+    onSwipeRight: ((W7Entry) -> Unit)? = null, onSwipeLeft: ((W7Entry) -> Unit)? = null // [W7-SWIPE1]
 ) {
     val shape = RoundedCornerShape(2.dp)
+    var swipeOff by remember { mutableStateOf(0f) }
+    var swipeDir by remember { mutableStateOf(0) }
+    val swR by rememberUpdatedState(onSwipeRight)
+    val swL by rememberUpdatedState(onSwipeLeft)
     val video = e.file.extension.lowercase() !in W7_AUDIO
     Row(
         Modifier.fillMaxWidth().padding(horizontal = 2.dp, vertical = 1.dp)
+            .offset { IntOffset(swipeOff.toInt(), 0) }
+            .then(if (swipeDir != 0) Modifier.background(Win7.SelLine.copy(alpha = 0.3f), shape) else Modifier)
             .then(
                 if (selected) Modifier
                     .background(Brush.verticalGradient(listOf(Color(0xFF16324D), Color(0xFF0F2438))), shape)
@@ -1235,6 +1256,27 @@ private fun W7EntryRow(
                 else Modifier
             )
             .clickable { onOpen(e) }
+            .then(
+                if (onSwipeRight != null || onSwipeLeft != null) Modifier.pointerInput(e.file.path) {
+                    var total = 0f
+                    val thr = 64.dp.toPx()
+                    val cap = 28.dp.toPx()
+                    detectHorizontalDragGestures(
+                        onDragStart = { total = 0f; swipeDir = 0 },
+                        onDragEnd = {
+                            val d = swipeDir
+                            swipeOff = 0f; swipeDir = 0
+                            if (d > 0) swR?.invoke(e) else if (d < 0) swL?.invoke(e)
+                        },
+                        onDragCancel = { swipeOff = 0f; swipeDir = 0 },
+                        onHorizontalDrag = { _, dx ->
+                            total += dx
+                            swipeOff = (total * 0.4f).coerceIn(-cap, cap)
+                            swipeDir = if (total > thr && swR != null) 1 else if (total < -thr && swL != null) -1 else 0
+                        }
+                    )
+                } else Modifier
+            )
             .heightIn(min = if (wide) 26.dp else 36.dp)
             .padding(horizontal = 6.dp, vertical = 3.dp),
         verticalAlignment = Alignment.CenterVertically
