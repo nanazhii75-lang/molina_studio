@@ -55,6 +55,24 @@ fun main() {
     check("modeLabel: subtitle dan batas tampil", e.modeLabel() == "Video Terbaik MP4 · sub ID+EN .srt · maks 2M/dtk")
     check("modeLabel: audio tidak menampilkan subtitle", DownloadHistoryEntry(1, DownloadChoices(video = false, subs = listOf("id")), false, null, e.items).modeLabel() == "Audio MP3 192k")
 
+    // poster + info (sidecar)
+    check("bawaan: poster + info mati", !d.sidecar)
+    check("sanitize: sidecar dipertahankan", DownloadChoices.sanitize(null, null, null, null, null, sidecar = true).sidecar)
+    check("sanitize: sidecar null -> bawaan mati", !DownloadChoices.sanitize(null, null, null, null, null, sidecar = null).sidecar)
+    val es = DownloadHistory.build(7L, DownloadRequest(U, sidecar = true), DownloadSessionState())!!
+    check("build: sidecar tercatat", es.choices.sidecar)
+    val bs = DownloadHistory.decode(DownloadHistory.encode(listOf(es)))
+    check("encode/decode: sidecar utuh", bs.size == 1 && bs[0].choices.sidecar && bs[0].choices == es.choices)
+    check("decode: riwayat lama (tanpa kunci sc) -> sidecar mati", !o[0].choices.sidecar)
+    val badSc = DownloadHistory.decode("""{"v":1,"entries":[{"at":8,"video":true,"sc":"ya","items":[{"u":"https://a.test/1","ok":false}]}]}""")
+    check("decode: sc bertipe salah -> mati tanpa melempar", badSc.size == 1 && !badSc[0].choices.sidecar)
+    val rs = es.retryRequest()
+    check("retry: membawa sidecar ke argumen --sidecar", rs.sidecar && DownloadCommand.args(rs).contains("--sidecar"))
+    check("retry: tanpa sidecar -> tidak ada --sidecar", !DownloadCommand.args(e.retryRequest()).contains("--sidecar"))
+    check("modeLabel: poster tampil untuk video", es.modeLabel() == "Video Terbaik MP4 · poster")
+    check("modeLabel: audio tidak menampilkan poster", DownloadHistoryEntry(1, DownloadChoices(video = false, sidecar = true), false, null, es.items).modeLabel() == "Audio MP3 192k")
+    check("modeLabel: urutan sub, poster, batas", DownloadHistoryEntry(1, DownloadChoices(subs = listOf("id"), sidecar = true, limitRate = "2M"), false, null, es.items).modeLabel() == "Video Terbaik MP4 · sub ID · poster · maks 2M/dtk")
+
     if (fails > 0) { println("$fails pemeriksaan GAGAL"); System.exit(1) }
     println("semua uji lulus")
 }

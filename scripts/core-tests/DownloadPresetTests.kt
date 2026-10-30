@@ -10,7 +10,7 @@ private val U = listOf("https://a.test/1")
 private fun req(c: DownloadChoices) = DownloadRequest(
     urls = U, mode = if (c.video) DownloadMode.VIDEO else DownloadMode.AUDIO, height = c.height, videoExt = c.videoExt,
     audioFormat = c.audioFmt, bitrate = c.bitrate, subs = c.subs, subsMode = c.subsMode, cover = c.cover,
-    limitRate = c.limitRate.ifEmpty { null },
+    limitRate = c.limitRate.ifEmpty { null }, sidecar = c.sidecar,
 )
 
 fun main() {
@@ -19,7 +19,7 @@ fun main() {
         val n = p.apply(base)
         check("${p.label}: hasil apply cocok dengan matches", p.matches(n))
         check("${p.label}: hasil apply lolos validasi perintah", DownloadCommand.validate(req(n)) == null)
-        check("${p.label}: pilihan sudah sanitize-stabil", DownloadChoices.sanitize(n.video, n.height, n.videoExt, n.audioFmt, n.bitrate, n.subs, n.subsMode, n.cover, n.limitRate) == n)
+        check("${p.label}: pilihan sudah sanitize-stabil", DownloadChoices.sanitize(n.video, n.height, n.videoExt, n.audioFmt, n.bitrate, n.subs, n.subsMode, n.cover, n.limitRate, n.sidecar) == n)
         check("${p.label}: idempoten", p.apply(n) == n)
         check("${p.label}: hanya satu preset aktif", DownloadPreset.values().count { it.matches(n) } == 1 && DownloadPreset.active(n) == p)
     }
@@ -50,6 +50,18 @@ fun main() {
     check("bawaan: tidak ada preset aktif", DownloadPreset.active(base) == null)
     check("batas kecepatan tidak memengaruhi status chip", DownloadPreset.CINEMA.matches(c.copy(limitRate = "5M")))
     check("hint memuat semua nama preset", DownloadPreset.values().all { DownloadPreset.HINT.contains(it.label) })
+
+    // poster + info (sidecar)
+    check("Cinema menyalakan poster + info", DownloadPreset.CINEMA.apply(base).sidecar)
+    check("Hemat mematikan poster + info", !DownloadPreset.HEMAT.apply(c).sidecar)
+    check("Musik tidak menyentuh poster + info", DownloadPreset.MUSIK.apply(base.copy(sidecar = true)).sidecar && !DownloadPreset.MUSIK.apply(base).sidecar)
+    check("Cinema tidak aktif bila poster dimatikan", !DownloadPreset.CINEMA.matches(c.copy(sidecar = false)))
+    check("Hemat tidak aktif bila poster dinyalakan", !DownloadPreset.HEMAT.matches(h.copy(sidecar = true)))
+    check("Musik tetap aktif apa pun status poster", DownloadPreset.MUSIK.matches(m.copy(sidecar = true)))
+    check("Cinema: argumen memuat --sidecar", DownloadCommand.args(req(c)).contains("--sidecar"))
+    check("Hemat: argumen tanpa --sidecar", !DownloadCommand.args(req(h)).contains("--sidecar"))
+    check("Musik: argumen audio tanpa --sidecar", !DownloadCommand.args(req(m.copy(sidecar = true))).contains("--sidecar"))
+    check("hint menyebut poster", DownloadPreset.HINT.contains("poster"))
 
     if (fails > 0) { println("$fails pemeriksaan GAGAL"); System.exit(1) }
     println("semua uji lulus")

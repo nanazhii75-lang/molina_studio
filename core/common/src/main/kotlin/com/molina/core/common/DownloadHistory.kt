@@ -37,6 +37,7 @@ data class DownloadHistoryEntry(
         subsMode = choices.subsMode,
         cover = choices.cover,
         limitRate = choices.limitRate.ifEmpty { null },
+        sidecar = choices.sidecar,
     )
 
     /** Mis. "Video 1080p MP4", "Video Terbaik MKV", "Audio FLAC 320k". */
@@ -47,6 +48,7 @@ data class DownloadHistoryEntry(
             if (choices.video && choices.subs.isNotEmpty()) {
                 add("sub " + DownloadChoices.subsLabel(choices.subs) + (if (choices.subsMode == "file") " .srt" else ""))
             }
+            if (choices.video && choices.sidecar) add("poster")
             if (choices.limitRate.isNotEmpty()) add("maks " + choices.limitRate + "/dtk")
         }
         return if (extra.isEmpty()) base else base + " · " + extra.joinToString(" · ")
@@ -83,7 +85,7 @@ object DownloadHistory {
         }
         val choices = DownloadChoices.sanitize(
             req.mode == DownloadMode.VIDEO, req.height, req.videoExt, req.audioFormat, req.bitrate,
-            req.subs, req.subsMode, req.cover, req.limitRate.orEmpty(),
+            req.subs, req.subsMode, req.cover, req.limitRate.orEmpty(), req.sidecar,
         )
         return DownloadHistoryEntry(now, choices, session.cancelled, session.fatalError?.let { LogRedact.text(it).take(MAX_TEXT) }, items)
     }
@@ -109,6 +111,7 @@ object DownloadHistory {
                 .append(",\"sm\":").append(q(e.choices.subsMode))
                 .append(",\"cv\":").append(e.choices.cover)
                 .append(",\"lr\":").append(q(e.choices.limitRate))
+                .append(",\"sc\":").append(e.choices.sidecar)
                 .append(",\"c\":").append(e.cancelled)
                 .append(",\"fatal\":").append(e.fatal?.let { q(it) } ?: "null")
                 .append(",\"items\":[")
@@ -140,6 +143,7 @@ object DownloadHistory {
         val choices = DownloadChoices.sanitize(
             m["video"] as? Boolean, (m["h"] as? Number)?.toInt(), m["vx"] as? String, m["af"] as? String, m["br"] as? String,
             (m["sb"] as? String)?.split(',')?.filter { it.isNotBlank() }, m["sm"] as? String, m["cv"] as? Boolean, m["lr"] as? String,
+            m["sc"] as? Boolean,
         )
         val items = (m["items"] as? List<*>).orEmpty().take(DownloadCommand.MAX_URLS).mapNotNull { x ->
             val im = x as? Map<*, *> ?: return@mapNotNull null

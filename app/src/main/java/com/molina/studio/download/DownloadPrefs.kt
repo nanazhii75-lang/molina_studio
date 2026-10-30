@@ -27,6 +27,7 @@ internal object DownloadPrefs {
             subsMode = safe { s.getString("subs_mode", null) },
             cover = if (s.contains("cover")) safe { s.getBoolean("cover", true) } else null,
             limitRate = safe { s.getString("limit_rate", null) },
+            sidecar = if (s.contains("sidecar")) safe { s.getBoolean("sidecar", false) } else null,
         )
     }
 
@@ -36,7 +37,8 @@ internal object DownloadPrefs {
             .putString("video_ext", c.videoExt).putString("audio_fmt", c.audioFmt)
             .putString("bitrate", c.bitrate)
             .putString("subs", c.subs.joinToString(",")).putString("subs_mode", c.subsMode)
-            .putBoolean("cover", c.cover).putString("limit_rate", c.limitRate).apply()
+            .putBoolean("cover", c.cover).putString("limit_rate", c.limitRate)
+            .putBoolean("sidecar", c.sidecar).apply()
     }
 
     /** Isi [DownloadForm] sekali per proses; pemanggilan berikutnya diabaikan agar tidak menimpa pilihan aktif. */

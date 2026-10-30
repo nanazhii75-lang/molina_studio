@@ -105,6 +105,7 @@ fun UnduhanScreen(modifier: Modifier = Modifier) {
     var subsMode by remember { DownloadForm.subsMode }
     var cover by remember { DownloadForm.cover }
     var limitRate by remember { DownloadForm.limitRate }
+    var sidecar by remember { DownloadForm.sidecar }
     var error by remember { mutableStateOf<String?>(null) }
     var openDir by remember { mutableStateOf<File?>(null) }
 
@@ -216,14 +217,14 @@ fun UnduhanScreen(modifier: Modifier = Modifier) {
                     }
                     // [win7-preset] preset cepat; pilihan tetap bisa disesuaikan lewat chip di bawahnya.
                     Text("Preset", color = W7D.TextDim, fontSize = 12.sp)
-                    val now = DownloadChoices(video, height, videoExt, audioFmt, bitrate, subs, subsMode, cover, limitRate)
+                    val now = DownloadChoices(video, height, videoExt, audioFmt, bitrate, subs, subsMode, cover, limitRate, sidecar)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         DownloadPreset.values().forEach { p ->
                             Chip(p.label, p.matches(now), !run.running) {
                                 val n = p.apply(now)
                                 video = n.video; height = n.height; videoExt = n.videoExt
                                 audioFmt = n.audioFmt; bitrate = n.bitrate
-                                subs = n.subs; subsMode = n.subsMode; cover = n.cover
+                                subs = n.subs; subsMode = n.subsMode; cover = n.cover; sidecar = n.sidecar
                             }
                         }
                     }
@@ -255,6 +256,15 @@ fun UnduhanScreen(modifier: Modifier = Modifier) {
                                     Chip("Sematkan", subsMode == "embed", !run.running) { subsMode = "embed" }
                                     Chip("File .srt", subsMode == "file", !run.running) { subsMode = "file" }
                                 }
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Chip("Poster + info", sidecar, !run.running) { sidecar = !sidecar }
+                            }
+                            if (sidecar) {
+                                Text(
+                                    "Poster (.jpg) dan info (.info.json) disimpan di samping video untuk rak Molina Cinema; poster bisa ikut tampil di Galeri.",
+                                    color = W7D.TextDim, fontSize = 11.sp,
+                                )
                             }
                         } else {
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -299,6 +309,7 @@ fun UnduhanScreen(modifier: Modifier = Modifier) {
                                     subsMode = subsMode,
                                     cover = cover,
                                     limitRate = limitRate.ifEmpty { null },
+                                    sidecar = video && sidecar,
                                 )
                                 val msg = DownloadRunner.start(ctx.applicationContext, req)
                                 error = msg

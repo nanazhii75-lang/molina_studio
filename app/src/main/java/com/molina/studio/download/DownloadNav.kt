@@ -42,15 +42,17 @@ internal object DownloadForm {
     val subsMode = mutableStateOf("embed")
     val cover = mutableStateOf(true)
     val limitRate = mutableStateOf("")
+    val sidecar = mutableStateOf(false)
 
     fun apply(c: DownloadChoices) {
         video.value = c.video; height.value = c.height; videoExt.value = c.videoExt
         audioFmt.value = c.audioFmt; bitrate.value = c.bitrate
         subs.value = c.subs; subsMode.value = c.subsMode; cover.value = c.cover; limitRate.value = c.limitRate
+        sidecar.value = c.sidecar
     }
 
     fun choices() = DownloadChoices(
         video.value, height.value, videoExt.value, audioFmt.value, bitrate.value,
-        subs.value, subsMode.value, cover.value, limitRate.value,
+        subs.value, subsMode.value, cover.value, limitRate.value, sidecar.value,
     )
 }

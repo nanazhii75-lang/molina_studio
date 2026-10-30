@@ -2187,3 +2187,13 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Belum ada UI: tombol/chip "Poster + info" di form Unduhan, DownloadChoices/riwayat/Ulangi, dan preset Cinema belum menyalakan sidecar; DownloadSession belum menyimpan sidecars per item
 - [ ] Rak film Molina Cinema (SIDE-3) belum ada: W7Thumb belum memprioritaskan poster sidecar; Compose belum dikompilasi di sandbox, tunggu CI
 - [ ] Uji perangkat Android 8 arm64 (yt-dlp apt Debian via proot, situs nyata) belum
+
+## 2026-10-30 - Chip "Poster + info" di form Unduhan + preset Cinema menyalakannya [DL-PKG6-SIDECAR-UI]
+- [x] feat(core): DownloadChoices.sidecar (bawaan false; sanitize tahan nilai rusak); riwayat mencatat kunci `sc` (versi tetap 1, berkas lama terbaca dengan sidecar mati); Ulangi membawa sidecar ke `--sidecar`; modeLabel menampilkan "poster" hanya untuk video dan hanya bila aktif (urutan: sub, poster, batas)
+- [x] feat(core): DownloadPreset: Cinema menyalakan poster + info, Hemat mematikannya, Musik tidak menyentuh (audio); chip Cinema/Hemat tidak lagi tampil terpilih bila poster diubah pengguna; HINT menyebut poster
+- [x] feat(ui): chip "Poster + info" di bagian video UnduhanScreen (+ keterangan bahwa poster bisa tampil di Galeri); DownloadForm/DownloadPrefs mengingat pilihan antar sesi; DownloadRequest.sidecar hanya untuk video
+- [x] test: run_choices.sh, run_presets.sh diperluas (sanitize, riwayat encode/decode, kompatibilitas berkas lama/rusak, Ulangi, modeLabel, preset apply/matches/argumen); semua tes lama tetap lulus
+- [x] Dampak: :core:common (DownloadUi, DownloadHistory, DownloadPreset) + :app (DownloadNav, DownloadPrefs, UnduhanScreen); skrip molina_dl.py, Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
+- [ ] Compose (UnduhanScreen) belum dikompilasi di sandbox: tunggu CI; tata letak keterangan poster di layar sempit perlu dicek di perangkat
+- [ ] Pengguna Cinema lama: chip Cinema tidak tampil terpilih sampai diketuk ulang (sidecar tersimpan mati)
+- [ ] Berikutnya: SIDE-3 (W7Thumb memprioritaskan poster sidecar + rak film Molina Cinema); DownloadSession belum menyimpan sidecars per item

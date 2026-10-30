@@ -91,6 +91,8 @@ data class DownloadChoices(
     val cover: Boolean = true,
     /** Salah satu [LIMIT_RATES]; kosong = tanpa batas kecepatan. */
     val limitRate: String = "",
+    /** Tulis poster (.jpg) + info (.info.json) di samping video untuk rak Molina Cinema. Hanya mode video; bawaan mati. */
+    val sidecar: Boolean = false,
 ) {
     companion object {
         /** Sama dengan chip tinggi di UnduhanScreen: 0 = Terbaik. */
@@ -110,6 +112,7 @@ data class DownloadChoices(
         fun sanitize(
             video: Boolean?, height: Int?, videoExt: String?, audioFmt: String?, bitrate: String?,
             subs: List<String>? = null, subsMode: String? = null, cover: Boolean? = null, limitRate: String? = null,
+            sidecar: Boolean? = null,
         ): DownloadChoices {
             val d = DownloadChoices()
             return DownloadChoices(
@@ -122,6 +125,7 @@ data class DownloadChoices(
                 subsMode = subsMode?.takeIf { it in DownloadCommand.SUB_MODES } ?: d.subsMode,
                 cover = cover ?: d.cover,
                 limitRate = limitRate?.takeIf { it in LIMIT_RATES } ?: d.limitRate,
+                sidecar = sidecar ?: d.sidecar,
             )
         }
     }
