@@ -2046,3 +2046,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Uji di perangkat: cetak >200 baris; cari kata lama, Lompat, pastikan sorotan di baris yang benar; lalu jalankan `yes | head -500` dan pastikan tampilan tetap di hasil; ketik sesuatu dan pastikan pin lepas
 - [ ] Uji regresi: seleksi teks dengan tahan-tekan, scroll manual, vim, tmux
 - [ ] Berikutnya: command palette
+
+## 2026-10-30 - Audit sisa Penjelajah vs ZArchiver [AUDIT-ARCHIVE1]
+- [x] Audit repo (HEAD 826846c): ArchiveEngine/Extract/Compress dialog sudah ada
+- [x] Keputusan pemilik: poin 7 dan 8 di-skip
+- [ ] Belum: multi-bagian, edit arsip non-ZIP, rar/iso/cab via 7z Debian, pecah ukuran, folder tujuan bebas, komentar ZIP
+- [ ] Verifikasi: CI ARCHIVE2; uji perangkat ARCHIVE1 dan ARCHIVE2
+- [ ] Rapikan checklist yt-dlp (baris 143-153)
+- [ ] Berikutnya: jalur 7z Debian (cek lisensi p7zip-full)
