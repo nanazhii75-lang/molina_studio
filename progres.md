@@ -2060,3 +2060,9 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: tidak ada perubahan kode; Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
 - [ ] Status CI commit a58bed8 (memuat ArchiveCompressDialog.kt) belum terverifikasi
 - [ ] Uji perangkat ARCHIVE1 dan ARCHIVE2 BELUM
+
+## 2026-10-30 - Verifikasi CI ARCHIVE2 [ARCHIVE2-CI-OK]
+- [x] CI hijau untuk commit kode yang memuat ARCHIVE2 (a58bed8 dan sesudahnya), dikonfirmasi pemilik
+- [x] Dampak: tidak ada perubahan kode; Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
+- [ ] Uji perangkat ARCHIVE1 dan ARCHIVE2: hasil per item belum dicatat
+- [ ] RAM tar.xz/7z level 6 di Android 8: belum terukur
