@@ -64,6 +64,33 @@ fun main() {
     check("choices: semua HEIGHTS lolos validasi perintah", DownloadChoices.HEIGHTS.all { DownloadCommand.validate(DownloadRequest(listOf("https://a.test/1"), height = it)) == null })
     check("choices: bawaan lolos validasi perintah", DownloadCommand.validate(DownloadRequest(listOf("https://a.test/1"), videoExt = dc0.videoExt, audioFormat = dc0.audioFmt, bitrate = dc0.bitrate)) == null)
 
+    // paket DL-PKG1: subtitle, cover, limit-rate, perawatan
+    val pk = DownloadRequest(listOf("https://a.test/1"))
+    val newFlags = setOf("--subs", "--subs-mode", "--no-cover", "--limit-rate")
+    check("pkg1: bawaan tanpa flag baru", DownloadCommand.args(pk).none { it in newFlags })
+    val pks = pk.copy(subs = listOf("id", "en", "id"), subsMode = "file")
+    check("pkg1: subtitle valid", DownloadCommand.validate(pks) == null)
+    check("pkg1: argumen subtitle (duplikat dibuang)", DownloadCommand.args(pks).zipWithNext().let {
+        it.contains("--subs" to "id,en") && it.contains("--subs-mode" to "file")
+    })
+    check("pkg1: subtitle tidak dikirim di mode audio", DownloadCommand.args(pks.copy(mode = DownloadMode.AUDIO)).none { it == "--subs" })
+    check("pkg1: kode bahasa jahat ditolak",
+        listOf("id;rm", "../x", "", "en,fr", "a".repeat(30), "--x").all { DownloadCommand.validate(pk.copy(subs = listOf(it))) != null })
+    check("pkg1: terlalu banyak bahasa", DownloadCommand.validate(pk.copy(subs = listOf("id", "en", "fr", "de", "es", "ja"))) != null)
+    check("pkg1: kode wilayah valid", DownloadCommand.validate(pk.copy(subs = listOf("pt-BR", "zh-Hans"))) == null)
+    check("pkg1: mode subtitle salah", DownloadCommand.validate(pk.copy(subsMode = "burn")) != null)
+    check("pkg1: no-cover hanya di mode audio",
+        DownloadCommand.args(pk.copy(mode = DownloadMode.AUDIO, cover = false)).contains("--no-cover") &&
+            !DownloadCommand.args(pk.copy(cover = false)).contains("--no-cover"))
+    check("pkg1: limit-rate valid",
+        listOf("500K", "2M", "1.5M", "300").all { DownloadCommand.validate(pk.copy(limitRate = it)) == null })
+    check("pkg1: limit-rate ditolak",
+        listOf("0", "-1", "2MB", "abc", "1 M", "").all { DownloadCommand.validate(pk.copy(limitRate = it)) != null })
+    check("pkg1: limit-rate ada di argumen", DownloadCommand.args(pk.copy(limitRate = "2M")).zipWithNext().contains("--limit-rate" to "2M"))
+    check("pkg1: URL tetap di belakang '--'", DownloadCommand.args(pks.copy(limitRate = "2M")).let { it.indexOf("--") == it.size - 2 && it.last() == "https://a.test/1" })
+    check("pkg1: argumen perawatan",
+        DownloadCommand.doctorArgs() == listOf("--json", "--doctor") && DownloadCommand.updateArgs() == listOf("--json", "--update-ytdlp"))
+
     if (fails > 0) { println("$fails uji GAGAL"); kotlin.system.exitProcess(1) }
     println("semua uji lulus")
 }

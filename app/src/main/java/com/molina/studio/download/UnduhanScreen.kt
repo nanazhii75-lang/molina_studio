@@ -455,6 +455,8 @@ private fun statusLine(item: DownloadItemState, pct: Double?): String = when (it
         "merge" -> "Menggabungkan video dan audio"
         "extract" -> "Mengonversi audio"
         "recode" -> "Menyesuaikan format agar kompatibel (H.264/AAC)"
+        "subs" -> "Menyematkan subtitle"
+        "cover" -> "Menyematkan sampul"
         else -> "Memproses: ${item.stage}"
     }
     DownloadItemStatus.DONE -> if (item.existed) "Selesai (berkas sudah ada)" else "Selesai"

@@ -13,6 +13,11 @@ Mode non-interaktif (dipakai halaman Unduhan native; stdout hanya berisi JSON, s
     python3 molina_dl.py --json URL [URL ...] [--mode video|audio] [--height 720] [--ext mp4|mkv]
                          [--audio-format mp3|m4a|flac] [--bitrate 128k|192k|320k] [--dir FOLDER] [--no-compat]
     python3 molina_dl.py --info --json URL      (hanya metadata + daftar resolusi)
+    python3 molina_dl.py --json URL --subs id,en [--subs-mode embed|file]   (subtitle: embed = disematkan, file = .srt di samping video)
+    python3 molina_dl.py --json URL --mode audio [--no-cover]               (sampul + tag judul/artis disematkan ke MP3/M4A)
+    python3 molina_dl.py --json URL --limit-rate 2M                         (batasi kecepatan, mis. 500K, 2M)
+    python3 molina_dl.py --json --doctor        (cek yt-dlp, ffmpeg, folder, ruang kosong)
+    python3 molina_dl.py --json --update-ytdlp  (perbarui atau pasang yt-dlp)
     python3 molina_dl.py --version
 
 Kode keluar: 0 semua berhasil, 1 ada yang gagal, 2 galat penggunaan/lingkungan, 130 dibatalkan.
@@ -24,10 +29,12 @@ Kontrak event JSON (v=1), tiap baris satu objek dengan kunci "v" dan "ev":
     item     {i, n, url}                            item i dari n mulai
     info     {i, title, id, duration, uploader, thumbnail, heights}
     progress {i, stream, pct, done, total, speed, eta}   stream = video|audio|single; pct/total bisa null
-    stage    {i, stage}                             merge | extract | recode
+    stage    {i, stage}                             merge | extract | recode | subs | cover
     done     {i, dir, files:[{name, path, size}], existed}
     error    {i, code, msg}                         i = 0 untuk galat global
     summary  {ok, failed, cancelled}                akhir sesi
+    doctor   {ytdlp, ytdlp_method, ffmpeg, ffprobe, mutagen, python, video_dir, audio_dir, root_bound, free_mb, issues:[kode]}
+    update   {status, method, before, after, msg}   status = start | ok | latest | failed
 
 Folder simpan (mengikuti struktur penyimpanan Molina):
     Video -> /sdcard/Molina/Media/Video
@@ -50,7 +57,7 @@ import sys
 import time
 
 SCRIPT_NAME = "molina_dl"
-SCRIPT_VERSION = 4
+SCRIPT_VERSION = 5
 PROTOCOL = 1
 
 URL_RE = re.compile(r"^https?://[^\s/$.?#][^\s]*$", re.IGNORECASE)
@@ -61,13 +68,19 @@ FALLBACK_HEIGHTS = (1080, 720, 480, 360)
 DEFAULT_ROOT = "/sdcard/Molina"
 LEGACY_BASE = "/sdcard/molina-studio/unduhan"
 MIN_FREE_MB = 500
+UPDATE_TIMEOUT = 600
+SUB_MODES = ("embed", "file")
+MAX_SUB_LANGS = 5
+SUB_LANG_RE = re.compile(r"^[A-Za-z]{2,3}(?:[-_][A-Za-z0-9]{2,8}){0,2}$")
+SUB_EXTS = (".srt", ".vtt", ".ass")
+RATE_RE = re.compile(r"^[1-9][0-9]*(?:\.[0-9]+)?[KkMm]?$")
 
 PROGRESS_TEMPLATE = ("download:MDL|%(progress.status)s|%(progress.downloaded_bytes)s|"
                      "%(progress.total_bytes)s|%(progress.total_bytes_estimate)s|"
                      "%(progress.speed)s|%(progress.eta)s|%(info.vcodec)s|%(info.acodec)s")
 PP_TEMPLATE = "postprocess:MDLPP|%(progress.status)s|%(progress.postprocessor)s"
 FILE_PRINT = "after_move:MDLFILE|%(filepath)s"
-PP_STAGES = {"Merger": "merge", "ExtractAudio": "extract"}
+PP_STAGES = {"Merger": "merge", "ExtractAudio": "extract", "EmbedSubtitle": "subs", "EmbedThumbnail": "cover"}
 
 
 # ---------------------------------------------------------------- format angka
@@ -161,6 +174,12 @@ class JsonReporter:
     def summary(self, ok, failed, cancelled):
         self.emit("summary", ok=ok, failed=failed, cancelled=cancelled)
 
+    def doctor(self, data):
+        self.emit("doctor", **data)
+
+    def update(self, status, **fields):
+        self.emit("update", status=status, **fields)
+
     def note(self, text):  # teks bebas tidak dikirim di mode JSON
         pass
 
@@ -220,7 +239,8 @@ class TextReporter:
 
     def stage(self, i, stage):
         self.note({"merge": "Menggabungkan video + audio...", "extract": "Mengonversi audio...",
-                                       "recode": "Menyesuaikan ke H.264/AAC (kompatibel WhatsApp)..."}.get(stage, stage))
+                                       "recode": "Menyesuaikan ke H.264/AAC (kompatibel WhatsApp)...",
+                                       "subs": "Menyematkan subtitle...", "cover": "Menyematkan sampul..."}.get(stage, stage))
 
     def progress(self, i, stream, pct, done, total, speed, eta, final=False):
         label = {"video": "Video", "audio": "Audio"}.get(stream, "Data ")
@@ -268,6 +288,34 @@ class TextReporter:
     def error(self, i, code, msg):
         self.finish_line()
         print(f"Galat: {msg}")
+        sys.stdout.flush()
+
+    def doctor(self, d):
+        self.finish_line()
+
+        def mark(ok):
+            return self._c("32", "OK") if ok else self._c("31", "--")
+
+        origin = f" [{d['ytdlp_method']}]" if d.get("ytdlp_method") else ""
+        free = d.get("free_mb")
+        print("\n=== Lingkungan Molina DL ===")
+        print(f"{mark(d['ytdlp'])} yt-dlp   {d['ytdlp'] or 'tidak ada -> apt install -y yt-dlp'}{origin}")
+        print(f"{mark(d['ffmpeg'])} ffmpeg   {d['ffmpeg'] or 'tidak ada -> apt install -y ffmpeg'}")
+        print(f"{mark(d['ffprobe'])} ffprobe  {'ada' if d['ffprobe'] else 'tidak ada (cek kompatibilitas MP4 dilewati)'}")
+        print(f"{mark(d['mutagen'])} mutagen  "
+              f"{'ada' if d['mutagen'] else 'tidak ada -> sampul M4A/FLAC butuh: apt install -y python3-mutagen'}")
+        print(f"{mark(d['root_bound'])} /sdcard/Molina  {'terhubung' if d['root_bound'] else 'tidak terlihat dari Debian'}")
+        print(f"{mark(free is None or free >= MIN_FREE_MB)} ruang kosong  {'?' if free is None else str(free) + ' MB'}")
+        print(f"Video -> {d['video_dir']}")
+        print(f"Audio -> {d['audio_dir']}")
+        sys.stdout.flush()
+
+    def update(self, status, **f):
+        self.finish_line()
+        if status == "start":
+            print(f"Memperbarui yt-dlp lewat {f.get('method')}... (butuh internet)")
+        else:
+            print(f.get("msg") or status)
         sys.stdout.flush()
 
     def summary(self, ok, failed, cancelled):
@@ -328,6 +376,40 @@ def find_ytdlp():
         return [sys.executable, "-m", "yt_dlp"]
     except ImportError:
         return None
+
+
+def has_mutagen():
+    try:
+        import mutagen  # noqa: F401
+        return True
+    except ImportError:
+        return False
+
+
+def cover_supported(afmt):
+    """MP3 disematkan lewat ffmpeg. M4A/FLAC butuh mutagen (atau AtomicParsley untuk M4A)."""
+    if afmt == "mp3":
+        return True
+    if afmt == "m4a" and shutil.which("AtomicParsley"):
+        return True
+    return has_mutagen()
+
+
+def parse_subs(raw):
+    """'id,en' -> (['id', 'en'], None); tidak valid -> ([], pesan)."""
+    langs = []
+    for part in (raw or "").split(","):
+        part = part.strip()
+        if part and part not in langs:
+            langs.append(part)
+    if not langs:
+        return [], None
+    if len(langs) > MAX_SUB_LANGS:
+        return [], f"Maksimal {MAX_SUB_LANGS} bahasa subtitle."
+    bad = [x for x in langs if not SUB_LANG_RE.match(x)]
+    if bad:
+        return [], "Kode bahasa subtitle tidak valid: " + ", ".join(bad[:3])
+    return langs, None
 
 
 def ensure_dir(path):
@@ -439,6 +521,18 @@ def build_cmd(ytdlp, url, outdir, spec, has_ffmpeg):
         cmd.append("--embed-metadata")
     if has_ffmpeg and spec["mode"] == "video" and spec["ext"] == "mp4":
         cmd += ["--ppa", "Merger+ffmpeg_o:-movflags +faststart"]
+    if spec.get("limit"):
+        cmd += ["--limit-rate", spec["limit"]]
+    if spec["mode"] == "video" and spec.get("subs"):
+        embed = has_ffmpeg and spec.get("subs_mode", "embed") == "embed"
+        cmd += ["--write-subs", "--write-auto-subs", "--sub-langs", ",".join(spec["subs"]), "--sleep-subtitles", "1"]
+        if has_ffmpeg:
+            cmd += ["--convert-subs", "srt"]
+        if embed:
+            # no-keep-subs: tanpa ini yt-dlp menyisakan berkas .srt di folder setelah subtitle disematkan.
+            cmd += ["--embed-subs", "--compat-options", "no-keep-subs"]
+    if spec["mode"] == "audio" and has_ffmpeg and spec.get("cover", True) and cover_supported(spec["afmt"]):
+        cmd += ["--embed-thumbnail", "--convert-thumbnails", "jpg"]
     if spec["mode"] == "audio":
         cmd += ["-f", "bestaudio/best", "-x", "--audio-format", spec["afmt"]]
         if spec.get("bitrate") and spec["afmt"] != "flac":  # FLAC lossless: tanpa bitrate
@@ -560,8 +654,19 @@ def run_item(ytdlp, rep, i, n, url, spec, outdir, has_ffmpeg, info=None):
             except OSError:
                 pass
         existed = not result
+    if spec["mode"] == "video" and spec.get("subs") and spec.get("subs_mode") == "file":
+        have = {n_ for n_, _p, _s in result}
+        for name in sorted(snapshot(outdir) - before):  # def_sidecar_subs
+            if name.lower().endswith(SUB_EXTS) and name not in have:
+                path = os.path.join(outdir, name)
+                try:
+                    result.append((name, path, os.path.getsize(path)))
+                except OSError:
+                    pass
     if spec["mode"] == "video" and spec["ext"] == "mp4" and has_ffmpeg and spec.get("compat", True):
         result = [ensure_compat(rep, i, n_, p_, s_) for n_, p_, s_ in result]
+    if spec["mode"] == "video" and spec.get("subs") and not existed:
+        warn_missing_subs(rep, result, spec, has_ffmpeg)
     rep.done(i, outdir, result, existed)
     return "ok"
 
@@ -581,6 +686,31 @@ def probe_codecs(path):
     return v.get("codec_name"), a.get("codec_name"), v.get("pix_fmt")
 
 
+def count_sub_streams(path):
+    """Jumlah aliran subtitle (ffprobe); None bila tidak terbaca."""
+    try:
+        res = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "s", "-show_entries", "stream=index",
+                              "-of", "csv=p=0", path],
+                             capture_output=True, text=True, timeout=30, stdin=subprocess.DEVNULL)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if res.returncode != 0:
+        return None
+    return len([ln for ln in res.stdout.splitlines() if ln.strip()])
+
+
+def warn_missing_subs(rep, result, spec, has_ffmpeg):
+    """Beri tahu bila bahasa yang diminta ternyata tidak tersedia (yt-dlp hanya memberi peringatan biasa)."""
+    langs = ", ".join(spec["subs"])
+    if spec.get("subs_mode") == "file" or not has_ffmpeg:
+        if not any(n_.lower().endswith(SUB_EXTS) for n_, _p, _s in result):
+            rep.warn("no_subs", f"Subtitle ({langs}) tidak tersedia untuk video ini.")
+        return
+    first = next((p_ for _n, p_, _s in result if p_.lower().endswith((".mp4", ".mkv"))), None)
+    if first and shutil.which("ffprobe") and count_sub_streams(first) == 0:
+        rep.warn("no_subs", f"Subtitle ({langs}) tidak tersedia untuk video ini.")
+
+
 def ensure_compat(rep, i, name, path, size):
     """Pastikan MP4 = H.264 + AAC + yuv420p + faststart. Konversi hanya bila perlu."""
     if not path.lower().endswith(".mp4") or not shutil.which("ffprobe"):
@@ -594,10 +724,10 @@ def ensure_compat(rep, i, name, path, size):
         return name, path, size
     rep.stage(i, "recode")
     tmp = path[:-4] + ".compat.mp4"
-    cmd = ["ffmpeg", "-y", "-v", "error", "-i", path, "-map", "0:v:0", "-map", "0:a:0?"]
+    cmd = ["ffmpeg", "-y", "-v", "error", "-i", path, "-map", "0:v:0", "-map", "0:a:0?", "-map", "0:s?"]
     cmd += ["-c:v", "copy"] if video_ok else ["-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-pix_fmt", "yuv420p"]
     cmd += ["-c:a", "copy"] if audio_ok else ["-c:a", "aac", "-b:a", "160k"]
-    cmd += ["-movflags", "+faststart", tmp]
+    cmd += ["-c:s", "mov_text", "-movflags", "+faststart", tmp]
     try:
         rc = subprocess.run(cmd, stdin=subprocess.DEVNULL, capture_output=True).returncode
         if rc == 0 and os.path.getsize(tmp) > 0:
@@ -638,6 +768,154 @@ def run_queue(ytdlp, rep, items, spec, outdir, has_ffmpeg):
         return ok, failed, True
     rep.summary(ok, failed, False)
     return ok, failed, False
+
+
+# ---------------------------------------------------------------- doctor & update
+
+def run_capture(cmd, timeout):
+    """Jalankan perintah; (kode, keluaran gabungan). Waktu habis = 124, gagal jalan = 127."""
+    try:
+        res = subprocess.run(cmd, capture_output=True, text=True, errors="replace", timeout=timeout,
+                             stdin=subprocess.DEVNULL)
+    except subprocess.TimeoutExpired:
+        return 124, "Waktu habis. Periksa koneksi internet."
+    except OSError as e:
+        return 127, str(e)
+    return res.returncode, ((res.stdout or "") + "\n" + (res.stderr or "")).strip()
+
+
+def last_line(text, limit=200):
+    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+    return (lines[-1] if lines else "")[:limit]
+
+
+def tool_version(cmd, timeout=20):
+    rc, out = run_capture(cmd, timeout)
+    if rc != 0:
+        return None
+    first = out.strip().splitlines()
+    return first[0].strip() if first else None
+
+
+def ytdlp_version(ytdlp):
+    if not ytdlp:
+        return None
+    return tool_version(ytdlp + ["--version"]) or "?"
+
+
+def ytdlp_origin(ytdlp):
+    """Asal pemasangan: apt | pip | pipx | binary | None (tidak terpasang)."""
+    if not ytdlp:
+        return None
+    if len(ytdlp) > 1:  # python -m yt_dlp
+        return "pip"
+    real = os.path.realpath(ytdlp[0])
+    if "/pipx/" in real:
+        return "pipx"
+    if real.startswith("/usr/local/") or "/.local/" in real:
+        return "pip"
+    if real.startswith("/usr/"):
+        return "apt"
+    return "binary"
+
+
+def ffmpeg_version():
+    if not shutil.which("ffmpeg"):
+        return None
+    line = tool_version(["ffmpeg", "-version"]) or ""
+    m = re.match(r"ffmpeg version (\S+)", line)
+    return m.group(1) if m else (line or "ada")
+
+
+def collect_doctor(ytdlp, dir_override=None):
+    video_dir, audio_dir, warn = resolve_dirs(dir_override)
+    root = os.environ.get("MOLINA_ROOT", DEFAULT_ROOT)
+    try:
+        free = int(shutil.disk_usage(video_dir).free // (1024 * 1024))
+    except OSError:
+        free = None
+    data = {
+        "ytdlp": ytdlp_version(ytdlp),
+        "ytdlp_method": ytdlp_origin(ytdlp),
+        "ffmpeg": ffmpeg_version(),
+        "ffprobe": shutil.which("ffprobe") is not None,
+        "mutagen": has_mutagen(),
+        "python": "%d.%d.%d" % sys.version_info[:3],
+        "video_dir": video_dir,
+        "audio_dir": audio_dir,
+        "root_bound": os.path.isdir(root),
+        "free_mb": free,
+    }
+    issues = []
+    if not data["ytdlp"]:
+        issues.append("no_ytdlp")
+    if not data["ffmpeg"]:
+        issues.append("no_ffmpeg")
+    elif not data["ffprobe"]:
+        issues.append("no_ffprobe")
+    if free is not None and free < MIN_FREE_MB:
+        issues.append("low_space")
+    if warn:
+        issues.append("dir_fallback")
+    if not data["mutagen"]:
+        issues.append("no_mutagen")  # info: sampul M4A/FLAC
+    data["issues"] = issues
+    return data
+
+
+def pip_available():
+    return tool_version([sys.executable, "-m", "pip", "--version"]) is not None
+
+
+def run_update(rep, ytdlp):
+    """Perbarui (atau pasang) yt-dlp. Mengembalikan kode keluar 0/1."""
+    before = ytdlp_version(ytdlp)
+    if ytdlp_origin(ytdlp) == "pipx" and shutil.which("pipx"):
+        method, cmd = "pipx", ["pipx", "upgrade", "yt-dlp"]
+    elif pip_available():
+        method = "pip"
+        cmd = [sys.executable, "-m", "pip", "install", "-U", "--disable-pip-version-check",
+               "--break-system-packages", "yt-dlp"]
+    else:
+        rep.update("failed", method=None, before=before, after=before,
+                   msg="pip tidak ada. Pasang dulu: apt install -y python3-pip")
+        return 1
+    rep.update("start", method=method, before=before, after=None, msg=None)
+    rc, out = run_capture(cmd, UPDATE_TIMEOUT)
+    if rc != 0 and method == "pip" and "no such option" in out.lower():  # pip lama tanpa --break-system-packages
+        cmd.remove("--break-system-packages")
+        rc, out = run_capture(cmd, UPDATE_TIMEOUT)
+    if rc != 0:
+        rep.update("failed", method=method, before=before, after=before,
+                   msg=last_line(out) or f"Pembaruan gagal (kode {rc}).")
+        return 1
+    after = ytdlp_version(find_ytdlp())
+    if before and after == before:
+        if method == "pip" and "successfully installed" in out.lower():
+            rep.update("failed", method=method, before=before, after=after,
+                       msg="Versi baru terpasang, tetapi PATH masih memakai yt-dlp lama. "
+                           "Pastikan /usr/local/bin lebih dulu dari /usr/bin.")
+            return 1
+        rep.update("latest", method=method, before=before, after=after, msg=f"yt-dlp sudah terbaru ({after}).")
+        return 0
+    rep.update("ok", method=method, before=before, after=after,
+               msg=f"yt-dlp diperbarui: {before or 'belum ada'} -> {after}.")
+    return 0
+
+
+def run_maintenance(args, ytdlp):
+    rep = JsonReporter() if args.json else TextReporter()
+    rep.hello()
+    rc = 0
+    if args.update_ytdlp:
+        rc = run_update(rep, ytdlp)
+        ytdlp = find_ytdlp()
+    if args.doctor:
+        data = collect_doctor(ytdlp, args.dir)
+        rep.doctor(data)
+        if "no_ytdlp" in data["issues"]:
+            rc = rc or 1
+    return rc
 
 
 # ---------------------------------------------------------------- alur menu
@@ -682,7 +960,11 @@ def flow_video(ytdlp, has_ffmpeg, outdir):
     if not has_ffmpeg:
         print("Peringatan: ffmpeg tidak ditemukan, hanya format gabungan yang bisa diunduh "
               "(resolusi tinggi bisa tidak tersedia). Pasang: apt install -y ffmpeg")
-    spec = {"mode": "video", "height": None if idx == 0 else heights[idx - 1], "ext": VIDEO_EXTS[e]}
+    s = choose("Subtitle:", ["Tanpa subtitle", "Indonesia (id)", "Inggris (en)", "Indonesia + Inggris"])
+    if s is None:
+        return
+    spec = {"mode": "video", "height": None if idx == 0 else heights[idx - 1], "ext": VIDEO_EXTS[e],
+            "subs": [[], ["id"], ["en"], ["id", "en"]][s], "subs_mode": "embed" if has_ffmpeg else "file"}
     run_queue(ytdlp, TextReporter(), items, spec, outdir, has_ffmpeg)
 
 
@@ -712,21 +994,28 @@ def menu(ytdlp, has_ffmpeg, video_dir, audio_dir, warn):
         print("\n=== Molina DL ===")
         print("1. Unduh Video")
         print("2. Unduh Audio Saja")
-        print("3. Keluar")
+        print("3. Periksa lingkungan (doctor)")
+        print("4. Perbarui yt-dlp")
+        print("5. Keluar")
         print(f"Video -> {video_dir}")
         print(f"Audio -> {audio_dir}")
         if warn:
             print(f"Peringatan: {warn}")
         if not has_ffmpeg:
             print("Peringatan: ffmpeg tidak ada (audio dan video resolusi tinggi dibatasi)")
-        choice = ask("Pilih [1-3]: ")
-        if choice is None or choice == "3":
+        choice = ask("Pilih [1-5]: ")
+        if choice is None or choice == "5":
             print("Sampai jumpa.")
             return 0
         if choice == "1":
             flow_video(ytdlp, has_ffmpeg, video_dir)
         elif choice == "2":
             flow_audio(ytdlp, has_ffmpeg, audio_dir)
+        elif choice == "3":
+            TextReporter().doctor(collect_doctor(ytdlp, None))
+        elif choice == "4":
+            run_update(TextReporter(), ytdlp)
+            ytdlp = find_ytdlp() or ytdlp
         else:
             print("Pilihan tidak valid.")
 
@@ -747,6 +1036,13 @@ def parse_args(argv):
     ap.add_argument("--no-compat", action="store_true", dest="no_compat",
                     help="MP4 kualitas maksimum (boleh AV1/VP9), tanpa konversi H.264/AAC")
     ap.add_argument("--dir", help="folder simpan (menimpa folder bawaan)")
+    ap.add_argument("--subs", default="", help="bahasa subtitle dipisah koma, mis. id,en (hanya mode video)")
+    ap.add_argument("--subs-mode", choices=SUB_MODES, default="embed", dest="subs_mode",
+                    help="embed = disematkan ke video (bawaan); file = .srt di samping video")
+    ap.add_argument("--no-cover", action="store_true", dest="no_cover", help="audio tanpa sampul")
+    ap.add_argument("--limit-rate", default="", dest="limit_rate", help="batas kecepatan, mis. 500K atau 2M")
+    ap.add_argument("--doctor", action="store_true", help="periksa lingkungan (yt-dlp, ffmpeg, folder, ruang)")
+    ap.add_argument("--update-ytdlp", action="store_true", dest="update_ytdlp", help="perbarui atau pasang yt-dlp")
     ap.add_argument("--version", action="store_true")
     return ap.parse_args(argv)
 
@@ -775,14 +1071,30 @@ def run_cli(args, ytdlp, has_ffmpeg, urls):
     if args.mode == "audio" and not has_ffmpeg:
         rep.error(0, "no_ffmpeg", "Unduh audio butuh ffmpeg. Pasang: apt install -y ffmpeg")
         return 2
+    subs, serr = parse_subs(args.subs)
+    if serr:
+        rep.error(0, "bad_subs", serr)
+        return 2
+    if args.limit_rate and not RATE_RE.match(args.limit_rate):
+        rep.error(0, "bad_rate", "Batas kecepatan tidak valid (contoh: 500K, 2M).")
+        return 2
+    if subs and args.mode == "audio":
+        rep.warn("subs_ignored", "Subtitle hanya untuk mode video; opsi subtitle diabaikan.")
+        subs = []
     if not has_ffmpeg:
         rep.warn("no_ffmpeg", "ffmpeg tidak ada: hanya format gabungan, resolusi tinggi bisa tidak tersedia.")
+    if subs and not has_ffmpeg:
+        rep.warn("subs_file_only", "Tanpa ffmpeg subtitle hanya disimpan sebagai berkas di samping video.")
     video_dir, audio_dir, warn = resolve_dirs(args.dir)
     if warn:
         rep.warn("dir_fallback", warn)
     outdir = audio_dir if args.mode == "audio" else video_dir
     spec = {"mode": args.mode, "height": args.height or None, "ext": args.ext,
-            "afmt": args.afmt, "bitrate": args.bitrate, "compat": not args.no_compat}
+            "afmt": args.afmt, "bitrate": args.bitrate, "compat": not args.no_compat,
+            "subs": subs, "subs_mode": args.subs_mode if has_ffmpeg else "file",
+            "cover": not args.no_cover, "limit": args.limit_rate or None}
+    if args.mode == "audio" and has_ffmpeg and spec["cover"] and not cover_supported(args.afmt):
+        rep.warn("no_cover", f"Sampul {args.afmt.upper()} butuh mutagen (apt install -y python3-mutagen); audio diunduh tanpa sampul.")
     ok, failed, cancelled = run_queue(ytdlp, rep, [(u, None) for u in urls], spec, outdir, has_ffmpeg)
     return 130 if cancelled else (1 if failed else 0)
 
@@ -795,6 +1107,11 @@ def main(argv=None):
     signal.signal(signal.SIGTERM, raise_interrupt)
     urls = args.url + args.urls
     ytdlp = find_ytdlp()
+    if args.doctor or args.update_ytdlp:
+        try:
+            return run_maintenance(args, ytdlp)
+        except KeyboardInterrupt:
+            return 130
     if not ytdlp:
         msg = "yt-dlp tidak ditemukan. Pasang dengan: apt update && apt install -y yt-dlp ffmpeg"
         if args.json:

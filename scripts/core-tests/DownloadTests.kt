@@ -95,6 +95,20 @@ fun main() {
     eq("sudah pernah .new", BundledScriptPolicy.decide(USR, OLD, B, B), Action.KEEP)
     eq(".new versi lebih lama", BundledScriptPolicy.decide(USR, OLD, "ccc", B), Action.STAGE_NEW)
 
+    // --- doctor & update (v5)
+    val docLine = """{"v":1,"ev":"doctor","ytdlp":"2026.10.26","ytdlp_method":"pip","ffmpeg":"6.1","ffprobe":true,"mutagen":false,"python":"3.12.3","video_dir":"/v","audio_dir":"/a","root_bound":true,"free_mb":1234,"issues":["no_mutagen"]}"""
+    eq("doctor", p(docLine),
+        DownloadEvent.Doctor("2026.10.26", "pip", "6.1", true, false, "3.12.3", "/v", "/a", true, 1234L, listOf("no_mutagen")))
+    eq("doctor kosong", p("""{"v":1,"ev":"doctor","ytdlp":null,"ytdlp_method":null,"ffmpeg":null,"ffprobe":false,"mutagen":false,"python":"3.11.2","video_dir":"/v","audio_dir":"/a","root_bound":false,"free_mb":null,"issues":["no_ytdlp","no_ffmpeg"]}"""),
+        DownloadEvent.Doctor(null, null, null, false, false, "3.11.2", "/v", "/a", false, null, listOf("no_ytdlp", "no_ffmpeg")))
+    val updLine = """{"v":1,"ev":"update","status":"ok","method":"pip","before":"2026.10.01","after":"2026.10.26","msg":"diperbarui"}"""
+    eq("update", p(updLine), DownloadEvent.Update("ok", "pip", "2026.10.01", "2026.10.26", "diperbarui"))
+    eq("update gagal", p("""{"v":1,"ev":"update","status":"failed","method":null,"before":null,"after":null,"msg":"pip tidak ada"}"""),
+        DownloadEvent.Update("failed", null, null, null, "pip tidak ada"))
+    val ds = DownloadReducer.reduce(DownloadReducer.reduce(DownloadSessionState(), p(docLine)!!), p(updLine)!!)
+    check("reducer doctor/update", ds.doctor?.ytdlpVersion == "2026.10.26" && ds.update?.status == "ok" && !ds.finished && ds.items.isEmpty())
+    eq("stage subs/cover dikenal", p("""{"v":1,"ev":"stage","i":1,"stage":"subs"}"""), DownloadEvent.Stage(1, "subs"))
+
     println(if (failed == 0) "OK: $total pemeriksaan lulus" else "GAGAL: $failed dari $total")
     if (failed != 0) kotlin.system.exitProcess(1)
 }

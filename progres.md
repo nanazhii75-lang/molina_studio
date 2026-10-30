@@ -2125,3 +2125,18 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Uji perangkat: ekstrak .iso/.cab/.rar nyata via proot asli di Android 8; RAR nyata belum pernah diuji; lisensi RAR rootfs belum dicek
 - [ ] Pemeriksaan ruang kosong di awal untuk jalur Debian (teruskan totalSize dari daftar) belum
 - [ ] Berikutnya: uji arsip (7z t) dan edit/buat 7z bersandi + enkripsi nama via Debian
+
+## 2026-10-30 - molina_dl v5: doctor, update yt-dlp, subtitle, sampul audio, limit-rate [DL-PKG1]
+- [x] feat(dl): --doctor (event `doctor`: versi yt-dlp/ffmpeg, ffprobe, mutagen, folder, ruang kosong, kode masalah) dan --update-ytdlp (event `update`: start/ok/latest/failed; pipx upgrade atau pip install -U; coba ulang tanpa --break-system-packages untuk pip lama; mendeteksi PATH yang masih memakai yt-dlp lama)
+- [x] feat(dl): --subs id,en [--subs-mode embed|file]; embed = mov_text (MP4) / bawaan (MKV) tanpa sisa berkas .srt (--compat-options no-keep-subs); file = .srt di samping video dan ikut dilaporkan di event `done`; peringatan `no_subs` bila bahasa tidak tersedia
+- [x] fix(dl): ensure_compat (recode H.264/AAC) tidak lagi membuang aliran subtitle (-map 0:s? + -c:s mov_text)
+- [x] feat(dl): audio otomatis menyematkan sampul (jpg) + tag judul/artis untuk MP3; M4A/FLAC butuh mutagen (atau AtomicParsley untuk M4A), bila tidak ada: peringatan `no_cover` dan audio tetap diunduh; --no-cover untuk menonaktifkan; stage baru `subs` dan `cover`
+- [x] feat(dl): --limit-rate (500K, 2M); menu interaktif: Periksa lingkungan, Perbarui yt-dlp, pilihan subtitle
+- [x] feat(core): DownloadEvent.Doctor/Update + parser, DownloadReducer (state.doctor/state.update), DownloadRequest(subs, subsMode, cover, limitRate) + validasi ketat, DownloadCommand.doctorArgs/updateArgs; label stage subs/cover di UnduhanScreen
+- [x] Uji sandbox: run.sh 51+, run_ui.sh, run_feed.sh, run_history.sh lulus; test_molina_dl.py 26 uji lulus (unit + integrasi nyata yt-dlp/ffmpeg vs server lokal: subtitle embed/file/recode, sampul MP3, --no-cover, limit-rate, doctor, update dengan pip palsu)
+- [x] Dampak: skrip aset + core/common + 1 string di UnduhanScreen; Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh; protokol tetap v1 (event baru diabaikan parser lama)
+- [ ] CI belum dijalankan; Compose (UnduhanScreen) belum dikompilasi di sandbox
+- [ ] UI belum: tombol Doctor/Perbarui yt-dlp (butuh mode perawatan di DownloadRunner), pilihan subtitle/sampul/batas kecepatan di form Unduhan
+- [ ] DownloadChoices/Ulangi belum membawa subs/cover/limitRate (Ulangi memakai bawaan)
+- [ ] Uji perangkat Android 8 arm64 (proot asli, yt-dlp apt Debian, YouTube nyata) belum; sampul tidak dipotong persegi (yt-dlp melewati konversi bila thumbnail sudah jpg), sebaiknya ContentScale.Crop di Molina Player
+- [ ] Berikutnya: playlist terkontrol, preset profil, --download-archive, --section, event pemindaian media (MediaScannerConnection), sidecar poster/info.json untuk Molina Cinema

@@ -1,0 +1,235 @@
+diff --git a/app/src/main/java/com/molina/studio/cinema/ArchiveExtractDialog.kt b/app/src/main/java/com/molina/studio/cinema/ArchiveExtractDialog.kt
+index 750718a..58c3953 100644
+--- a/app/src/main/java/com/molina/studio/cinema/ArchiveExtractDialog.kt
++++ b/app/src/main/java/com/molina/studio/cinema/ArchiveExtractDialog.kt
+@@ -26,6 +26,7 @@ import androidx.compose.runtime.setValue
+ import androidx.compose.ui.Alignment
+ import androidx.compose.ui.Modifier
+ import androidx.compose.ui.graphics.Color
++import androidx.compose.ui.platform.LocalContext
+ import androidx.compose.ui.text.style.TextOverflow
+ import androidx.compose.ui.unit.dp
+ import androidx.compose.ui.unit.sp
+@@ -78,7 +79,7 @@ private fun ArcOption(on: Boolean, label: String, note: String, onClick: () -> U
+ }
+ 
+ /**
+- * [ARCHIVE] Dialog ekstrak untuk semua format yang didukung [ArchiveEngine]: pilih tujuan (di sini / folder bernama arsip)
++ * [ARCHIVE] Dialog ekstrak untuk semua format yang didukung [ArchiveRoute] ([ArchiveEngine] atau 7z di Debian): pilih tujuan (di sini / folder bernama arsip)
+  * dan, bila mau, centang entri untuk ekstrak sebagian. Daftar dibaca di thread IO; arsip berkata sandi memanggil
+  * [onNeedPassword] (pemanggil menampilkan dialog sandi lalu membuka dialog ini lagi dengan [password]).
+  */
+@@ -90,7 +91,10 @@ internal fun ArchiveExtractDialog(
+     onClose: () -> Unit,
+     onExtract: (ExtractTarget, Set<String>?) -> Unit
+ ) {
+-    val fmt = remember(file) { ArchiveNames.detect(file.name) }
++    val ctx = LocalContext.current
++    val fmtLabel = remember(file) { ArchiveRoute.label(file.name) } // [ARCHIVE5]
++    val canPw = remember(file) { ArchiveRoute.canPassword(file.name) }
++    val viaDebian = remember(file) { ArchiveRoute.viaDebian(file.name) }
+     var listing by remember(file, password) { mutableStateOf<FileOps.ZipListing?>(null) }
+     var err by remember(file, password) { mutableStateOf<String?>(null) }
+     var target by remember(file) { mutableStateOf(ExtractTarget.NAMED_FOLDER) }
+@@ -99,7 +103,7 @@ internal fun ArchiveExtractDialog(
+     val keys = remember(file) { mutableStateListOf<String>() }
+ 
+     LaunchedEffect(file, password) {
+-        val r = withContext(Dispatchers.IO) { runCatching { ArchiveEngine.list(file, password) } }
++        val r = withContext(Dispatchers.IO) { runCatching { ArchiveOps.list(ctx, file, password) } }
+         val ex = r.exceptionOrNull()
+         when {
+             ex is FileOps.NeedPassword -> onNeedPassword(false)
+@@ -107,13 +111,13 @@ internal fun ArchiveExtractDialog(
+             ex != null -> err = ex.message ?: ex.javaClass.simpleName
+             else -> {
+                 val l = r.getOrNull()
+-                if (l != null && l.encrypted && password == null && fmt?.hasPassword == true) onNeedPassword(false) else listing = l
++                if (l != null && l.encrypted && password == null && canPw) onNeedPassword(false) else listing = l
+             }
+         }
+     }
+ 
+     val l = listing
+-    val title = "Ekstrak " + (fmt?.label ?: "arsip")
++    val title = "Ekstrak " + (fmtLabel ?: "arsip")
+     W7Panel(title, onClose) {
+         Text(file.name, color = Win7.Ink, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+         Spacer(Modifier.height(2.dp))
+@@ -134,8 +138,9 @@ internal fun ArchiveExtractDialog(
+                         (if (l.truncated) " (daftar dipotong)" else "") + (if (l.encrypted) ", berkata sandi" else ""),
+                     color = Win7.TextDim, fontSize = 11.sp
+                 )
++                if (viaDebian) Text("Dibuka lewat 7z di Debian (Molina Terminal)", color = Win7.TextDim, fontSize = 11.sp)
+                 Spacer(Modifier.height(8.dp))
+-                ArcOption(target == ExtractTarget.NAMED_FOLDER, "Ke folder \"" + ArchiveNames.folderName(file.name) + "\"", "Buat folder baru bernama arsip") {
++                ArcOption(target == ExtractTarget.NAMED_FOLDER, "Ke folder \"" + ArchiveRoute.folderName(file.name) + "\"", "Buat folder baru bernama arsip") {
+                     target = ExtractTarget.NAMED_FOLDER
+                 }
+                 ArcOption(target == ExtractTarget.HERE, "Di sini", "Langsung ke folder ini; berkas yang sudah ada tidak ditimpa") {
+diff --git a/app/src/main/java/com/molina/studio/cinema/ArchiveOps.kt b/app/src/main/java/com/molina/studio/cinema/ArchiveOps.kt
+new file mode 100644
+index 0000000..ef7daa9
+--- /dev/null
++++ b/app/src/main/java/com/molina/studio/cinema/ArchiveOps.kt
+@@ -0,0 +1,22 @@
++package com.molina.studio.cinema
++
++import android.content.Context
++import java.io.File
++
++/**
++ * [ARCHIVE5] Penghubung UI -> mesin arsip. Memilih [ArchiveEngine] atau [DebianArchive] lewat [ArchiveRoute];
++ * bentuk hasil dan galat identik sehingga dialog dan runOp tidak perlu tahu mesin mana yang bekerja.
++ * Blocking: panggil dari Dispatchers.IO.
++ */
++internal object ArchiveOps {
++    fun list(ctx: Context, file: File, password: String? = null): FileOps.ZipListing =
++        if (ArchiveRoute.viaDebian(file.name)) DebianArchive(ctx).list(file, password)
++        else ArchiveEngine.list(file, password)
++
++    fun extract(
++        ctx: Context, file: File, destDir: File, target: ExtractTarget, ctl: FileOps.Ctl,
++        password: String? = null, only: Set<String>? = null,
++    ): ExtractResult =
++        if (ArchiveRoute.viaDebian(file.name)) DebianArchive(ctx).extract(file, destDir, target, ctl, password, only)
++        else ArchiveEngine.extract(file, destDir, target, ctl, password, only)
++}
+diff --git a/app/src/main/java/com/molina/studio/cinema/ArchiveRoute.kt b/app/src/main/java/com/molina/studio/cinema/ArchiveRoute.kt
+new file mode 100644
+index 0000000..131b5b1
+--- /dev/null
++++ b/app/src/main/java/com/molina/studio/cinema/ArchiveRoute.kt
+@@ -0,0 +1,22 @@
++package com.molina.studio.cinema
++
++/**
++ * [ARCHIVE5] Keputusan satu pintu: berkas ini arsip? lewat mesin mana? Murni (tanpa Android) supaya bisa diuji JVM.
++ * Mesin bawaan ([ArchiveEngine]: ZIP, 7z, tar, gz/bz2/xz) SELALU didahulukan; [DebianFormats] hanya untuk sisanya
++ * (RAR, ISO, CAB, multi-bagian, ...). Dengan begitu perilaku format lama tidak berubah sama sekali.
++ */
++internal object ArchiveRoute {
++    fun supports(name: String): Boolean = ArchiveNames.detect(name) != null || DebianFormats.supports(name)
++
++    /** True bila berkas hanya bisa dibuka lewat 7z di Debian. */
++    fun viaDebian(name: String): Boolean = ArchiveNames.detect(name) == null && DebianFormats.supports(name)
++
++    /** Label format untuk judul dialog ("7Z", "RAR", ...), atau null bila bukan arsip. */
++    fun label(name: String): String? = ArchiveNames.detect(name)?.label ?: DebianFormats.detect(name)?.label
++
++    /** Nama subfolder tujuan ekstrak. */
++    fun folderName(name: String): String = if (viaDebian(name)) DebianFormats.folderName(name) else ArchiveNames.folderName(name)
++
++    /** Apakah dialog perlu menawarkan kata sandi bila isi terenkripsi. Format Debian (RAR/7z/ZIP multi-bagian) bisa berkata sandi. */
++    fun canPassword(name: String): Boolean = ArchiveNames.detect(name)?.hasPassword ?: DebianFormats.supports(name)
++}
+diff --git a/app/src/main/java/com/molina/studio/cinema/DebianArchive.kt b/app/src/main/java/com/molina/studio/cinema/DebianArchive.kt
+index 5142d07..def1987 100644
+--- a/app/src/main/java/com/molina/studio/cinema/DebianArchive.kt
++++ b/app/src/main/java/com/molina/studio/cinema/DebianArchive.kt
+@@ -65,6 +65,7 @@ internal class DebianArchive(context: Context) {
+      * Tautan dilewati (seperti tar). Arsip dengan nama terenkripsi tanpa [password] melempar [FileOps.NeedPassword].
+      */
+     fun list(file: File, password: String? = null, cancelled: () -> Boolean = { false }): FileOps.ZipListing {
++        DebianFormats.detect(file.name)?.let { if (!it.firstVolume) throw IOException(DebianFormats.NOT_FIRST_HINT) }
+         val bin = readyBinary()
+         val srcDir = sourceDir(file)
+         val rootfs = RootfsManager.rootfsDir(app)
+diff --git a/app/src/main/java/com/molina/studio/cinema/Win7OpenDialog.kt b/app/src/main/java/com/molina/studio/cinema/Win7OpenDialog.kt
+index c4e8aaa..dfe1111 100644
+--- a/app/src/main/java/com/molina/studio/cinema/Win7OpenDialog.kt
++++ b/app/src/main/java/com/molina/studio/cinema/Win7OpenDialog.kt
+@@ -365,7 +365,7 @@ fun Win7OpenDialog(
+                 say(if (ok) "Memutar di mpv: " + f.name else "Gagal memutar " + f.name, ok)
+             }
+             f.extension.equals("zip", ignoreCase = true) -> sheet = W7Sheet.ZipView(f)
+-            f.isFile && ArchiveNames.detect(f.name) != null -> sheet = W7Sheet.Archive(f, null) // [ARCHIVE]
++            f.isFile && ArchiveRoute.supports(f.name) -> sheet = W7Sheet.Archive(f, null) // [ARCHIVE]
+             code != null && ExplorerList.looksText(f) -> code(listOf(f))
+             onOpenWith != null && f.isFile -> onOpenWith?.invoke(f)
+             else -> say("Tidak ada aplikasi Molina untuk membuka jenis berkas ini. Pakai menu Alat untuk menyalin atau mengompres.")
+@@ -477,7 +477,7 @@ fun Win7OpenDialog(
+             val apw = s.pw
+             val d = a.parentFile?.takeIf { it.isDirectory && it.canWrite() } ?: dir
+             runOp(
+-                op = { ctl -> ArchiveEngine.extract(a, d, exTarget, ctl, apw, exOnly).describe() },
++                op = { ctl -> ArchiveOps.extract(ctx, a, d, exTarget, ctl, apw, exOnly).describe() },
+                 onFail = {
+                     if (it is FileOps.NeedPassword) { say(""); sheet = W7Sheet.ArchivePw(a, false) }
+                     else if (it is FileOps.WrongPassword) { say(""); sheet = W7Sheet.ArchivePw(a, true) }
+@@ -739,7 +739,7 @@ fun Win7OpenDialog(
+                                     }
+                                     W7MenuItem(
+                                         W7Ico.UNZIP, "Ekstrak arsip",
+-                                        one != null && one.isFile && ArchiveNames.detect(one.name) != null
++                                        one != null && one.isFile && ArchiveRoute.supports(one.name)
+                                     ) { // [ARCHIVE] ZIP tetap lewat jalur lama; format lain lewat ArchiveEngine
+                                         toolsOpen = false
+                                         if (one != null) {
+@@ -751,7 +751,7 @@ fun Win7OpenDialog(
+                                                 )
+                                             } else {
+                                                 runOp(
+-                                                    op = { ctl -> ArchiveEngine.extract(one, d, ExtractTarget.NAMED_FOLDER, ctl).describe() },
++                                                    op = { ctl -> ArchiveOps.extract(ctx, one, d, ExtractTarget.NAMED_FOLDER, ctl).describe() },
+                                                     onFail = { if (it is FileOps.NeedPassword) { say(""); sheet = W7Sheet.ArchivePw(one, false) } }
+                                                 )
+                                             }
+@@ -759,7 +759,7 @@ fun Win7OpenDialog(
+                                     }
+                                     W7MenuItem(
+                                         W7Ico.UNZIP, "Ekstrak pilihan\u2026",
+-                                        one != null && one.isFile && ArchiveNames.detect(one.name) != null
++                                        one != null && one.isFile && ArchiveRoute.supports(one.name)
+                                     ) { // [ARCHIVE] pilih tujuan dan entri
+                                         toolsOpen = false
+                                         if (one != null) sheet = W7Sheet.Archive(one, null)
+@@ -888,7 +888,7 @@ fun Win7OpenDialog(
+                         val dkMedia = onPlay != null && dkFiles.isNotEmpty() && dkFiles.all { it.isFile && it.extension.lowercase() in W7_MEDIA }
+                         val dkText = !dkMedia && onOpenInCode != null && dkFiles.size == 1 && dkFiles[0].isFile && ExplorerList.looksText(dkFiles[0])
+                         val dkZip = !dkMedia && !dkText && dkFiles.size == 1 && dkFiles[0].isFile && dkFiles[0].extension.equals("zip", ignoreCase = true)
+-                        val dkArc = !dkMedia && !dkText && !dkZip && dkFiles.size == 1 && dkFiles[0].isFile && ArchiveNames.detect(dkFiles[0].name) != null // [ARCHIVE]
++                        val dkArc = !dkMedia && !dkText && !dkZip && dkFiles.size == 1 && dkFiles[0].isFile && ArchiveRoute.supports(dkFiles[0].name) // [ARCHIVE]
+                         W7BrowseDock(
+                             files = dkFiles,
+                             isDir = if (selected == null || multi) null else selected!!.isDir,
+diff --git a/scripts/app-tests/DebianArchiveStagingTests.kt b/scripts/app-tests/DebianArchiveStagingTests.kt
+index d8625e9..dca6f6c 100644
+--- a/scripts/app-tests/DebianArchiveStagingTests.kt
++++ b/scripts/app-tests/DebianArchiveStagingTests.kt
+@@ -104,6 +104,17 @@ fun main() {
+     check("roomError: wajar OK", DebianArchiveStaging.roomError(rd, 1024) == null)
+     check("roomError: terlalu besar", DebianArchiveStaging.roomError(rd, Long.MAX_VALUE / 4) != null)
+ 
++    // ---- [ARCHIVE5] ArchiveRoute: mesin bawaan selalu didahulukan, Debian hanya untuk sisanya
++    val nativeNames = listOf("a.zip", "a.7z", "a.tar", "a.tar.gz", "a.tgz", "a.tar.bz2", "a.tar.xz", "a.txz", "a.gz", "a.bz2", "a.xz", "A.ZIP", "B.7Z")
++    check("route: format bawaan TIDAK lewat Debian", nativeNames.all { ArchiveRoute.supports(it) && !ArchiveRoute.viaDebian(it) })
++    val debNames = listOf("a.rar", "a.iso", "a.cab", "a.wim", "a.deb", "a.rpm", "a.dmg", "x.7z.001", "x.zip.001", "x.part1.rar", "x.part2.rar")
++    check("route: format Debian lewat Debian", debNames.all { ArchiveRoute.supports(it) && ArchiveRoute.viaDebian(it) })
++    check("route: bukan arsip", listOf("a.txt", "a.mp4", "a.kt", "a", "a.001", ".rar", "a.7z.01").none { ArchiveRoute.supports(it) })
++    check("route: label", ArchiveRoute.label("a.tar.gz") == "TAR.GZ" && ArchiveRoute.label("a.rar") == "RAR" && ArchiveRoute.label("x.7z.001") == "7Z" && ArchiveRoute.label("a.txt") == null)
++    check("route: folderName", ArchiveRoute.folderName("Film.part1.rar") == "Film" && ArchiveRoute.folderName("a.tar.gz") == "a" && ArchiveRoute.folderName("notes.txt.gz") == "notes" && ArchiveRoute.folderName("d.iso") == "d")
++    check("route: canPassword", ArchiveRoute.canPassword("a.zip") && ArchiveRoute.canPassword("a.7z") && !ArchiveRoute.canPassword("a.tar.gz") && ArchiveRoute.canPassword("a.rar") && !ArchiveRoute.canPassword("a.txt"))
++    check("route: tumpang tindih tidak ada (tak satu pun nama bawaan dikenal Debian)", nativeNames.none { DebianFormats.supports(it) })
++
+     println(if (fails == 0) "SEMUA LULUS" else "$fails GAGAL")
+     if (fails > 0) System.exit(1)
+ }
+diff --git a/scripts/app-tests/run_debian_archive_staging.sh b/scripts/app-tests/run_debian_archive_staging.sh
+index 612d658..d28a2fb 100644
+--- a/scripts/app-tests/run_debian_archive_staging.sh
++++ b/scripts/app-tests/run_debian_archive_staging.sh
+@@ -1,5 +1,5 @@
+ #!/usr/bin/env bash
+-# Uji JVM murni untuk DebianFormats + DebianArchiveStaging (staging, audit, commit, rollback) di :app.
++# Uji JVM murni untuk DebianFormats + DebianArchiveStaging (staging, audit, commit, rollback) + ArchiveRoute di :app.
+ # Butuh kotlinc (>= 2.1) di PATH atau KOTLINC=/jalur/kotlinc.
+ set -euo pipefail
+ cd "$(dirname "$0")/../.."
+@@ -7,5 +7,5 @@ KC="${KOTLINC:-kotlinc}"
+ OUT="$(mktemp -d)"
+ trap 'rm -rf "$OUT"' EXIT
+ C=app/src/main/java/com/molina/studio/cinema
+-"$KC" -nowarn -d "$OUT" $C/ArchiveNames.kt $C/DebianArchiveStaging.kt scripts/app-tests/DebianArchiveStagingTests.kt 2>&1 | grep -v '^$' || true
++"$KC" -nowarn -d "$OUT" $C/ArchiveNames.kt $C/DebianArchiveStaging.kt $C/ArchiveRoute.kt scripts/app-tests/DebianArchiveStagingTests.kt 2>&1 | grep -v '^$' || true
+ java -cp "$OUT:$(dirname "$(command -v "$KC")")/../lib/kotlin-stdlib.jar" com.molina.studio.cinema.DebianArchiveStagingTestsKt

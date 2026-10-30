@@ -1,0 +1,809 @@
+#!/usr/bin/env python3
+"""Molina DL v3 - pengunduh video/audio (backend: yt-dlp).
+
+Instalasi dependensi di Debian (Molina Terminal):
+    apt update && apt install -y python3 ffmpeg yt-dlp
+Alternatif bila paket yt-dlp di apt terlalu lama:
+    apt install -y pipx && pipx install yt-dlp && pipx ensurepath
+
+Mode interaktif (menu, antrian banyak URL, bar progres):
+    python3 molina_dl.py
+
+Mode non-interaktif (dipakai halaman Unduhan native; stdout hanya berisi JSON, satu objek per baris):
+    python3 molina_dl.py --json URL [URL ...] [--mode video|audio] [--height 720] [--ext mp4|mkv]
+                         [--audio-format mp3|m4a|flac] [--bitrate 128k|192k|320k] [--dir FOLDER]
+    python3 molina_dl.py --info --json URL      (hanya metadata + daftar resolusi)
+    python3 molina_dl.py --version
+
+Kode keluar: 0 semua berhasil, 1 ada yang gagal, 2 galat penggunaan/lingkungan, 130 dibatalkan.
+
+Kontrak event JSON (v=1), tiap baris satu objek dengan kunci "v" dan "ev":
+    hello    {script, version}                      awal sesi
+    warn     {code, msg}                            mis. dir_fallback, low_space, no_ffmpeg
+    queue    {total}                                jumlah URL
+    item     {i, n, url}                            item i dari n mulai
+    info     {i, title, id, duration, uploader, thumbnail, heights}
+    progress {i, stream, pct, done, total, speed, eta}   stream = video|audio|single; pct/total bisa null
+    stage    {i, stage}                             merge | extract
+    done     {i, dir, files:[{name, path, size}], existed}
+    error    {i, code, msg}                         i = 0 untuk galat global
+    summary  {ok, failed, cancelled}                akhir sesi
+
+Folder simpan (mengikuti struktur penyimpanan Molina):
+    Video -> /sdcard/Molina/Media/Video
+    Audio -> /sdcard/Molina/Media/Audio
+Environment (opsional):
+    MOLINA_ROOT    akar folder aplikasi (bawaan /sdcard/Molina)
+    MOLINA_DL_DIR  satu folder untuk video DAN audio (menimpa semuanya; --dir lebih utama)
+    MOLINA_DL_ASCII=1  bar ASCII tanpa karakter blok;   NO_COLOR=1  tanpa warna
+Bila /sdcard/Molina tidak terlihat di Debian (belum di-bind), skrip memakai folder cadangan
+/sdcard/molina-studio/unduhan/{Video,Audio}, atau ~/unduhan/{Video,Audio}, dan memberi peringatan.
+"""
+import argparse
+import json
+import os
+import re
+import shutil
+import signal
+import subprocess
+import sys
+import time
+
+SCRIPT_NAME = "molina_dl"
+SCRIPT_VERSION = 3
+PROTOCOL = 1
+
+URL_RE = re.compile(r"^https?://[^\s/$.?#][^\s]*$", re.IGNORECASE)
+VIDEO_EXTS = ("mp4", "mkv")
+AUDIO_FORMATS = ("mp3", "m4a", "flac")
+BITRATES = ("128k", "192k", "320k")
+FALLBACK_HEIGHTS = (1080, 720, 480, 360)
+DEFAULT_ROOT = "/sdcard/Molina"
+LEGACY_BASE = "/sdcard/molina-studio/unduhan"
+MIN_FREE_MB = 500
+
+PROGRESS_TEMPLATE = ("download:MDL|%(progress.status)s|%(progress.downloaded_bytes)s|"
+                     "%(progress.total_bytes)s|%(progress.total_bytes_estimate)s|"
+                     "%(progress.speed)s|%(progress.eta)s|%(info.vcodec)s|%(info.acodec)s")
+PP_TEMPLATE = "postprocess:MDLPP|%(progress.status)s|%(progress.postprocessor)s"
+FILE_PRINT = "after_move:MDLFILE|%(filepath)s"
+PP_STAGES = {"Merger": "merge", "ExtractAudio": "extract"}
+
+
+# ---------------------------------------------------------------- format angka
+
+def human_size(n):
+    if n is None:
+        return "?"
+    n = float(n)
+    for unit in ("B", "KB", "MB", "GB"):
+        if n < 1024 or unit == "GB":
+            return f"{n:.0f} {unit}" if unit == "B" else f"{n:.1f} {unit}"
+        n /= 1024
+
+
+def human_speed(bps):
+    return "--" if not bps else human_size(bps).replace(" ", "") + "/s"
+
+
+def human_eta(sec):
+    if sec is None:
+        return "--:--"
+    sec = int(sec)
+    h, rem = divmod(sec, 3600)
+    m, s = divmod(rem, 60)
+    return f"{h}:{m:02d}:{s:02d}" if h else f"{m}:{s:02d}"
+
+
+def to_num(text):
+    """Angka dari kolom template yt-dlp; 'NA'/kosong -> None."""
+    try:
+        v = float(text)
+    except (TypeError, ValueError):
+        return None
+    return v if v == v else None  # tolak NaN
+
+
+# ---------------------------------------------------------------- pelapor
+
+class JsonReporter:
+    """stdout = NDJSON murni. Tidak ada teks manusia di stdout."""
+    interactive = False
+
+    def __init__(self):
+        self._last = {}
+
+    def emit(self, ev, **fields):
+        obj = {"v": PROTOCOL, "ev": ev}
+        obj.update(fields)
+        sys.stdout.write(json.dumps(obj, ensure_ascii=False, separators=(",", ":")) + "\n")
+        sys.stdout.flush()
+
+    def hello(self):
+        self.emit("hello", script=SCRIPT_NAME, version=SCRIPT_VERSION)
+
+    def warn(self, code, msg):
+        self.emit("warn", code=code, msg=msg)
+
+    def queue(self, total):
+        self.emit("queue", total=total)
+
+    def item(self, i, n, url):
+        self.emit("item", i=i, n=n, url=url)
+
+    def info(self, i, info):
+        self.emit("info", i=i, **info_fields(info))
+
+    def progress(self, i, stream, pct, done, total, speed, eta, final=False):
+        now = time.monotonic()
+        key = (i, stream)
+        last = self._last.get(key)
+        if not final and last and now - last < 0.5:
+            return
+        self._last[key] = now
+        self.emit("progress", i=i, stream=stream,
+                  pct=None if pct is None else round(pct, 1),
+                  done=None if done is None else int(done),
+                  total=None if total is None else int(total),
+                  speed=None if speed is None else int(speed),
+                  eta=None if eta is None else int(eta))
+
+    def stage(self, i, stage):
+        self.emit("stage", i=i, stage=stage)
+
+    def done(self, i, outdir, files, existed):
+        self.emit("done", i=i, dir=outdir, existed=existed,
+                  files=[{"name": n, "path": p, "size": s} for n, p, s in files])
+
+    def error(self, i, code, msg):
+        self.emit("error", i=i, code=code, msg=msg)
+
+    def summary(self, ok, failed, cancelled):
+        self.emit("summary", ok=ok, failed=failed, cancelled=cancelled)
+
+    def note(self, text):  # teks bebas tidak dikirim di mode JSON
+        pass
+
+    def finish_line(self):
+        pass
+
+
+class TextReporter:
+    """UI terminal: bar emas gaya IDM, satu baris per aliran, mundur ke cetak per 10% bila bukan TTY."""
+    interactive = True
+
+    def __init__(self):
+        self.tty = sys.stdout.isatty()
+        self.color = self.tty and not os.environ.get("NO_COLOR")
+        enc = (sys.stdout.encoding or "").lower()
+        self.ascii = bool(os.environ.get("MOLINA_DL_ASCII")) or not enc.startswith("utf")
+        self._open = False      # ada baris bar yang belum diakhiri newline
+        self._stream = None
+        self._last_draw = 0.0
+        self._decile = {}
+
+    # -- util tampilan
+    def _c(self, code, text):
+        return f"\x1b[{code}m{text}\x1b[0m" if self.color else text
+
+    def _cols(self):
+        return shutil.get_terminal_size((50, 24)).columns
+
+    def finish_line(self):
+        if self._open:
+            sys.stdout.write("\n")
+            sys.stdout.flush()
+            self._open = False
+
+    def note(self, text):
+        self.finish_line()
+        print(text)
+        sys.stdout.flush()
+
+    # -- API pelapor
+    def hello(self):
+        pass
+
+    def warn(self, code, msg):
+        self.note(f"Peringatan: {msg}")
+
+    def queue(self, total):
+        if total > 1:
+            self.note(f"\nAntrian: {total} URL")
+
+    def item(self, i, n, url):
+        self._stream = None
+        self.note(f"\n[{i}/{n}] {url}" if n > 1 else "\nMemeriksa URL...")
+
+    def info(self, i, info):
+        self.note(f"Judul: {info.get('title') or '(tanpa judul)'}")
+
+    def stage(self, i, stage):
+        self.note({"merge": "Menggabungkan video + audio...", "extract": "Mengonversi audio...",
+                                       "recode": "Menyesuaikan ke H.264/AAC (kompatibel WhatsApp)..."}.get(stage, stage))
+
+    def progress(self, i, stream, pct, done, total, speed, eta, final=False):
+        label = {"video": "Video", "audio": "Audio"}.get(stream, "Data ")
+        if self._stream != stream:
+            self.finish_line()
+            self._stream = stream
+            self._decile.pop(stream, None)
+        if not self.tty:
+            tens = int((pct or 0) // 10)
+            if final or tens > self._decile.get(stream, -1):
+                self._decile[stream] = tens
+                p = "100" if final else f"{int(pct or 0)}"
+                print(f"{label} {p}% {human_speed(speed)} ETA {human_eta(eta)}")
+                sys.stdout.flush()
+            return
+        now = time.monotonic()
+        if not final and now - self._last_draw < 0.1:
+            return
+        self._last_draw = now
+        cols = self._cols()
+        wide = cols >= 70
+        width = max(8, min(30, cols - 30 - (16 if wide else 0)))
+        fill_n = int(width * min(max(pct or 0, 0), 100) / 100)
+        full, empty = ("#", "-") if self.ascii else ("\u2588", "\u2591")
+        bar = self._c("38;5;178", full * fill_n) + self._c("38;5;240", empty * (width - fill_n))
+        pct_txt = f"{pct:5.1f}%" if pct is not None else "  --.-%"
+        line = f"{label} {bar} {self._c('38;5;178', pct_txt)} {human_speed(speed):>9} {human_eta(eta):>5}"
+        if wide:
+            line += f" {human_size(done)}/{human_size(total) if total else '?'}"
+        sys.stdout.write("\r" + line + "\x1b[K")
+        sys.stdout.flush()
+        self._open = True
+        if final:
+            self.finish_line()
+
+    def done(self, i, outdir, files, existed):
+        self.finish_line()
+        print(f"Selesai! Folder: {outdir}")
+        if existed and not files:
+            print("Berkas ini sudah ada, tidak diunduh ulang.")
+        for name, _path, size in files:
+            print(f"  - {name} ({human_size(size)})")
+        sys.stdout.flush()
+
+    def error(self, i, code, msg):
+        self.finish_line()
+        print(f"Galat: {msg}")
+        sys.stdout.flush()
+
+    def summary(self, ok, failed, cancelled):
+        if cancelled:
+            self.note("Dibatalkan oleh pengguna. Berkas sebagian (.part) dilanjutkan bila URL yang sama diunduh lagi.")
+        elif ok + failed > 1:
+            self.note(f"\nRingkasan: {ok} berhasil, {failed} gagal.")
+
+
+def info_fields(info):
+    thumb = info.get("thumbnail")
+    return {
+        "title": info.get("title"),
+        "id": info.get("id"),
+        "duration": info.get("duration"),
+        "uploader": info.get("uploader") or info.get("channel"),
+        "thumbnail": thumb if isinstance(thumb, str) else None,
+        "heights": available_heights(info),
+    }
+
+
+# ---------------------------------------------------------------- util input
+
+def ask(prompt):
+    """input() yang mengembalikan None saat Ctrl+D (EOF) atau Ctrl+C."""
+    try:
+        return input(prompt).strip()
+    except (EOFError, KeyboardInterrupt):
+        print()
+        return None
+
+
+def choose(title, options, default=1):
+    """Daftar bernomor; kembalikan indeks (0-based) atau None bila dibatalkan."""
+    print(f"\n{title}")
+    for i, label in enumerate(options, 1):
+        print(f"  {i}. {label}")
+    while True:
+        raw = ask(f"Pilih [1-{len(options)}] (Enter = {default}, 0 = batal): ")
+        if raw is None or raw == "0":
+            return None
+        if raw == "":
+            return default - 1
+        if raw.isdigit() and 1 <= int(raw) <= len(options):
+            return int(raw) - 1
+        print("Pilihan tidak valid.")
+
+
+# ---------------------------------------------------------------- lingkungan
+
+def find_ytdlp():
+    """Perintah dasar yt-dlp: binary di PATH, atau modul python bila terpasang lewat pip."""
+    exe = shutil.which("yt-dlp")
+    if exe:
+        return [exe]
+    try:
+        import yt_dlp  # noqa: F401
+        return [sys.executable, "-m", "yt_dlp"]
+    except ImportError:
+        return None
+
+
+def ensure_dir(path):
+    try:
+        os.makedirs(path, exist_ok=True)
+        return os.access(path, os.W_OK)
+    except OSError:
+        return False
+
+
+def resolve_dirs(override=None):
+    """Kembalikan (folder_video, folder_audio, peringatan atau None).
+
+    Akar /sdcard/Molina dibuat oleh aplikasi, jadi TIDAK dibuat di sini: bila belum ada berarti
+    belum ter-bind ke Debian, dan membuatnya hanya menghasilkan folder tersembunyi di dalam rootfs.
+    """
+    custom = override or os.environ.get("MOLINA_DL_DIR")
+    if custom:
+        base = os.path.expanduser(custom)
+        if ensure_dir(base):
+            return base, base, None
+
+    root = os.environ.get("MOLINA_ROOT", DEFAULT_ROOT)
+    if os.path.isdir(root):
+        video = os.path.join(root, "Media", "Video")
+        audio = os.path.join(root, "Media", "Audio")
+        if ensure_dir(video) and ensure_dir(audio):
+            return video, audio, None
+
+    if os.path.isdir(os.path.dirname(LEGACY_BASE)):
+        base, where = LEGACY_BASE, "folder cadangan molina-studio/unduhan"
+    else:
+        base, where = os.path.expanduser("~/unduhan"), "folder cadangan ~/unduhan (tidak terlihat di Android)"
+    video, audio = os.path.join(base, "Video"), os.path.join(base, "Audio")
+    ensure_dir(video)
+    ensure_dir(audio)
+    warn = (f"{root} tidak terlihat dari Debian, jadi unduhan masuk ke {where}. "
+            "Aktifkan 'Akses penyimpanan penuh' di Setelan Terminal lalu buka sesi baru.")
+    return video, audio, warn
+
+
+def free_space_low(path):
+    try:
+        return shutil.disk_usage(path).free < MIN_FREE_MB * 1024 * 1024
+    except OSError:
+        return False
+
+
+# ---------------------------------------------------------------- yt-dlp
+
+def fetch_info(ytdlp, url):
+    """Metadata video. Mengembalikan (info, None) atau (None, (kode, pesan)). Sekaligus memvalidasi URL."""
+    try:
+        res = subprocess.run(
+            ytdlp + ["-J", "--no-playlist", "--no-warnings", url],
+            capture_output=True, text=True, timeout=90, stdin=subprocess.DEVNULL,
+        )
+    except subprocess.TimeoutExpired:
+        return None, ("timeout", "Waktu habis saat mengambil info. Periksa koneksi internet.")
+    if res.returncode != 0:
+        lines = [ln for ln in res.stderr.strip().splitlines() if ln.strip()]
+        reason = lines[-1] if lines else "URL tidak didukung atau koneksi bermasalah."
+        return None, ("info_failed", reason.replace("ERROR: ", ""))
+    try:
+        info = json.loads(res.stdout)
+    except json.JSONDecodeError:
+        return None, ("info_failed", "Respons yt-dlp tidak bisa dibaca.")
+    if info.get("_type") in ("playlist", "multi_video"):
+        return None, ("playlist", "URL ini berupa playlist/kanal. Gunakan URL satu video.")
+    return info, None
+
+
+def available_heights(info):
+    heights = {
+        f["height"] for f in info.get("formats", [])
+        if f.get("height") and f.get("vcodec") not in (None, "none")
+    }
+    return sorted(heights, reverse=True)[:8] or list(FALLBACK_HEIGHTS)
+
+
+def video_format(height, ext, has_ffmpeg):
+    """Selector format yt-dlp. MP4 diprioritaskan H.264+AAC agar bisa diputar di WhatsApp/HP lain."""
+    cap = f"[height<={height}]" if height else ""
+    if not has_ffmpeg:
+        return f"b{cap}/b"
+    if ext == "mp4":
+        return (f"bv*{cap}[vcodec^=avc1]+ba[acodec^=mp4a]/"
+                f"bv*{cap}[vcodec^=avc1]+ba[ext=m4a]/"
+                f"b{cap}[vcodec^=avc1][acodec^=mp4a]/"
+                f"bv*{cap}+ba/b{cap}")
+    return f"bv*{cap}+ba/b{cap}"
+
+
+def build_cmd(ytdlp, url, outdir, spec, has_ffmpeg):
+    cmd = ytdlp + [
+        "--no-playlist", "--quiet", "--no-warnings", "--progress", "--newline",
+        "--progress-template", PROGRESS_TEMPLATE,
+        "--progress-template", PP_TEMPLATE,
+        "--print", FILE_PRINT,
+        "--no-mtime",             # waktu berkas = waktu unduh, bukan tanggal unggah
+        "--windows-filenames",    # nama aman untuk storage bersama Android
+        "--retries", "10", "--fragment-retries", "10", "--concurrent-fragments", "4",
+        "-o", os.path.join(outdir, "%(title).150B [%(id)s].%(ext)s"),
+    ]
+    if has_ffmpeg:
+        cmd.append("--embed-metadata")
+    if has_ffmpeg and spec["mode"] == "video" and spec["ext"] == "mp4":
+        cmd += ["--ppa", "Merger+ffmpeg_o:-movflags +faststart"]
+    if spec["mode"] == "audio":
+        cmd += ["-f", "bestaudio/best", "-x", "--audio-format", spec["afmt"]]
+        if spec.get("bitrate") and spec["afmt"] != "flac":  # FLAC lossless: tanpa bitrate
+            cmd += ["--audio-quality", spec["bitrate"].upper()]
+    else:
+        cmd += ["-f", video_format(spec.get("height"), spec["ext"], has_ffmpeg)]
+        if has_ffmpeg:
+            cmd += ["--merge-output-format", spec["ext"]]
+    return cmd + [url]
+
+
+def stream_kind(vcodec, acodec):
+    novid = vcodec in (None, "", "NA", "none")
+    noaud = acodec in (None, "", "NA", "none")
+    if not novid:
+        return "video"
+    return "audio" if not noaud else "single"
+
+
+def classify_error(msg):
+    low = msg.lower()
+    if "no space" in low:
+        return "no_space"
+    if any(k in low for k in ("timed out", "temporary failure", "network", "connection", "unable to download")):
+        return "network"
+    if any(k in low for k in ("private", "sign in", "members-only", "not available in your country", "geo")):
+        return "restricted"
+    return "download_failed"
+
+
+def terminate(proc):
+    if proc.poll() is not None:
+        return
+    proc.terminate()
+    try:
+        proc.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        proc.wait()
+
+
+def run_item(ytdlp, rep, i, n, url, spec, outdir, has_ffmpeg, info=None):
+    """Unduh satu URL. Mengembalikan 'ok' | 'failed' | 'cancelled'."""
+    rep.item(i, n, url)
+    if info is None:
+        info, err = fetch_info(ytdlp, url)
+        if err:
+            rep.error(i, err[0], err[1])
+            return "failed"
+    rep.info(i, info)
+    if free_space_low(outdir):
+        rep.warn("low_space", f"Ruang kosong kurang dari {MIN_FREE_MB} MB, unduhan bisa gagal.")
+    before = snapshot(outdir)
+    cmd = build_cmd(ytdlp, url, outdir, spec, has_ffmpeg)
+    if rep.interactive:
+        rep.note("Mengunduh... (Ctrl+C untuk membatalkan)")
+    try:
+        proc = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT, text=True, bufsize=1, errors="replace")
+    except OSError as e:
+        rep.error(i, "spawn_failed", f"Gagal menjalankan yt-dlp: {e}")
+        return "failed"
+
+    files, last_err, last_stream, last_pct = [], "", None, {}
+    try:
+        for raw in proc.stdout:
+            line = raw.strip()
+            if line.startswith("MDL|"):
+                p = line.split("|")
+                if len(p) < 9:
+                    continue
+                downloaded, total, est = to_num(p[2]), to_num(p[3]), to_num(p[4])
+                total = total or est
+                finished = p[1] == "finished"
+                stream = stream_kind(p[7], p[8])
+                if finished and downloaded is None:
+                    downloaded = total
+                pct = 100.0 if finished else (downloaded / total * 100 if downloaded is not None and total else None)
+                last_stream = stream
+                last_pct[stream] = pct
+                rep.progress(i, stream, pct, downloaded, total, to_num(p[5]), to_num(p[6]), final=finished)
+            elif line.startswith("MDLPP|"):
+                p = line.split("|")
+                if len(p) >= 3 and p[1] == "started" and p[2] in PP_STAGES:
+                    rep.stage(i, PP_STAGES[p[2]])
+            elif line.startswith("MDLFILE|"):
+                files.append(line[len("MDLFILE|"):])
+            elif line.startswith("ERROR:"):
+                last_err = line[len("ERROR:"):].strip()
+        rc = proc.wait()
+    except KeyboardInterrupt:
+        terminate(proc)
+        raise
+    finally:
+        rep.finish_line()
+
+    if rc != 0:
+        msg = last_err or f"yt-dlp berhenti dengan kode {rc}. Periksa koneksi atau perbarui yt-dlp."
+        rep.error(i, classify_error(msg), msg)
+        return "failed"
+
+    result, seen = [], set()
+    for path in files:
+        if path in seen:
+            continue
+        seen.add(path)
+        try:
+            result.append((os.path.basename(path), path, os.path.getsize(path)))
+        except OSError:
+            pass
+    existed = any(name in before for name, _p, _s in result)
+    if not result:  # cadangan: selisih isi folder (mis. yt-dlp lama tanpa after_move)
+        for name in sorted(snapshot(outdir) - before):
+            if ".part" in name or name.endswith((".ytdl", ".temp")):
+                continue
+            path = os.path.join(outdir, name)
+            try:
+                result.append((name, path, os.path.getsize(path)))
+            except OSError:
+                pass
+        existed = not result
+    rep.done(i, outdir, result, existed)
+    return "ok"
+
+
+def probe_codecs(path):
+    """(vcodec, acodec, pix_fmt) via ffprobe; None bila tidak terbaca."""
+    try:
+        res = subprocess.run(
+            ["ffprobe", "-v", "error", "-show_entries", "stream=codec_type,codec_name,pix_fmt",
+             "-of", "json", path],
+            capture_output=True, text=True, timeout=30, stdin=subprocess.DEVNULL)
+        streams = json.loads(res.stdout).get("streams", [])
+    except (OSError, subprocess.TimeoutExpired, json.JSONDecodeError):
+        return None, None, None
+    v = next((s for s in streams if s.get("codec_type") == "video"), {})
+    a = next((s for s in streams if s.get("codec_type") == "audio"), {})
+    return v.get("codec_name"), a.get("codec_name"), v.get("pix_fmt")
+
+
+def ensure_compat(rep, i, name, path, size):
+    """Pastikan MP4 = H.264 + AAC + yuv420p + faststart. Konversi hanya bila perlu."""
+    if not path.lower().endswith(".mp4") or not shutil.which("ffprobe"):
+        return name, path, size
+    vcodec, acodec, pix = probe_codecs(path)
+    if vcodec is None:
+        return name, path, size
+    video_ok = vcodec == "h264" and pix in (None, "yuv420p")
+    audio_ok = acodec in (None, "aac")
+    if video_ok and audio_ok:
+        return name, path, size
+    rep.stage(i, "recode")
+    tmp = path[:-4] + ".compat.mp4"
+    cmd = ["ffmpeg", "-y", "-v", "error", "-i", path, "-map", "0:v:0", "-map", "0:a:0?"]
+    cmd += ["-c:v", "copy"] if video_ok else ["-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-pix_fmt", "yuv420p"]
+    cmd += ["-c:a", "copy"] if audio_ok else ["-c:a", "aac", "-b:a", "160k"]
+    cmd += ["-movflags", "+faststart", tmp]
+    try:
+        rc = subprocess.run(cmd, stdin=subprocess.DEVNULL, capture_output=True).returncode
+        if rc == 0 and os.path.getsize(tmp) > 0:
+            os.replace(tmp, path)
+            return name, path, os.path.getsize(path)
+        rep.warn("recode_failed", f"Gagal mengonversi {name} ke H.264/AAC; file asli dipertahankan.")
+    except OSError:
+        rep.warn("recode_failed", f"Gagal mengonversi {name} ke H.264/AAC; file asli dipertahankan.")
+    finally:
+        if os.path.exists(tmp):
+            try:
+                os.remove(tmp)
+            except OSError:
+                pass
+    return name, path, size
+
+
+def snapshot(folder):
+    try:
+        return {e.name for e in os.scandir(folder) if e.is_file()}
+    except OSError:
+        return set()
+
+
+def run_queue(ytdlp, rep, items, spec, outdir, has_ffmpeg):
+    """items = [(url, info_atau_None)]. Mengembalikan (ok, failed, cancelled)."""
+    ok = failed = 0
+    rep.queue(len(items))
+    try:
+        for idx, (url, info) in enumerate(items, 1):
+            status = run_item(ytdlp, rep, idx, len(items), url, spec, outdir, has_ffmpeg, info)
+            if status == "ok":
+                ok += 1
+            else:
+                failed += 1
+    except KeyboardInterrupt:
+        rep.summary(ok, failed, True)
+        return ok, failed, True
+    rep.summary(ok, failed, False)
+    return ok, failed, False
+
+
+# ---------------------------------------------------------------- alur menu
+
+def read_urls(ytdlp):
+    """Minta satu atau banyak URL (dipisah spasi). Satu URL divalidasi dan dibaca infonya.
+    Mengembalikan daftar [(url, info_atau_None)] atau None bila batal."""
+    while True:
+        raw = ask("\nMasukkan URL (banyak URL: pisahkan dengan spasi; kosong = kembali): ")
+        if not raw:
+            return None
+        urls, bad = [], []
+        for u in raw.split():
+            (urls if URL_RE.match(u) else bad).append(u)
+        if bad:
+            print("Dilewati (bukan URL http/https): " + ", ".join(bad))
+        if not urls:
+            continue
+        if len(urls) > 1:
+            return [(u, None) for u in urls]
+        print("Memeriksa URL...")
+        info, err = fetch_info(ytdlp, urls[0])
+        if err:
+            print(f"Galat: {err[1]}")
+            continue
+        print(f"Judul: {info.get('title') or '(tanpa judul)'}")
+        return [(urls[0], info)]
+
+
+def flow_video(ytdlp, has_ffmpeg, outdir):
+    items = read_urls(ytdlp)
+    if not items:
+        return
+    first_info = items[0][1] if len(items) == 1 else None
+    heights = available_heights(first_info) if first_info else list(FALLBACK_HEIGHTS)
+    idx = choose("Resolusi:", ["Kualitas terbaik"] + [f"{h}p" for h in heights])
+    if idx is None:
+        return
+    e = choose("Format video:", [x.upper() for x in VIDEO_EXTS])
+    if e is None:
+        return
+    if not has_ffmpeg:
+        print("Peringatan: ffmpeg tidak ditemukan, hanya format gabungan yang bisa diunduh "
+              "(resolusi tinggi bisa tidak tersedia). Pasang: apt install -y ffmpeg")
+    spec = {"mode": "video", "height": None if idx == 0 else heights[idx - 1], "ext": VIDEO_EXTS[e]}
+    run_queue(ytdlp, TextReporter(), items, spec, outdir, has_ffmpeg)
+
+
+def flow_audio(ytdlp, has_ffmpeg, outdir):
+    if not has_ffmpeg:
+        print("\nUnduh audio butuh ffmpeg untuk konversi. Pasang: apt install -y ffmpeg")
+        return
+    items = read_urls(ytdlp)
+    if not items:
+        return
+    f = choose("Format audio:", ["MP3", "M4A", "FLAC (lossless)"])
+    if f is None:
+        return
+    fmt = AUDIO_FORMATS[f]
+    bitrate = None
+    if fmt != "flac":
+        b = choose("Kualitas (bitrate):", list(BITRATES), default=2)
+        if b is None:
+            return
+        bitrate = BITRATES[b]
+    spec = {"mode": "audio", "afmt": fmt, "bitrate": bitrate}
+    run_queue(ytdlp, TextReporter(), items, spec, outdir, has_ffmpeg)
+
+
+def menu(ytdlp, has_ffmpeg, video_dir, audio_dir, warn):
+    while True:
+        print("\n=== Molina DL ===")
+        print("1. Unduh Video")
+        print("2. Unduh Audio Saja")
+        print("3. Keluar")
+        print(f"Video -> {video_dir}")
+        print(f"Audio -> {audio_dir}")
+        if warn:
+            print(f"Peringatan: {warn}")
+        if not has_ffmpeg:
+            print("Peringatan: ffmpeg tidak ada (audio dan video resolusi tinggi dibatasi)")
+        choice = ask("Pilih [1-3]: ")
+        if choice is None or choice == "3":
+            print("Sampai jumpa.")
+            return 0
+        if choice == "1":
+            flow_video(ytdlp, has_ffmpeg, video_dir)
+        elif choice == "2":
+            flow_audio(ytdlp, has_ffmpeg, audio_dir)
+        else:
+            print("Pilihan tidak valid.")
+
+
+# ---------------------------------------------------------------- CLI
+
+def parse_args(argv):
+    ap = argparse.ArgumentParser(prog="molina_dl.py", description="Molina DL - pengunduh video/audio (yt-dlp)")
+    ap.add_argument("urls", nargs="*", metavar="URL", help="URL (tanpa URL = mode menu interaktif)")
+    ap.add_argument("--url", action="append", default=[], help="URL tambahan (boleh berulang)")
+    ap.add_argument("--json", action="store_true", help="keluaran NDJSON, tanpa prompt")
+    ap.add_argument("--info", action="store_true", help="hanya metadata dan daftar resolusi")
+    ap.add_argument("--mode", choices=("video", "audio"), default="video")
+    ap.add_argument("--height", type=int, default=0, help="batas tinggi video (0 = terbaik)")
+    ap.add_argument("--ext", choices=VIDEO_EXTS, default="mp4")
+    ap.add_argument("--audio-format", choices=AUDIO_FORMATS, default="mp3", dest="afmt")
+    ap.add_argument("--bitrate", choices=BITRATES, default="192k")
+    ap.add_argument("--dir", help="folder simpan (menimpa folder bawaan)")
+    ap.add_argument("--version", action="store_true")
+    return ap.parse_args(argv)
+
+
+def raise_interrupt(_sig, _frm):
+    raise KeyboardInterrupt
+
+
+def run_cli(args, ytdlp, has_ffmpeg, urls):
+    rep = JsonReporter() if args.json else TextReporter()
+    rep.hello()
+    bad = [u for u in urls if not URL_RE.match(u)]
+    if bad or not urls:
+        rep.error(0, "bad_url", "URL tidak valid (harus http/https): " + (", ".join(bad) if bad else "kosong"))
+        return 2
+    if args.info:
+        rc = 0
+        for i, url in enumerate(urls, 1):
+            info, err = fetch_info(ytdlp, url)
+            if err:
+                rep.error(i, err[0], err[1])
+                rc = 1
+            else:
+                rep.info(i, info)
+        return rc
+    if args.mode == "audio" and not has_ffmpeg:
+        rep.error(0, "no_ffmpeg", "Unduh audio butuh ffmpeg. Pasang: apt install -y ffmpeg")
+        return 2
+    if not has_ffmpeg:
+        rep.warn("no_ffmpeg", "ffmpeg tidak ada: hanya format gabungan, resolusi tinggi bisa tidak tersedia.")
+    video_dir, audio_dir, warn = resolve_dirs(args.dir)
+    if warn:
+        rep.warn("dir_fallback", warn)
+    outdir = audio_dir if args.mode == "audio" else video_dir
+    spec = {"mode": args.mode, "height": args.height or None, "ext": args.ext,
+            "afmt": args.afmt, "bitrate": args.bitrate}
+    ok, failed, cancelled = run_queue(ytdlp, rep, [(u, None) for u in urls], spec, outdir, has_ffmpeg)
+    return 130 if cancelled else (1 if failed else 0)
+
+
+def main(argv=None):
+    args = parse_args(sys.argv[1:] if argv is None else argv)
+    if args.version:
+        print(f"molina_dl {SCRIPT_VERSION} (protokol {PROTOCOL})")
+        return 0
+    signal.signal(signal.SIGTERM, raise_interrupt)
+    urls = args.url + args.urls
+    ytdlp = find_ytdlp()
+    if not ytdlp:
+        msg = "yt-dlp tidak ditemukan. Pasang dengan: apt update && apt install -y yt-dlp ffmpeg"
+        if args.json:
+            JsonReporter().error(0, "no_ytdlp", msg)
+        else:
+            print(msg)
+        return 2
+    has_ffmpeg = shutil.which("ffmpeg") is not None
+    if urls or args.json or args.info:
+        try:
+            return run_cli(args, ytdlp, has_ffmpeg, urls)
+        except KeyboardInterrupt:
+            return 130
+    video_dir, audio_dir, warn = resolve_dirs(args.dir)
+    return menu(ytdlp, has_ffmpeg, video_dir, audio_dir, warn)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

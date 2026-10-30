@@ -11,6 +11,14 @@ data class DownloadRequest(
     val audioFormat: String = "mp3",
     val bitrate: String = "192k",
     val dir: String? = null,
+    /** Kode bahasa subtitle (mode video saja). Kosong = tanpa subtitle. */
+    val subs: List<String> = emptyList(),
+    /** embed = disematkan ke video; file = .srt di samping video. */
+    val subsMode: String = "embed",
+    /** Sematkan sampul + tag ke audio (mode audio saja). */
+    val cover: Boolean = true,
+    /** Batas kecepatan, mis. "500K", "2M"; null = tanpa batas. */
+    val limitRate: String? = null,
 )
 
 /** Argumen `molina_dl.py --json ...` untuk halaman Unduhan. Murni (tanpa Android). */
@@ -24,6 +32,11 @@ object DownloadCommand {
     val VIDEO_EXTS = setOf("mp4", "mkv")
     val AUDIO_FORMATS = setOf("mp3", "m4a", "flac")
     val BITRATES = setOf("128k", "192k", "320k")
+
+    val SUB_MODES = setOf("embed", "file")
+    const val MAX_SUB_LANGS = 5
+    private val SUB_LANG_RE = Regex("^[A-Za-z]{2,3}(?:[-_][A-Za-z0-9]{2,8}){0,2}\$")
+    private val RATE_RE = Regex("^[1-9][0-9]*(?:\\.[0-9]+)?[KkMm]?\$")
 
     private val URL_RE = Regex("^https?://[^\\s/\$.?#][^\\s]*\$", RegexOption.IGNORE_CASE)
 
@@ -42,6 +55,11 @@ object DownloadCommand {
         if (req.videoExt !in VIDEO_EXTS) return "Format video tidak didukung."
         if (req.audioFormat !in AUDIO_FORMATS) return "Format audio tidak didukung."
         if (req.bitrate !in BITRATES) return "Bitrate tidak didukung."
+        if (req.subs.size > MAX_SUB_LANGS || req.subs.any { !SUB_LANG_RE.matches(it) }) {
+            return "Kode bahasa subtitle tidak valid (maksimal $MAX_SUB_LANGS, contoh: id, en)."
+        }
+        if (req.subsMode !in SUB_MODES) return "Mode subtitle tidak didukung."
+        req.limitRate?.let { if (!RATE_RE.matches(it)) return "Batas kecepatan tidak valid (contoh: 500K, 2M)." }
         req.dir?.let {
             if (!it.startsWith("/") || it.length > MAX_DIR_CHARS || it.any { c -> c.isISOControl() }) {
                 return "Folder tujuan harus berupa jalur absolut."
@@ -49,6 +67,10 @@ object DownloadCommand {
         }
         return null
     }
+
+    /** Argumen perawatan (tanpa URL): periksa lingkungan / perbarui yt-dlp. */
+    fun doctorArgs(): List<String> = listOf("--json", "--doctor")
+    fun updateArgs(): List<String> = listOf("--json", "--update-ytdlp")
 
     /**
      * Argv skrip (setelah berkas skrip). Panggil [validate] lebih dulu. Semua URL ditaruh setelah `--`
@@ -64,6 +86,12 @@ object DownloadCommand {
             add("--audio-format"); add(req.audioFormat)
             add("--bitrate"); add(req.bitrate)
         }
+        if (req.mode == DownloadMode.VIDEO && req.subs.isNotEmpty()) {
+            add("--subs"); add(req.subs.distinct().joinToString(","))
+            add("--subs-mode"); add(req.subsMode)
+        }
+        if (req.mode == DownloadMode.AUDIO && !req.cover) add("--no-cover")
+        req.limitRate?.let { add("--limit-rate"); add(it) }
         req.dir?.let { add("--dir"); add(it) }
         add("--")
         addAll(clean(req.urls))

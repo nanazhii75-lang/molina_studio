@@ -38,6 +38,30 @@ sealed interface DownloadEvent {
     data class Done(val index: Int, val dir: String, val existed: Boolean, val files: List<DownloadedFile>) : DownloadEvent
     data class Error(val index: Int, val code: String, val msg: String) : DownloadEvent
     data class Summary(val ok: Int, val failed: Int, val cancelled: Boolean) : DownloadEvent
+
+    /** Hasil `--doctor`. Versi null = alat tidak ada. [issues] = kode: no_ytdlp, no_ffmpeg, no_ffprobe, low_space, dir_fallback, no_mutagen. */
+    data class Doctor(
+        val ytdlpVersion: String?,
+        val ytdlpMethod: String?,
+        val ffmpegVersion: String?,
+        val ffprobe: Boolean,
+        val mutagen: Boolean,
+        val python: String?,
+        val videoDir: String?,
+        val audioDir: String?,
+        val rootBound: Boolean,
+        val freeMb: Long?,
+        val issues: List<String>,
+    ) : DownloadEvent
+
+    /** Kemajuan `--update-ytdlp`. [status] = start | ok | latest | failed. */
+    data class Update(
+        val status: String,
+        val method: String?,
+        val before: String?,
+        val after: String?,
+        val msg: String?,
+    ) : DownloadEvent
 }
 
 object DownloadEventParser {
@@ -90,6 +114,26 @@ object DownloadEventParser {
             )
             "error" -> DownloadEvent.Error(o.int("i") ?: 0, o.str("code") ?: "", o.str("msg") ?: "")
             "summary" -> DownloadEvent.Summary(o.int("ok") ?: 0, o.int("failed") ?: 0, o["cancelled"] == true)
+            "doctor" -> DownloadEvent.Doctor(
+                ytdlpVersion = o.str("ytdlp"),
+                ytdlpMethod = o.str("ytdlp_method"),
+                ffmpegVersion = o.str("ffmpeg"),
+                ffprobe = o["ffprobe"] == true,
+                mutagen = o["mutagen"] == true,
+                python = o.str("python"),
+                videoDir = o.str("video_dir"),
+                audioDir = o.str("audio_dir"),
+                rootBound = o["root_bound"] == true,
+                freeMb = o.long("free_mb"),
+                issues = (o["issues"] as? List<*>).orEmpty().mapNotNull { it as? String },
+            )
+            "update" -> DownloadEvent.Update(
+                status = o.str("status") ?: "",
+                method = o.str("method"),
+                before = o.str("before"),
+                after = o.str("after"),
+                msg = o.str("msg"),
+            )
             else -> null
         }
     }

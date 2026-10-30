@@ -1,0 +1,854 @@
+diff --git a/app/src/main/java/com/molina/studio/cinema/DebianArchive.kt b/app/src/main/java/com/molina/studio/cinema/DebianArchive.kt
+new file mode 100644
+index 0000000..5142d07
+--- /dev/null
++++ b/app/src/main/java/com/molina/studio/cinema/DebianArchive.kt
+@@ -0,0 +1,360 @@
++package com.molina.studio.cinema
++
++import android.content.Context
++import com.molina.core.common.AppLog
++import com.molina.core.common.LogLevel
++import com.molina.core.common.SevenZipCommand
++import com.molina.core.common.YtdlpCommand
++import com.molina.studio.system.AndroidProcessOps
++import com.molina.studio.terminal.RootfsManager
++import java.io.File
++import java.io.IOException
++import java.io.InputStream
++import java.io.InputStreamReader
++import java.io.Reader
++import java.nio.file.Files
++import java.util.concurrent.TimeUnit
++import java.util.concurrent.atomic.AtomicBoolean
++import java.util.concurrent.atomic.AtomicInteger
++import java.util.concurrent.atomic.AtomicReference
++
++/**
++ * [ARCHIVE4] Membuka arsip yang tidak dikuasai [ArchiveEngine] (RAR, ISO, CAB, multi-bagian, ...) lewat `7z` di Debian
++ * PRoot milik Molina Terminal. Blocking: panggil dari Dispatchers.IO. Tidak menyentuh UI/Compose.
++ *
++ * Aturan:
++ * - HANYA dua folder yang terlihat oleh 7z: folder arsip (-> [SevenZipCommand.GUEST_SRC]) dan folder staging
++ *   (-> [SevenZipCommand.GUEST_OUT]). Lingkup akses penyimpanan Terminal tidak dilonggarkan.
++ * - Hasil ditulis ke staging `.molina-stage-*` di folder tujuan, diaudit, lalu dipindah ([DebianArchiveStaging]).
++ *   Gagal/batal = tujuan tidak berubah. Berkas yang ada tidak ditimpa.
++ * - Sandi hanya lewat stdin, tidak pernah di argumen proses atau log.
++ * - Pembatalan mematikan seluruh pohon proses (proot + 7z).
++ * - 7z keluar 0 walau nama yang diminta tidak ada (nol berkas); itu dianggap galat di sini.
++ *
++ * Catatan: logika proses disalin dari ProotScriptExecutor.newProotProcess (lingkungan bersih proot). Refactor menjadi
++ * satu pembangun proses bersama sengaja ditunda agar jalur Code/Terminal yang sudah stabil tidak tersentuh.
++ */
++internal class DebianArchive(context: Context) {
++    private val app = context.applicationContext
++
++    sealed class Probe {
++        class Ready(val binary: String) : Probe()
++        class Missing(val hint: String) : Probe()
++    }
++
++    /** Siap bila Debian terpasang dan `7z` ada di dalamnya. Murah: hanya memeriksa berkas. */
++    fun probe(): Probe {
++        val rootfs = RootfsManager.rootfsDir(app)
++        if (!File(rootfs, "usr/bin/env").exists()) {
++            return Probe.Missing("Debian belum terpasang. Buka Settings > Terminal untuk menyiapkannya.")
++        }
++        val bin = SevenZipCommand.GUEST_BINARIES.firstOrNull { guestHas(rootfs, it) }
++            ?: return Probe.Missing(SevenZipCommand.HINT_INSTALL)
++        return Probe.Ready(bin)
++    }
++
++    private fun guestHas(rootfs: File, guestPath: String): Boolean {
++        val f = File(rootfs, guestPath.removePrefix("/"))
++        return f.exists() || Files.isSymbolicLink(f.toPath())
++    }
++
++    // ------------------------------------------------------------------ daftar isi
++
++    /**
++     * Daftar isi tanpa mengekstrak. Bentuk hasil sama dengan [ArchiveEngine.list] supaya dialog bisa memakainya.
++     * Tautan dilewati (seperti tar). Arsip dengan nama terenkripsi tanpa [password] melempar [FileOps.NeedPassword].
++     */
++    fun list(file: File, password: String? = null, cancelled: () -> Boolean = { false }): FileOps.ZipListing {
++        val bin = readyBinary()
++        val srcDir = sourceDir(file)
++        val rootfs = RootfsManager.rootfsDir(app)
++        ensureMountPoints(rootfs)
++
++        val items = ArrayList<FileOps.ZipEntryInfo>()
++        var files = 0
++        var folders = 0
++        var total = 0L
++        var enc = false
++        var overflow = false
++        val args = try {
++            SevenZipCommand.listArgs(SevenZipCommand.GUEST_SRC + "/" + file.name)
++        } catch (e: IllegalArgumentException) {
++            throw IOException(e.message ?: "Jalur tidak valid")
++        }
++        val out = run(
++            rootfs, listOf(srcDir.path to SevenZipCommand.GUEST_SRC), bin, args,
++            SevenZipCommand.stdinFor(password), cancelled, LIST_TIMEOUT_MS,
++        ) { reader ->
++            SevenZipCommand.parseListStream(java.io.BufferedReader(reader), LIST_MAX_ENTRIES) { e ->
++                if (e.isLink) return@parseListStream
++                if (e.encrypted) enc = true
++                if (e.isDir) folders++ else { files++; if (e.size > 0) total += e.size }
++                if (items.size < FileOps.ZIP_LIST_MAX) {
++                    items.add(FileOps.ZipEntryInfo(if (e.isDir) e.path.trimEnd('/') + "/" else e.path, e.size, e.isDir))
++                } else overflow = true
++            }
++        }
++        if (!out.stoppedEarly) {
++            val ok = out.exit == 0 || (out.exit == 1 && (files + folders) > 0)
++            if (!ok) throw fail(SevenZipCommand.classify(out.exit, out.output, !password.isNullOrEmpty()))
++        }
++        return FileOps.ZipListing(items, files, folders, total, enc, overflow || out.stoppedEarly)
++    }
++
++    // ------------------------------------------------------------------ ekstrak
++
++    /**
++     * Ekstrak [file] ke [destDir] ([ExtractTarget.HERE] atau subfolder bernama arsip). [only] = nama entri terpilih
++     * (folder berakhiran "/"), null = semua. [expectedBytes] > 0 mengaktifkan pemeriksaan ruang kosong di awal.
++     */
++    fun extract(
++        file: File, destDir: File, target: ExtractTarget, ctl: FileOps.Ctl,
++        password: String? = null, only: Set<String>? = null, expectedBytes: Long = 0L,
++    ): ExtractResult {
++        val info = DebianFormats.detect(file.name) ?: throw IOException("Format arsip tidak didukung lewat Debian: " + file.name)
++        if (!info.firstVolume) throw IOException(DebianFormats.NOT_FIRST_HINT)
++        if (!destDir.isDirectory || !destDir.canWrite()) throw IOException("Folder tujuan tidak bisa ditulisi")
++        val bin = readyBinary()
++        val srcDir = sourceDir(file)
++        val rootfs = RootfsManager.rootfsDir(app)
++        DebianArchiveStaging.roomError(destDir, expectedBytes)?.let { throw IOException(it) }
++        ensureMountPoints(rootfs)
++        DebianArchiveStaging.sweepStale(destDir)
++
++        val stage = DebianArchiveStaging.create(destDir)
++        try {
++            if (!SevenZipCommand.bindHostOk(stage.canonicalPath)) throw IOException("Jalur tujuan memuat karakter yang tidak didukung")
++            val guestArchive = SevenZipCommand.GUEST_SRC + "/" + file.name
++            val args = try {
++                if (only.isNullOrEmpty()) SevenZipCommand.extractArgs(guestArchive, SevenZipCommand.GUEST_OUT)
++                else SevenZipCommand.extractArgs(guestArchive, SevenZipCommand.GUEST_OUT, only.toList())
++            } catch (e: IllegalArgumentException) {
++                throw IOException(e.message ?: "Argumen tidak valid")
++            }
++
++            ctl.total = 100L // progres 7z (-bsp1) berupa persen; Ctl melaporkannya sebagai persen penuh
++            var last = 0
++            val started = System.nanoTime()
++            val out = run(
++                rootfs,
++                listOf(srcDir.path to SevenZipCommand.GUEST_SRC, stage.canonicalPath to SevenZipCommand.GUEST_OUT),
++                bin, args, SevenZipCommand.stdinFor(password), { ctl.cancelled() }, 0L,
++            ) { reader ->
++                val buf = CharArray(4096)
++                while (true) {
++                    val n = reader.read(buf)
++                    if (n < 0) break
++                    val chunk = String(buf, 0, n)
++                    SevenZipCommand.parseProgress(chunk)?.let { p ->
++                        if (p > last) { ctl.add((p - last).toLong()); last = p }
++                    }
++                }
++                false
++            }
++            val ms = (System.nanoTime() - started) / 1_000_000
++            val pw = !password.isNullOrEmpty()
++            if (out.exit != 0 && out.exit != 1) throw fail(SevenZipCommand.classify(out.exit, out.output, pw))
++            if (ctl.cancelled()) throw IOException("Dibatalkan")
++            if (last < 100) ctl.add((100 - last).toLong()) // 7z sering berhenti mencetak di 98-99%
++
++            val audit = DebianArchiveStaging.audit(stage)
++            if (out.exit == 1 && audit.files == 0 && audit.dirs == 0) throw fail(SevenZipCommand.classify(out.exit, out.output, pw))
++            if (!only.isNullOrEmpty() && audit.files == 0) throw IOException("Tidak ada entri terpilih yang cocok di arsip")
++            AppLog.log(
++                "archive", LogLevel.Info, "7z",
++                "ekstrak selesai ${ms}ms exit=${out.exit} berkas=${audit.files} folder=${audit.dirs} tautan_dibuang=${audit.removed}" +
++                    (if (out.exit == 1) " (peringatan)" else ""),
++            )
++
++            val named = if (target == ExtractTarget.NAMED_FOLDER) DebianFormats.folderName(file.name) else null
++            val c = DebianArchiveStaging.commit(stage, destDir, named) { ctl.cancelled() }
++            return ExtractResult(c.base, c.files, c.renamed)
++        } finally {
++            DebianArchiveStaging.deleteTree(stage)
++        }
++    }
++
++    // ------------------------------------------------------------------ infrastruktur proses
++
++    private fun readyBinary(): String = when (val p = probe()) {
++        is Probe.Ready -> p.binary
++        is Probe.Missing -> throw IOException(p.hint)
++    }
++
++    private fun sourceDir(file: File): File {
++        if (!file.isFile) throw IOException("Berkas arsip tidak ditemukan")
++        if (file.length() == 0L) throw IOException("Berkas arsip kosong (0 byte)")
++        val dir = file.canonicalFile.parentFile ?: throw IOException("Folder arsip tidak ditemukan")
++        if (!SevenZipCommand.bindHostOk(dir.path)) throw IOException("Jalur arsip memuat karakter yang tidak didukung")
++        return dir
++    }
++
++    /** Titik mount harus ada di rootfs sebelum proot dijalankan (sama seperti StorageBinds). */
++    private fun ensureMountPoints(rootfs: File) {
++        for (g in listOf(SevenZipCommand.GUEST_SRC, SevenZipCommand.GUEST_OUT)) File(rootfs, g.removePrefix("/")).mkdirs()
++    }
++
++    private fun fail(f: SevenZipCommand.Failure): IOException = when (f) {
++        SevenZipCommand.Failure.NEED_PASSWORD -> FileOps.NeedPassword()
++        SevenZipCommand.Failure.WRONG_PASSWORD -> FileOps.WrongPassword()
++        SevenZipCommand.Failure.CANCELLED -> IOException("Dibatalkan")
++        else -> IOException(f.hint)
++    }
++
++    private class Outcome(val exit: Int, val output: String, val stoppedEarly: Boolean)
++
++    /** Ekor keluaran terbatas (cukup untuk klasifikasi galat; tidak menampung seluruh keluaran). */
++    private class Tail(private val max: Int) {
++        private val sb = StringBuilder()
++        @Synchronized fun add(s: String) { sb.append(s); if (sb.length > max) sb.delete(0, sb.length - max) }
++        @Synchronized override fun toString(): String = sb.toString()
++    }
++
++    /** Meneruskan bacaan ke [consume] sambil menyalin ke [tail], supaya prompt/galat 7z tetap bisa diklasifikasi. */
++    private class TeeReader(private val inner: Reader, private val tail: Tail) : Reader() {
++        override fun read(cbuf: CharArray, off: Int, len: Int): Int {
++            val n = inner.read(cbuf, off, len)
++            if (n > 0) tail.add(String(cbuf, off, n))
++            return n
++        }
++        override fun close() = inner.close()
++    }
++
++    private fun readPidLine(i: InputStream): Int {
++        val sb = StringBuilder()
++        while (sb.length < 24) {
++            val b = i.read()
++            if (b < 0 || b == '\n'.code) break
++            sb.append(b.toChar())
++        }
++        return sb.toString().trim().toIntOrNull() ?: -1
++    }
++
++    /**
++     * Jalankan `7z` di proot. Baris pertama stdout adalah PID (SH_WRAPPER). [consume] membaca sisa stdout dan
++     * mengembalikan true bila proses boleh dihentikan lebih awal (mis. daftar terpotong). Bacaan disalin ke ekor keluaran. [timeoutMs] 0 = tanpa batas.
++     */
++    private fun run(
++        rootfsDir: File,
++        binds: List<Pair<String, String>>,
++        binary: String,
++        args: List<String>,
++        stdin: ByteArray?,
++        cancelled: () -> Boolean,
++        timeoutMs: Long,
++        consume: (Reader) -> Boolean,
++    ): Outcome {
++        val argv = try {
++            SevenZipCommand.prootArgsScoped(rootfsDir.absolutePath, binds, binary, args)
++        } catch (e: IllegalArgumentException) {
++            throw IOException(e.message ?: "Argumen proot tidak valid")
++        }
++        val nativeDir = app.applicationInfo.nativeLibraryDir
++        val tmp = File(app.cacheDir, "proot-tmp").apply { mkdirs() }
++        val pb = ProcessBuilder(YtdlpCommand.SH_WRAPPER + "$nativeDir/libproot.so" + argv).directory(app.filesDir)
++        pb.environment().apply {
++            clear()
++            put("PROOT_LOADER", "$nativeDir/libproot_loader.so")
++            put("PROOT_TMP_DIR", tmp.absolutePath)
++            put("TMPDIR", tmp.absolutePath)
++            put("PATH", "/system/bin")
++            put("HOME", app.filesDir.absolutePath)
++            System.getenv("ANDROID_ROOT")?.let { put("ANDROID_ROOT", it) }
++            System.getenv("ANDROID_DATA")?.let { put("ANDROID_DATA", it) }
++        }
++        val proc = try {
++            pb.start()
++        } catch (e: Exception) {
++            throw IOException("Gagal memulai proot: ${e.javaClass.simpleName}")
++        }
++
++        if (stdin == null) {
++            try { proc.outputStream.close() } catch (e: Exception) { }
++        } else {
++            val writer = Thread({
++                try { proc.outputStream.use { it.write(stdin) } } catch (e: Exception) { /* proses mati lebih dulu */ }
++            }, "molina-7z-in")
++            writer.isDaemon = true
++            writer.start()
++        }
++
++        val pid = AtomicInteger(-1)
++        val stopEarly = AtomicBoolean(false)
++        val outError = AtomicReference<Exception?>(null)
++        val outTail = Tail(TAIL_CHARS)
++        val errTail = Tail(TAIL_CHARS)
++
++        val outThread = Thread({
++            try {
++                val raw = proc.inputStream
++                pid.set(readPidLine(raw))
++                val reader = TeeReader(InputStreamReader(raw, Charsets.UTF_8), outTail)
++                if (consume(reader)) {
++                    stopEarly.set(true)
++                } else {
++                    val buf = CharArray(4096)
++                    while (reader.read(buf) >= 0) { /* kuras sisa agar proses tidak buntu */ }
++                }
++            } catch (e: Exception) {
++                outError.set(e)
++            }
++        }, "molina-7z-out")
++        val errThread = Thread({
++            try {
++                val reader = InputStreamReader(proc.errorStream, Charsets.UTF_8)
++                val buf = CharArray(4096)
++                while (true) {
++                    val n = reader.read(buf)
++                    if (n < 0) break
++                    errTail.add(String(buf, 0, n))
++                }
++            } catch (e: Exception) { }
++        }, "molina-7z-err")
++        outThread.isDaemon = true
++        errThread.isDaemon = true
++        outThread.start()
++        errThread.start()
++
++        var finished = false
++        var wasCancelled = false
++        var timedOut = false
++        val deadline = if (timeoutMs > 0) System.nanoTime() + timeoutMs * 1_000_000 else Long.MAX_VALUE
++        try {
++            while (true) {
++                if (proc.waitFor(POLL_MS, TimeUnit.MILLISECONDS)) { finished = true; break }
++                if (cancelled()) { wasCancelled = true; break }
++                if (stopEarly.get()) break
++                if (deadline != Long.MAX_VALUE && System.nanoTime() > deadline) { timedOut = true; break }
++            }
++        } catch (e: InterruptedException) {
++            wasCancelled = true
++        } finally {
++            if (!finished) {
++                val root = pid.get()
++                if (root > 1) {
++                    try { AndroidProcessOps.reaper().reapTree(root) } catch (e: Exception) { }
++                }
++                proc.destroyForcibly()
++            }
++        }
++        try {
++            outThread.join(1500)
++            errThread.join(1500)
++        } catch (e: InterruptedException) { }
++        Thread.interrupted()
++
++        if (wasCancelled) throw IOException("Dibatalkan")
++        if (timedOut) throw IOException("7z melewati batas waktu")
++        if (stopEarly.get()) return Outcome(0, "", true)
++        outError.get()?.let { throw IOException("Gagal membaca keluaran 7z: ${it.javaClass.simpleName}") }
++        val exit = try { proc.exitValue() } catch (e: IllegalThreadStateException) { -1 }
++        return Outcome(exit, outTail.toString() + "\n" + errTail.toString(), false)
++    }
++
++    private companion object {
++        const val POLL_MS = 150L
++        const val TAIL_CHARS = 64 * 1024
++        const val LIST_MAX_ENTRIES = 200_000
++        const val LIST_TIMEOUT_MS = 10L * 60 * 1000
++    }
++}
+diff --git a/app/src/main/java/com/molina/studio/cinema/DebianArchiveStaging.kt b/app/src/main/java/com/molina/studio/cinema/DebianArchiveStaging.kt
+new file mode 100644
+index 0000000..e26f1d3
+--- /dev/null
++++ b/app/src/main/java/com/molina/studio/cinema/DebianArchiveStaging.kt
+@@ -0,0 +1,181 @@
++package com.molina.studio.cinema
++
++import java.io.File
++import java.io.IOException
++import java.nio.file.Files
++import java.nio.file.LinkOption
++import java.util.Locale
++
++/**
++ * [ARCHIVE4] Format yang dibuka lewat 7z di Debian PRoot (bukan commons-compress). Murni (tanpa Android) supaya
++ * bisa diuji JVM. ZIP/7z/tar tetap dikerjakan [ArchiveEngine]; kelas ini hanya untuk yang tidak dikuasainya.
++ */
++internal object DebianFormats {
++    class Info(val label: String, val firstVolume: Boolean, val stem: String)
++
++    const val NOT_FIRST_HINT = "Ini bukan bagian pertama arsip. Pilih bagian pertama (.001 atau .part1.rar)."
++
++    private val SINGLE = Regex("""^(.+)\.(rar|iso|cab|wim|arj|lzh|lha|cpio|deb|rpm|dmg)$""", RegexOption.IGNORE_CASE)
++    private val VOLUME = Regex("""^(.+)\.(7z|zip|rar)\.(\d{3})$""", RegexOption.IGNORE_CASE)
++    private val PART_RAR = Regex("""^(.+)\.part(\d+)\.rar$""", RegexOption.IGNORE_CASE)
++
++    fun detect(name: String): Info? {
++        PART_RAR.matchEntire(name)?.let { m ->
++            val n = m.groupValues[2].toIntOrNull() ?: return null
++            return Info("RAR", n == 1, m.groupValues[1])
++        }
++        VOLUME.matchEntire(name)?.let { m ->
++            val n = m.groupValues[3].toIntOrNull() ?: return null
++            return Info(m.groupValues[2].uppercase(Locale.ROOT), n == 1, m.groupValues[1])
++        }
++        SINGLE.matchEntire(name)?.let { m ->
++            return Info(m.groupValues[2].uppercase(Locale.ROOT), true, m.groupValues[1])
++        }
++        return null
++    }
++
++    fun supports(name: String): Boolean = detect(name) != null
++
++    /** Nama subfolder tujuan ("a.part1.rar" -> "a"); "Ekstrak" bila kosong. */
++    fun folderName(name: String): String = detect(name)?.stem?.ifEmpty { null } ?: ArchiveNames.folderName(name)
++}
++
++/**
++ * [ARCHIVE4] Staging hasil ekstrak 7z. Hasil ditulis dulu ke folder tersembunyi `.molina-stage-*` DI FOLDER TUJUAN
++ * (satu volume, jadi pemindahan akhir hanya rename dan tidak butuh ruang ganda), diaudit, baru dipindah. Bila gagal atau
++ * dibatalkan, tujuan tidak berubah. Berkas yang sudah ada TIDAK ditimpa ("nama (1).ext"), sama seperti [ArchiveEngine].
++ *
++ * Penghapusan TIDAK mengikuti tautan simbolik (File.deleteRecursively milik Kotlin mengikuti tautan ke folder).
++ */
++internal object DebianArchiveStaging {
++    const val PREFIX = ".molina-stage-"
++    const val STALE_MS = 6L * 60 * 60 * 1000
++    const val MIN_FREE = 8L * 1024 * 1024
++
++    private fun isLink(f: File) = Files.isSymbolicLink(f.toPath())
++    private fun taken(f: File) = Files.exists(f.toPath(), LinkOption.NOFOLLOW_LINKS)
++    private fun isRealDir(f: File) = Files.isDirectory(f.toPath(), LinkOption.NOFOLLOW_LINKS)
++
++    /** Hapus [f] beserta isinya tanpa mengikuti tautan. */
++    fun deleteTree(f: File) {
++        if (!taken(f)) return
++        if (!isLink(f) && f.isDirectory) f.listFiles()?.forEach { deleteTree(it) }
++        f.delete()
++    }
++
++    fun create(parent: File, nonce: Long = System.nanoTime()): File {
++        if (!parent.isDirectory) throw IOException("Folder tujuan tidak ditemukan")
++        val d = File(parent, PREFIX + java.lang.Long.toUnsignedString(nonce, 36))
++        if (taken(d)) throw IOException("Folder sementara sudah ada")
++        if (!d.mkdir()) throw IOException("Gagal membuat folder sementara di " + parent.name)
++        return d
++    }
++
++    /** Buang sisa staging lama (proses mati di tengah ekstrak). Mengembalikan jumlah yang dibuang. */
++    fun sweepStale(parent: File, nowMs: Long = System.currentTimeMillis(), maxAgeMs: Long = STALE_MS): Int {
++        var n = 0
++        for (c in parent.listFiles() ?: return 0) {
++            if (!c.name.startsWith(PREFIX) || isLink(c) || !c.isDirectory) continue
++            if (nowMs - c.lastModified() > maxAgeMs) { deleteTree(c); n++ }
++        }
++        return n
++    }
++
++    /** Pesan galat bila ruang di [dest] kurang untuk [expectedBytes] (0 = tidak diketahui), atau null. */
++    fun roomError(dest: File, expectedBytes: Long): String? {
++        val free = dest.usableSpace
++        val need = if (expectedBytes > 0) expectedBytes + MIN_FREE else MIN_FREE
++        return if (free < need) "Ruang penyimpanan tidak cukup" else null
++    }
++
++    class Audit(val files: Int, val dirs: Int, val bytes: Long, val removed: Int)
++
++    /**
++     * Periksa isi [stage]: tautan simbolik dan berkas khusus dihapus (tidak diikuti), dan setiap jalur kanonik harus
++     * tetap di dalam [stage]. Dipanggil SESUDAH 7z selesai sebagai lapis kedua di atas perlindungan 7z sendiri.
++     */
++    fun audit(stage: File): Audit {
++        if (isLink(stage) || !stage.isDirectory) throw IOException("Folder sementara tidak valid")
++        val root = stage.canonicalFile
++        val prefix = root.path + File.separator
++        var files = 0
++        var dirs = 0
++        var bytes = 0L
++        var removed = 0
++        fun walk(d: File) {
++            val kids = d.listFiles() ?: throw IOException("Gagal membaca hasil ekstrak")
++            for (k in kids) {
++                val p = k.toPath()
++                if (Files.isSymbolicLink(p)) { k.delete(); removed++; continue }
++                val isDir = Files.isDirectory(p, LinkOption.NOFOLLOW_LINKS)
++                val isFile = Files.isRegularFile(p, LinkOption.NOFOLLOW_LINKS)
++                if (!isDir && !isFile) { k.delete(); removed++; continue }
++                if (!k.canonicalFile.path.startsWith(prefix)) throw IOException("Hasil ekstrak keluar dari folder sementara")
++                if (isDir) { dirs++; walk(k) } else { files++; bytes += k.length() }
++            }
++        }
++        walk(root)
++        return Audit(files, dirs, bytes, removed)
++    }
++
++    class Committed(val base: File, val files: Int, val renamed: Int)
++
++    private fun unique(dir: File, name: String): File {
++        var f = File(dir, name)
++        if (!taken(f)) return f
++        val dot = name.lastIndexOf('.')
++        val stem = if (dot > 0) name.substring(0, dot) else name
++        val ext = if (dot > 0) name.substring(dot) else ""
++        var i = 1
++        while (true) {
++            f = File(dir, "$stem ($i)$ext")
++            if (!taken(f)) return f
++            i++
++        }
++    }
++
++    private fun countFiles(f: File): Int {
++        if (isLink(f)) return 0
++        if (!f.isDirectory) return 1
++        var n = 0
++        for (c in f.listFiles() ?: return 0) n += countFiles(c)
++        return n
++    }
++
++    /**
++     * Pindahkan isi [stage] (harus anak langsung [dest]) ke [dest], atau ke subfolder baru [namedFolder]. Folder
++     * yang sama digabung; berkas bentrok diberi nama baru. Gagal atau [cancelled] = semua yang sudah dipindah dibatalkan.
++     */
++    fun commit(stage: File, dest: File, namedFolder: String?, cancelled: () -> Boolean): Committed {
++        val d = dest.canonicalFile
++        if (stage.canonicalFile.parentFile != d) throw IOException("Folder sementara harus berada di folder tujuan")
++        val created = ArrayList<File>()
++        var files = 0
++        var renamed = 0
++        val base = if (namedFolder != null) unique(d, namedFolder) else d
++        fun move(src: File, dst: File) {
++            val kids = (src.listFiles() ?: throw IOException("Gagal membaca hasil ekstrak")).sortedBy { it.name }
++            for (k in kids) {
++                if (cancelled()) throw IOException("Dibatalkan")
++                val dir = isRealDir(k)
++                var t = File(dst, k.name)
++                if (dir && isRealDir(t)) { move(k, t); k.delete(); continue }
++                if (taken(t)) { t = unique(dst, k.name); renamed++ }
++                if (!k.renameTo(t)) throw IOException("Gagal memindahkan hasil ekstrak: " + k.name)
++                created.add(t)
++                files += if (dir) countFiles(t) else 1
++            }
++        }
++        try {
++            if (namedFolder != null) {
++                if (!base.mkdir()) throw IOException("Gagal membuat folder " + base.name)
++                created.add(base)
++            }
++            move(stage, base)
++        } catch (e: Exception) {
++            for (f in created.asReversed()) deleteTree(f)
++            throw e
++        }
++        return Committed(base, files, renamed)
++    }
++}
+diff --git a/core/common/src/main/kotlin/com/molina/core/common/SevenZipCommand.kt b/core/common/src/main/kotlin/com/molina/core/common/SevenZipCommand.kt
+index 5fb9943..f6ce11d 100644
+--- a/core/common/src/main/kotlin/com/molina/core/common/SevenZipCommand.kt
++++ b/core/common/src/main/kotlin/com/molina/core/common/SevenZipCommand.kt
+@@ -17,6 +17,10 @@ object SevenZipCommand {
+     const val INSTALL_CMD = "apt-get update && apt-get install -y --no-install-recommends 7zip"
+     const val HINT_INSTALL = "7zip belum terpasang di Debian. Di Terminal jalankan: $INSTALL_CMD"
+ 
++    /** [ARCHIVE4] Titik mount berlingkup di guest: HANYA folder arsip dan folder staging yang di-bind, bukan seluruh penyimpanan. */
++    const val GUEST_SRC = "/mnt/molina-src"
++    const val GUEST_OUT = "/mnt/molina-out"
++
+     private const val ANDROID_STORAGE = "/storage/emulated/0"
+     private const val GUEST_SDCARD = "/sdcard"
+ 
+@@ -49,6 +53,48 @@ object SevenZipCommand {
+         return listOf("x", "-y", "-bsp1", "-spd", "-o$guestOutDir", "--", guestArchive)
+     }
+ 
++    /**
++     * [ARCHIVE4] Seperti [extractArgs] tetapi hanya entri [only] (nama dalam arsip; akhiran "/" dibuang, folder ikut
++     * beserta isinya). Nama diletakkan SETELAH `--` sehingga `-x` tidak dibaca sebagai opsi, dan `-spd` mematikan wildcard.
++     * Nama berawalan `@` (list file 7z) atau `!` ditolak karena tafsir 7z atasnya tidak dijamin.
++     */
++    fun extractArgs(guestArchive: String, guestOutDir: String, only: List<String>): List<String> {
++        val base = extractArgs(guestArchive, guestOutDir)
++        val names = only.map { raw ->
++            val clean = safeEntryPath(raw.trimEnd('/'))
++                ?: throw IllegalArgumentException("Nama entri tidak aman: $raw")
++            require(!clean.startsWith("@") && !clean.startsWith("!")) { "Nama entri tidak didukung untuk ekstrak sebagian: $raw" }
++            clean
++        }
++        return base + names
++    }
++
++    /** True bila [p] aman dipakai sebagai sisi host `--bind=host:guest` (proot memecah di ':'). */
++    fun bindHostOk(p: String): Boolean =
++        p.startsWith("/") && p.none { it == ':' || it == '\n' || it == '\r' || it == '\u0000' } && p.split('/').none { it == ".." }
++
++    /**
++     * [ARCHIVE4] Argv libproot.so dengan bind EKSPLISIT [binds] (host -> guest) dan tanpa bind penyimpanan lain.
++     * Dipakai ekstrak via Debian: 7z hanya melihat folder arsip dan folder staging, tidak mengikuti lingkup akses
++     * penyimpanan Terminal. Titik mount guest harus sudah ada di rootfs (dibuat pemanggil).
++     */
++    fun prootArgsScoped(rootfs: String, binds: List<Pair<String, String>>, binary: String, args: List<String>): List<String> = buildList {
++        add("--link2symlink"); add("--kill-on-exit"); add("-0")
++        add("--rootfs=$rootfs"); add("--cwd=/root")
++        add("--bind=/dev"); add("--bind=/proc"); add("--bind=/sys")
++        for ((host, guest) in binds) {
++            require(bindHostOk(host)) { "Jalur host tidak valid untuk bind: $host" }
++            requireGuestAbs(guest)
++            require(guest.indexOf(':') < 0) { "Jalur guest tidak valid untuk bind: $guest" }
++            add("--bind=$host:$guest")
++        }
++        add("/usr/bin/env"); add("-i")
++        add("HOME=/root"); add("LANG=C.UTF-8"); add("MALLOC_ARENA_MAX=2")
++        add("PATH=$GUEST_PATH")
++        add(binary)
++        addAll(args)
++    }
++
+     /** Bahan stdin untuk sandi: satu baris, atau null bila tanpa sandi (stdin ditutup). Sandi berisi baris baru ditolak. */
+     fun stdinFor(password: String?): ByteArray? {
+         val pw = password?.takeIf { it.isNotEmpty() } ?: return null
+@@ -132,6 +178,31 @@ object SevenZipCommand {
+         return out
+     }
+ 
++    /**
++     * [ARCHIVE4] Baca keluaran `7z l -slt -ba` blok demi blok (dipisah baris kosong) tanpa menampung seluruh keluaran,
++     * lalu panggil [sink] per entri. Berhenti setelah [maxEntries]; mengembalikan true bila MASIH ADA entri sesudahnya (terpotong).
++     */
++    fun parseListStream(reader: java.io.BufferedReader, maxEntries: Int, sink: (Entry) -> Unit): Boolean {
++        var count = 0
++        val block = StringBuilder()
++        fun flush(): Boolean {
++            if (block.isEmpty()) return false
++            val entries = parseList(block.toString())
++            block.setLength(0)
++            for (e in entries) {
++                if (count >= maxEntries) return true
++                sink(e)
++                count++
++            }
++            return false
++        }
++        while (true) {
++            val line = reader.readLine() ?: break
++            if (line.isBlank()) { if (flush()) return true } else block.append(line).append('\n')
++        }
++        return flush()
++    }
++
+     /**
+      * Nama entri yang tidak tepercaya -> nama bersih (pemisah `/`, tanpa awalan `/`), atau null bila berbahaya:
+      * kosong, NUL, `..`, jalur absolut, huruf drive, atau pemisah Windows (`\`).
+diff --git a/scripts/app-tests/DebianArchiveStagingTests.kt b/scripts/app-tests/DebianArchiveStagingTests.kt
+new file mode 100644
+index 0000000..d8625e9
+--- /dev/null
++++ b/scripts/app-tests/DebianArchiveStagingTests.kt
+@@ -0,0 +1,109 @@
++package com.molina.studio.cinema
++
++import java.io.File
++import java.io.IOException
++import java.nio.file.Files
++
++private var fails = 0
++private fun check(name: String, ok: Boolean) { if (ok) println("ok   $name") else { fails++; println("GAGAL $name") } }
++private fun throwsIo(block: () -> Unit): Boolean = try { block(); false } catch (e: IOException) { true }
++
++private fun tmp(): File = Files.createTempDirectory("molina-stage-test").toFile()
++private fun File.put(rel: String, text: String = "x"): File { val f = File(this, rel); f.parentFile.mkdirs(); f.writeText(text); return f }
++
++fun main() {
++    // ---- DebianFormats
++    fun d(n: String) = DebianFormats.detect(n)
++    check("rar", d("a.rar")?.label == "RAR" && d("a.rar")!!.firstVolume && d("a.rar")!!.stem == "a")
++    check("RAR huruf besar", d("A.RAR")?.label == "RAR")
++    check("iso/cab/wim/deb/rpm/dmg", listOf("a.iso", "b.cab", "c.wim", "d.deb", "e.rpm", "f.dmg", "g.cpio", "h.arj", "i.lzh").all { d(it) != null })
++    check("part1.rar pertama", d("x.part1.rar")?.firstVolume == true && d("x.part01.rar")?.firstVolume == true && d("x.part1.rar")!!.stem == "x")
++    check("part2.rar bukan pertama", d("x.part2.rar")?.firstVolume == false)
++    check("7z.001 pertama, .002 bukan", d("x.7z.001")?.firstVolume == true && d("x.7z.002")?.firstVolume == false && d("x.7z.001")!!.label == "7Z")
++    check("zip.001", d("x.zip.001")?.label == "ZIP")
++    check("zip/7z/tar bukan urusan Debian", d("a.zip") == null && d("a.7z") == null && d("a.tar.gz") == null)
++    check("stem kosong ditolak", d(".rar") == null)
++    check("folderName rar", DebianFormats.folderName("Film.part1.rar") == "Film" && DebianFormats.folderName("a.iso") == "a")
++
++    // ---- create / sweepStale
++    val dest = tmp()
++    val st = DebianArchiveStaging.create(dest, 42L)
++    check("create: dir tersembunyi di dest", st.isDirectory && st.parentFile == dest && st.name.startsWith(DebianArchiveStaging.PREFIX))
++    check("create: nonce sama ditolak", throwsIo { DebianArchiveStaging.create(dest, 42L) })
++    check("create: parent tak ada ditolak", throwsIo { DebianArchiveStaging.create(File(dest, "nope")) })
++    check("sweep: baru tidak dibuang", DebianArchiveStaging.sweepStale(dest) == 0 && st.exists())
++    st.put("a.txt")
++    check("sweep: usang dibuang", DebianArchiveStaging.sweepStale(dest, System.currentTimeMillis() + DebianArchiveStaging.STALE_MS + 1000) == 1 && !st.exists())
++    val other = dest.put(".molina-stagex/keep.txt"); // bukan awalan persis? awalan '.molina-stage' + 'x' tetap berawalan -> hanya dir
++    check("sweep: berkas biasa tak disentuh", File(dest, "plain.txt").also { it.writeText("p") }.exists() && DebianArchiveStaging.sweepStale(dest, Long.MAX_VALUE / 2) >= 0 && File(dest, "plain.txt").exists())
++
++    // ---- audit
++    val a = tmp()
++    a.put("f1.txt", "12345"); a.put("sub/f2.txt", "123"); File(a, "empty").mkdir()
++    val au = DebianArchiveStaging.audit(a)
++    check("audit: hitung", au.files == 2 && au.dirs == 2 && au.bytes == 8L && au.removed == 0)
++    val victim = tmp(); val vf = victim.put("secret.txt", "jangan hapus")
++    try {
++        Files.createSymbolicLink(File(a, "lnk").toPath(), victim.toPath())
++        Files.createSymbolicLink(File(a, "lnkfile").toPath(), vf.toPath())
++        val au2 = DebianArchiveStaging.audit(a)
++        check("audit: tautan dihapus, target utuh", au2.removed == 2 && !File(a, "lnk").exists() && vf.readText() == "jangan hapus")
++        // deleteTree tidak mengikuti tautan
++        Files.createSymbolicLink(File(a, "lnk2").toPath(), victim.toPath())
++        DebianArchiveStaging.deleteTree(a)
++        check("deleteTree: tidak mengikuti tautan", !a.exists() && vf.exists() && vf.readText() == "jangan hapus")
++    } catch (e: UnsupportedOperationException) { println("lewati: symlink tak didukung") }
++    check("audit: stage berupa tautan ditolak", run {
++        val real = tmp(); val link = File(tmp(), "ln"); Files.createSymbolicLink(link.toPath(), real.toPath())
++        throwsIo { DebianArchiveStaging.audit(link) }
++    })
++
++    // ---- commit
++    fun fresh(): Pair<File, File> { val dd = tmp(); return dd to DebianArchiveStaging.create(dd) }
++
++    run {
++        val (dd, s) = fresh()
++        s.put("a.txt", "A"); s.put("dir/b.txt", "B"); s.put("dir/deep/c.txt", "C")
++        val r = DebianArchiveStaging.commit(s, dd, null) { false }
++        check("commit HERE: berkas+folder", File(dd, "a.txt").readText() == "A" && File(dd, "dir/deep/c.txt").readText() == "C" && r.files == 3 && r.renamed == 0 && r.base == dd.canonicalFile)
++    }
++    run {
++        val (dd, s) = fresh()
++        dd.put("a.txt", "LAMA"); dd.put("dir/b.txt", "LAMA-B")
++        s.put("a.txt", "BARU"); s.put("dir/b.txt", "BARU-B"); s.put("dir/n.txt", "N")
++        val r = DebianArchiveStaging.commit(s, dd, null) { false }
++        check("commit: tidak menimpa", File(dd, "a.txt").readText() == "LAMA" && File(dd, "a (1).txt").readText() == "BARU")
++        check("commit: folder digabung, berkas bentrok diganti nama", File(dd, "dir/b.txt").readText() == "LAMA-B" && File(dd, "dir/b (1).txt").readText() == "BARU-B" && File(dd, "dir/n.txt").readText() == "N")
++        check("commit: hitung renamed/files", r.renamed == 2 && r.files == 3)
++    }
++    run {
++        val (dd, s) = fresh()
++        dd.put("Film/lama.txt")
++        s.put("x.txt", "X")
++        val r = DebianArchiveStaging.commit(s, dd, "Film") { false }
++        check("commit NAMED: nama unik", r.base.name == "Film (1)" && File(dd, "Film (1)/x.txt").readText() == "X" && File(dd, "Film/lama.txt").exists())
++    }
++    run {
++        val (dd, s) = fresh()
++        s.put("a.txt"); s.put("b.txt"); s.put("c.txt")
++        var n = 0
++        val ex = try { DebianArchiveStaging.commit(s, dd, "Out") { ++n > 2 }; null } catch (e: IOException) { e }
++        check("commit batal: rollback total", ex?.message == "Dibatalkan" && !File(dd, "Out").exists() && File(dd, "a.txt").exists().not())
++    }
++    run {
++        val (dd, s) = fresh()
++        dd.put("keep.txt", "K"); s.put("a.txt"); s.put("b.txt")
++        var n = 0
++        try { DebianArchiveStaging.commit(s, dd, null) { ++n > 1 } } catch (e: IOException) { }
++        check("commit batal HERE: hanya yang dibuat dibatalkan", File(dd, "keep.txt").readText() == "K" && !File(dd, "a.txt").exists() && !File(dd, "b.txt").exists())
++    }
++    check("commit: stage bukan anak dest ditolak", run { val dd = tmp(); val s = tmp(); throwsIo { DebianArchiveStaging.commit(s, dd, null) { false } } })
++
++    // ---- roomError
++    val rd = tmp()
++    check("roomError: wajar OK", DebianArchiveStaging.roomError(rd, 1024) == null)
++    check("roomError: terlalu besar", DebianArchiveStaging.roomError(rd, Long.MAX_VALUE / 4) != null)
++
++    println(if (fails == 0) "SEMUA LULUS" else "$fails GAGAL")
++    if (fails > 0) System.exit(1)
++}
+diff --git a/scripts/app-tests/run_debian_archive_staging.sh b/scripts/app-tests/run_debian_archive_staging.sh
+new file mode 100755
+index 0000000..612d658
+--- /dev/null
++++ b/scripts/app-tests/run_debian_archive_staging.sh
+@@ -0,0 +1,11 @@
++#!/usr/bin/env bash
++# Uji JVM murni untuk DebianFormats + DebianArchiveStaging (staging, audit, commit, rollback) di :app.
++# Butuh kotlinc (>= 2.1) di PATH atau KOTLINC=/jalur/kotlinc.
++set -euo pipefail
++cd "$(dirname "$0")/../.."
++KC="${KOTLINC:-kotlinc}"
++OUT="$(mktemp -d)"
++trap 'rm -rf "$OUT"' EXIT
++C=app/src/main/java/com/molina/studio/cinema
++"$KC" -nowarn -d "$OUT" $C/ArchiveNames.kt $C/DebianArchiveStaging.kt scripts/app-tests/DebianArchiveStagingTests.kt 2>&1 | grep -v '^$' || true
++java -cp "$OUT:$(dirname "$(command -v "$KC")")/../lib/kotlin-stdlib.jar" com.molina.studio.cinema.DebianArchiveStagingTestsKt
+diff --git a/scripts/core-tests/SevenZipCommandTests.kt b/scripts/core-tests/SevenZipCommandTests.kt
+index 6e157bb..94a0969 100644
+--- a/scripts/core-tests/SevenZipCommandTests.kt
++++ b/scripts/core-tests/SevenZipCommandTests.kt
+@@ -147,6 +147,39 @@ fun main() {
+     check("parseProgress: >100 diabaikan", SevenZipCommand.parseProgress("250%") == null)
+     check("cleanOutput: prompt dan persen dibuang, galat tetap", SevenZipCommand.cleanOutput("  0M Scan\b\b  5%\b\b\r\nERROR: x : y\n\n").contains("ERROR: x : y") && !SevenZipCommand.cleanOutput("  5%\b\b").contains("%"))
+ 
++    // [ARCHIVE4] bind berlingkup, ekstrak sebagian, pembaca daftar bertahap
++    val scoped = SevenZipCommand.prootArgsScoped("/r", listOf("/sdcard/Download" to SevenZipCommand.GUEST_SRC, "/sdcard/Download/.molina-stage-x" to SevenZipCommand.GUEST_OUT), "/usr/bin/7z", listOf("l", "--", "/mnt/molina-src/a.rar"))
++    check("scoped: hanya dua bind penyimpanan, tidak ada bind /sdcard penuh", scoped.count { it.startsWith("--bind=/sdcard") } == 2 && scoped.none { it == "--bind=/storage/emulated/0:/sdcard" })
++    check("scoped: bind host:guest benar", "--bind=/sdcard/Download:/mnt/molina-src" in scoped && "--bind=/sdcard/Download/.molina-stage-x:/mnt/molina-out" in scoped)
++    check("scoped: biner dan args di akhir, env bersih", scoped.takeLast(4) == listOf("/usr/bin/7z", "l", "--", "/mnt/molina-src/a.rar") && "-i" in scoped && "--kill-on-exit" in scoped)
++    check("scoped: host mengandung ':' ditolak", throwsIae { SevenZipCommand.prootArgsScoped("/r", listOf("/sdcard/a:b" to "/mnt/x"), "/usr/bin/7z", emptyList()) })
++    check("scoped: host relatif/.. ditolak", throwsIae { SevenZipCommand.prootArgsScoped("/r", listOf("sdcard" to "/mnt/x"), "/usr/bin/7z", emptyList()) } && throwsIae { SevenZipCommand.prootArgsScoped("/r", listOf("/a/../b" to "/mnt/x"), "/usr/bin/7z", emptyList()) })
++    check("scoped: guest relatif ditolak", throwsIae { SevenZipCommand.prootArgsScoped("/r", listOf("/sdcard/a" to "mnt/x"), "/usr/bin/7z", emptyList()) })
++    check("bindHostOk", SevenZipCommand.bindHostOk("/storage/emulated/0/Download") && !SevenZipCommand.bindHostOk("/a\nb") && !SevenZipCommand.bindHostOk(""))
++
++    val partial = SevenZipCommand.extractArgs("/mnt/molina-src/a.7z", "/mnt/molina-out", listOf("src/a.txt", "src/sub/"))
++    check("extractArgs sebagian: nama setelah arsip, akhiran / dibuang", partial.takeLast(3) == listOf("/mnt/molina-src/a.7z", "src/a.txt", "src/sub") && partial.indexOf("--") < partial.indexOf("src/a.txt"))
++    check("extractArgs sebagian: kosong = sama dengan penuh", SevenZipCommand.extractArgs("/a.7z", "/o", emptyList()) == SevenZipCommand.extractArgs("/a.7z", "/o"))
++    check("extractArgs sebagian: '..' ditolak", throwsIae { SevenZipCommand.extractArgs("/a.7z", "/o", listOf("../x")) })
++    check("extractArgs sebagian: '@' dan '!' ditolak", throwsIae { SevenZipCommand.extractArgs("/a.7z", "/o", listOf("@list")) } && throwsIae { SevenZipCommand.extractArgs("/a.7z", "/o", listOf("!x")) })
++    check("extractArgs sebagian: nama berawalan '-' aman setelah --", SevenZipCommand.extractArgs("/a.7z", "/o", listOf("-rf")).takeLast(2) == listOf("/a.7z", "-rf"))
++
++    run {
++        val all = ArrayList<SevenZipCommand.Entry>()
++        val trunc = SevenZipCommand.parseListStream(java.io.BufferedReader(java.io.StringReader(REAL_LIST)), 1000) { all.add(it) }
++        check("parseListStream: sama dengan parseList, tidak terpotong", !trunc && all.map { it.path } == SevenZipCommand.parseList(REAL_LIST).map { it.path } && all.isNotEmpty())
++        val two = ArrayList<SevenZipCommand.Entry>()
++        val t2 = SevenZipCommand.parseListStream(java.io.BufferedReader(java.io.StringReader(REAL_LIST)), 2) { two.add(it) }
++        check("parseListStream: batas entri -> terpotong", t2 && two.size == 2)
++        val exact = ArrayList<SevenZipCommand.Entry>()
++        val t3 = SevenZipCommand.parseListStream(java.io.BufferedReader(java.io.StringReader(REAL_LIST)), all.size) { exact.add(it) }
++        check("parseListStream: batas pas jumlah -> tidak terpotong", !t3 && exact.size == all.size)
++        val noisy = "Enter password (will not be echoed):\n" + REAL_LIST
++        val n = ArrayList<SevenZipCommand.Entry>()
++        SevenZipCommand.parseListStream(java.io.BufferedReader(java.io.StringReader(noisy)), 1000) { n.add(it) }
++        check("parseListStream: prompt di depan tidak merusak entri pertama", n.map { it.path } == all.map { it.path })
++    }
++
+     // integrasi opsional dengan 7z asli: SEVENZIP_BIN=/usr/bin/7z
+     val bin = System.getenv("SEVENZIP_BIN")
+     if (bin.isNullOrBlank()) {
+@@ -215,6 +248,28 @@ fun main() {
+             val (rd, od) = run7z(bin, SevenZipCommand.listArgs(File(tmp, "-dash.7z").path), null, tmp)
+             check("integrasi: nama berawalan '-' aman (jalur absolut)", rd == 0 && SevenZipCommand.parseList(od).size == ents.size)
+ 
++            // [ARCHIVE4] ekstrak sebagian lewat nama setelah `--` (berkas, folder, dengan spasi/unicode)
++            val p1 = File(tmp, "p1").also { it.mkdirs() }
++            val (r1, _) = run7z(bin, SevenZipCommand.extractArgs(File(tmp, "plain.7z").path, p1.path, listOf("src/a.txt", "src/spasi nama é.txt")), null, tmp)
++            check("integrasi: sebagian berkas saja", r1 == 0 && File(p1, "src/a.txt").readText() == "hello\n" && File(p1, "src/spasi nama é.txt").exists() && !File(p1, "src/sub/b.bin").exists())
++            val p2 = File(tmp, "p2").also { it.mkdirs() }
++            val (r2, _) = run7z(bin, SevenZipCommand.extractArgs(File(tmp, "plain.7z").path, p2.path, listOf("src/sub/")), null, tmp)
++            check("integrasi: sebagian folder ikut isinya", r2 == 0 && File(p2, "src/sub/b.bin").length() == 5000L && !File(p2, "src/a.txt").exists())
++            val p3 = File(tmp, "p3").also { it.mkdirs() }
++            val (r3, o3x) = run7z(bin, SevenZipCommand.extractArgs(File(tmp, "plain.7z").path, p3.path, listOf("src/tidak-ada.txt")), null, tmp)
++            check("integrasi: nama tak ada -> rc 0 TAPI nol berkas (pemanggil wajib menganggap 0 berkas = galat)", r3 == 0 && (p3.listFiles()?.isEmpty() ?: true))
++            val p4 = File(tmp, "p4").also { it.mkdirs() }
++            val (r4, _) = run7z(bin, SevenZipCommand.extractArgs(File(tmp, "plain.7z").path, p4.path, listOf("src/*.txt")), null, tmp)
++            check("integrasi: wildcard di nama TIDAK diperluas (-spd), nol berkas", r4 == 0 && !File(p4, "src/a.txt").exists() && (p4.listFiles()?.isEmpty() ?: true))
++            val ps = File(tmp, "ps").also { it.mkdirs() }
++            val (r5, _) = run7z(bin, SevenZipCommand.extractArgs(File(tmp, "enc.7z").path, ps.path, listOf("src/a.txt")), SevenZipCommand.stdinFor("SECRET"), tmp)
++            check("integrasi: sebagian + sandi via stdin", r5 == 0 && File(ps, "src/a.txt").readText() == "hello\n" && !File(ps, "src/sub/b.bin").exists())
++            val stream = ArrayList<SevenZipCommand.Entry>()
++            val proc = ProcessBuilder(listOf(bin) + SevenZipCommand.listArgs(File(tmp, "plain.7z").path)).redirectErrorStream(true).start()
++            val tr = proc.inputStream.bufferedReader().use { SevenZipCommand.parseListStream(it, 2) { e -> stream.add(e) } }
++            proc.waitFor()
++            check("integrasi: parseListStream pada keluaran nyata terpotong di batas", tr && stream.size == 2)
++
+             // jalur relatif berbahaya tak pernah dibuat builder
+             check("integrasi: builder menolak jalur relatif -dash.7z", throwsIae { SevenZipCommand.listArgs("-dash.7z") })
+         } finally {

@@ -33,6 +33,9 @@ data class DownloadSessionState(
     val ok: Int = 0,
     val failed: Int = 0,
     val cancelled: Boolean = false,
+    /** Hasil `--doctor` / `--update-ytdlp` terakhir (sesi perawatan, bukan unduhan). */
+    val doctor: DownloadEvent.Doctor? = null,
+    val update: DownloadEvent.Update? = null,
 )
 
 /** Reducer murni: (keadaan, event) -> keadaan baru. Halaman Unduhan cukup melipat aliran event ke sini. */
@@ -60,6 +63,8 @@ object DownloadReducer {
             if (e.index <= 0) s.copy(fatalError = e.msg)
             else s.update(e.index) { it.copy(status = DownloadItemStatus.FAILED, errorCode = e.code, errorMsg = e.msg) }
         is DownloadEvent.Summary -> s.copy(finished = true, ok = e.ok, failed = e.failed, cancelled = e.cancelled)
+        is DownloadEvent.Doctor -> s.copy(doctor = e)
+        is DownloadEvent.Update -> s.copy(update = e)
     }
 
     /** Persen gabungan item untuk satu bar: video+audio dirata-ratakan; null bila belum diketahui. */
