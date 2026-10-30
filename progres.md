@@ -2230,3 +2230,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Clone ulang repo, HEAD c8add17 sinkron dengan origin/main
 - [x] Patch poster paralel dibatalkan (duplikat DL-PKG6-SIDECAR-UI)
 - [ ] Berikutnya: model kartu poster (MediaSidecar.readInfo + CinemaRecent) lalu rak di CinemaWin7Home
+
+## [SIDE3-SHELF] Rak film Molina Cinema
+- [x] feat(core): ShelfCard (model kartu: judul/kanal/tahun/durasi dari info.json, monogram, thumbPath, hasPoster); tahan berkas hilang/rusak
+- [x] feat(cinema): CinemaShelf.kt (LazyRow kartu poster 2:3, durasi, bingkai emas bila ada poster, monogram bila tidak); model dibangun di Dispatchers.IO; gambar via W7Thumb; dipasang di CinemaWin7Body setelah ResumeCard
+- [x] test: scripts/core-tests/run_shelf.sh (27 pemeriksaan) lulus dengan kotlinc 2.1.21
+- [x] Dampak: :core:common (1 berkas baru) + :app (CinemaShelf.kt baru, CinemaWin7Home.kt +1 baris); Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
+- [ ] Compose (CinemaShelf) belum dikompilasi di sandbox: tunggu CI; cek tata letak di layar sempit Android 8
+- [ ] Berikutnya: info.json di dialog Properti (W7MediaInfo); rak hanya menampilkan riwayat putar (maks. 8), belum memindai folder Unduhan

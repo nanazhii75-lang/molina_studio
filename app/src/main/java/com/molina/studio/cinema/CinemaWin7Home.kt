@@ -92,6 +92,7 @@ internal fun CinemaWin7Body(
                         Tile("\u21BB", "Segarkan", Modifier.weight(1f), onReset)
                     }
                     recents.firstOrNull()?.let { first -> ResumeCard(first, ResumeBridge.enabled(ctx)) { onRecent(first) } }
+                    CinemaShelf(recents, onRecent)
                     RecentList(recents, onRecent) { CinemaRecent.clear(ctx) }
                 }
                 StatusStrip(info, busy)
