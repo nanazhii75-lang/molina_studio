@@ -104,6 +104,17 @@ fun main() {
     check("roomError: wajar OK", DebianArchiveStaging.roomError(rd, 1024) == null)
     check("roomError: terlalu besar", DebianArchiveStaging.roomError(rd, Long.MAX_VALUE / 4) != null)
 
+    // ---- [ARCHIVE5] ArchiveRoute: mesin bawaan selalu didahulukan, Debian hanya untuk sisanya
+    val nativeNames = listOf("a.zip", "a.7z", "a.tar", "a.tar.gz", "a.tgz", "a.tar.bz2", "a.tar.xz", "a.txz", "a.gz", "a.bz2", "a.xz", "A.ZIP", "B.7Z")
+    check("route: format bawaan TIDAK lewat Debian", nativeNames.all { ArchiveRoute.supports(it) && !ArchiveRoute.viaDebian(it) })
+    val debNames = listOf("a.rar", "a.iso", "a.cab", "a.wim", "a.deb", "a.rpm", "a.dmg", "x.7z.001", "x.zip.001", "x.part1.rar", "x.part2.rar")
+    check("route: format Debian lewat Debian", debNames.all { ArchiveRoute.supports(it) && ArchiveRoute.viaDebian(it) })
+    check("route: bukan arsip", listOf("a.txt", "a.mp4", "a.kt", "a", "a.001", ".rar", "a.7z.01").none { ArchiveRoute.supports(it) })
+    check("route: label", ArchiveRoute.label("a.tar.gz") == "TAR.GZ" && ArchiveRoute.label("a.rar") == "RAR" && ArchiveRoute.label("x.7z.001") == "7Z" && ArchiveRoute.label("a.txt") == null)
+    check("route: folderName", ArchiveRoute.folderName("Film.part1.rar") == "Film" && ArchiveRoute.folderName("a.tar.gz") == "a" && ArchiveRoute.folderName("notes.txt.gz") == "notes" && ArchiveRoute.folderName("d.iso") == "d")
+    check("route: canPassword", ArchiveRoute.canPassword("a.zip") && ArchiveRoute.canPassword("a.7z") && !ArchiveRoute.canPassword("a.tar.gz") && ArchiveRoute.canPassword("a.rar") && !ArchiveRoute.canPassword("a.txt"))
+    check("route: tumpang tindih tidak ada (tak satu pun nama bawaan dikenal Debian)", nativeNames.none { DebianFormats.supports(it) })
+
     println(if (fails == 0) "SEMUA LULUS" else "$fails GAGAL")
     if (fails > 0) System.exit(1)
 }

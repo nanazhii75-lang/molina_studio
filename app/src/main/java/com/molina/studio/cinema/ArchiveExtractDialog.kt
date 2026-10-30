@@ -26,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -78,7 +79,7 @@ private fun ArcOption(on: Boolean, label: String, note: String, onClick: () -> U
 }
 
 /**
- * [ARCHIVE] Dialog ekstrak untuk semua format yang didukung [ArchiveEngine]: pilih tujuan (di sini / folder bernama arsip)
+ * [ARCHIVE] Dialog ekstrak untuk semua format yang didukung [ArchiveRoute] ([ArchiveEngine] atau 7z di Debian): pilih tujuan (di sini / folder bernama arsip)
  * dan, bila mau, centang entri untuk ekstrak sebagian. Daftar dibaca di thread IO; arsip berkata sandi memanggil
  * [onNeedPassword] (pemanggil menampilkan dialog sandi lalu membuka dialog ini lagi dengan [password]).
  */
@@ -90,7 +91,10 @@ internal fun ArchiveExtractDialog(
     onClose: () -> Unit,
     onExtract: (ExtractTarget, Set<String>?) -> Unit
 ) {
-    val fmt = remember(file) { ArchiveNames.detect(file.name) }
+    val ctx = LocalContext.current
+    val fmtLabel = remember(file) { ArchiveRoute.label(file.name) } // [ARCHIVE5]
+    val canPw = remember(file) { ArchiveRoute.canPassword(file.name) }
+    val viaDebian = remember(file) { ArchiveRoute.viaDebian(file.name) }
     var listing by remember(file, password) { mutableStateOf<FileOps.ZipListing?>(null) }
     var err by remember(file, password) { mutableStateOf<String?>(null) }
     var target by remember(file) { mutableStateOf(ExtractTarget.NAMED_FOLDER) }
@@ -99,7 +103,7 @@ internal fun ArchiveExtractDialog(
     val keys = remember(file) { mutableStateListOf<String>() }
 
     LaunchedEffect(file, password) {
-        val r = withContext(Dispatchers.IO) { runCatching { ArchiveEngine.list(file, password) } }
+        val r = withContext(Dispatchers.IO) { runCatching { ArchiveOps.list(ctx, file, password) } }
         val ex = r.exceptionOrNull()
         when {
             ex is FileOps.NeedPassword -> onNeedPassword(false)
@@ -107,13 +111,13 @@ internal fun ArchiveExtractDialog(
             ex != null -> err = ex.message ?: ex.javaClass.simpleName
             else -> {
                 val l = r.getOrNull()
-                if (l != null && l.encrypted && password == null && fmt?.hasPassword == true) onNeedPassword(false) else listing = l
+                if (l != null && l.encrypted && password == null && canPw) onNeedPassword(false) else listing = l
             }
         }
     }
 
     val l = listing
-    val title = "Ekstrak " + (fmt?.label ?: "arsip")
+    val title = "Ekstrak " + (fmtLabel ?: "arsip")
     W7Panel(title, onClose) {
         Text(file.name, color = Win7.Ink, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Spacer(Modifier.height(2.dp))
@@ -134,8 +138,9 @@ internal fun ArchiveExtractDialog(
                         (if (l.truncated) " (daftar dipotong)" else "") + (if (l.encrypted) ", berkata sandi" else ""),
                     color = Win7.TextDim, fontSize = 11.sp
                 )
+                if (viaDebian) Text("Dibuka lewat 7z di Debian (Molina Terminal)", color = Win7.TextDim, fontSize = 11.sp)
                 Spacer(Modifier.height(8.dp))
-                ArcOption(target == ExtractTarget.NAMED_FOLDER, "Ke folder \"" + ArchiveNames.folderName(file.name) + "\"", "Buat folder baru bernama arsip") {
+                ArcOption(target == ExtractTarget.NAMED_FOLDER, "Ke folder \"" + ArchiveRoute.folderName(file.name) + "\"", "Buat folder baru bernama arsip") {
                     target = ExtractTarget.NAMED_FOLDER
                 }
                 ArcOption(target == ExtractTarget.HERE, "Di sini", "Langsung ke folder ini; berkas yang sudah ada tidak ditimpa") {

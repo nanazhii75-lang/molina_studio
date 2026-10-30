@@ -365,7 +365,7 @@ fun Win7OpenDialog(
                 say(if (ok) "Memutar di mpv: " + f.name else "Gagal memutar " + f.name, ok)
             }
             f.extension.equals("zip", ignoreCase = true) -> sheet = W7Sheet.ZipView(f)
-            f.isFile && ArchiveNames.detect(f.name) != null -> sheet = W7Sheet.Archive(f, null) // [ARCHIVE]
+            f.isFile && ArchiveRoute.supports(f.name) -> sheet = W7Sheet.Archive(f, null) // [ARCHIVE]
             code != null && ExplorerList.looksText(f) -> code(listOf(f))
             onOpenWith != null && f.isFile -> onOpenWith?.invoke(f)
             else -> say("Tidak ada aplikasi Molina untuk membuka jenis berkas ini. Pakai menu Alat untuk menyalin atau mengompres.")
@@ -477,7 +477,7 @@ fun Win7OpenDialog(
             val apw = s.pw
             val d = a.parentFile?.takeIf { it.isDirectory && it.canWrite() } ?: dir
             runOp(
-                op = { ctl -> ArchiveEngine.extract(a, d, exTarget, ctl, apw, exOnly).describe() },
+                op = { ctl -> ArchiveOps.extract(ctx, a, d, exTarget, ctl, apw, exOnly).describe() },
                 onFail = {
                     if (it is FileOps.NeedPassword) { say(""); sheet = W7Sheet.ArchivePw(a, false) }
                     else if (it is FileOps.WrongPassword) { say(""); sheet = W7Sheet.ArchivePw(a, true) }
@@ -739,7 +739,7 @@ fun Win7OpenDialog(
                                     }
                                     W7MenuItem(
                                         W7Ico.UNZIP, "Ekstrak arsip",
-                                        one != null && one.isFile && ArchiveNames.detect(one.name) != null
+                                        one != null && one.isFile && ArchiveRoute.supports(one.name)
                                     ) { // [ARCHIVE] ZIP tetap lewat jalur lama; format lain lewat ArchiveEngine
                                         toolsOpen = false
                                         if (one != null) {
@@ -751,7 +751,7 @@ fun Win7OpenDialog(
                                                 )
                                             } else {
                                                 runOp(
-                                                    op = { ctl -> ArchiveEngine.extract(one, d, ExtractTarget.NAMED_FOLDER, ctl).describe() },
+                                                    op = { ctl -> ArchiveOps.extract(ctx, one, d, ExtractTarget.NAMED_FOLDER, ctl).describe() },
                                                     onFail = { if (it is FileOps.NeedPassword) { say(""); sheet = W7Sheet.ArchivePw(one, false) } }
                                                 )
                                             }
@@ -759,7 +759,7 @@ fun Win7OpenDialog(
                                     }
                                     W7MenuItem(
                                         W7Ico.UNZIP, "Ekstrak pilihan\u2026",
-                                        one != null && one.isFile && ArchiveNames.detect(one.name) != null
+                                        one != null && one.isFile && ArchiveRoute.supports(one.name)
                                     ) { // [ARCHIVE] pilih tujuan dan entri
                                         toolsOpen = false
                                         if (one != null) sheet = W7Sheet.Archive(one, null)
@@ -888,7 +888,7 @@ fun Win7OpenDialog(
                         val dkMedia = onPlay != null && dkFiles.isNotEmpty() && dkFiles.all { it.isFile && it.extension.lowercase() in W7_MEDIA }
                         val dkText = !dkMedia && onOpenInCode != null && dkFiles.size == 1 && dkFiles[0].isFile && ExplorerList.looksText(dkFiles[0])
                         val dkZip = !dkMedia && !dkText && dkFiles.size == 1 && dkFiles[0].isFile && dkFiles[0].extension.equals("zip", ignoreCase = true)
-                        val dkArc = !dkMedia && !dkText && !dkZip && dkFiles.size == 1 && dkFiles[0].isFile && ArchiveNames.detect(dkFiles[0].name) != null // [ARCHIVE]
+                        val dkArc = !dkMedia && !dkText && !dkZip && dkFiles.size == 1 && dkFiles[0].isFile && ArchiveRoute.supports(dkFiles[0].name) // [ARCHIVE]
                         W7BrowseDock(
                             files = dkFiles,
                             isDir = if (selected == null || multi) null else selected!!.isDir,

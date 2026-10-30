@@ -65,6 +65,7 @@ internal class DebianArchive(context: Context) {
      * Tautan dilewati (seperti tar). Arsip dengan nama terenkripsi tanpa [password] melempar [FileOps.NeedPassword].
      */
     fun list(file: File, password: String? = null, cancelled: () -> Boolean = { false }): FileOps.ZipListing {
+        DebianFormats.detect(file.name)?.let { if (!it.firstVolume) throw IOException(DebianFormats.NOT_FIRST_HINT) }
         val bin = readyBinary()
         val srcDir = sourceDir(file)
         val rootfs = RootfsManager.rootfsDir(app)
