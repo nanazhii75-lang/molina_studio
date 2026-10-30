@@ -36,12 +36,19 @@ object YtdlpCommand {
         "--", url,
     )
 
+    /**
+     * Bahasa antarmuka YouTube untuk pencarian. Tanpa ini yt-dlp memakai hl=en sehingga judul video
+     * berbahasa Indonesia tampil sebagai terjemahan Inggris. Versi yt-dlp lama mengabaikan argumen ini.
+     */
+    const val SEARCH_LANG = "id"
+
     /** Argumen pencarian judul (YouTube); keluaran satu JSON per baris untuk [YtdlpSearch.parse]. */
     fun searchArgs(query: String, limit: Int): List<String> {
         val n = limit.coerceIn(1, 50)
         return listOf(
             "--ignore-config", "--flat-playlist", "-j", "--no-warnings", "--no-progress", "--no-cache-dir",
             "--socket-timeout", "20", "--retries", "1",
+            "--extractor-args", "youtube:lang=$SEARCH_LANG",
             "--", "ytsearch$n:${query.trim()}",
         )
     }

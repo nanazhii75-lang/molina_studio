@@ -2247,3 +2247,10 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: hanya aset Python + tes; Gradle, AndroidManifest, JNI mpv TIDAK disentuh; errorCode Kotlin berupa string bebas (tanpa whitelist)
 - [ ] Uji perangkat: unduh video ber-subtitle id,en di Android 8; pastikan peringatan kuning tampil dan video tetap tersimpan
 - [ ] Berikutnya: tampilkan warn `subs_failed` di UI; opsi "subtitle belakangan" (langkah terpisah dengan jeda)
+
+## 2026-10-31 - Pencarian YouTube: judul tampil terjemahan Inggris [SEARCH-LANG-ID]
+- [x] Diagnosis: searchArgs tanpa lang; extractor YouTube yt-dlp (2026.10.26) memakai hl=en bila lang kosong, sehingga judul video Indonesia sebagian tampil terjemahan Inggris
+- [x] fix(search): YtdlpCommand.searchArgs menambah `--extractor-args youtube:lang=id` (konstanta SEARCH_LANG)
+- [x] Dampak: hanya core/common (1 berkas); resolveArgs, urutan hasil (SearchOrderTests), Gradle, AndroidManifest, JNI mpv TIDAK disentuh
+- [ ] Belum dikompilasi/diuji di sandbox (perubahan satu string): tunggu CI; uji perangkat: cari judul berbahasa Indonesia, bandingkan dengan YouTube asli
+- [ ] Berikutnya: samakan bahasa judul di fetch_info/nama berkas unduhan (molina_dl.py) bila masih berbeda; pertimbangkan bahasa pencarian mengikuti pengaturan
