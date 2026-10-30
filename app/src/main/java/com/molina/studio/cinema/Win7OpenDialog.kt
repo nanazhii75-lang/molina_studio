@@ -125,7 +125,7 @@ private sealed class W7Sheet {
     object NewDir : W7Sheet()
 }
 private enum class W7Ico { PLAY, CODE, SCRIPT, COPY, CUT, PASTE, RENAME, ZIP, UNZIP, DELETE, NEWDIR, STAR, STAR_OUT, INFO, SHARE, OPEN_WITH,
-    REFRESH, SORT, SELECT, SELECT_ALL, CLEAR, MORE } // [W7-COMPACT-PORTRAIT]
+    REFRESH, SORT, SELECT, SELECT_ALL, CLEAR, MORE, SEARCH } // [W7-COMPACT-PORTRAIT]
 
 private fun w7Names(l: List<File>): String = if (l.size == 1) l[0].name else l.size.toString() + " item"
 private fun w7StemEnd(name: String, dir: Boolean): Int =
@@ -227,6 +227,7 @@ fun Win7OpenDialog(
     // [NAV-SWIPE] panel kiri: dock di landscape, drawer geser di potret
     val portrait = LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT
     var navOpen by remember { mutableStateOf(false) }
+    var searchOpen by remember { mutableStateOf(false) } // [W7-ICON2] pencarian mengembang di potret
     BackHandler(enabled = portrait && navOpen) { navOpen = false }
     val recents = remember(dir) {
         if (browse) ExplorerRecent.load(ctx).filter { r -> r != dir && vols.none { it.dir == r } && favs.none { it.dir == r } }.take(5)
@@ -541,8 +542,10 @@ fun Win7OpenDialog(
                 Row(Modifier.fillMaxWidth().padding(6.dp), verticalAlignment = Alignment.CenterVertically) {
                     Win7BackOrb(canUp || backStack.isNotEmpty()) { if (!goBack()) goUp() }
                     if (portrait) W7Cmd("\u2630", true) { navOpen = !navOpen }
+                    val showBox = !portrait || searchOpen || query.isNotBlank()
+                    val showCrumbs = !portrait || !showBox
                     Spacer(Modifier.width(6.dp))
-                    Row(
+                    if (showCrumbs) Row(
                         Modifier.weight(1f).height(26.dp).background(Win7.Input)
                             .border(1.dp, Win7.Field).padding(horizontal = 6.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -559,8 +562,15 @@ fun Win7OpenDialog(
                             )
                         }
                     }
-                    Spacer(Modifier.width(6.dp))
-                    W7SearchBox(query, { query = it; selected = null }, Modifier.width(112.dp))
+                    if (portrait) {
+                        if (showBox) {
+                            W7SearchBox(query, { query = it; selected = null }, Modifier.weight(1f))
+                            W7IconCmd(W7Ico.CLEAR, "Tutup pencarian", true) { query = ""; selected = null; searchOpen = false }
+                        } else W7IconCmd(W7Ico.SEARCH, "Cari", true) { searchOpen = true }
+                    } else {
+                        Spacer(Modifier.width(6.dp))
+                        W7SearchBox(query, { query = it; selected = null }, Modifier.width(112.dp))
+                    }
                 }
                 if (query.isNotBlank()) Row(
                     Modifier.fillMaxWidth().clickable { deepSearch = !deepSearch }.padding(horizontal = 10.dp, vertical = 4.dp),
@@ -823,6 +833,7 @@ fun Win7OpenDialog(
                     W7FileArea(
                         modifier = Modifier.weight(1f).fillMaxHeight(),
                         granted = granted, entries = shown, key = key, asc = asc, selected = selected,
+                        compact = portrait,
                         onSort = { k -> if (key == k) asc = !asc else { key = k; asc = true } },
                         multi = multi, picked = picked, recentRefs = playedRefs,
                         emptyNote = if (query.isNotBlank()) "Tidak ada hasil untuk \"" + query.trim() + "\"" else "Folder ini kosong.",
@@ -1149,15 +1160,16 @@ private fun W7FileArea(
     picked: Set<String> = emptySet(),
     recentRefs: List<String> = emptyList(),
     emptyNote: String = "Folder ini kosong.",
+    compact: Boolean = false,
     onSort: (ExplorerList.Key) -> Unit,
     onOpen: (W7Entry) -> Unit,
     onEnter: (W7Entry) -> Unit = {},
     onAsk: () -> Unit
 ) {
     BoxWithConstraints(modifier.background(Win7.Input)) {
-        val wide = maxWidth >= 380.dp
+        val wide = !compact && maxWidth >= 380.dp
         Column(Modifier.fillMaxSize()) {
-            Row(
+            if (wide) Row(
                 Modifier.fillMaxWidth().height(24.dp)
                     .background(Brush.verticalGradient(listOf(Win7.BarTop, Win7.BarBottom))),
                 verticalAlignment = Alignment.CenterVertically
@@ -1166,7 +1178,7 @@ private fun W7FileArea(
                 if (wide) W7HeadCell("Diubah", ExplorerList.Key.DATE, key, asc, Modifier.width(112.dp), onSort)
                 W7HeadCell("Ukuran", ExplorerList.Key.SIZE, key, asc, Modifier.width(76.dp), onSort)
             }
-            Box(Modifier.fillMaxWidth().height(1.dp).background(Win7.Hairline))
+            if (wide) Box(Modifier.fillMaxWidth().height(1.dp).background(Win7.Hairline))
             when {
                 !granted -> W7Note("Izin penyimpanan diperlukan untuk menjelajah berkas. Bila tombol tidak merespons, aktifkan izin Penyimpanan di Setelan Android.") {
                     Spacer(Modifier.height(10.dp))
@@ -1223,7 +1235,7 @@ private fun W7EntryRow(
                 else Modifier
             )
             .clickable { onOpen(e) }
-            .heightIn(min = if (wide) 26.dp else 40.dp)
+            .heightIn(min = if (wide) 26.dp else 36.dp)
             .padding(horizontal = 6.dp, vertical = 3.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -1239,10 +1251,13 @@ private fun W7EntryRow(
                 if (played >= 0) W7PlayedChip(played)
             }
             if (e.rel != null) Text(e.rel, color = Win7.TextDim, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            else if (!wide) Text(w7Date(e.modified), color = Win7.TextDim, fontSize = 10.sp, maxLines = 1)
+            else if (!wide) Text(
+                if (e.isDir) w7Date(e.modified) else w7Date(e.modified) + "  \u00B7  " + w7Size(e.size),
+                color = Win7.TextDim, fontSize = 10.sp, maxLines = 1
+            )
         }
         if (wide) Text(w7Date(e.modified), color = Win7.TextDim, fontSize = 12.sp, maxLines = 1, modifier = Modifier.width(112.dp))
-        Text(
+        if (wide || e.rel != null) Text(
             if (e.isDir) "" else w7Size(e.size), color = Win7.TextDim, fontSize = 12.sp, maxLines = 1,
             textAlign = TextAlign.End, modifier = Modifier.width(if (wide) 76.dp else 68.dp)
         )
@@ -1364,6 +1379,10 @@ private fun W7MenuIcon(ico: W7Ico, enabled: Boolean, sz: androidx.compose.ui.uni
             W7Ico.CLEAR -> {
                 drawCircle(c, radius = 6.2f * u, center = Offset(8f * u, 8f * u), style = st)
                 line(5.5f, 5.5f, 10.5f, 10.5f); line(10.5f, 5.5f, 5.5f, 10.5f)
+            }
+            W7Ico.SEARCH -> {
+                drawCircle(c, radius = 4.6f * u, center = Offset(6.8f * u, 6.8f * u), style = st)
+                line(10.2f, 10.2f, 14f, 14f)
             }
             W7Ico.MORE -> {
                 drawCircle(c, radius = 1.2f * u, center = Offset(8f * u, 3.5f * u))
