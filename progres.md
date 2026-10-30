@@ -2075,3 +2075,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Belum diuji pada 7z 25.01 di perangkat
 - [ ] Klasifikasi RAR (Unsupported Method) belum diuji dengan berkas RAR nyata
 - [ ] Berikutnya: DebianArchive.kt (runner proses, staging, validasi jalur) di :app
+- [ ] Penjelajah: rencana DebianArchive.kt (runner 7z via PRoot, staging + validasi, deteksi 7z)
+
+## 2026-10-30 - Audit aktual Penjelajah vs ZArchiver (koreksi) [AUDIT-ARCHIVE2]
+- [x] Clone HEAD e4383cd dibaca: mesin arsip, kompres, ekstrak sebagian, edit ZIP, SevenZipCommand sudah ada
+- [x] Koreksi: klaim "tanpa INTERNET" tidak berlaku (manifest memuat INTERNET untuk yt-dlp/streaming)
+- [ ] Gap nyata: RAR/ISO/CAB, multi-bagian, edit 7z/tar, 7z bersandi + enkripsi nama (-mhe=on), kompres multi-thread, uji integritas
+- [ ] Berikutnya: DebianArchive.kt (jalur 7z di PRoot) lalu uji arsip (7z t) dan edit non-ZIP
+- [ ] Cek lisensi RAR di rootfs (apt-cache policy p7zip-rar / 7zip-rar) dan perbarui THIRD_PARTY_NOTICES.md
+- [ ] Uji perangkat ARCHIVE1 dan ARCHIVE2 serta pengukuran RAM tar.xz/7z level 6 di Android 8 masih tertunda
