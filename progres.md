@@ -2306,3 +2306,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Compose belum dikompilasi di sandbox: tunggu CI
 - [ ] Uji di perangkat: izin tulis penyimpanan, salin/pindah antar volume, Urungkan hapus, penanda lanjut ikut setelah ganti nama
 - [ ] Batasan: ganti nama folder tidak memindahkan penanda lanjut file di dalamnya
+
+## 2026-10-31 - Penjelajah Win7: rencana hemat layar potret [W7-COMPACT-PORTRAIT]
+- [x] Audit: Win7OpenDialog.kt (bilah perintah teks discroll, kotak cari 112dp, header kolom 24dp, baris 40dp) dan W7BrowseDock.kt (info + 4 tombol teks) memakan banyak tinggi layar di potret
+- [x] Temuan: potret sudah punya laci geser kiri dan kolom Diubah disembunyikan < 380dp; Mode TV (TvBrowser) sudah ada, tidak diubah
+- [ ] ICON1: bilah perintah + dock jadi ikon Canvas (W7Ico + Segarkan/Urut/Pilih/Alat), tanpa horizontalScroll
+- [ ] ICON2: pencarian ikon yang mengembang; hapus header kolom di potret; tanggal+ukuran satu baris
+- [ ] SWIPE1: geser baris (kanan = pilih, kiri = aksi cepat); bilah pilihan hanya muncul saat ada seleksi
+- [ ] Dampak: hanya :app; Gradle, AndroidManifest, JNI mpv TIDAK disentuh; uji dialog Buka, pemilih folder, dan Penjelajah Settings; Compose menunggu CI
