@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,6 +33,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -111,11 +113,13 @@ internal fun CinemaShelf(items: List<CinemaRecent.Item>, onPick: (CinemaRecent.I
 }
 
 @Composable
-private fun ShelfCardView(card: ShelfCard.Card, onClick: () -> Unit) {
+internal fun ShelfCardView(card: ShelfCard.Card, onLong: () -> Unit = {}, onClick: () -> Unit) {
     val thumb: ImageBitmap? by produceState<ImageBitmap?>(initialValue = null, card.thumbPath) {
         value = card.thumbPath?.let { W7Thumb.load(File(it)) }?.asImageBitmap()
     }
-    Column(Modifier.width(CardW).clickable(onClick = onClick)) {
+    Column(
+        Modifier.width(CardW).pointerInput(card.ref) { detectTapGestures(onLongPress = { onLong() }, onTap = { onClick() }) }
+    ) {
         Box(
             Modifier.fillMaxWidth().aspectRatio(2f / 3f).clip(PosterShape)
                 .background(Brush.verticalGradient(listOf(Color(0xFF241B2B), Color(0xFF0E0B10))), PosterShape)
