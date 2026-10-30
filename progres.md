@@ -2333,3 +2333,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Uji perangkat (potret): ikon cari + tutup, filter lalu pindah folder, mode Pilih pada baris 36dp, dialog Buka, pemilih folder
 - [ ] Keputusan: fokus otomatis kotak cari saat ikon diketuk? (membalik keputusan EXPLORER-KB-GOLD)
 - [ ] SWIPE1: geser baris (kanan = pilih, kiri = aksi cepat)
+
+## 2026-10-31 - Penjelajah Win7: geser baris [W7-SWIPE1]
+- [x] feat(cinema): Win7OpenDialog.kt: W7EntryRow mendukung geser horizontal (ambang 64dp, baris bergeser maks. 28dp + isyarat warna); geser kanan = masuk/tambah Mode Pilih (centang/lepas), geser kiri = pilih baris itu lalu buka menu Alat; hanya di mode jelajah (dialog Buka dan pemilih folder tidak terpengaruh)
+- [x] docs(ui): panel bantuan Mode Pilih disesuaikan dengan ikon ICON1 dan entri Geser baris
+- [x] Keputusan: tidak membuat tombol aksi tersembunyi di belakang baris; geser kiri memakai menu Alat yang sudah ada agar logika operasi berkas tidak terduplikasi
+- [x] Dampak: hanya :app (1 berkas); Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
+- [ ] Compose belum dikompilasi di sandbox: tunggu CI
+- [ ] Uji perangkat (potret): geser kanan/kiri tidak bentrok dengan scroll vertikal dan laci kiri (zona tepi 16dp); ambang terasa pas; Mode Pilih lintas folder; menu Alat dari geser kiri (Salin, Potong, Hapus + Urungkan)
+- [ ] Opsional: tombol aksi cepat sungguhan di belakang baris; fokus otomatis kotak cari
