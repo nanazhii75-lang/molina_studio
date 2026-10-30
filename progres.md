@@ -2238,3 +2238,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: :core:common (1 berkas baru) + :app (CinemaShelf.kt baru, CinemaWin7Home.kt +1 baris); Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
 - [ ] Compose (CinemaShelf) belum dikompilasi di sandbox: tunggu CI; cek tata letak di layar sempit Android 8
 - [ ] Berikutnya: info.json di dialog Properti (W7MediaInfo); rak hanya menampilkan riwayat putar (maks. 8), belum memindai folder Unduhan
+
+## 2026-10-30 - Unduh: subtitle HTTP 429 jangan menggagalkan unduhan [DL-SUBS-429]
+- [x] Diagnosis: yt-dlp (cek source 2026.10.26) menaikkan kegagalan subtitle jadi DownloadError bila ignoreerrors != True; subtitle diambil sebelum video, jadi seluruh unduhan berhenti. 429 = pembatasan YouTube pada endpoint subtitle (umumnya en otomatis/terjemahan)
+- [x] fix(dl): molina_dl.py - run_item mengulang tanpa subtitle bila yang gagal hanya subtitle; warn `subs_failed`; event item/info tidak ganda
+- [x] fix(dl): classify_error kode baru `rate_limited` (sebelumnya masuk `network`)
+- [x] test: SubsRateLimitFallbackTests (yt-dlp palsu); 38 tes lulus, 15 integrasi dilewati di sandbox tanpa ffmpeg/yt-dlp
+- [x] Dampak: hanya aset Python + tes; Gradle, AndroidManifest, JNI mpv TIDAK disentuh; errorCode Kotlin berupa string bebas (tanpa whitelist)
+- [ ] Uji perangkat: unduh video ber-subtitle id,en di Android 8; pastikan peringatan kuning tampil dan video tetap tersimpan
+- [ ] Berikutnya: tampilkan warn `subs_failed` di UI; opsi "subtitle belakangan" (langkah terpisah dengan jeda)

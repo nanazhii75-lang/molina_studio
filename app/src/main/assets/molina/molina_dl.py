@@ -572,11 +572,19 @@ def classify_error(msg):
     low = msg.lower()
     if "no space" in low:
         return "no_space"
+    if "http error 429" in low or "too many requests" in low:
+        return "rate_limited"
     if any(k in low for k in ("timed out", "temporary failure", "network", "connection", "unable to download")):
         return "network"
     if any(k in low for k in ("private", "sign in", "members-only", "not available in your country", "geo")):
         return "restricted"
     return "download_failed"
+
+
+def is_subs_error(msg):
+    """True bila yt-dlp gagal HANYA karena subtitle (mis. HTTP 429 dari endpoint timedtext YouTube)."""
+    low = (msg or "").lower()
+    return "unable to download video subtitles" in low or "unable to download subtitle" in low
 
 
 def terminate(proc):
@@ -590,15 +598,17 @@ def terminate(proc):
         proc.wait()
 
 
-def run_item(ytdlp, rep, i, n, url, spec, outdir, has_ffmpeg, info=None):
-    """Unduh satu URL. Mengembalikan 'ok' | 'failed' | 'cancelled'."""
-    rep.item(i, n, url)
-    if info is None:
-        info, err = fetch_info(ytdlp, url)
-        if err:
-            rep.error(i, err[0], err[1])
-            return "failed"
-    rep.info(i, info)
+def run_item(ytdlp, rep, i, n, url, spec, outdir, has_ffmpeg, info=None, _retry=False):
+    """Unduh satu URL. Mengembalikan 'ok' | 'failed' | 'cancelled'.
+    _retry=True: percobaan ulang tanpa subtitle (item/info sudah diumumkan, tidak diumumkan dua kali)."""
+    if not _retry:
+        rep.item(i, n, url)
+        if info is None:
+            info, err = fetch_info(ytdlp, url)
+            if err:
+                rep.error(i, err[0], err[1])
+                return "failed"
+        rep.info(i, info)
     if free_space_low(outdir):
         rep.warn("low_space", f"Ruang kosong kurang dari {MIN_FREE_MB} MB, unduhan bisa gagal.")
     before = snapshot(outdir)
@@ -647,6 +657,14 @@ def run_item(ytdlp, rep, i, n, url, spec, outdir, has_ffmpeg, info=None):
 
     if rc != 0:
         msg = last_err or f"yt-dlp berhenti dengan kode {rc}. Periksa koneksi atau perbarui yt-dlp."
+        if not _retry and spec["mode"] == "video" and spec.get("subs") and is_subs_error(msg):
+            # yt-dlp terbaru menganggap kegagalan subtitle sebagai error fatal (ignoreerrors tidak True).
+            # Subtitle diunduh SEBELUM video, jadi video belum ada: ulangi tanpa subtitle agar unduhan tetap jadi.
+            why = ("YouTube membatasi permintaan (HTTP 429)" if classify_error(msg) == "rate_limited"
+                   else "subtitle tidak bisa diunduh")
+            rep.warn("subs_failed", f"Subtitle ({', '.join(spec['subs'])}) dilewati: {why}. "
+                                    "Video diunduh tanpa subtitle; coba lagi nanti atau perbarui yt-dlp.")
+            return run_item(ytdlp, rep, i, n, url, dict(spec, subs=[]), outdir, has_ffmpeg, info, _retry=True)
         rep.error(i, classify_error(msg), msg)
         return "failed"
 

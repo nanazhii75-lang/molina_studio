@@ -328,6 +328,53 @@ class CliTests(unittest.TestCase):
         self.assertEqual(res.stdout.strip(), f"molina_dl {dl.SCRIPT_VERSION} (protokol 1)")
 
 
+class SubsRateLimitFallbackTests(unittest.TestCase):
+    """Subtitle kena HTTP 429 -> video tetap diunduh tanpa subtitle (yt-dlp palsu, tanpa jaringan)."""
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        self.fake = os.path.join(self.tmp, "fake_ytdlp.py")
+        with open(self.fake, "w") as f:
+            f.write("import sys, os\n"
+                    "a = sys.argv[1:]\n"
+                    "if '--write-subs' in a:\n"
+                    "    print(\"ERROR: Unable to download video subtitles for 'en': HTTP Error 429: Too Many Requests\")\n"
+                    "    sys.exit(1)\n"
+                    "p = os.path.join(%r, 'v.mp4'); open(p, 'wb').write(b'x' * 10)\n"
+                    "print('MDLFILE|' + p)\n" % self.tmp)
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def _events(self):
+        class R(Recorder):
+            def item(s, i, n, url): s.events.append(("item", i))
+            def info(s, i, info): s.events.append(("info", i))
+            def error(s, i, code, msg): s.events.append(("error", code))
+            def done(s, i, outdir, files, existed, sidecars=None): s.events.append(("done", i))
+            def progress(s, *a, **k): pass
+            def stage(s, *a, **k): pass
+            def note(s, *a, **k): pass
+            def finish_line(s): pass
+        return R()
+
+    def test_classify_429(self):
+        self.assertEqual(dl.classify_error("Unable to download video subtitles for 'en': HTTP Error 429: Too Many Requests"), "rate_limited")
+        self.assertTrue(dl.is_subs_error("ERROR: Unable to download video subtitles for 'en': HTTP Error 429"))
+        self.assertFalse(dl.is_subs_error("HTTP Error 429 saat mengambil video"))
+
+    def test_fallback_without_subs(self):
+        rep = self._events()
+        spec = {"mode": "video", "ext": "mp4", "subs": ["en"], "subs_mode": "embed", "compat": False}
+        out = dl.run_item([sys.executable, self.fake], rep, 1, 1, "http://x/1", spec, self.tmp, False, info={"id": "1"})
+        self.assertEqual(out, "ok")
+        self.assertIn(("warn", "subs_failed"), rep.events)
+        self.assertEqual(len([e for e in rep.events if e[0] == "info"]), 1)
+        self.assertEqual(len([e for e in rep.events if e[0] == "item"]), 1)
+        self.assertNotIn("error", [e[0] for e in rep.events])
+        self.assertIn(("done", 1), rep.events)
+
+
 @unittest.skipUnless(HAVE_TOOLS, "butuh yt-dlp, ffmpeg, ffprobe")
 class IntegrationTests(unittest.TestCase):
     @classmethod
