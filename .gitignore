@@ -22,3 +22,10 @@ molina_*.py
 0001-*.patch
 !app/src/main/assets/molina/molina_dl.py
 terminal-logs/
+# berkas patch/cadangan sekali pakai: simpan di luar repo [REPO-CLEAN]
+/*.patch
+/*.bak*
+/molina_*.sh
+/patch_*.py
+/explorer.py
+/molina_ui_v5_dock.py

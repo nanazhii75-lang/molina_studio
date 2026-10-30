@@ -2140,3 +2140,9 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] DownloadChoices/Ulangi belum membawa subs/cover/limitRate (Ulangi memakai bawaan)
 - [ ] Uji perangkat Android 8 arm64 (proot asli, yt-dlp apt Debian, YouTube nyata) belum; sampul tidak dipotong persegi (yt-dlp melewati konversi bila thumbnail sudah jpg), sebaiknya ContentScale.Crop di Molina Player
 - [ ] Berikutnya: playlist terkontrol, preset profil, --download-archive, --section, event pemindaian media (MediaScannerConnection), sidecar poster/info.json untuk Molina Cinema
+
+## 2026-10-30 - Bersihkan root repo dari patch/backup/skrip sekali pakai [REPO-CLEAN]
+- [x] chore(repo): hapus 20 berkas sekali pakai dari root (7 .patch/.bak, 10 skrip molina_*.sh, patch_cli_open.py, molina_ui_v5_dock.py, explorer.py); riwayat git tetap menyimpannya; salinan lokal di ../molina-arsip
+- [x] chore(repo): .gitignore menolak /*.patch, /*.bak*, /molina_*.sh, /patch_*.py (hanya di root)
+- [x] Dampak: tidak ada kode, Gradle, AndroidManifest, JNI mpv; CI/workflow tidak merujuk berkas-berkas ini; commit memakai [skip ci]
+- [ ] Berikutnya: pecah progres.md (sangat besar) menjadi docs/progres-arsip.md + ringkasan aktif; simpan skrip patch baru di luar repo
