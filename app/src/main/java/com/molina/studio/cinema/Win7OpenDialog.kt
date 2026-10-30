@@ -59,6 +59,8 @@ import androidx.compose.ui.window.DialogProperties
 import com.molina.core.common.LogLevel
 import com.molina.studio.log.LogBus
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import kotlinx.coroutines.isActive
 import androidx.compose.foundation.Canvas
 import androidx.compose.ui.geometry.Offset
@@ -122,7 +124,8 @@ private sealed class W7Sheet {
     class Delete(val files: List<File>, val permanent: Boolean = false) : W7Sheet()
     object NewDir : W7Sheet()
 }
-private enum class W7Ico { PLAY, CODE, SCRIPT, COPY, CUT, PASTE, RENAME, ZIP, UNZIP, DELETE, NEWDIR, STAR, STAR_OUT, INFO, SHARE, OPEN_WITH }
+private enum class W7Ico { PLAY, CODE, SCRIPT, COPY, CUT, PASTE, RENAME, ZIP, UNZIP, DELETE, NEWDIR, STAR, STAR_OUT, INFO, SHARE, OPEN_WITH,
+    REFRESH, SORT, SELECT, SELECT_ALL, CLEAR, MORE } // [W7-COMPACT-PORTRAIT]
 
 private fun w7Names(l: List<File>): String = if (l.size == 1) l[0].name else l.size.toString() + " item"
 private fun w7StemEnd(name: String, dir: Boolean): Int =
@@ -573,9 +576,9 @@ fun Win7OpenDialog(
                         .background(Brush.verticalGradient(listOf(Win7.BarTop, Win7.BarBottom))),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    W7Cmd("Segarkan", true) { tick++ }
+                    W7IconCmd(W7Ico.REFRESH, "Segarkan", true) { tick++ }
                     Box {
-                        W7Cmd("Urut \u25BE", true) { sortOpen = !sortOpen }
+                        W7IconCmd(W7Ico.SORT, "Urut", true, active = sortOpen) { sortOpen = !sortOpen }
                         if (sortOpen) Popup(
                             alignment = Alignment.TopStart,
                             offset = IntOffset(0, with(density) { 30.dp.roundToPx() }),
@@ -597,20 +600,20 @@ fun Win7OpenDialog(
                         }
                     }
                     if (browse) {
-                        W7Cmd(
-                            if (multi) "Selesai" + (if (picked.isNotEmpty()) " (" + picked.size + ")" else "") else "Pilih",
-                            !busy
+                        W7IconCmd(
+                            W7Ico.SELECT, if (multi) "Selesai memilih" else "Pilih", !busy, active = multi,
+                            badge = if (multi && picked.isNotEmpty()) picked.size.toString() else null
                         ) {
                             multi = !multi; picked = emptySet(); selected = null; fileName = ""
                         }
-                        if (multi) W7Cmd("Semua", !busy) {
+                        if (multi) W7IconCmd(W7Ico.SELECT_ALL, "Pilih semua", !busy) {
                             val here = (entries ?: emptyList()).map { it.file.path }.toSet()
                             picked = if (here.isNotEmpty() && picked.containsAll(here)) picked - here else picked + here
                         }
-                        if (picked.isNotEmpty()) W7Cmd("Kosongkan", !busy) { picked = emptySet() }
+                        if (picked.isNotEmpty()) W7IconCmd(W7Ico.CLEAR, "Kosongkan pilihan", !busy) { picked = emptySet() }
                     }
                     if (browse) Box {
-                        W7Cmd("\u22EE Alat", !busy) { toolsOpen = !toolsOpen }
+                        W7IconCmd(W7Ico.MORE, "Alat", !busy, active = toolsOpen) { toolsOpen = !toolsOpen }
                         if (toolsOpen) {
                             val tg = targets()
                             val one = tg.singleOrNull()
@@ -1069,6 +1072,28 @@ private fun W7Cmd(label: String, enabled: Boolean, onClick: () -> Unit) {
     )
 }
 
+/** [W7-COMPACT-PORTRAIT] Perintah bilah berupa ikon (tanpa teks) agar hemat lebar di ponsel potret. */
+@Composable
+private fun W7IconCmd(
+    ico: W7Ico, label: String, enabled: Boolean, active: Boolean = false, badge: String? = null, onClick: () -> Unit
+) {
+    Row(
+        Modifier.height(30.dp).widthIn(min = 40.dp)
+            .then(if (active) Modifier.background(Win7.SelLine.copy(alpha = 0.35f)) else Modifier)
+            .semantics { contentDescription = label }
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center
+    ) {
+        W7MenuIcon(ico, enabled, 18.dp)
+        if (badge != null) {
+            Spacer(Modifier.width(3.dp))
+            Text(badge, color = if (enabled) Win7.NavHeader else Win7.TextDim, fontSize = 11.sp, maxLines = 1)
+        }
+    }
+}
+
 @Composable
 private fun W7NavPane(favs: List<W7Place>, vols: List<W7Place>, dir: File, modifier: Modifier, onBin: (() -> Unit)? = null, recents: List<File> = emptyList(), onGo: (File) -> Unit) {
     Column(modifier.background(Win7.NavBg).verticalScroll(rememberScrollState()).padding(vertical = 6.dp)) {
@@ -1247,13 +1272,13 @@ private fun W7MenuItem(ico: W7Ico, label: String, enabled: Boolean, onClick: () 
 
 /** Ikon garis 16dp bergaya Aero untuk menu Alat (digambar di Canvas, tanpa aset). */
 @Composable
-private fun W7MenuIcon(ico: W7Ico, enabled: Boolean) {
+private fun W7MenuIcon(ico: W7Ico, enabled: Boolean, sz: androidx.compose.ui.unit.Dp = 16.dp) {
     val c = if (!enabled) Win7.Line else when (ico) {
         W7Ico.DELETE -> Color(0xFFE57373)
         W7Ico.STAR, W7Ico.STAR_OUT -> Color(0xFFE0A800)
         else -> Win7.NavHeader
     }
-    Canvas(Modifier.size(16.dp)) {
+    Canvas(Modifier.size(sz)) {
         val u = size.width / 16f
         val sw = 1.4f * u
         val st = Stroke(width = sw, cap = StrokeCap.Round)
@@ -1320,6 +1345,30 @@ private fun W7MenuIcon(ico: W7Ico, enabled: Boolean) {
                 drawCircle(c, radius = 1.8f * u, center = Offset(4f * u, 8f * u), style = st)
                 drawCircle(c, radius = 1.8f * u, center = Offset(12f * u, 12.5f * u), style = st)
                 line(5.6f, 7f, 10.4f, 4.5f); line(5.6f, 9f, 10.4f, 11.5f)
+            }
+            W7Ico.REFRESH -> {
+                drawArc(c, startAngle = 40f, sweepAngle = 290f, useCenter = false,
+                    topLeft = Offset(3f * u, 3f * u), size = Size(10f * u, 10f * u), style = st)
+                line(12.3f, 5.5f, 12.3f, 2.5f); line(12.3f, 5.5f, 15.2f, 6f)
+            }
+            W7Ico.SORT -> {
+                line(5f, 13f, 5f, 3f); line(5f, 3f, 3f, 5.5f); line(5f, 3f, 7f, 5.5f)
+                line(11f, 3f, 11f, 13f); line(11f, 13f, 9f, 10.5f); line(11f, 13f, 13f, 10.5f)
+            }
+            W7Ico.SELECT -> { box(2.5f, 2.5f, 11f, 11f); line(5f, 8.2f, 7.3f, 10.5f); line(7.3f, 10.5f, 11.2f, 5.5f) }
+            W7Ico.SELECT_ALL -> {
+                for (y in listOf(4f, 8f, 12f)) {
+                    line(2f, y, 3.3f, y + 1.3f); line(3.3f, y + 1.3f, 5.5f, y - 1.5f); line(8f, y, 14f, y)
+                }
+            }
+            W7Ico.CLEAR -> {
+                drawCircle(c, radius = 6.2f * u, center = Offset(8f * u, 8f * u), style = st)
+                line(5.5f, 5.5f, 10.5f, 10.5f); line(10.5f, 5.5f, 5.5f, 10.5f)
+            }
+            W7Ico.MORE -> {
+                drawCircle(c, radius = 1.2f * u, center = Offset(8f * u, 3.5f * u))
+                drawCircle(c, radius = 1.2f * u, center = Offset(8f * u, 8f * u))
+                drawCircle(c, radius = 1.2f * u, center = Offset(8f * u, 12.5f * u))
             }
             W7Ico.INFO -> {
                 drawCircle(c, radius = 6.2f * u, center = Offset(8f * u, 8f * u), style = st)

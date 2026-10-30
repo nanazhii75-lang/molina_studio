@@ -2314,3 +2314,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] ICON2: pencarian ikon yang mengembang; hapus header kolom di potret; tanggal+ukuran satu baris
 - [ ] SWIPE1: geser baris (kanan = pilih, kiri = aksi cepat); bilah pilihan hanya muncul saat ada seleksi
 - [ ] Dampak: hanya :app; Gradle, AndroidManifest, JNI mpv TIDAK disentuh; uji dialog Buka, pemilih folder, dan Penjelajah Settings; Compose menunggu CI
+
+## 2026-10-31 - Penjelajah Win7: bilah perintah jadi ikon [W7-ICON1]
+- [x] refactor(cinema): Win7OpenDialog.kt: W7IconCmd + 6 ikon Canvas baru (REFRESH, SORT, SELECT, SELECT_ALL, CLEAR, MORE); tombol Segarkan/Urut/Pilih/Semua/Kosongkan/Alat diganti ikon 18dp (area sentuh min. 40dp), badge jumlah terpilih, contentDescription untuk aksesibilitas
+- [x] Temuan: W7BrowseDock sudah ringkas (tinggi tetap), tidak diubah di ICON1
+- [x] Dampak: hanya :app (1 berkas); Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
+- [ ] Compose belum dikompilasi di sandbox: tunggu CI
+- [ ] Uji perangkat (potret): semua ikon muat tanpa scroll; dialog Buka, pemilih folder, Penjelajah Settings; mode Pilih + badge angka
+- [ ] ICON2: pencarian ikon yang mengembang; hapus header kolom di potret; tanggal+ukuran satu baris; baris 40dp -> 36dp
+- [ ] SWIPE1: geser baris (kanan = pilih, kiri = aksi cepat)
