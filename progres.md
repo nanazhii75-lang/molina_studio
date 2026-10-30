@@ -2054,3 +2054,9 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Verifikasi: CI ARCHIVE2; uji perangkat ARCHIVE1 dan ARCHIVE2
 - [ ] Rapikan checklist yt-dlp (baris 143-153)
 - [ ] Berikutnya: jalur 7z Debian (cek lisensi p7zip-full)
+
+## 2026-10-30 - Patch molina_archive_v2 redundan [PATCHV2-REDUNDANT]
+- [x] git apply --reverse --check: seluruh file kode patch sudah ada di HEAD (hanya progres.md berbeda)
+- [x] Dampak: tidak ada perubahan kode; Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
+- [ ] Status CI commit a58bed8 (memuat ArchiveCompressDialog.kt) belum terverifikasi
+- [ ] Uji perangkat ARCHIVE1 dan ARCHIVE2 BELUM
