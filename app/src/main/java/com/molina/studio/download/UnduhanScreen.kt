@@ -53,7 +53,11 @@ import com.molina.core.common.DownloadItemStatus
 import com.molina.core.common.DownloadMode
 import com.molina.core.common.DownloadReducer
 import com.molina.core.common.DownloadRequest
+import com.molina.core.common.DownloadEvent
+import com.molina.core.common.DownloadMaintenance
 import com.molina.core.common.LogRedact
+import com.molina.core.common.MaintenanceKind
+import com.molina.core.common.MaintenanceTone
 import com.molina.studio.cinema.CinemaActions
 import com.molina.studio.cinema.Win7OpenDialog
 import com.molina.studio.settings.W7D
@@ -86,6 +90,7 @@ fun UnduhanScreen(modifier: Modifier = Modifier) {
     val ctx = LocalContext.current
     val run by DownloadRunner.state.collectAsState()
     val sess = run.session
+    val maintKind = DownloadRunner.maintenanceKind() // null = sesi unduhan biasa
 
     // Formulir ada di DownloadForm (bukan rememberSaveable): tab hanya dikomposisi saat dipilih.
     var urls by remember { DownloadForm.urls }
@@ -278,11 +283,24 @@ fun UnduhanScreen(modifier: Modifier = Modifier) {
                             }
                         }
                     }
+                    if (!run.running) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            MaintenanceKind.values().forEach { k ->
+                                Win7Button(k.label, compact = true) { afterStart(DownloadRunner.startMaintenance(ctx.applicationContext, k)) }
+                            }
+                        }
+                    }
                 }
             }
         }
         if (hasResult) {
-            item { SessionSummary(run.running, sess.ok, sess.failed, sess.cancelled, sess.finished, sess.items.size, liveSpeed, liveEta, overall) }
+            if (maintKind != null) {
+                item { MaintenanceSummary(maintKind, run.running, sess.fatalError != null, sess.doctor != null || sess.update != null) }
+                sess.doctor?.let { d -> item { DoctorCard(d) } }
+                sess.update?.let { u -> item { UpdateCard(u) } }
+            } else {
+                item { SessionSummary(run.running, sess.ok, sess.failed, sess.cancelled, sess.finished, sess.items.size, liveSpeed, liveEta, overall) }
+            }
             sess.fatalError?.let { fe -> item { Text(fe, color = MolinaTheme.Bad, fontSize = 13.sp) } }
             if (sess.fatalError == null && !sess.finished && !run.running && run.exitCode != null && run.exitCode != 0) {
                 items(run.stderrTail.takeLast(5)) { l ->
@@ -317,7 +335,7 @@ fun UnduhanScreen(modifier: Modifier = Modifier) {
         }
         // Sesi terbaru sudah tampil di atas (hasil sesi) bila hasilnya belum dikosongkan: jangan digandakan.
         historySection(
-            entries = if (hasResult && !run.running) history.drop(1) else history,
+            entries = if (hasResult && !run.running && maintKind == null) history.drop(1) else history,
             running = run.running,
             open = historyOpen,
             onToggle = { historyOpen = !historyOpen },
@@ -387,6 +405,65 @@ private fun SessionSummary(
             }
             if (live.isNotEmpty()) Text(live, color = W7D.TextDim, fontSize = 12.sp)
         }
+    }
+}
+
+private fun toneColor(t: MaintenanceTone): Color = when (t) {
+    MaintenanceTone.GOOD -> MolinaTheme.Good
+    MaintenanceTone.WARN -> MolinaTheme.Warn
+    MaintenanceTone.BAD -> MolinaTheme.Bad
+    MaintenanceTone.BUSY -> W7D.Accent
+}
+
+@Composable
+private fun MaintenanceSummary(kind: MaintenanceKind, running: Boolean, fatal: Boolean, hasResult: Boolean) {
+    val dot = when {
+        running -> W7D.Accent
+        fatal -> MolinaTheme.Bad
+        hasResult -> MolinaTheme.Good
+        else -> W7D.TextDim
+    }
+    Row(
+        Modifier.fillMaxWidth().win7Card(dot).padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.size(8.dp).clip(CircleShape).background(dot))
+        Spacer(Modifier.width(8.dp))
+        Text(
+            DownloadMaintenance.summaryText(kind, running, fatal, hasResult),
+            color = W7D.Ink, fontSize = 14.sp, fontWeight = FontWeight.Medium,
+        )
+    }
+}
+
+@Composable
+private fun DoctorCard(d: DownloadEvent.Doctor) {
+    val tone = toneColor(DownloadMaintenance.doctorTone(d))
+    Column(
+        Modifier.fillMaxWidth().win7Card(tone).padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        DownloadMaintenance.doctorLines(d).forEach { l ->
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(l.label, color = W7D.TextDim, fontSize = 12.sp, modifier = Modifier.width(112.dp))
+                Text(
+                    l.value, color = if (l.ok) W7D.Ink else MolinaTheme.Bad, fontSize = 12.sp,
+                    maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f),
+                )
+            }
+        }
+        DownloadMaintenance.issueHints(d).forEach { h -> Text(h, color = MolinaTheme.Warn, fontSize = 12.sp) }
+    }
+}
+
+@Composable
+private fun UpdateCard(u: DownloadEvent.Update) {
+    val tone = toneColor(DownloadMaintenance.updateTone(u))
+    Column(Modifier.fillMaxWidth().win7Card(tone).padding(horizontal = 12.dp, vertical = 8.dp)) {
+        Text(
+            DownloadMaintenance.updateText(u),
+            color = if (u.status == "failed") MolinaTheme.Bad else W7D.Ink, fontSize = 13.sp,
+        )
     }
 }
 

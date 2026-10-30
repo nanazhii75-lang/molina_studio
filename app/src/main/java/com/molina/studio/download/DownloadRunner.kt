@@ -10,9 +10,11 @@ import com.molina.core.common.AppLog
 import com.molina.core.common.DownloadCommand
 import com.molina.core.common.DownloadFeed
 import com.molina.core.common.DownloadHistory
+import com.molina.core.common.DownloadMaintenance
 import com.molina.core.common.DownloadRequest
 import com.molina.core.common.DownloadRunState
 import com.molina.core.common.LogLevel
+import com.molina.core.common.MaintenanceKind
 import com.molina.studio.code.ProotScriptExecutor
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -38,6 +40,11 @@ internal object DownloadRunner {
     /** Permintaan sesi terakhir: dasar tombol Ulangi (mode/kualitas sama). Dikosongkan oleh [clear]. */
     @Volatile private var lastReq: DownloadRequest? = null
 
+    /** Jenis sesi perawatan yang sedang/terakhir jalan; null untuk sesi unduhan. Diisi sebelum state terbit. */
+    @Volatile private var maint: MaintenanceKind? = null
+
+    fun maintenanceKind(): MaintenanceKind? = maint
+
     fun isRunning(): Boolean = _state.value.running
 
     /** @return pesan galat siap tampil, atau null bila sesi unduhan dimulai. */
@@ -54,6 +61,7 @@ internal object DownloadRunner {
             if (_state.value.running) return "Masih ada unduhan yang berjalan."
             feed = f
             lastReq = req
+            maint = null
             handle = null
             _state.value = f.state
         }
@@ -101,6 +109,67 @@ internal object DownloadRunner {
         return null
     }
 
+    /**
+     * Sesi perawatan: `--doctor` atau `--update-ytdlp` (tanpa URL). Jalur, skrip bawaan, dan state sama dengan unduhan,
+     * tetapi tidak masuk riwayat dan tidak bisa diulang. Satu sesi pada satu waktu.
+     * @return pesan galat siap tampil, atau null bila sesi perawatan dimulai.
+     */
+    fun startMaintenance(ctx: Context, kind: MaintenanceKind): String? {
+        val app = ctx.applicationContext
+        val script = try {
+            app.assets.open(DownloadCommand.SCRIPT_ASSET).use { it.readBytes().toString(Charsets.UTF_8) }
+        } catch (e: Exception) {
+            return "Skrip unduhan bawaan tidak ditemukan di aplikasi."
+        }
+        val f = DownloadFeed()
+        synchronized(lock) {
+            if (_state.value.running) return "Masih ada unduhan yang berjalan."
+            feed = f
+            lastReq = null
+            maint = kind
+            handle = null
+            _state.value = f.state
+        }
+        val t0 = System.nanoTime()
+        AppLog.log("sistem", LogLevel.Info, "Unduhan", "perawatan: ${kind.label}")
+        val rr = RunRequest(
+            name = "molina_dl",
+            scriptText = script,
+            plan = RunPlan("python3", "/usr/bin/python3", "py", true),
+            hostDir = null,
+            timeoutMs = DownloadMaintenance.TIMEOUT_MS,
+            args = DownloadMaintenance.args(kind),
+            maxOutputChars = Long.MAX_VALUE,
+        )
+        val h = ProotScriptExecutor(app, ProotScriptExecutor.Lane.DOWNLOAD).start(rr, object : RunListener {
+            override fun onOutput(text: String, isError: Boolean) {
+                synchronized(lock) {
+                    if (feed === f && f.push(text, isError)) _state.value = f.state
+                }
+            }
+
+            override fun onFinished(result: RunResult) {
+                val done = synchronized(lock) {
+                    if (feed !== f) return
+                    f.finish(result.cancelled, result.exitCode, result.startError)
+                    _state.value = f.state
+                    handle = null
+                    f.state
+                }
+                val s = done.session
+                val secs = (System.nanoTime() - t0) / 1_000_000_000L
+                val bad = result.startError != null || s.fatalError != null
+                AppLog.log(
+                    "sistem", if (bad) LogLevel.Warn else LogLevel.Info, "Unduhan",
+                    "perawatan ${kind.label} selesai dalam ${secs}dtk, kode ${result.exitCode}" + (if (result.timedOut) " (lewat waktu)" else ""),
+                )
+            }
+        })
+        synchronized(lock) { if (feed === f && _state.value.running) handle = h }
+        if (_state.value.running) DownloadService.ensureRunning(app)
+        return null
+    }
+
     /** Batalkan sesi yang berjalan. Berkas .part tetap ada sehingga unduhan bisa dilanjutkan dengan URL yang sama. */
     fun cancel() {
         val h = synchronized(lock) { handle }
@@ -132,6 +201,7 @@ internal object DownloadRunner {
             if (!_state.value.running) {
                 feed = null
                 lastReq = null
+                maint = null
                 _state.value = DownloadRunState()
             }
         }

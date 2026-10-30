@@ -2146,3 +2146,14 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] chore(repo): .gitignore menolak /*.patch, /*.bak*, /molina_*.sh, /patch_*.py (hanya di root)
 - [x] Dampak: tidak ada kode, Gradle, AndroidManifest, JNI mpv; CI/workflow tidak merujuk berkas-berkas ini; commit memakai [skip ci]
 - [ ] Berikutnya: pecah progres.md (sangat besar) menjadi docs/progres-arsip.md + ringkasan aktif; simpan skrip patch baru di luar repo
+
+## 2026-10-30 - Tombol Periksa lingkungan / Perbarui yt-dlp di halaman Unduhan [DL-PKG2-MAINT]
+- [x] feat(core): DownloadMaintenance (murni JVM): MaintenanceKind, argumen perawatan, tabel hasil Doctor, petunjuk perbaikan per kode isu (apt install ...), teks/nada hasil Update, ringkasan sesi; hasil update gagal dipangkas dan disamarkan (LogRedact)
+- [x] feat(dl): DownloadRunner.startMaintenance(kind) + maintenanceKind(): jalur DOWNLOAD, skrip bawaan, timeout 10 menit, tidak masuk riwayat, tidak bisa diulang; state/clear() mereset jenis perawatan
+- [x] feat(ui): dua tombol di form Unduhan, kartu ringkasan + kartu Doctor/Update berwarna; riwayat tidak lagi kehilangan entri terbaru setelah sesi perawatan
+- [x] test: scripts/core-tests/run_maint.sh (DownloadMaintTests.kt, termasuk alur JSON -> parser -> feed -> formatter); run.sh, run_ui.sh, run_feed.sh, run_history.sh tetap lulus
+- [x] Dampak: :core:common (1 berkas baru) + :app (DownloadRunner, UnduhanScreen); Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh; protokol tetap v1
+- [ ] Compose (UnduhanScreen) dan DownloadRunner belum dikompilasi di sandbox: tunggu CI
+- [ ] Uji perangkat Android 8 arm64: Doctor/Update nyata via proot (pip/pipx, jaringan) belum
+- [ ] Form subtitle/sampul/batas kecepatan dan DownloadChoices/Ulangi yang membawa opsi baru belum
+- [ ] Berikutnya: preset profil unduhan, sidecar poster.jpg/.info.json untuk Molina Cinema, playlist terkontrol
