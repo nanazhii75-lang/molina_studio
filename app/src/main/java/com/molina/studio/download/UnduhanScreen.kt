@@ -44,6 +44,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.LaunchedEffect
+import com.molina.core.common.DownloadChoices
 import com.molina.core.common.DownloadCommand
 import com.molina.core.common.DownloadFormat
 import com.molina.core.common.DownloadPaths
@@ -99,6 +100,10 @@ fun UnduhanScreen(modifier: Modifier = Modifier) {
     var videoExt by remember { DownloadForm.videoExt }
     var audioFmt by remember { DownloadForm.audioFmt }
     var bitrate by remember { DownloadForm.bitrate }
+    var subs by remember { DownloadForm.subs }
+    var subsMode by remember { DownloadForm.subsMode }
+    var cover by remember { DownloadForm.cover }
+    var limitRate by remember { DownloadForm.limitRate }
     var error by remember { mutableStateOf<String?>(null) }
     var openDir by remember { mutableStateOf<File?>(null) }
 
@@ -238,6 +243,18 @@ fun UnduhanScreen(modifier: Modifier = Modifier) {
                                     Chip(e.uppercase(Locale.ROOT), videoExt == e, !run.running) { videoExt = e }
                                 }
                             }
+                            Text("Subtitle", color = W7D.TextDim, fontSize = 12.sp)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                DownloadChoices.SUB_PRESETS.forEach { p ->
+                                    Chip(DownloadChoices.subsLabel(p), subs == p, !run.running) { subs = p }
+                                }
+                            }
+                            if (subs.isNotEmpty()) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Chip("Sematkan", subsMode == "embed", !run.running) { subsMode = "embed" }
+                                    Chip("File .srt", subsMode == "file", !run.running) { subsMode = "file" }
+                                }
+                            }
                         } else {
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 DownloadCommand.AUDIO_FORMATS.sorted().forEach { f ->
@@ -248,6 +265,15 @@ fun UnduhanScreen(modifier: Modifier = Modifier) {
                                 DownloadCommand.BITRATES.sortedBy { it.dropLast(1).toInt() }.forEach { b ->
                                     Chip(b, bitrate == b, !run.running) { bitrate = b }
                                 }
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Chip("Sampul + tag", cover, !run.running) { cover = !cover }
+                            }
+                        }
+                        Text("Batas kecepatan", color = W7D.TextDim, fontSize = 12.sp)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            DownloadChoices.LIMIT_RATES.forEach { r ->
+                                Chip(DownloadChoices.rateLabel(r), limitRate == r, !run.running) { limitRate = r }
                             }
                         }
                     }
@@ -268,6 +294,10 @@ fun UnduhanScreen(modifier: Modifier = Modifier) {
                                     videoExt = videoExt,
                                     audioFormat = audioFmt,
                                     bitrate = bitrate,
+                                    subs = if (video) subs else emptyList(),
+                                    subsMode = subsMode,
+                                    cover = cover,
+                                    limitRate = limitRate.ifEmpty { null },
                                 )
                                 val msg = DownloadRunner.start(ctx.applicationContext, req)
                                 error = msg

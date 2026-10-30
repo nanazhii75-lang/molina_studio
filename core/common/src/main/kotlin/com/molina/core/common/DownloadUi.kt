@@ -83,12 +83,34 @@ data class DownloadChoices(
     val videoExt: String = "mp4",
     val audioFmt: String = "mp3",
     val bitrate: String = "192k",
+    /** Bahasa subtitle (salah satu [SUB_PRESETS]); kosong = tanpa subtitle. Hanya berlaku di mode video. */
+    val subs: List<String> = emptyList(),
+    /** embed = disematkan ke video; file = .srt di samping video. */
+    val subsMode: String = "embed",
+    /** Sematkan sampul + tag ke audio (mode audio saja). */
+    val cover: Boolean = true,
+    /** Salah satu [LIMIT_RATES]; kosong = tanpa batas kecepatan. */
+    val limitRate: String = "",
 ) {
     companion object {
         /** Sama dengan chip tinggi di UnduhanScreen: 0 = Terbaik. */
         val HEIGHTS = listOf(0, 1080, 720, 480)
 
-        fun sanitize(video: Boolean?, height: Int?, videoExt: String?, audioFmt: String?, bitrate: String?): DownloadChoices {
+        /** Pilihan chip subtitle di UnduhanScreen: tanpa, Indonesia, Inggris, keduanya. */
+        val SUB_PRESETS: List<List<String>> = listOf(emptyList(), listOf("id"), listOf("en"), listOf("id", "en"))
+
+        /** Pilihan chip batas kecepatan (per detik); kosong = bebas. Semuanya lolos [DownloadCommand.validate]. */
+        val LIMIT_RATES = listOf("", "500K", "2M", "5M")
+
+        fun subsLabel(preset: List<String>): String =
+            if (preset.isEmpty()) "Tanpa" else preset.joinToString("+") { it.uppercase(Locale.ROOT) }
+
+        fun rateLabel(rate: String): String = if (rate.isEmpty()) "Bebas" else rate
+
+        fun sanitize(
+            video: Boolean?, height: Int?, videoExt: String?, audioFmt: String?, bitrate: String?,
+            subs: List<String>? = null, subsMode: String? = null, cover: Boolean? = null, limitRate: String? = null,
+        ): DownloadChoices {
             val d = DownloadChoices()
             return DownloadChoices(
                 video = video ?: d.video,
@@ -96,6 +118,10 @@ data class DownloadChoices(
                 videoExt = videoExt?.takeIf { it in DownloadCommand.VIDEO_EXTS } ?: d.videoExt,
                 audioFmt = audioFmt?.takeIf { it in DownloadCommand.AUDIO_FORMATS } ?: d.audioFmt,
                 bitrate = bitrate?.takeIf { it in DownloadCommand.BITRATES } ?: d.bitrate,
+                subs = subs?.map { it.lowercase(Locale.ROOT) }?.takeIf { it in SUB_PRESETS } ?: d.subs,
+                subsMode = subsMode?.takeIf { it in DownloadCommand.SUB_MODES } ?: d.subsMode,
+                cover = cover ?: d.cover,
+                limitRate = limitRate?.takeIf { it in LIMIT_RATES } ?: d.limitRate,
             )
         }
     }

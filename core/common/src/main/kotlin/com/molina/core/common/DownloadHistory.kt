@@ -33,12 +33,24 @@ data class DownloadHistoryEntry(
         videoExt = choices.videoExt,
         audioFormat = choices.audioFmt,
         bitrate = choices.bitrate,
+        subs = choices.subs,
+        subsMode = choices.subsMode,
+        cover = choices.cover,
+        limitRate = choices.limitRate.ifEmpty { null },
     )
 
     /** Mis. "Video 1080p MP4", "Video Terbaik MKV", "Audio FLAC 320k". */
-    fun modeLabel(): String =
-        if (choices.video) "Video " + (if (choices.height == 0) "Terbaik" else "${choices.height}p") + " " + choices.videoExt.uppercase()
+    fun modeLabel(): String {
+        val base = if (choices.video) "Video " + (if (choices.height == 0) "Terbaik" else "${choices.height}p") + " " + choices.videoExt.uppercase()
         else "Audio " + choices.audioFmt.uppercase() + " " + choices.bitrate
+        val extra = buildList {
+            if (choices.video && choices.subs.isNotEmpty()) {
+                add("sub " + DownloadChoices.subsLabel(choices.subs) + (if (choices.subsMode == "file") " .srt" else ""))
+            }
+            if (choices.limitRate.isNotEmpty()) add("maks " + choices.limitRate + "/dtk")
+        }
+        return if (extra.isEmpty()) base else base + " · " + extra.joinToString(" · ")
+    }
 }
 
 /** Pembuatan, penyaringan, dan serialisasi riwayat. Murni JVM (tanpa Android) supaya bisa diuji. */
@@ -71,6 +83,7 @@ object DownloadHistory {
         }
         val choices = DownloadChoices.sanitize(
             req.mode == DownloadMode.VIDEO, req.height, req.videoExt, req.audioFormat, req.bitrate,
+            req.subs, req.subsMode, req.cover, req.limitRate.orEmpty(),
         )
         return DownloadHistoryEntry(now, choices, session.cancelled, session.fatalError?.let { LogRedact.text(it).take(MAX_TEXT) }, items)
     }
@@ -92,6 +105,10 @@ object DownloadHistory {
                 .append(",\"vx\":").append(q(e.choices.videoExt))
                 .append(",\"af\":").append(q(e.choices.audioFmt))
                 .append(",\"br\":").append(q(e.choices.bitrate))
+                .append(",\"sb\":").append(q(e.choices.subs.joinToString(",")))
+                .append(",\"sm\":").append(q(e.choices.subsMode))
+                .append(",\"cv\":").append(e.choices.cover)
+                .append(",\"lr\":").append(q(e.choices.limitRate))
                 .append(",\"c\":").append(e.cancelled)
                 .append(",\"fatal\":").append(e.fatal?.let { q(it) } ?: "null")
                 .append(",\"items\":[")
@@ -122,6 +139,7 @@ object DownloadHistory {
         val at = (m["at"] as? Number)?.toLong() ?: return null
         val choices = DownloadChoices.sanitize(
             m["video"] as? Boolean, (m["h"] as? Number)?.toInt(), m["vx"] as? String, m["af"] as? String, m["br"] as? String,
+            (m["sb"] as? String)?.split(',')?.filter { it.isNotBlank() }, m["sm"] as? String, m["cv"] as? Boolean, m["lr"] as? String,
         )
         val items = (m["items"] as? List<*>).orEmpty().take(DownloadCommand.MAX_URLS).mapNotNull { x ->
             val im = x as? Map<*, *> ?: return@mapNotNull null

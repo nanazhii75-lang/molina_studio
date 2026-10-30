@@ -23,6 +23,10 @@ internal object DownloadPrefs {
             videoExt = safe { s.getString("video_ext", null) },
             audioFmt = safe { s.getString("audio_fmt", null) },
             bitrate = safe { s.getString("bitrate", null) },
+            subs = safe { s.getString("subs", null) }?.split(',')?.filter { it.isNotBlank() },
+            subsMode = safe { s.getString("subs_mode", null) },
+            cover = if (s.contains("cover")) safe { s.getBoolean("cover", true) } else null,
+            limitRate = safe { s.getString("limit_rate", null) },
         )
     }
 
@@ -30,7 +34,9 @@ internal object DownloadPrefs {
         p(ctx).edit()
             .putBoolean("video", c.video).putInt("height", c.height)
             .putString("video_ext", c.videoExt).putString("audio_fmt", c.audioFmt)
-            .putString("bitrate", c.bitrate).apply()
+            .putString("bitrate", c.bitrate)
+            .putString("subs", c.subs.joinToString(",")).putString("subs_mode", c.subsMode)
+            .putBoolean("cover", c.cover).putString("limit_rate", c.limitRate).apply()
     }
 
     /** Isi [DownloadForm] sekali per proses; pemanggilan berikutnya diabaikan agar tidak menimpa pilihan aktif. */

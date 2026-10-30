@@ -2157,3 +2157,14 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Uji perangkat Android 8 arm64: Doctor/Update nyata via proot (pip/pipx, jaringan) belum
 - [ ] Form subtitle/sampul/batas kecepatan dan DownloadChoices/Ulangi yang membawa opsi baru belum
 - [ ] Berikutnya: preset profil unduhan, sidecar poster.jpg/.info.json untuk Molina Cinema, playlist terkontrol
+
+## 2026-10-30 - Form Unduhan: subtitle, sampul audio, batas kecepatan [DL-PKG3-FORM]
+- [x] feat(core): DownloadChoices + subs/subsMode/cover/limitRate (bawaan sama dengan perilaku lama), SUB_PRESETS (Tanpa/ID/EN/ID+EN), LIMIT_RATES (Bebas/500K/2M/5M), sanitize tahan nilai rusak; pemanggilan lama tetap kompatibel
+- [x] feat(ui): chip Subtitle + Sematkan/File .srt (video), Sampul + tag (audio), Batas kecepatan (keduanya); DownloadForm/DownloadPrefs mengingat pilihan antar sesi
+- [x] feat(history): riwayat menyimpan dan Ulangi membawa opsi baru (kunci JSON sb/sm/cv/lr, versi tetap 1, berkas lama terbaca dengan bawaan); modeLabel menampilkan sub/batas hanya bila aktif
+- [x] test: scripts/core-tests/run_choices.sh (DownloadChoicesTests.kt: sanitize, preset lolos validasi, roundtrip riwayat, kompatibilitas berkas lama/rusak, argumen Ulangi)
+- [x] Dampak: :core:common (DownloadUi, DownloadHistory) + :app (DownloadNav, DownloadPrefs, UnduhanScreen); Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh; protokol tetap v1
+- [ ] Compose (UnduhanScreen) belum dikompilasi di sandbox: tunggu CI; lebar baris chip di layar sempit perlu dicek di perangkat
+- [ ] Uji perangkat Android 8 arm64: subtitle/sampul/batas kecepatan nyata via proot belum
+- [ ] Preset cepat (Cinema/Hemat/Musik) belum mengatur subtitle/sampul/batas; belum ada input bahasa subtitle bebas
+- [ ] Berikutnya: sidecar poster.jpg/.info.json untuk Molina Cinema, playlist terkontrol
