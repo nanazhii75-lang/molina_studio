@@ -1,5 +1,8 @@
 package com.molina.studio.settings
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -39,6 +42,7 @@ import com.molina.core.common.Assurance
 import com.molina.core.common.BundledComponent
 import com.molina.core.common.BundledComponents
 import com.molina.core.common.ComponentRole
+import com.molina.core.common.NewPipeBump
 import com.molina.engine.newpipe.NewPipeInfo
 import com.molina.studio.automation.AutoPrefs
 import com.molina.studio.automation.AutoState
@@ -60,6 +64,12 @@ private fun debianToolId(id: String): String? = when (id) {
     else -> null
 }
 
+/** Salin teks ke papan klip (API Android biasa, bukan Compose, agar tidak bergantung versi Compose). */
+private fun copyText(ctx: Context, label: String, text: String) {
+    val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return
+    cm.setPrimaryClip(ClipData.newPlainText(label, text))
+}
+
 private fun stampOf(at: Long): String = SimpleDateFormat("d MMM HH:mm", Locale("id", "ID")).format(Date(at))
 
 private fun versionText(c: BundledComponent, s: AutoState, check: ToolCheck?): String = when {
@@ -72,7 +82,7 @@ private fun versionText(c: BundledComponent, s: AutoState, check: ToolCheck?): S
 
 private fun updateNote(c: BundledComponent, s: AutoState): String? = when {
     c.id == "newpipe" && s.newpipeOutdated ->
-        "Pembaruan tersedia: ${NewPipeInfo.VERSION} \u2192 ${s.newpipeLatest}. Perlu rilis Molina baru."
+        "Pembaruan tersedia: ${NewPipeInfo.VERSION} \u2192 ${s.newpipeLatest}. Naikkan pin lewat workflow bump-newpipe, tinjau PR-nya, lalu rilis."
     c.id == "ytdlp" && s.ytdlpOutdated ->
         "Pembaruan tersedia: ${s.ytdlpInstalled} \u2192 ${s.ytdlpLatest}. Perbarui di halaman yt-dlp."
     else -> null
@@ -144,6 +154,7 @@ internal fun BundledComponentsSection(onOpenYtdlp: () -> Unit, onCheckVersion: (
     val report = remember { BundledComponents.securityReport(all) }
     var filter by rememberSaveable { mutableStateOf("") }
     var open by rememberSaveable { mutableStateOf<String?>(null) }
+    var copied by remember { mutableStateOf("") }
     val role = ComponentRole.values().firstOrNull { it.name == filter }
     val shown = BundledComponents.filter(all, role)
     val shape = RoundedCornerShape(6.dp)
@@ -220,9 +231,20 @@ internal fun BundledComponentsSection(onOpenYtdlp: () -> Unit, onCheckVersion: (
                     DetailLine("Sumber", c.source)
                     DetailLine("Lisensi", c.license)
                     DetailLine("Keamanan", c.assurance.label)
+                    if (c.id == "newpipe") DetailLine("Pin", NewPipeBump.pinStatus(c.version))
                     if (check != null && check.text.isNotBlank()) DetailLine("Dicek", stampOf(check.at))
                     Text(c.note, color = W7D.TextDim, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
                     if (c.id == "ytdlp") BundleAction("BUKA HALAMAN YT-DLP", onOpenYtdlp)
+                    if (c.id == "newpipe" && update != null && NewPipeBump.isValidTag(st.newpipeLatest)) {
+                        BundleAction(if (copied == "tag") "DISALIN \u2713" else "SALIN VERSI BARU") {
+                            copyText(ctx, "versi NewPipe", st.newpipeLatest); copied = "tag"
+                        }
+                        NewPipeBump.ghCommand(st.newpipeLatest)?.let { cmd ->
+                            BundleAction(if (copied == "gh") "DISALIN \u2713" else "SALIN PERINTAH GH") {
+                                copyText(ctx, "perintah bump", cmd); copied = "gh"
+                            }
+                        }
+                    }
                     if (toolId != null) BundleAction("PERIKSA VERSI") { onCheckVersion(toolId) }
                 }
             }

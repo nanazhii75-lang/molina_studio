@@ -2608,3 +2608,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: Gradle/AndroidManifest/JNI mpv TIDAK disentuh pada commit ini; skrip hanya mengubah 1 konstanta versi di build.gradle.kts saat dijalankan; telemetry_gate tidak diubah (tak ada URL baru)
 - [ ] Belum diuji nyata: resolve ke JitPack hanya bisa di CI (sandbox tanpa akses). Uji pertama: jalankan bump-newpipe.yml dengan versi yang sama (v0.26.5) -> harus "Tidak ada perubahan"
 - [ ] Catatan: push oleh GITHUB_TOKEN tidak memicu build.yml otomatis, karena itu workflow memicunya manual lewat gh workflow run; jika repo melarang Actions membuat PR, cabang tetap ter-push
+
+## 2026-10-31 - Tombol salin perintah bump + status pin di kartu NewPipe [NEWPIPE-COPY]
+- [x] feat(settings): kartu NewPipe di Komponen bundel punya baris "Pin" (dipin di versi terpasang) dan, saat ada pembaruan, aksi "SALIN VERSI BARU" dan "SALIN PERINTAH GH" (gh workflow run bump-newpipe.yml -f version=<tag>); umpan balik "DISALIN"
+- [x] sec(core): NewPipeBump (:core:common) memvalidasi tag ketat (vN.N.N) sebelum masuk papan klip, karena perintah akan ditempel ke terminal; tag dari jaringan yang janggal (injeksi shell) tidak menghasilkan perintah
+- [x] Tes: BundledComponentsTests +6 pemeriksaan (tag valid/janggal, perintah gh, tanpa metakarakter shell) lulus dengan kotlinc 2.1.20; telemetry_gate dan bundle_gate lulus (BundleUi tetap pasif: hanya ClipboardManager Android)
+- [x] chore: hapus berkas nyasar di root repo (bump-newpipe.yml, bump_pin.py) yang ikut ter-commit di d53429d; versi benar ada di .github/workflows dan scripts/newpipe
+- [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh; tidak ada izin baru (ClipboardManager tidak butuh izin)
+- [ ] Compose belum dikompilasi: tunggu CI (impor android.content.* dan blok aksi salin di BundleUi.kt)
+- [ ] Belum diuji di perangkat: ketuk kartu NewPipe saat ada pembaruan, salin, tempel di terminal

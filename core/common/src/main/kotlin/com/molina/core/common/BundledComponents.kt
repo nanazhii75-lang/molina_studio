@@ -149,3 +149,20 @@ object BundledComponents {
         requiredWithoutHash = items.filter { it.role == ComponentRole.Wajib && !it.assurance.verified }.map { it.name }
     )
 }
+
+/**
+ * Bantuan "naikkan pin NewPipe": tag dari jaringan TIDAK BOLEH masuk ke papan klip tanpa divalidasi ketat,
+ * karena perintah yang disalin akan ditempel pengguna ke terminal (cegah injeksi shell).
+ */
+object NewPipeBump {
+    const val WORKFLOW = "bump-newpipe.yml"
+    private val TAG = Regex("v\\d{1,4}\\.\\d{1,4}\\.\\d{1,4}")
+
+    fun isValidTag(tag: String): Boolean = TAG.matches(tag)
+
+    /** Perintah gh untuk memicu workflow; null bila tag tidak valid. */
+    fun ghCommand(tag: String): String? = if (isValidTag(tag)) "gh workflow run $WORKFLOW -f version=$tag" else null
+
+    /** Teks status pin untuk kartu NewPipe. */
+    fun pinStatus(version: String): String = "Dipin di $version; build gagal bila hash tidak cocok"
+}
