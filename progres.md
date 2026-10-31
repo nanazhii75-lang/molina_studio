@@ -2920,3 +2920,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Uji perangkat: Setelan > Molina Shield; matikan/nyalakan tiap switch, skor dan baris Belum aktif ikut berubah (refresh halaman bila perlu)
 - [ ] Belum ada tes JVM untuk ShieldSummary (cara kompilasi scripts/app-tests untuk kelas internal belum dipastikan)
 - [ ] Ide lanjutan: gembok emas (TrustLock di BundleUi.kt masih private) dan tombol salin laporan keamanan
+
+## 2026-10-31 - Laporan perlindungan dan tes ShieldSummary [SHIELD-REPORT]
+- [x] refactor(settings): skor hanya menghitung 5 perlindungan inti; blokir rtmp playlist (opsional) keluar dari skor; batas cakupan (rtsp, yt-dlp) selalu tampil
+- [x] feat(settings): ketuk kartu menyalin laporan (status per item, sidik jari SHA-256 lengkap, tanpa host atau URL)
+- [x] test: scripts/app-tests/ShieldSummaryTests.kt + run_shield_summary.sh (27 kasus lulus dengan kotlinc 2.1.20)
+- [x] Dampak: hanya app/settings dan scripts/app-tests; Gradle, AndroidManifest, JNI TIDAK disentuh
+- [ ] Belum dikompilasi untuk Android: tunggu CI
+- [ ] Uji perangkat: Setelan > Molina Shield; ketuk kartu, tempel hasilnya, cek sidik jari lengkap; matikan satu switch, judul dan baris Belum aktif ikut berubah tanpa keluar halaman
+- [ ] app-tests belum dipanggil workflow mana pun; jalankan manual (butuh kotlinc >= 2.1)

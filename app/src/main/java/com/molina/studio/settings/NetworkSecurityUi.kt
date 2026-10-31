@@ -32,7 +32,11 @@ internal fun NetworkSecurityPage() {
         )
     )
     Category("Ringkasan perlindungan")
-    SettingsItem(sum.title, sum.body) {}
+    SettingsItem(sum.title, sum.body) { // [SHIELD-REPORT]
+        val cm = ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+        cm?.setPrimaryClip(android.content.ClipData.newPlainText("Molina Shield", sum.report))
+        android.widget.Toast.makeText(ctx, "Laporan perlindungan disalin", android.widget.Toast.LENGTH_SHORT).show()
+    }
     Category("Molina Shield")
     SwitchRow(
         "Aktifkan Molina Shield",
