@@ -2938,3 +2938,13 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Uji perangkat (wajib): buka Terminal, jalankan molina ping (harus OK). Bila gagal dengan pesan uid, kirim isi /proc/self/status di Debian
 - [ ] Asumsi yang perlu dibuktikan: /proc/self/status di PRoot -0 menampilkan UID asli (bukan 0); bila 0, pemeriksaan otomatis dilewati (tidak ada perlindungan, tidak ada regresi)
 - [ ] Batas: sisi server sudah memeriksa UID klien; sisi aplikasi (Kotlin) tidak punya klien produksi ke soket ini
+
+## 2026-10-31 - Unduhan menolak URL ke alamat lokal/LAN [DL-SSRF-GUARD]
+- [x] Temuan: DownloadCommand.validate hanya memeriksa skema http/https; unduhan (yt-dlp di Debian) tidak lewat Molina Shield, jadi URL ke 127.x, localhost, 169.254.x, atau jaringan rumah lolos meski pengaturan "Jaringan lokal ditolak" aktif
+- [x] feat(download): DownloadUrlGuard (memakai UrlPolicy; hanya alasan LOOPBACK dan PRIVATE_ADDRESS) dipanggil di DownloadRunner.start setelah validate; LAN lolos bila "Izinkan jaringan lokal" aktif, loopback tetap ditolak
+- [x] test: scripts/core-tests/DownloadUrlGuardTests.kt + run_url_guard.sh
+- [x] Dampak: DownloadRunner.kt (satu baris + import) dan berkas baru di core/common dan scripts; Gradle, AndroidManifest, JNI TIDAK disentuh
+- [ ] Belum dikompilasi untuk Android: tunggu CI
+- [ ] Uji perangkat: unduh URL publik tetap jalan; tempel http://127.0.0.1/x dan http://192.168.1.1/x, harus ditolak dengan pesan "URL ke-N ditolak"; nyalakan Izinkan jaringan lokal, 192.168.x lolos
+- [ ] Batas: redirect dari host publik ke alamat privat dan DNS rebinding tidak terdeteksi (yt-dlp mengikuti redirect sendiri)
+- [ ] Perilaku berubah: unduhan dari NAS/server lokal kini butuh Izinkan jaringan lokal (sama seperti pemutar)

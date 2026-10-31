@@ -13,6 +13,7 @@ import com.molina.core.common.DownloadHistory
 import com.molina.core.common.DownloadItemStatus
 import com.molina.core.common.DownloadMaintenance
 import com.molina.core.common.DownloadRequest
+import com.molina.core.common.DownloadUrlGuard
 import com.molina.core.common.DownloadRunState
 import com.molina.core.common.DownloadSessionState
 import com.molina.core.common.LogLevel
@@ -67,6 +68,7 @@ internal object DownloadRunner {
     /** @return pesan galat siap tampil, atau null bila sesi unduhan dimulai. */
     fun start(ctx: Context, req: DownloadRequest): String? {
         DownloadCommand.validate(req)?.let { return it }
+        DownloadUrlGuard.check(req.urls)?.let { return it } // [DL-SSRF-GUARD]
         val app = ctx.applicationContext
         // [WIFI-ONLY] pengguna memilih unduh hanya di jaringan tidak berkuota
         if (DownloadPrefs.wifiOnly(app) && NetworkGuard.isMetered(app)) return NetworkGuard.BLOCK_MSG
