@@ -2912,3 +2912,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Uji perangkat: switch mati = perilaku lama; switch nyala + Refresh Pemutar: rtmp langsung tetap jalan, m3u berisi rtmp gagal, http/https dan file lokal tidak berubah
 - [ ] Asumsi yang perlu dibuktikan: opsi per-entri stream-lavf-o menimpa opsi global (pola sama dengan http di remoteProtocolOptions)
 - [ ] Batas: rtsp tidak tercakup (blacklist ffmpeg tidak andal untuk rtsp)
+
+## 2026-10-31 - Kartu Ringkasan perlindungan Molina Shield [SHIELD-CARD]
+- [x] feat(settings): ShieldSummary.kt (logika murni) + kartu "Ringkasan perlindungan" di puncak NetworkSecurityPage: skor X dari 6, jumlah diblokir, sidik jari tanda tangan, daftar yang belum aktif
+- [x] Dampak: hanya app/settings; Gradle, AndroidManifest, JNI TIDAK disentuh
+- [ ] Belum dikompilasi: tunggu CI
+- [ ] Uji perangkat: Setelan > Molina Shield; matikan/nyalakan tiap switch, skor dan baris Belum aktif ikut berubah (refresh halaman bila perlu)
+- [ ] Belum ada tes JVM untuk ShieldSummary (cara kompilasi scripts/app-tests untuk kelas internal belum dipastikan)
+- [ ] Ide lanjutan: gembok emas (TrustLock di BundleUi.kt masih private) dan tombol salin laporan keamanan

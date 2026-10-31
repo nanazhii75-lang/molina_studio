@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import com.molina.core.common.ShieldStats
 import com.molina.studio.security.PrivacyPrefs
 import com.molina.studio.security.ShieldPrefs
@@ -20,6 +21,18 @@ internal fun NetworkSecurityPage() {
     val blockPl by StreamEnginePrefs.blockPlaylistStreams.collectAsState()
     val blocked by ShieldStats.blockedCount.collectAsState()
     val recent = remember(blocked) { ShieldStats.recent().takeLast(8).reversed() }
+    // [SHIELD-CARD] kartu ringkasan perlindungan di puncak halaman
+    val ctx = LocalContext.current
+    val sig = remember { AppSignature.read(ctx) }
+    val sum = ShieldSummary.build(
+        ShieldSummary.Input(
+            shield = shieldOn, trackers = trackersOn, lanAllowed = lan, secureScreen = secure,
+            blockPlaylistRtmp = blockPl, debuggable = sig.debuggable,
+            blocked = blocked.toInt(), fingerprint = sig.sha256,
+        )
+    )
+    Category("Ringkasan perlindungan")
+    SettingsItem(sum.title, sum.body) {}
     Category("Molina Shield")
     SwitchRow(
         "Aktifkan Molina Shield",
