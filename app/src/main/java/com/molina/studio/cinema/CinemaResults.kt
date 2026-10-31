@@ -57,7 +57,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.molina.core.common.DateFilter
 import com.molina.core.common.DownloadCommand
+import com.molina.core.common.DurationFilter
 import com.molina.core.common.RelativeTime
 import com.molina.core.common.SearchOrder
 import com.molina.core.common.SearchSort
@@ -103,7 +105,10 @@ internal fun SearchResultsDialog(
 ) {
     val ctx = LocalContext.current
     var sort by remember { mutableStateOf(SearchSort.NEWEST) } // [RESULTS-SORT] bawaan: terbaru dulu
-    val ordered = remember(results, sort) { SearchOrder.sort(results, sort) }
+    var durFilter by remember { mutableStateOf(DurationFilter.ALL) } // [RESULTS-FILTER]
+    var dateFilter by remember { mutableStateOf(DateFilter.ALL) }
+    val filtered = remember(results, durFilter, dateFilter) { SearchOrder.filter(results, durFilter, dateFilter) }
+    val ordered = remember(filtered, sort) { SearchOrder.sort(filtered, sort) }
     val entries = remember(ordered) { ordered.mapIndexed { i, r -> ResultEntry(i + 1, r) } }
     val related = remember(results) { SearchOrder.related(results) }
     val undated = remember(results) { results.count { RelativeTime.estimateAtMs(it) == null } }
@@ -132,7 +137,7 @@ internal fun SearchResultsDialog(
         }
     }
     LaunchedEffect(searchOpen) { if (searchOpen) focus.requestFocus() }
-    LaunchedEffect(sort) { selected = 1; listState.scrollToItem(0) } // ganti urutan: kembali ke nomor 001
+    LaunchedEffect(sort, durFilter, dateFilter) { selected = 1; listState.scrollToItem(0) } // ganti urutan: kembali ke nomor 001
 
     fun page(delta: Int) {
         if (visible.isEmpty()) return
@@ -183,7 +188,7 @@ internal fun SearchResultsDialog(
                 ) {
                     Text("Hasil pencarian", color = Color.White, fontSize = 20.sp,
                         fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
-                    Text("%03d/%03d".format(selected, entries.size), color = MolinaTheme.Muted,
+                    Text("%03d/%03d".format(if (entries.isEmpty()) 0 else selected, entries.size), color = MolinaTheme.Muted,
                         fontSize = 13.sp, fontFamily = FontFamily.Monospace)
                     Spacer(Modifier.width(12.dp))
                     Text(clock, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
@@ -195,6 +200,16 @@ internal fun SearchResultsDialog(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     SearchSort.values().forEach { s -> ResultChip(s.label, s == sort) { sort = s } }
+                }
+                // [RESULTS-FILTER] saringan durasi dan waktu unggah: ketuk = pilihan berikutnya (berputar)
+                Row(
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 2.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("Saring", color = MolinaTheme.Muted, fontSize = 12.sp)
+                    ResultChip("Durasi: ${durFilter.label}", durFilter != DurationFilter.ALL) { durFilter = durFilter.next() }
+                    ResultChip("Unggah: ${dateFilter.label}", dateFilter != DateFilter.ALL) { dateFilter = dateFilter.next() }
                 }
                 if (sort != SearchSort.RELEVANCE && undated > 0) Text(
                     "$undated hasil tanpa tanggal ditaruh di akhir", color = MolinaTheme.Muted, fontSize = 11.sp,
@@ -244,6 +259,10 @@ internal fun SearchResultsDialog(
                     keyboardActions = KeyboardActions(onDone = { pickFromQuery() }),
                 )
 
+                if (entries.isEmpty()) Text(
+                    "Tidak ada hasil dengan saringan ini", color = MolinaTheme.Muted, fontSize = 13.sp,
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
+                )
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.weight(1f, fill = false),

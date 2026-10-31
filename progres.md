@@ -2456,3 +2456,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: hanya :engine:newpipe (1 berkas); Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
 - [ ] Compile: tunggu CI
 - [ ] Uji perangkat: tutup paksa aplikasi lalu cari ulang; judul sama seperti di YouTube. Bila masih Inggris, curigai terjemahan otomatis di sisi YouTube dan catat judul contohnya
+
+## 2026-10-31 - Saringan durasi dan waktu unggah di hasil pencarian [RESULTS-FILTER]
+- [x] feat(cinema): SearchOrder.kt: enum DurationFilter (Semua, <10 mnt, 10-30 mnt, >30 mnt), enum DateFilter (Kapan saja, 7 hari, 30 hari, 1 tahun), fungsi SearchOrder.filter (murni, tanpa jaringan; durasi/tanggal tak diketahui disingkirkan saat saringan aktif)
+- [x] CinemaResults.kt: baris "Saring" berisi dua chip yang berputar saat diketuk; daftar = filter lalu urut; nomor kembali ke 001 saat saringan berganti; penghitung 000/000 + pesan bila kosong
+- [x] SearchOrderTests.kt: 12 kasus baru (batas 599/600/1800/1801, tanggal, gabungan, next)
+- [x] Dampak: :core:common dan :app (3 berkas); Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
+- [x] Catatan: chip Terkait (kanal) sudah menyaring daftar sejak [RESULTS-SORT]; tidak diubah
+- [ ] Compose belum dikompilasi: tunggu CI (cek impor DateFilter/DurationFilter dan horizontalScroll)
+- [ ] Uji perangkat: ketuk chip Durasi dan Unggah, nomor kembali 001, kombinasi dengan Terbaru/Terlama dan chip kanal, pesan kosong muncul, putar dari hasil tersaring melanjutkan ke video tersaring berikutnya

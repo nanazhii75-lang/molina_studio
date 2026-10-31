@@ -7,8 +7,45 @@ enum class SearchSort(val label: String) {
     OLDEST("Terlama"),
 }
 
+/** Saringan durasi (detik, batas inklusif). Durasi tidak diketahui (mis. siaran langsung) disingkirkan bila aktif. */
+enum class DurationFilter(val label: String, val minSec: Long, val maxSec: Long) {
+    ALL("Semua", 0L, Long.MAX_VALUE),
+    SHORT("< 10 mnt", 0L, 599L),
+    MEDIUM("10-30 mnt", 600L, 1800L),
+    LONG("> 30 mnt", 1801L, Long.MAX_VALUE);
+
+    fun next(): DurationFilter = values()[(ordinal + 1) % values().size]
+}
+
+/** Saringan waktu unggah (kasar: perkiraan [RelativeTime]). Tanggal tidak diketahui disingkirkan bila aktif. */
+enum class DateFilter(val label: String, val maxAgeMs: Long) {
+    ALL("Kapan saja", Long.MAX_VALUE),
+    WEEK("7 hari", 7L * 86_400_000L),
+    MONTH("30 hari", 30L * 86_400_000L),
+    YEAR("1 tahun", 365L * 86_400_000L);
+
+    fun next(): DateFilter = values()[(ordinal + 1) % values().size]
+}
+
 /** Pengurutan dan penyaringan hasil pencarian (JDK murni, dapat diuji di JVM). */
 object SearchOrder {
+    /** Saring menurut durasi dan waktu unggah. Keduanya ALL = daftar asli (objek yang sama). Urutan dipertahankan. */
+    fun filter(
+        items: List<StreamSearchItem>,
+        duration: DurationFilter = DurationFilter.ALL,
+        date: DateFilter = DateFilter.ALL,
+        nowMs: Long = System.currentTimeMillis(),
+    ): List<StreamSearchItem> {
+        if (duration == DurationFilter.ALL && date == DateFilter.ALL) return items
+        return items.filter { i ->
+            val durOk = duration == DurationFilter.ALL ||
+                (i.durationSec?.let { it in duration.minSec..duration.maxSec } == true)
+            val dateOk = date == DateFilter.ALL ||
+                (RelativeTime.estimateAtMs(i, nowMs)?.let { nowMs - it <= date.maxAgeMs } == true)
+            durOk && dateOk
+        }
+    }
+
     /**
      * Urutkan [items]. Hasil tanpa waktu unggah (mis. siaran langsung) selalu di akhir.
      * Pengurutan stabil: hasil sewaktu mempertahankan urutan relevansi.

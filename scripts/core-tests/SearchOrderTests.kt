@@ -1,3 +1,5 @@
+import com.molina.core.common.DateFilter
+import com.molina.core.common.DurationFilter
 import com.molina.core.common.RelativeTime
 import com.molina.core.common.SearchOrder
 import com.molina.core.common.SearchSort
@@ -65,6 +67,24 @@ fun main() {
     check("relatedQueries: daftar kosong", SearchOrder.relatedQueries(emptyList(), "lagu").isEmpty())
     val ch = listOf("A", "B", "C", "D").flatMap { c -> listOf(item(c + "1", up = c), item(c + "2", up = c)) }
     check("related: batas bawaan 3 kanal", SearchOrder.related(ch).size == 3)
+
+    // [RESULTS-FILTER]
+    fun dv(t: String, dur: Long?, at: Long? = null) = StreamSearchItem("https://example.com/$t", t, null, dur, null, at, null)
+    val fs = listOf(dv("s", 300, NOW - DAY), dv("m", 1200, NOW - 10 * DAY), dv("l", 3600, NOW - 100 * DAY),
+        dv("live", null), dv("b600", 600, NOW), dv("b1800", 1800, NOW), dv("b599", 599, NOW))
+    fun f(d: DurationFilter, t: DateFilter) = titles(SearchOrder.filter(fs, d, t, NOW))
+    check("filter: ALL/ALL = objek asli", SearchOrder.filter(fs, DurationFilter.ALL, DateFilter.ALL, NOW) === fs)
+    check("filter durasi pendek (<10 mnt, 599 masuk)", f(DurationFilter.SHORT, DateFilter.ALL) == "s,b599")
+    check("filter durasi sedang (batas 600 dan 1800 masuk)", f(DurationFilter.MEDIUM, DateFilter.ALL) == "m,b600,b1800")
+    check("filter durasi panjang (>30 mnt)", f(DurationFilter.LONG, DateFilter.ALL) == "l")
+    check("filter durasi: durasi tak diketahui disingkirkan", !f(DurationFilter.SHORT, DateFilter.ALL).contains("live"))
+    check("filter 7 hari", f(DurationFilter.ALL, DateFilter.WEEK) == "s,b600,b1800,b599")
+    check("filter 30 hari", f(DurationFilter.ALL, DateFilter.MONTH) == "s,m,b600,b1800,b599")
+    check("filter 1 tahun", f(DurationFilter.ALL, DateFilter.YEAR) == "s,m,l,b600,b1800,b599")
+    check("filter gabungan sedang + 30 hari", f(DurationFilter.MEDIUM, DateFilter.MONTH) == "m,b600,b1800")
+    check("filter: sumber tidak diubah", fs.size == 7)
+    check("next berputar ke awal", DurationFilter.LONG.next() == DurationFilter.ALL && DateFilter.YEAR.next() == DateFilter.ALL)
+    check("next maju satu", DurationFilter.ALL.next() == DurationFilter.SHORT && DateFilter.ALL.next() == DateFilter.WEEK)
 
     println(if (fails == 0) "\nSEMUA LOLOS" else "\n$fails GAGAL")
     if (fails > 0) System.exit(1)
