@@ -93,18 +93,6 @@ private fun measure(ctx: android.content.Context, cancelled: () -> Boolean): Sto
     )
 }
 
-/** Hapus .deb unduhan apt (dan unduhan setengah jadi); berkas lock dibiarkan. Mengembalikan byte yang dibebaskan. */
-private fun cleanApt(ctx: android.content.Context): Long {
-    val dir = aptArchives(ctx)
-    val before = dirSize(dir) { false }
-    dir.listFiles()?.forEach { f ->
-        if (f.name == "lock") return@forEach
-        if (f.name == "partial") f.listFiles()?.forEach { wipe(it) }
-        else if (f.isFile && f.name.endsWith(".deb")) wipe(f)
-    }
-    return maxOf(0L, before - dirSize(dir) { false })
-}
-
 /** Hapus cache aplikasi kecuali proot-tmp (dipakai sesi Terminal yang sedang berjalan). */
 private fun cleanAppCache(ctx: android.content.Context): Long {
     val kids = (ctx.cacheDir.listFiles() ?: emptyArray()).filter { it.name != "proot-tmp" && !it.name.startsWith("debian-rootfs.tar.gz") }
@@ -126,7 +114,7 @@ private fun StorageRow(title: String, value: String) {
 
 /** Halaman Penyimpanan: ukuran Debian, cache, Recycle Bin, folder kerja, dan pembersihan aman. */
 @Composable
-internal fun StoragePage() {
+internal fun StoragePage(onOpenPackages: () -> Unit) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     var tick by remember { mutableStateOf(0) }
@@ -155,16 +143,11 @@ internal fun StoragePage() {
         "Pusat Pembersihan Cerdas",
         "Pilih kategori, lihat estimasi ruang, lalu bersihkan sekaligus: cache, sisa unduhan, laporan lama, file sementara."
     ) { showCenter = true }
+    // [CACHE-APT-PAKET] cache apt dibersihkan dari Paket > Debian (apt); di sini hanya tautan
     SettingsItem(
-        "Bersihkan cache apt",
-        "Hapus .deb unduhan di Debian. Paket terpasang tidak terpengaruh. Jangan dijalankan saat apt sedang berjalan."
-    ) {
-        scope.launch {
-            val freed = withContext(Dispatchers.IO) { cleanApt(ctx) }
-            msg = "Cache apt dibersihkan: " + fmtBytes(freed) + " dibebaskan."
-            tick++
-        }
-    }
+        "Cache apt dan paket yatim",
+        "Dibersihkan dari Paket > Debian (apt). Cache apt juga ikut di Pusat Pembersihan Cerdas."
+    ) { onOpenPackages() }
     SettingsItem(
         "Bersihkan cache aplikasi",
         "Hapus berkas sementara aplikasi. Sesi Terminal yang berjalan tidak terganggu."

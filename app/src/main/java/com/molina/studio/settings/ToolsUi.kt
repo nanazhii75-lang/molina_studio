@@ -186,7 +186,7 @@ internal fun PackagesPage(
         W7Link({ W7IconAptSync() }, "Periksa pembaruan paket", AptHistory.checkSubtitle(aptPending)) { onApt(AptJob.CheckUpdates) }
     }
     W7Link({ W7IconAptSync() }, "Perbarui dan tingkatkan paket", AptHistory.subtitle(aptLast)) { onApt(AptJob.UpdateUpgrade) }
-    W7Link({ W7IconToolList() }, "Bersihkan cache dan paket yatim", "autoremove dan apt clean: menambah ruang kosong Debian") { onApt(AptJob.CleanUp) }
+    W7Link({ W7IconToolList() }, "Bersihkan cache dan paket yatim", "Hapus cache .deb dan paket yatim (autoremove dan apt clean): menambah ruang kosong Debian") { onApt(AptJob.CleanUp) }
     W7Link({ W7IconToolList() }, "Pasang paket Starter", "ca-certificates, python3, ffmpeg, openssh-client, vim sekali ketuk (apt resmi Debian)") { onApt(AptJob.InstallStarter) } // [TERM-STARTER1]
     Spacer(Modifier.height(12.dp))
     Category("Alat")

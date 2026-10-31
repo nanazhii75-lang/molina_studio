@@ -2814,3 +2814,10 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Sengaja dibiarkan: Penyimpanan > Bersihkan cache apt (hapus berkas langsung, cepat) berdampingan dengan Paket > Bersihkan cache dan paket yatim (apt via PRoot). Fungsinya mirip, mekanismenya beda
 - [ ] Belum dikompilasi: tunggu CI
 - [ ] Uji perangkat: Sistem tanpa tautan Cadangan dan otomasi; switch cadangan harian di Sistem; switch Unduhan masuk ke Cinema di Pemutar; pencarian "cadangan" dan "unduhan masuk" membuka halaman yang benar; titik emas berdenyut saat Periksa versi
+
+## 2026-10-31 - Cache apt dipusatkan di Paket [CACHE-APT-PAKET]
+- [x] refactor(settings): Penyimpanan tidak lagi punya tombol "Bersihkan cache apt" (fungsi cleanApt dihapus). Penyimpanan tetap menampilkan ukuran cache apt dan tautan ke Paket > Debian (apt). Pembersihan cache apt kini lewat Paket > "Bersihkan cache dan paket yatim" atau Pusat Pembersihan Cerdas (kategori Cache apt tetap ada)
+- [x] Pencarian: "Bersihkan cache apt" membuka Paket; "Bersihkan cache" tetap membuka Penyimpanan (cache aplikasi)
+- [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh
+- [ ] Belum dikompilasi: tunggu CI
+- [ ] Uji perangkat: Penyimpanan tanpa tombol cache apt, tautan membuka Paket; pencarian "cache apt" membuka Paket
