@@ -591,7 +591,7 @@ fun Win7OpenDialog(
                             properties = PopupProperties(focusable = true)
                         ) {
                             Column( // [POPUP-SCROLL] tinggi maks 70% layar; isi bisa digulir
-                                Modifier.width(240.dp).heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.7f).dp)
+                                Modifier.width(240.dp).heightIn(max = w7PopupMaxHeight())
                                     .background(Win7.Input).border(1.dp, Win7.FrameLine)
                                     .verticalScroll(rememberScrollState())
                             ) {
@@ -624,7 +624,7 @@ fun Win7OpenDialog(
                                 properties = PopupProperties(focusable = true)
                             ) {
                                 Column(
-                                    Modifier.width(250.dp).heightIn(max = minOf(400.dp, (LocalConfiguration.current.screenHeightDp * 0.7f).dp)).background(Win7.Input) // [POPUP-SCROLL]
+                                    Modifier.width(250.dp).heightIn(max = w7PopupMaxHeight(400.dp)).background(Win7.Input) // [POPUP-SCROLL]
                                         .border(1.dp, Win7.FrameLine).verticalScroll(rememberScrollState())
                                 ) {
                                     W7MenuItem(W7Ico.PLAY, if (one?.isDirectory == true) "Putar folder di mpv" else "Putar di mpv", playable) {
@@ -954,7 +954,7 @@ fun Win7OpenDialog(
                                     ) {
                                         Column( // [DROP-SCROLL] tinggi maks 70% layar; isi bisa digulir bila tidak muat
                                             Modifier.width(230.dp)
-                                                .heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.7f).dp)
+                                                .heightIn(max = w7PopupMaxHeight())
                                                 .background(Win7.Input).border(1.dp, Win7.FrameLine)
                                                 .verticalScroll(rememberScrollState())
                                         ) {
@@ -1183,6 +1183,13 @@ private fun W7DropButton(active: Boolean, onClick: () -> Unit) {
         }
     }
 }
+
+/** [POPUP-MAXH] Satu sumber batas tinggi popup Penjelajah: 70% tinggi layar (opsional dibatasi cap), agar tidak keluar layar pendek/landscape. */
+private const val W7_POPUP_MAX_FRACTION = 0.7f
+
+@Composable
+private fun w7PopupMaxHeight(cap: androidx.compose.ui.unit.Dp = androidx.compose.ui.unit.Dp.Infinity): androidx.compose.ui.unit.Dp =
+    minOf(cap, (LocalConfiguration.current.screenHeightDp * W7_POPUP_MAX_FRACTION).dp)
 
 /** [DROP-DIVIDER] Garis pemisah emas tipis antar kelompok item di menu drop-up Penjelajah. */
 @Composable

@@ -2416,3 +2416,10 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: hanya :app (1 berkas); impor sudah ada; Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
 - [ ] Compose belum dikompilasi: tunggu CI
 - [ ] Uji perangkat: landscape, menu Urut dan Alat tergulir tanpa terpotong; potret normal tidak berubah tampilannya
+
+## 2026-10-31 - Batas tinggi popup dipusatkan ke satu helper [POPUP-MAXH]
+- [x] refactor(cinema): Win7OpenDialog.kt: konstanta W7_POPUP_MAX_FRACTION (0.7f) + helper w7PopupMaxHeight(cap); dipakai menu drop-up, popup Urut, dan popup Alat (cap 400dp); angka 70% tidak lagi tersebar. Perilaku tidak berubah
+- [x] Popup baru cukup memakai heightIn(max = w7PopupMaxHeight()) + verticalScroll
+- [x] Dampak: hanya :app (1 berkas); Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
+- [ ] Compose belum dikompilasi: tunggu CI (periksa Dp.Infinity dan minOf pada Dp)
+- [ ] Uji perangkat: tampilan ketiga popup sama seperti sebelumnya di potret dan landscape
