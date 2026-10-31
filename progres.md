@@ -2769,3 +2769,9 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh
 - [ ] Belum dikompilasi: tunggu CI
 - [ ] Belum diuji di perangkat: hapus /etc/ssl/certs/ca-certificates.crt sementara > Periksa lingkungan menampilkan baris sertifikat + petunjuk; jalankan Starter > hilang; Starter tidak memasang git
+
+## 2026-10-31 - Verifikasi independen [DOCTOR-CA] [VERIF-DOCTOR-CA]
+- [x] docs: klaim patch DOCTOR-CA diperiksa terhadap source di main (9f68ea4): semua perubahan ada
+- [x] Tes ulang: Python 64 OK (15 skip), run_starter_profile 14 kasus 0 gagal
+- [ ] Selidiki 15 tes Python yang di-skip, pastikan bukan tes no_ca
+- [ ] run_maint (Kotlin) menunggu CI
