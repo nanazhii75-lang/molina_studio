@@ -199,14 +199,6 @@ internal fun StreamEnginePage() {
         status = withContext(Dispatchers.IO) { YtdlpLocator.status(ctx) }
     }
 
-    val lockId by StreamEnginePrefs.lockIndonesian.collectAsState()
-    SwitchRow(
-        "Kunci hasil ke bahasa Indonesia",
-        "Pencarian YouTube mengutamakan judul berbahasa Indonesia dan menyembunyikan judul yang jelas "
-            + "berbahasa Inggris/asing. Bila hasilnya terlalu sedikit, semuanya tetap ditampilkan.",
-        lockId
-    ) { StreamEnginePrefs.setLockIndonesian(it) }
-
     SwitchRow(
         "Aktifkan yt-dlp (cadangan)",
         "Untuk TikTok, Facebook, dan situs lain yang tidak dikenali NewPipe. Satu resolusi memulai " +

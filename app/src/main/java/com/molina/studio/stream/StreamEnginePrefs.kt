@@ -20,6 +20,7 @@ object StreamEnginePrefs {
     private const val KEY_YTDLP = "ytdlp_enabled"
     private const val KEY_LAN = "allow_lan"
     private const val KEY_LOCK_ID = "lock_id"
+    private const val KEY_ORIG_TITLE = "orig_title"
 
     private var sp: SharedPreferences? = null
     private val _ytdlpEnabled = MutableStateFlow(false)
@@ -36,6 +37,11 @@ object StreamEnginePrefs {
     /** Kunci hasil pencarian ke bahasa Indonesia (default nyala). Dicerminkan ke [SearchLang.enabled]. */
     val lockIndonesian: StateFlow<Boolean> = _lockIndonesian.asStateFlow()
 
+    private val _originalTitles = MutableStateFlow(true)
+
+    /** Pakai judul asli pengunggah di hasil pencarian (default nyala). Dicerminkan ke [SearchLang.originalTitles]. */
+    val originalTitles: StateFlow<Boolean> = _originalTitles.asStateFlow()
+
     fun init(ctx: Context) {
         val p = ctx.applicationContext.getSharedPreferences(FILE, Context.MODE_PRIVATE)
         sp = p
@@ -44,6 +50,8 @@ object StreamEnginePrefs {
         NetworkPolicy.allowLan = _allowLan.value
         _lockIndonesian.value = p.getBoolean(KEY_LOCK_ID, true)
         SearchLang.enabled = _lockIndonesian.value
+        _originalTitles.value = p.getBoolean(KEY_ORIG_TITLE, true)
+        SearchLang.originalTitles = _originalTitles.value
     }
 
     fun enableLan(v: Boolean) {
@@ -61,5 +69,11 @@ object StreamEnginePrefs {
         _lockIndonesian.value = v
         SearchLang.enabled = v
         sp?.edit()?.putBoolean(KEY_LOCK_ID, v)?.apply()
+    }
+
+    fun setOriginalTitles(v: Boolean) {
+        _originalTitles.value = v
+        SearchLang.originalTitles = v
+        sp?.edit()?.putBoolean(KEY_ORIG_TITLE, v)?.apply()
     }
 }

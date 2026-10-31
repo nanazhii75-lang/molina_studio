@@ -2547,3 +2547,14 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: :core:common (1 berkas baru), :engine:newpipe, :app (prefs + pengaturan), 2 berkas tes; Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
 - [ ] Compose belum dikompilasi: tunggu CI (cek impor SearchLang, SwitchRow baru di StreamEnginePage)
 - [ ] Uji perangkat: cari "resep nasi goreng" dan "how to cook rice" -> hasil Indonesia di depan, judul Inggris hilang; matikan sakelar -> hasil seperti semula; cari topik yang memang berbahasa Inggris -> tetap ada hasil (fallback < 5)
+
+## 2026-10-31 - Judul hasil pencarian = judul asli pengunggah; sakelar pindah ke Pemutar [SEARCH-LANG-ORIGINAL]
+- [x] Diagnosis: NewPipe memakai videoDetails.title (asli) hanya saat membuka satu video; judul di hasil pencarian diambil dari renderer yang dilokalkan YouTube menurut hl, jadi bisa berupa terjemahan (Inggris saat en/GB, Indonesia saat id/ID)
+- [x] feat(core): OriginalTitles (:core:common) = ambil judul asli lewat oEmbed (6 thread, anggaran 12 dtk, cache 400); yang gagal tetap judul pencarian; fetch disuntikkan agar bisa diuji
+- [x] feat(newpipe): judul asli diganti SEBELUM klasifikasi SearchLang (kandidat maks. 70 video); log "judul asli: N/M terambil, K beda" di AppLog untuk verifikasi di perangkat
+- [x] feat(app): sakelar "Judul asli YouTube" (default nyala, molina_stream/orig_title); sakelar "Kunci hasil ke bahasa Indonesia" dipindah dari Mesin cadangan ke Pengaturan > Pemutar > Pencarian YouTube
+- [x] Tes: scripts/core-tests/OriginalTitlesTests.kt + run_original_titles.sh
+- [x] Dampak: :core:common (1 berkas baru + SearchLang), :engine:newpipe, :app (prefs, Pemutar, SystemRefreshUi), 3 berkas tes; Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
+- [ ] Belum terverifikasi: perilaku oEmbed (apakah selalu judul asli) tidak bisa diuji dari sandbox tanpa akses YouTube; lihat log "judul asli" di perangkat
+- [ ] Compose belum dikompilasi: tunggu CI (cek impor collectAsState/StreamEnginePrefs di PlayerSettingsUi, runInterruptible di NewPipeStreamResolver)
+- [ ] Belum: yt-dlp cadangan dan molina_dl.py (nama berkas unduhan) masih memakai judul menurut lang=id; belum diseragamkan

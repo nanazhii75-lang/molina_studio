@@ -12,6 +12,10 @@ object SearchLang {
     @Volatile
     var enabled: Boolean = true
 
+    /** Pakai judul asli pengunggah (bukan terjemahan YouTube) pada hasil pencarian; lihat [OriginalTitles]. */
+    @Volatile
+    var originalTitles: Boolean = true
+
     /** Bila yang lolos kurang dari ini, tidak ada yang dibuang (hanya diurutkan) agar hasil tak kosong. */
     const val MIN_KEEP = 5
 

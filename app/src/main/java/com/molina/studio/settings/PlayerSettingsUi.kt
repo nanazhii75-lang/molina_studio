@@ -7,6 +7,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -27,6 +28,7 @@ import com.molina.studio.cinema.HwdecBridge
 import com.molina.studio.cinema.IptvSources
 import com.molina.studio.cinema.ResumeBridge
 import com.molina.studio.cinema.TvMode
+import com.molina.studio.stream.StreamEnginePrefs
 
 /** Ikon ubin Pemutar di beranda Settings: panel Aero biru dengan segitiga putar. */
 @Composable
@@ -73,6 +75,22 @@ internal fun PlayerSettingsPage(onOpenCinema: () -> Unit) {
         hw = it
         HwdecBridge.setEnabled(ctx, it)
     }
+
+    Category("Pencarian YouTube")
+    val lockId by StreamEnginePrefs.lockIndonesian.collectAsState()
+    SwitchRow(
+        "Kunci hasil ke bahasa Indonesia",
+        "Utamakan judul berbahasa Indonesia dan sembunyikan judul yang jelas berbahasa Inggris/asing. "
+            + "Bila hasilnya terlalu sedikit, semuanya tetap ditampilkan.",
+        lockId
+    ) { StreamEnginePrefs.setLockIndonesian(it) }
+    val origTitle by StreamEnginePrefs.originalTitles.collectAsState()
+    SwitchRow(
+        "Judul asli YouTube",
+        "Pakai judul persis seperti yang ditulis pengunggah, bukan terjemahan otomatis YouTube. "
+            + "Pencarian jadi beberapa detik lebih lambat karena judul tiap hasil diambil ulang.",
+        origTitle
+    ) { StreamEnginePrefs.setOriginalTitles(it) }
 
     Category("Beranda Cinema")
     SwitchRow(

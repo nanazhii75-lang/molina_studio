@@ -2,6 +2,7 @@ package com.molina.engine.newpipe
 
 import com.molina.core.common.AppLog
 import com.molina.core.common.LogLevel
+import com.molina.core.common.OriginalTitles
 import com.molina.core.common.ResolvedStream
 import com.molina.core.common.SearchLang
 import com.molina.core.common.StreamError
@@ -33,6 +34,7 @@ import org.schabi.newpipe.extractor.services.youtube.YoutubeParsingHelper
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import org.schabi.newpipe.extractor.stream.StreamInfoItem
 import java.io.IOException
+import java.net.URLEncoder
 
 /**
  * Implementasi [StreamResolver] berbasis NewPipeExtractor (resolusi langsung di perangkat, tanpa
@@ -92,7 +94,7 @@ class NewPipeStreamResolver(
                 val service = ServiceList.YouTube
                 val handler = service.searchQHFactory.fromQuery(q)
                 // Kunci bahasa menyaring sesudahnya, jadi kumpulkan kandidat 2x lebih banyak.
-                val want = if (SearchLang.enabled) (limit * 2).coerceAtMost(100) else limit
+                val want = if (SearchLang.enabled) (limit * 2).coerceAtMost(70) else limit
                 val first = SearchInfo.getInfo(service, handler)
                 val all = ArrayList<InfoItem>(first.relatedItems.orEmpty())
                 var page = first.nextPage
@@ -112,7 +114,7 @@ class NewPipeStreamResolver(
                 }
                 all
             }
-            val out = items.asSequence()
+            val cands = items.asSequence()
                 .filterIsInstance<StreamInfoItem>()
                 .distinctBy { it.url }
                 .map { i ->
@@ -127,7 +129,23 @@ class NewPipeStreamResolver(
                     )
                 }
                 .toList()
-                .let { SearchLang.apply(it, limit) }
+            // Judul hasil pencarian dilokalkan YouTube; ganti dengan judul asli sebelum klasifikasi bahasa.
+            val titled = if (SearchLang.originalTitles) {
+                runInterruptible(Dispatchers.IO) {
+                    val r = OriginalTitles.apply(cands) { u ->
+                        try {
+                            NewPipe.getDownloader().get(OriginalTitles.OEMBED + URLEncoder.encode(u, "UTF-8")).responseBody()
+                        } catch (e: Exception) {
+                            null
+                        }
+                    }
+                    AppLog.log(SOURCE, LogLevel.Info, "search", "judul asli: ${r.known}/${cands.size} terambil, ${r.changed} beda dari judul pencarian")
+                    r.items
+                }
+            } else {
+                cands
+            }
+            val out = SearchLang.apply(titled, limit)
             AppLog.log(SOURCE, LogLevel.Info, "search", "OK ${out.size} hasil")
             StreamOutcome.Success(out)
         } catch (e: CancellationException) {
