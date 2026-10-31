@@ -10,7 +10,7 @@ import com.molina.studio.terminal.RootfsState
 import java.io.File
 import java.util.concurrent.TimeUnit
 
-internal enum class CleanupId { Rootfs, AppCache, AptCache, OldReports, OldCrashes, DebianTemp, TrashBin }
+internal enum class CleanupId { Rootfs, AppCache, AptCache, OldReports, OldCrashes, OldTranscripts, DebianTemp, TrashBin }
 
 internal class CleanupItem(
     val id: CleanupId,
@@ -22,12 +22,14 @@ internal class CleanupItem(
 )
 
 /**
- * Pusat Pembersihan Cerdas: memindai tujuh kategori, menampilkan estimasi byte, lalu menghapus yang dipilih.
+ * Pusat Pembersihan Cerdas: memindai delapan kategori, menampilkan estimasi byte, lalu menghapus yang dipilih.
  * Rootfs Debian itu sendiri tidak pernah disentuh. Operasi disk: panggil di luar main thread.
  */
 internal object CleanupManager {
     const val REPORT_DAYS = 7
     const val CRASH_KEEP = 3
+    const val TRANSCRIPT_DAYS = 30
+    const val TRANSCRIPT_KEEP = 20
     private const val ROOTFS_ARCHIVE = "debian-rootfs.tar.gz"
     private val EXPORT_PREFIXES = listOf("molina-laporan-bug-", "molina-diagnostik-", "molina-log-")
 
@@ -61,6 +63,16 @@ internal object CleanupManager {
             .filter { it.isFile && it.name.startsWith("crash-") }
         val c = cutoff()
         return (private + pub).filter { it.name !in keep && it.lastModified() < c }
+    }
+
+    /** Transkrip Terminal: hanya yang lebih tua dari TRANSCRIPT_DAYS DAN di luar TRANSCRIPT_KEEP terbaru. */
+    private fun oldTranscripts(ctx: Context): List<File> {
+        val c = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(TRANSCRIPT_DAYS.toLong())
+        return (AppPaths.get(ctx).dir(MolinaDir.TerminalLog).listFiles() ?: emptyArray())
+            .filter { it.isFile && it.name.startsWith("terminal-") && it.name.endsWith(".txt") }
+            .sortedByDescending { it.lastModified() }
+            .drop(TRANSCRIPT_KEEP)
+            .filter { it.lastModified() < c }
     }
 
     private fun debianTemp(ctx: Context): List<File> {
@@ -100,6 +112,11 @@ internal object CleanupManager {
                 size(oldCrashes(ctx)), true
             ),
             CleanupItem(
+                CleanupId.OldTranscripts, "Transkrip Terminal lama",
+                "Lebih dari $TRANSCRIPT_DAYS hari dan di luar $TRANSCRIPT_KEEP transkrip terbaru di Logs/Terminal (yang terbaru selalu dijaga).",
+                size(oldTranscripts(ctx)), true
+            ),
+            CleanupItem(
                 CleanupId.DebianTemp, "File sementara Debian",
                 "Isi /tmp dan /var/log di Debian. Tutup sesi Terminal dulu. Rootfs tidak dihapus.",
                 size(debianTemp(ctx)), false
@@ -119,6 +136,7 @@ internal object CleanupManager {
             CleanupId.AptCache -> aptEntries(ctx).forEach { wipe(it) }
             CleanupId.OldReports -> oldReports(ctx).forEach { wipe(it) }
             CleanupId.OldCrashes -> oldCrashes(ctx).forEach { wipe(it) }
+            CleanupId.OldTranscripts -> oldTranscripts(ctx).forEach { wipe(it) }
             CleanupId.DebianTemp -> debianTemp(ctx).forEach { wipe(it) }
             CleanupId.TrashBin -> runCatching { TrashBin.empty(trashVolumes(ctx)) }
         }

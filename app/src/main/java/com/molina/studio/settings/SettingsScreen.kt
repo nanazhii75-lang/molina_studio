@@ -427,6 +427,14 @@ private fun DebuggingPage(onOpenCrash: () -> Unit, onOpenLog: () -> Unit) {
         TerminalPrefs.cliClipboard
     ) { TerminalPrefs.setCliClipboard(it) }
 
+    Category("Transkrip Terminal")
+    SwitchRow(
+        "Samarkan token saat menyimpan transkrip",
+        if (TerminalPrefs.redactTranscript) "URL hanya menyisakan skema dan host; token=, password=, dan sejenisnya diganti ***."
+        else "Transkrip disimpan apa adanya (URL dan token tetap utuh). Folder /sdcard/Molina terbaca aplikasi lain. (Default)",
+        TerminalPrefs.redactTranscript
+    ) { TerminalPrefs.setRedactTranscript(it) }
+
     Category("Molina Reporter")
     SettingsItem("Crash Reporter", "Lihat, salin, atau hapus laporan crash", onOpenCrash)
     SwitchRow(

@@ -2713,3 +2713,13 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh; hanya enum :core:common dan TerminalChrome.kt
 - [ ] Belum dikompilasi: tunggu CI
 - [ ] Belum diuji di perangkat: klik Simpan transkrip, cek file di /sdcard/Molina/Logs/Terminal; file lama di molina-studio/terminal-logs tidak dipindah
+
+## 2026-10-31 - Prompt home hijau + polesan transkrip Terminal [TERM-POLISH]
+- [x] fix(term): bashrc v5: prompt user@localhost:~ (home $HOME dan isinya) hijau tanpa label; [MOLINA] hijau tetap hanya di /sdcard/Molina; project /sdcard/molina-studio dan lokasi lain tetap merah. Berlaku di sesi terminal BARU
+- [x] feat(term): saveTranscriptAsync membaca teks di main thread lalu menulis berkas di Dispatchers.IO (toast kembali di main thread)
+- [x] feat(term): Setelan > Transkrip Terminal > "Samarkan token saat menyimpan transkrip" (default mati; memakai LogRedact.text); TerminalSettings.redactTranscript disimpan di DataStore
+- [x] feat(cleanup): kategori baru "Transkrip Terminal lama" (lebih dari 30 hari dan di luar 20 terbaru; default dicentang)
+- [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh; tanpa dependensi baru
+- [ ] Belum dikompilasi: tunggu CI (impor kotlinx.coroutines di TerminalChrome, SwitchRow baru, enum CleanupId bertambah)
+- [ ] Belum diuji di perangkat: sesi baru > prompt di ~ hijau, cd /sdcard/molina-studio merah, cd /sdcard/Molina hijau + [MOLINA]; simpan transkrip dengan toggle mati/hidup (cek URL bertoken); Pembersihan > kategori transkrip
+- [ ] Asumsi: "user@localhost merah" ditafsirkan sebagai prompt home (~). Bila yang dimaksud project molina-studio, tambahkan case /sdcard/molina-studio di bashrc

@@ -17,7 +17,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import com.molina.core.common.LogRedact
 import com.molina.core.common.MolinaDir
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.molina.core.common.MolinaPaths
 import com.molina.studio.AppPaths
 import com.molina.studio.code.CodeInbox
@@ -69,22 +75,35 @@ internal object TerminalUi {
     }
 }
 
+private val transcriptScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
 /**
  * Simpan seluruh transkrip (scrollback + layar) ke folder data aplikasi /sdcard/Molina/Logs/Terminal/
- * (sama seperti Crash; folder project molina-studio tidak lagi ditulisi aplikasi).
- * Mengembalikan path versi Debian (/sdcard/...), atau null bila kosong/gagal.
+ * (sama seperti Crash; folder project molina-studio tidak ditulisi aplikasi).
+ * Teks dibaca di main thread (emulator tidak thread-safe); penulisan berkas di Dispatchers.IO.
+ * [onDone] dipanggil di main thread: path versi Debian (/sdcard/...), atau null bila kosong/gagal.
+ * Bila Setelan "Samarkan token saat menyimpan transkrip" aktif, teks disamarkan lewat [LogRedact].
  */
-internal fun saveTranscript(ctx: Context): String? {
-    val text = TerminalSessions.currentSession?.emulator?.screen?.transcriptText
-    if (text.isNullOrBlank()) return null
-    return try {
-        val name = "terminal-" + SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date()) + ".txt"
-        val dir = AppPaths.get(ctx).dir(MolinaDir.TerminalLog)
-        if (!dir.isDirectory && !dir.mkdirs()) return null
-        File(dir, name).writeText(text.trimEnd() + "\n")
-        "/sdcard/${MolinaPaths.APP_FOLDER}/${MolinaDir.TerminalLog.folderName}/$name"
-    } catch (e: Exception) {
-        null
+internal fun saveTranscriptAsync(ctx: Context, onDone: (String?) -> Unit) {
+    val raw = TerminalSessions.currentSession?.emulator?.screen?.transcriptText
+    if (raw.isNullOrBlank()) { onDone(null); return }
+    val app = ctx.applicationContext
+    val redact = TerminalPrefs.redactTranscript
+    transcriptScope.launch {
+        val path = try {
+            val dir = AppPaths.get(app).dir(MolinaDir.TerminalLog)
+            if (!dir.isDirectory && !dir.mkdirs()) {
+                null
+            } else {
+                val name = "terminal-" + SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date()) + ".txt"
+                val body = (if (redact) LogRedact.text(raw) else raw).trimEnd() + "\n"
+                File(dir, name).writeText(body)
+                "/sdcard/${MolinaPaths.APP_FOLDER}/${MolinaDir.TerminalLog.folderName}/$name"
+            }
+        } catch (e: Exception) {
+            null
+        }
+        withContext(Dispatchers.Main) { onDone(path) }
     }
 }
 
@@ -171,11 +190,12 @@ internal fun TerminalHeader(onOpenSettings: () -> Unit) {
                     text = { Text("Simpan transkrip ke berkas") },
                     onClick = {
                         menu = false
-                        val path = saveTranscript(ctx)
-                        Toast.makeText(
-                            ctx, if (path != null) "Transkrip disimpan: $path" else "Gagal menyimpan: transkrip kosong atau izin storage belum diberikan",
-                            Toast.LENGTH_LONG
-                        ).show()
+                        saveTranscriptAsync(ctx) { path ->
+                            Toast.makeText(
+                                ctx, if (path != null) "Transkrip disimpan: $path" else "Gagal menyimpan: transkrip kosong atau izin storage belum diberikan",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
                     }
                 )
                 DropdownMenuItem(

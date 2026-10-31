@@ -2,9 +2,10 @@
 [ -f /etc/profile ] && . /etc/profile
 [ -f "$HOME/.bashrc" ] && . "$HOME/.bashrc"
 
-# [DIR-STATUS-COLOR v4]
+# [DIR-STATUS-COLOR v5]
 # Prompt: hijau + label [MOLINA] HANYA di home internal aplikasi (/sdcard/Molina dan isinya).
-# Merah (tanpa label) di mana pun selain itu, termasuk project /sdcard/molina-studio dan ~.
+# Hijau (tanpa label) juga di home ($HOME = ~) dan isinya: prompt user@localhost:~ default.
+# Merah di mana pun selain itu, termasuk project /sdcard/molina-studio.
 # Semua alias path penyimpanan disamakan ke /sdcard/... sebelum dicocokkan.
 __molina_ps1() {
   [ -r /etc/molina/prompt.env ] && . /etc/molina/prompt.env
@@ -14,6 +15,9 @@ __molina_ps1() {
     /storage/emulated/0|/storage/emulated/0/*) p="/sdcard${p#/storage/emulated/0}" ;;
     /storage/self/primary|/storage/self/primary/*) p="/sdcard${p#/storage/self/primary}" ;;
     /mnt/sdcard|/mnt/sdcard/*) p="/sdcard${p#/mnt/sdcard}" ;;
+  esac
+  case "$PWD" in
+    "$HOME"|"$HOME"/*) [ -n "$HOME" ] && [ "$HOME" != / ] && sgr="$MOLINA_PS_HOME" ;;
   esac
   case "$p" in
     /sdcard/Molina|/sdcard/Molina/*) sgr="$MOLINA_PS_HOME"; tag="[MOLINA] " ;;

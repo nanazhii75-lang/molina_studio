@@ -71,7 +71,8 @@ data class TerminalSettings(
     val marginAdjustment: Boolean = true,
     val logcatReporter: Boolean = false,
     val fullStorageAccess: Boolean = false,
-    val cliClipboard: Boolean = false
+    val cliClipboard: Boolean = false,
+    val redactTranscript: Boolean = false
 )
 
 /**
@@ -96,6 +97,7 @@ private object PrefKeys {
     val LOGCAT = booleanPreferencesKey("logcat_reporter")
     val FULL_STORAGE = booleanPreferencesKey("full_storage_access")
     val CLI_CLIPBOARD = booleanPreferencesKey("cli_clipboard")
+    val REDACT_TRANSCRIPT = booleanPreferencesKey("redact_transcript")
 }
 
 private fun Preferences.toSettings(): TerminalSettings {
@@ -114,7 +116,8 @@ private fun Preferences.toSettings(): TerminalSettings {
         marginAdjustment = this[PrefKeys.MARGIN_ADJ] ?: d.marginAdjustment,
         logcatReporter = this[PrefKeys.LOGCAT] ?: d.logcatReporter,
         fullStorageAccess = this[PrefKeys.FULL_STORAGE] ?: d.fullStorageAccess,
-        cliClipboard = this[PrefKeys.CLI_CLIPBOARD] ?: d.cliClipboard
+        cliClipboard = this[PrefKeys.CLI_CLIPBOARD] ?: d.cliClipboard,
+        redactTranscript = this[PrefKeys.REDACT_TRANSCRIPT] ?: d.redactTranscript
     )
 }
 
@@ -131,6 +134,7 @@ private fun MutablePreferences.write(s: TerminalSettings) {
     this[PrefKeys.LOGCAT] = s.logcatReporter
     this[PrefKeys.FULL_STORAGE] = s.fullStorageAccess
     this[PrefKeys.CLI_CLIPBOARD] = s.cliClipboard
+    this[PrefKeys.REDACT_TRANSCRIPT] = s.redactTranscript
 }
 
 /**
@@ -173,6 +177,7 @@ object TerminalPrefs {
     val logcatReporter: Boolean get() = ui.logcatReporter
     val fullStorageAccess: Boolean get() = ui.fullStorageAccess
     val cliClipboard: Boolean get() = ui.cliClipboard
+    val redactTranscript: Boolean get() = ui.redactTranscript
 
     /**
      * Aman dipanggil berulang; hanya memuat sekali. Pemuatan awal sengaja sinkron
@@ -231,6 +236,7 @@ object TerminalPrefs {
     fun setLogcatReporter(v: Boolean) = update { copy(logcatReporter = v) }
     fun setFullStorageAccess(v: Boolean) = update { copy(fullStorageAccess = v) }
     fun setCliClipboard(v: Boolean) = update { copy(cliClipboard = v) }
+    fun setRedactTranscript(v: Boolean) = update { copy(redactTranscript = v) }
 
     /** Keyboard layar boleh tampil? (Soft Keyboard Enabled + Only If No Hardware). */
     fun softKeyboardAllowed(ctx: Context): Boolean {
