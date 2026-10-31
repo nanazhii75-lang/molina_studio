@@ -38,6 +38,9 @@ data class SecurityReport(
     val assets: Int,
     val requiredWithoutHash: List<String>
 ) {
+    /** true bila semua komponen Wajib punya hash terverifikasi atau kode sumber di repo. */
+    val requiredVerified: Boolean get() = requiredWithoutHash.isEmpty()
+
     fun headline(): String =
         "$hashPinned dari $total diverifikasi SHA-256 \u00b7 $sourceInRepo kode sumber di repo \u00b7 " +
             "$aptSigned apt resmi \u00b7 $versionPinned dipin versi/commit \u00b7 $assets aset berlisensi"

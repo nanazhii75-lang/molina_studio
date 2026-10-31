@@ -49,6 +49,9 @@ fun main() {
     check("bump: ringkasan pin menyebut versi dan CI", NewPipeBump.pinSummary("v0.26.6").let { it.contains("v0.26.6") && it.contains("CI") })
     check("bump: ringkasan tanpa skema URL", !NewPipeBump.pinSummary("v0.26.6").contains("://"))
 
+    check("laporan: requiredVerified true untuk daftar asli", r.requiredVerified)
+    check("laporan: requiredVerified false bila Wajib tanpa hash", !BundledComponents.securityReport(bad).requiredVerified)
+
     println(if (fails == 0) "SEMUA LULUS" else "$fails GAGAL")
     if (fails != 0) kotlin.system.exitProcess(1)
 }

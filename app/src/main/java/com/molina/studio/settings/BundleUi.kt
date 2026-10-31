@@ -107,9 +107,9 @@ private fun TrustDot(color: Color) {
 
 /** Gembok "Molina Secure" digambar langsung di Canvas (tanpa dependensi ikon): gagang busur + badan + lubang kunci. */
 @Composable
-private fun TrustLock(color: Color) {
+private fun TrustLock(color: Color, scale: Float = 1f) {
     val hole = W7D.Card
-    Canvas(Modifier.size(width = 12.dp, height = 14.dp)) {
+    Canvas(Modifier.size(width = (12f * scale).dp, height = (14f * scale).dp)) {
         val w = size.width
         val h = size.height
         val bodyTop = h * 0.40f
@@ -120,6 +120,14 @@ private fun TrustLock(color: Color) {
         )
         drawRoundRect(color = color, topLeft = Offset(0f, bodyTop), size = Size(w, h - bodyTop), cornerRadius = CornerRadius(w * 0.18f))
         drawCircle(color = hole, radius = w * 0.11f, center = Offset(w / 2f, bodyTop + (h - bodyTop) * 0.5f))
+    }
+}
+
+/** Penanda header Ringkasan keamanan: gembok hijau lebih besar bila semua komponen Wajib terverifikasi, selain itu titik kuning. */
+@Composable
+private fun SummaryMark(allVerified: Boolean) {
+    Box(Modifier.width(18.dp), contentAlignment = Alignment.Center) {
+        if (allVerified) TrustLock(BundleGreen, 1.35f) else TrustDot(BundleAmber)
     }
 }
 
@@ -198,7 +206,7 @@ internal fun BundledComponentsSection(onOpenYtdlp: () -> Unit, onCheckVersion: (
             .border(1.dp, W7D.Hairline, shape).padding(12.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            TrustDot(if (report.requiredWithoutHash.isEmpty()) BundleGreen else BundleAmber)
+            SummaryMark(report.requiredVerified)
             Spacer(Modifier.width(8.dp))
             Text("Ringkasan keamanan", color = W7D.NavHeader, fontSize = 13.sp, fontWeight = FontWeight.Bold)
         }
@@ -212,9 +220,9 @@ internal fun BundledComponentsSection(onOpenYtdlp: () -> Unit, onCheckVersion: (
             }
         }
         Text(
-            if (report.requiredWithoutHash.isEmpty()) "Semua komponen Wajib punya hash terverifikasi atau kode sumber di repo."
+            if (report.requiredVerified) "Semua komponen Wajib punya hash terverifikasi atau kode sumber di repo."
             else "Perlu ditinjau (Wajib tanpa hash): " + report.requiredWithoutHash.joinToString(", "),
-            color = if (report.requiredWithoutHash.isEmpty()) W7D.TextDim else BundleAmber,
+            color = if (report.requiredVerified) W7D.TextDim else BundleAmber,
             fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp)
         )
         Text(

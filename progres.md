@@ -2644,3 +2644,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] test: test_0_tgz_deterministik_lintas_detik (tidur 1,2 dtk di antara dua pembuatan) menjaga agar regresi ini tertangkap; salinan repo di tes melewati folder yang tak dibaca gerbang (docs, terminal-*, assets editor) agar cepat di /sdcard
 - [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh; hanya berkas tes + progres.md
 - [ ] Catatan proses: commit f5a8c3f ter-push dengan tes yang gagal karena perintah dijalankan terpisah; pakai satu baris berantai (&&) agar tes yang gagal menghentikan commit
+
+## 2026-10-31 - Uji alat bump jadi langkah CI + gembok besar di Ringkasan keamanan [CI-BUMP-TEST]
+- [x] ci: build.yml mendapat langkah "Uji alat bump pin (libmpv)" (python3 scripts/native/test_bump_native.py) setelah gerbang komponen, sebelum setup-java; hanya Python, ~2 dtk, tanpa jaringan. Commit ini mengubah pipeline, jadi CI akan berjalan
+- [x] feat(settings): SummaryMark di header "Ringkasan keamanan": gembok hijau skala 1,35 bila semua komponen Wajib terverifikasi, titik kuning bila tidak; TrustLock kini punya parameter skala (kartu tetap 1,0)
+- [x] refactor(core): SecurityReport.requiredVerified (= requiredWithoutHash kosong) menggantikan tiga pemeriksaan isEmpty() di UI; +2 tes (true untuk daftar asli, false bila Wajib tanpa hash) lulus
+- [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh; telemetry_gate dan bundle_gate lulus
+- [ ] Compose belum dikompilasi: tunggu CI (Float.dp pada ukuran Canvas, SummaryMark)
+- [ ] Belum: tes serupa untuk scripts/newpipe/bump_pin.py (belum punya tes; baru diuji manual pada data tiruan di sesi awal)
