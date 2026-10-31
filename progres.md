@@ -2588,3 +2588,15 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh; 1 langkah baru di build.yml
 - [ ] Compose belum dikompilasi: tunggu CI (BundleUi.kt, penyisipan di PackagesPage)
 - [ ] Belum: versi terpasang python3/git/ffmpeg (masih "versi mengikuti apt"); tombol perbarui langsung dari daftar
+
+## 2026-10-31 - Komponen bundel v2: desain Aero Gelap, filter, keamanan diperkuat [BUNDLE-V2]
+- [x] feat(settings): BundleUi v2 = kartu gaya Aero Gelap (sama dengan kartu alat), ringkasan keamanan berlatar gradien, filter Semua/Wajib/Pendukung/Opsional, titik kepercayaan hijau/kuning/abu, pil peran, lencana "Baru"
+- [x] feat(settings): versi python3/git/ffmpeg tampil dari hasil cek versi alat Debian + tombol "Periksa versi" (memakai alur Versi yang sudah ada); baris yt-dlp punya tombol ke halamannya
+- [x] feat(settings): pencarian Settings menemukan "Komponen bundel" dan "Keamanan komponen"
+- [x] sec: biner PRoot (libproot.so, libproot_loader.so) kini dipin SHA-256 di scripts/proot/pins.sha256 dan dicek bundle_gate.py di CI (sebelumnya hanya commit sumber)
+- [x] sec: Assurance.Source (kode sumber di repo) untuk terminal emulator; SecurityReport menandai komponen Wajib tanpa hash/kode sumber
+- [x] sec: bundle_gate.py menolak BundleUi yang memakai jaringan/proses sendiri, klaim apt di luar Debian, serta pin PRoot tak cocok/hilang; pemotongan entri registry diperbaiki
+- [x] Tes: BundledComponentsTests (filter, laporan keamanan, PRoot dipin) lulus
+- [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh; telemetry_gate tidak diubah
+- [ ] Compose belum dikompilasi: tunggu CI (BundleUi v2, penyisipan callback di PackagesPage)
+- [ ] Catatan: mengganti libproot*.so wajib disertai pembaruan scripts/proot/pins.sha256, kalau tidak CI gagal (disengaja)

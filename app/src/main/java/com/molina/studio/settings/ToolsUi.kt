@@ -140,7 +140,12 @@ internal fun PackagesPage(onOpenYtdlp: () -> Unit) {
         }
     }
 
-    BundledComponentsSection()
+    BundledComponentsSection(
+        onOpenYtdlp = onOpenYtdlp,
+        onCheckVersion = { tid ->
+            BuiltinTools.all.firstOrNull { it.id == tid }?.let { pending = PendingRun(it, ToolAction.Version) }
+        }
+    )
     Spacer(Modifier.height(8.dp))
 
     draft?.let { d ->

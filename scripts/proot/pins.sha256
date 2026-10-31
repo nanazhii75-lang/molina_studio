@@ -1,0 +1,4 @@
+# SHA-256 biner PRoot prebuilt di app/src/main/jniLibs/arm64-v8a (green-green-avk/build-proot-android commit 01f83b88).
+# Diperiksa scripts/bundle_gate.py di CI. Ubah SADAR setelah meninjau biner baru dan catat di progres.md.
+297abc237247682a84a3fd4283b28f69506502b4b852faf71fd726fb5d955d60  libproot.so
+de0ace1adc76ab0555b3dbbfbff0e78c1ac14017b255262707867aea70c49437  libproot_loader.so

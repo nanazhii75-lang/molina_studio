@@ -17,6 +17,24 @@ fun main() {
     check("ada komponen Wajib", all.any { it.role == ComponentRole.Wajib })
     check("yt-dlp opsional dan runtime", all.first { it.id == "ytdlp" }.role == ComponentRole.Opsional)
     check("hitung peran", BundledComponents.roleCounts(all).values.sum() == all.size)
+
+    check("saring: null = semua", BundledComponents.filter(all, null).size == all.size)
+    check("saring: hanya Wajib", BundledComponents.filter(all, ComponentRole.Wajib).all { it.role == ComponentRole.Wajib })
+    check("saring: jumlah sesuai hitungan", ComponentRole.values().all {
+        BundledComponents.filter(all, it).size == BundledComponents.roleCounts(all)[it]
+    })
+
+    val r = BundledComponents.securityReport(all)
+    check("laporan: total", r.total == all.size)
+    check("laporan: penjumlahan kategori = total",
+        r.hashPinned + r.aptSigned + r.sourceInRepo + r.versionPinned + r.assets == r.total)
+    check("laporan: PRoot ikut dipin hash", all.first { it.id == "proot" }.assurance == Assurance.Sha256)
+    check("laporan: semua Wajib terverifikasi", r.requiredWithoutHash.isEmpty())
+    check("laporan: headline menyebut jumlah", r.headline().contains("${r.hashPinned} dari ${r.total}"))
+
+    val bad = all.map { if (it.id == "terminal") it.copy(assurance = Assurance.Commit) else it }
+    check("laporan: Wajib tanpa hash terdeteksi", BundledComponents.securityReport(bad).requiredWithoutHash == listOf("Terminal emulator + view"))
+
     println(if (fails == 0) "SEMUA LULUS" else "$fails GAGAL")
     if (fails != 0) kotlin.system.exitProcess(1)
 }

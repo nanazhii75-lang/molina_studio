@@ -18,12 +18,29 @@ enum class ComponentOrigin(val label: String) {
  * Jaminan keamanan yang BENAR-BENAR ada di repo. [Sha256] hanya boleh dipakai bila ada pin hash nyata
  * ([BundledComponent.pinRef]); scripts/bundle_gate.py menggagalkan CI bila klaim ini tidak punya pin.
  */
-enum class Assurance(val label: String) {
-    Sha256("SHA-256 dipin dan diverifikasi"),
-    Commit("Sumber dipin ke commit"),
-    Version("Versi dipin di Gradle"),
-    Apt("Repositori resmi Debian (apt)"),
-    Asset("Aset dibundel beserta lisensi")
+/** [verified] = ada cara independen memeriksa keasliannya (hash/tanda tangan/kode sumber di repo). */
+enum class Assurance(val label: String, val verified: Boolean) {
+    Sha256("SHA-256 dipin dan diverifikasi", true),
+    Source("Kode sumber di repo, dibangun CI", true),
+    Apt("Repositori resmi Debian (apt)", true),
+    Commit("Sumber dipin ke commit", false),
+    Version("Versi dipin di Gradle", false),
+    Asset("Aset dibundel beserta lisensi", false)
+}
+
+/** Ringkasan jujur jaminan keamanan seluruh daftar (ditampilkan di UI). */
+data class SecurityReport(
+    val total: Int,
+    val hashPinned: Int,
+    val aptSigned: Int,
+    val sourceInRepo: Int,
+    val versionPinned: Int,
+    val assets: Int,
+    val requiredWithoutHash: List<String>
+) {
+    fun headline(): String =
+        "$hashPinned dari $total diverifikasi SHA-256 \u00b7 $sourceInRepo kode sumber di repo \u00b7 " +
+            "$aptSigned apt resmi \u00b7 $versionPinned dipin versi/commit \u00b7 $assets aset berlisensi"
 }
 
 /**
@@ -50,6 +67,7 @@ object BundledComponents {
     const val PIN_NATIVE = "native/prebuilt.env:NATIVE_SHA256"
     const val PIN_ROOTFS = "Rootfs.kt:ROOTFS_SHA256"
     const val PIN_YTDLP = "yt-dlp:SHA2-256SUMS"
+    const val PIN_PROOT = "scripts/proot/pins.sha256"
 
     /** [newpipeVersion] disuntikkan dari NewPipeInfo.VERSION agar hanya ada satu sumber kebenaran. */
     fun all(newpipeVersion: String): List<BundledComponent> = listOf(
@@ -64,14 +82,14 @@ object BundledComponents {
             "Molina Player / Cinema", "Dibangun lewat CI dari commit dipin; tgz hasil build diverifikasi SHA-256 saat build APK.", PIN_NATIVE
         ),
         BundledComponent(
-            "terminal", "Terminal emulator + view", "Termux v0.118.0", ComponentRole.Wajib, ComponentOrigin.Apk, Assurance.Commit,
+            "terminal", "Terminal emulator + view", "Termux v0.118.0", ComponentRole.Wajib, ComponentOrigin.Apk, Assurance.Source,
             "termux/termux-app commit 6e2689f", "Apache-2.0", "Molina Terminal",
             "Kode sumber disalin dan di-rebrand (com.molina.terminal); atribusi dipertahankan.", null
         ),
         BundledComponent(
-            "proot", "PRoot", "commit 01f83b88", ComponentRole.Pendukung, ComponentOrigin.Apk, Assurance.Commit,
+            "proot", "PRoot", "commit 01f83b88", ComponentRole.Pendukung, ComponentOrigin.Apk, Assurance.Sha256,
             "green-green-avk/build-proot-android", "GPL-2.0-or-later", "Debian, yt-dlp, Script execution",
-            "Biner prebuilt di jniLibs (arm64). Tanpa PRoot, fitur berbasis Debian tidak jalan.", null
+            "Biner prebuilt di jniLibs (arm64), hash dipin dan dicek CI. Tanpa PRoot, fitur berbasis Debian tidak jalan.", PIN_PROOT
         ),
         BundledComponent(
             "rootfs", "Debian rootfs", "trixie-slim arm64", ComponentRole.Pendukung, ComponentOrigin.Runtime, Assurance.Sha256,
@@ -115,4 +133,19 @@ object BundledComponents {
     /** Jumlah komponen per peran (untuk ringkasan di UI). */
     fun roleCounts(items: List<BundledComponent>): Map<ComponentRole, Int> =
         ComponentRole.values().associateWith { r -> items.count { it.role == r } }
+
+    /** Saring menurut peran; null = semua. */
+    fun filter(items: List<BundledComponent>, role: ComponentRole?): List<BundledComponent> =
+        if (role == null) items else items.filter { it.role == role }
+
+    /** Hitung ringkasan keamanan; [SecurityReport.requiredWithoutHash] = komponen Wajib yang tak bisa diperiksa mandiri. */
+    fun securityReport(items: List<BundledComponent>): SecurityReport = SecurityReport(
+        total = items.size,
+        hashPinned = items.count { it.assurance == Assurance.Sha256 },
+        aptSigned = items.count { it.assurance == Assurance.Apt },
+        sourceInRepo = items.count { it.assurance == Assurance.Source },
+        versionPinned = items.count { it.assurance == Assurance.Commit || it.assurance == Assurance.Version },
+        assets = items.count { it.assurance == Assurance.Asset },
+        requiredWithoutHash = items.filter { it.role == ComponentRole.Wajib && !it.assurance.verified }.map { it.name }
+    )
 }

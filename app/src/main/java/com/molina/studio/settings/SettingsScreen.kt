@@ -128,6 +128,8 @@ private val INDEX = listOf(
     Hit("Pratinjau HTML", "WebView untuk halaman HTML (JavaScript dan jaringan mati)", Page.Code),
     Hit("Paket", "Alat khusus: pasang, versi, hapus (Python 3, Git, FFmpeg, yt-dlp)", Page.Packages),
     Hit("Tambah alat", "Buat alat sendiri dengan skrip pasang, versi, hapus", Page.Packages),
+    Hit("Komponen bundel", "Daftar komponen, versi, peran, dan jaminan keamanan (NewPipe, libmpv, PRoot, yt-dlp)", Page.Packages),
+    Hit("Keamanan komponen", "Ringkasan hash SHA-256 dan sumber dipin untuk komponen bundel", Page.Packages),
     Hit("apt update", "Perbarui dan tingkatkan paket Debian (apt update && apt upgrade -y)", Page.System),
     Hit("apt upgrade", "Perbarui dan tingkatkan paket Debian (apt update && apt upgrade -y)", Page.System),
     Hit("Daftar tool terpasang", "Deteksi alat Molina di Debian beserta versinya", Page.System),
