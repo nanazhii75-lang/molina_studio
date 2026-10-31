@@ -2887,3 +2887,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Belum dikompilasi: tunggu CI
 - [ ] Uji perangkat: rtmp/rtsp publik tetap terputar; rtmp://localhost/x ditolak; http/https dan file lokal tidak berubah
 - [ ] Batas: DNS rebinding TTL=0 masih mungkin (tanpa pin IP); entri rtmp di dalam playlist m3u belum diperiksa
+
+## 2026-10-31 - Verifikasi dependensi Gradle [GRADLE-VERIFY]
+- [x] Koreksi: scan domain CI sudah ada (scripts/telemetry_gate.py); security-scan.yml dan scripts/security dihapus karena redundan. dependabot.yml tetap
+- [x] ci: gradle-verification.yml (manual) menghasilkan gradle/verification-metadata.xml (SHA-256 semua dependensi/plugin) sebagai artefak
+- [x] Dampak: hanya workflow baru; build.yml, Gradle, AndroidManifest, JNI TIDAK diubah
+- [ ] Jalankan Actions > Gradle verification (generate), unduh artefak, taruh di gradle/verification-metadata.xml, commit
+- [ ] Setelah itu build.yml otomatis menegakkan hash: bila gagal karena hash belum ada, jalankan ulang workflow generate
+- [ ] Tertunda: pemeriksaan entri rtmp di dalam playlist m3u (butuh unduh playlist; belum ada jalur aman tanpa mengubah fitur)
