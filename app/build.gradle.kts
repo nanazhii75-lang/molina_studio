@@ -34,7 +34,9 @@ android {
     buildTypes {
         debug { signingConfigs.findByName("molina")?.let { signingConfig = it } }
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")
             signingConfigs.findByName("molina")?.let { signingConfig = it }
         }
     }

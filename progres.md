@@ -2846,3 +2846,13 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Belum dikompilasi sebagai APK: tunggu CI
 - [ ] Uji perangkat: simpan mpv.conf `hwdec=auto` (berhasil); simpan `script=/sdcard/a.lua` (ditolak, baris ditunjuk); simpan input.conf `x run sh` (ditolak); simpan input.conf `0x10003 no-osd seek 6` (berhasil); putar video normal; stats overlay tetap jalan
 - [ ] Batas: daftar hitam heuristik; `loadfile ... opsi` di input.conf belum diperiksa; opsi diset sebelum init masih bisa ditimpa mpv.conf yang lolos pemeriksaan
+
+## 2026-10-31 - Rilis non-debuggable dan R8 [RELEASE-HARDEN]
+- [x] Temuan: CI hanya membangun assembleDebug dan mengunggahnya sebagai APK (debuggable=true: `run-as`/adb bisa membaca data privat app). Rilis (R8) tidak pernah dibangun sehingga belum teruji
+- [x] build(release): isMinifyEnabled + isShrinkResources, app/proguard-rules.pro (JNI PTY, fragment/Preference Cinema, NewPipe/Rhino/protobuf-lite, commons-compress), android.enableR8.fullMode=false untuk iterasi pertama
+- [x] ci: workflow terpisah release-check.yml (manual, workflow_dispatch): assembleRelease, gagal bila APK debuggable, unggah APK + mapping. build.yml TIDAK diubah
+- [x] Diverifikasi: libplayer.so hanya merujuk com/molina/cinema/MPVLib (callback event, eventProperty, logMessage), sudah dijaga aturan konsumen feature/mpv
+- [x] Dampak: Gradle (blok release + gradle.properties) disentuh; AndroidManifest dan JNI TIDAK
+- [ ] Belum dikompilasi: jalankan Actions > Release check (R8) secara manual; kirim log bila gagal (biasanya "Missing class" atau ClassNotFound saat jalan)
+- [ ] Uji perangkat (APK rilis): buka Terminal (PTY jalan), putar video (mpv), Pengaturan Cinema (fragment preferensi terbuka), pencarian NewPipe, ekstrak arsip tar.xz/7z/zip
+- [ ] Setelah lolos: pakai APK rilis untuk pemasangan harian; pertimbangkan R8 full mode
