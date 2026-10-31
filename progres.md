@@ -2342,3 +2342,10 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Compose belum dikompilasi di sandbox: tunggu CI
 - [ ] Uji perangkat (potret): geser kanan/kiri tidak bentrok dengan scroll vertikal dan laci kiri (zona tepi 16dp); ambang terasa pas; Mode Pilih lintas folder; menu Alat dari geser kiri (Salin, Potong, Hapus + Urungkan)
 - [ ] Opsional: tombol aksi cepat sungguhan di belakang baris; fokus otomatis kotak cari
+
+## 2026-10-31 - Penyelarasan folder: Molina (internal) vs molina-studio (project) [PATH-ALIGN]
+- [x] Keputusan pemilik: folder internal aplikasi = /storage/emulated/0/Molina (Debian: /sdcard/Molina); /storage/emulated/0/molina-studio = lokasi project pengembangan saja (repo, progres.md, skrip patch)
+- [x] Kontrak MolinaPaths sudah sesuai (appRoot, devProject, privateRoot); catatan lama di baris Fase 6 langkah 1 dan [CODE-KEPUTUSAN-Q1-16] ("default simpan = molina-studio") DIGANTIKAN entri ini
+- [x] Audit: kode yang masih menulis ke molina-studio: MainActivity (CodeSession default), TerminalChrome (terminal-logs), ToolStore (.molina-backup), pesan CodeSession, label StorageUi
+- [x] Aturan rahasia: vault/kredensial hanya di filesDir (privateRoot); Molina dan molina-studio adalah penyimpanan bersama
+- [ ] ALIGN1: pindahkan penulisan di atas ke Molina (Workspace/Documents/Export/Backup); bind PRoot molina-studio TIDAK diubah
