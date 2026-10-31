@@ -2970,3 +2970,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: CommandProtocol, BridgeCommands, ShieldSummary, NetworkSecurityUi; Gradle, AndroidManifest, JNI TIDAK disentuh
 - [ ] Belum dikompilasi untuk Android: tunggu CI
 - [ ] Uji perangkat: molina notify "tes" harus tampil sebagai "CLI \u00b7 Molina" dengan label Terminal Debian; molina notify "Molina Shield" "x" tampil sebagai "CLI \u00b7 Molina Shield"
+
+## 2026-10-31 - Audit PTY/JNI dan TerminalService [PTY-AUDIT]
+- [x] Audit statis molina_pty.c, JNI.java, TerminalSession.java, TerminalService.kt, CommandServer
+- [x] Hasil baik: O_CLOEXEC, fd child ditutup, clearenv, setsid, kill grup proses, service tidak exported, UID peer diperiksa
+- [ ] Temuan: exception pending lanjut ke GetPrimitiveArrayCritical (createSubprocess); waitFor status tak terinisialisasi dan tanpa retry EINTR; argv/envp bocor di jalur error
+- [ ] Temuan: WakeLock tanpa timeout; tanpa foregroundServiceType (aman di targetSdk 28); setPtyUTF8Mode tidak dipakai
+- [ ] Risiko diterima: targetSdk=28; Akses penuh membuka seluruh /sdcard ke guest; abstract socket @molina.cmd bisa di-squat (perlu handshake token)
+- [ ] Belum dikompilasi: audit statis saja; patch molina_pty.c akan memengaruhi build NDK
