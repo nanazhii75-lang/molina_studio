@@ -228,14 +228,7 @@ private fun DetailLine(label: String, value: String) {
  */
 @Composable
 internal fun BundledComponentsSection(
-    onOpenYtdlp: () -> Unit,
-    onCheckVersion: (String) -> Unit,
-    checkingId: String? = null, // [BUNDLE-INLINE] id komponen yang sedang dicek versinya
-    checkNotes: Map<String, String> = emptyMap(),
-    onCancelCheck: () -> Unit = {},
-    onCheckAll: () -> Unit = {}, // [BUNDLE-ALL] cek versi python3, git, ffmpeg berurutan
-    batchProgress: String? = null,
-    batchNote: String? = null
+    onOpenYtdlp: () -> Unit
 ) {
     val ctx = LocalContext.current
     remember { AutoPrefs.init(ctx) }
@@ -289,14 +282,7 @@ internal fun BundledComponentsSection(
         }
     }
     Spacer(Modifier.height(4.dp))
-    if (checkingId != null) {
-        BundleAction("MEMERIKSA" + (if (batchProgress != null) " $batchProgress" else "") + "\u2026 KETUK UNTUK BERHENTI", onCancelCheck)
-    } else {
-        BundleAction("PERIKSA SEMUA VERSI", onCheckAll)
-    }
-    batchNote?.let {
-        Text(it, color = W7D.TextDim, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 10.dp).padding(bottom = 6.dp))
-    }
+    // [PAKET-VERSI] tombol cek versi dihapus dari Komponen bundel
     // [BUNDLE-REPORT] laporan teks polos (versi, peran, asal, jaminan) untuk ditempel ke laporan bug
     BundleAction(if (copied == "report") "LAPORAN DISALIN \u2713" else "SALIN LAPORAN KOMPONEN") {
         copyText(
@@ -322,7 +308,7 @@ internal fun BundledComponentsSection(
         val toolId = debianToolId(c.id)
         val check = toolId?.let { checks[it] }
         val update = updateNote(c, st)
-        val sub = (if (checkingId == c.id) "memeriksa versi\u2026" else versionText(c, st, check)) + " \u00b7 " + c.origin.label
+        val sub = versionText(c, st, check) + " \u00b7 " + c.origin.label
         Column(
             Modifier.fillMaxWidth().clip(shape).background(W7D.Card, shape)
                 .border(1.dp, if (expanded) W7D.SelLine else W7D.Hairline, shape)
@@ -362,9 +348,7 @@ internal fun BundledComponentsSection(
                         DetailLine("Versi", check.text)
                         DetailLine("Dicek", stampOf(check.at))
                     }
-                    checkNotes[c.id]?.let {
-                        Text(it, color = BundleAmber, fontSize = 12.sp, modifier = Modifier.padding(bottom = 4.dp))
-                    }
+                    // [PAKET-VERSI] catatan cek versi dihapus
                     Text(c.note, color = W7D.TextDim, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
                     if (c.id == "ytdlp") BundleAction("BUKA HALAMAN YT-DLP", onOpenYtdlp)
                     if (c.id == "newpipe" && update != null && NewPipeBump.isValidTag(st.newpipeLatest)) {
@@ -378,8 +362,7 @@ internal fun BundledComponentsSection(
                         }
                     }
                     if (toolId != null) {
-                        if (checkingId == c.id) BundleAction("MEMERIKSA\u2026 KETUK UNTUK BERHENTI", onCancelCheck)
-                        else BundleAction("PERIKSA VERSI") { onCheckVersion(toolId) }
+                        Text("Periksa versi di Setelan > Paket > Alat.", color = W7D.TextDim, fontSize = 11.sp, modifier = Modifier.padding(top = 6.dp))
                     }
                 }
             }

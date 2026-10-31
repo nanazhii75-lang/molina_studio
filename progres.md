@@ -2794,3 +2794,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Belum dikompilasi: tunggu CI
 - [ ] Tahap 2 (belum): satukan cek versi (kartu Alat, Komponen bundel, dialog Daftar tool terpasang), hapus InstalledToolsUi
 - [ ] Uji perangkat: lencana emas terbaca jelas di tema hitam; ringkasan Pembaruan berubah setelah Periksa sekarang; titik hijau muncul setelah VERSI berhasil
+
+## 2026-10-31 - Cek versi dipusatkan di Paket > Alat [PAKET-VERSI]
+- [x] CI #364 ([PAKET-BRAND]) sukses
+- [x] refactor(settings): cek versi alat kini hanya di kartu Alat: tombol "Periksa semua versi" (antrean berurutan, bisa dihentikan) dan aksi VERSI per kartu, hasil tampil di kartu (titik status + versi + waktu)
+- [x] refactor(settings): Komponen bundel jadi read-only (tombol Periksa versi dihapus, ada petunjuk ke Paket > Alat). Dialog "Daftar tool terpasang" dan InstalledToolsUi.kt dihapus; pencarian Setelan diarahkan ke "Periksa versi alat"
+- [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh
+- [ ] Catatan: info "Rilis Debian" dan "jumlah paket apt" dari dialog lama tidak lagi tampil (belum ada pengganti)
+- [ ] Belum dikompilasi: tunggu CI
+- [ ] Uji perangkat: Periksa semua versi (progres N/M, hentikan di tengah), VERSI per kartu, Komponen bundel tanpa tombol cek, pencarian "versi" membuka Paket

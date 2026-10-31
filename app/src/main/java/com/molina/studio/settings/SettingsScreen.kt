@@ -133,7 +133,7 @@ private val INDEX = listOf(
     Hit("Keamanan komponen", "Ringkasan hash SHA-256 dan sumber dipin untuk komponen bundel", Page.Bundle),
     Hit("apt update", "Perbarui dan tingkatkan paket Debian (apt update && apt upgrade -y)", Page.Packages),
     Hit("apt upgrade", "Perbarui dan tingkatkan paket Debian (apt update && apt upgrade -y)", Page.Packages),
-    Hit("Daftar tool terpasang", "Deteksi alat Molina di Debian beserta versinya", Page.Packages),
+    Hit("Periksa versi alat", "Periksa semua versi Python 3, Git, FFmpeg di Paket > Alat", Page.Packages),
     Hit("Cadangan dan pemulihan", "Cadangkan atau pulihkan penanda video, snippet, dan setelan (folder Backup)", Page.System),
     Hit("Pulihkan dari Backup", "Pulihkan penanda video, snippet, dan setelan dari molina-backup.json", Page.System),
     Hit("Profil setelan", "Simpan setelan sebagai profil bernama (mis. Nonton, Dev, Hemat Baterai) dan ganti dengan satu ketukan", Page.System),
@@ -185,7 +185,6 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     // Lepas fokus (dan tutup keyboard) setiap kali halaman Settings berganti.
     LaunchedEffect(page) { focus.clearFocus() }
     var apt by remember { mutableStateOf<AptJob?>(null) }
-    var showTools by remember { mutableStateOf(false) }
     var showBackup by remember { mutableStateOf(false) }
     var showRootfsAdmin by remember { mutableStateOf(false) } // [TERM-ROOTFS2]
     var showProfiles by remember { mutableStateOf(false) }
@@ -247,7 +246,6 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     ) {
         if (showRefresh) SystemRefreshDialog { showRefresh = false }
         apt?.let { job -> DebianAptDialog(job) { apt = null } }
-        if (showTools) InstalledToolsDialog { showTools = false }
         if (showBackup) BackupDialog { showBackup = false }
         if (showRootfsAdmin) RootfsAdminDialog { showRootfsAdmin = false } // [TERM-ROOTFS2]
         if (showProfiles) ProfileDialog { showProfiles = false }
@@ -363,8 +361,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                     Page.Packages -> PackagesPage(
                         onOpenYtdlp = { open(Page.Stream) },
                         onOpenBundle = { open(Page.Bundle) },
-                        onApt = { apt = it },
-                        onShowTools = { showTools = true }
+                        onApt = { apt = it }
                     )
                     Page.Bundle -> BundlePage(onOpenYtdlp = { open(Page.Stream) })
                     Page.Storage -> StoragePage()
