@@ -2449,3 +2449,10 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 ## 2026-10-31 - Uji perangkat refactor Penjelajah lulus [UJI-PENJELAJAH-OK]
 - [x] Lulus uji perangkat: DROP-MENU, DROP-HAMBURGER, DROP-DIVIDER, DROP-SCROLL, POPUP-SCROLL, POPUP-MAXH, SPLIT-MENUPARTS, SPLIT-ZIP, SPLIT-DIALOGS, SPLIT-TOOLS
 - [x] Win7OpenDialog.kt: 2181 -> 1207 baris (pecahan: W7MenuParts, W7ZipViewer, W7Dialogs, W7ToolsMenu)
+
+## 2026-10-31 - Judul hasil pencarian mengikuti bahasa asli YouTube [NEWPIPE-LOCALE-ID]
+- [x] fix(newpipe): NewPipeStreamResolver.kt: default Localization en/GB diubah ke id/ID sehingga judul tidak lagi diterjemahkan ke Inggris
+- [x] Penyebab: MolinaApp memanggil NewPipeStreamResolver() tanpa argumen; yt-dlp fallback sudah lang=id
+- [x] Dampak: hanya :engine:newpipe (1 berkas); Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
+- [ ] Compile: tunggu CI
+- [ ] Uji perangkat: tutup paksa aplikasi lalu cari ulang; judul sama seperti di YouTube. Bila masih Inggris, curigai terjemahan otomatis di sisi YouTube dan catat judul contohnya

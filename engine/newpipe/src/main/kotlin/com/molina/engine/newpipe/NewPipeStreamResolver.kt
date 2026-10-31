@@ -40,8 +40,8 @@ import java.io.IOException
  * Galat yang diharapkan dikembalikan sebagai [StreamOutcome.Failure]; pembatalan diteruskan.
  */
 class NewPipeStreamResolver(
-    languageCode: String = "en",
-    countryCode: String = "GB",
+    languageCode: String = "id",
+    countryCode: String = "ID",
 ) : StreamResolver {
 
     override val id: String = "newpipe"
