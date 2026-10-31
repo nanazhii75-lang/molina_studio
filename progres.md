@@ -2409,3 +2409,10 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: hanya :app (1 berkas); impor sudah ada; Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
 - [ ] Compose belum dikompilasi: tunggu CI
 - [ ] Uji perangkat: landscape + Mode Pilih (menu terpanjang) tergulir dan tidak keluar layar; potret normal tanpa scrollbar/gulir
+
+## 2026-10-31 - Popup Urut dan Alat: tinggi maks 70% layar + gulir [POPUP-SCROLL]
+- [x] refactor(cinema): Win7OpenDialog.kt: popup Urut diberi heightIn(max = 70% layar) + verticalScroll; popup Alat (sebelumnya sudah bisa digulir, batas tetap 400dp) kini dibatasi min(400dp, 70% layar) agar tidak keluar layar di landscape/layar pendek
+- [x] Berlaku juga untuk popup Urut di dialog Buka/Simpan (bilah ikon atas)
+- [x] Dampak: hanya :app (1 berkas); impor sudah ada; Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
+- [ ] Compose belum dikompilasi: tunggu CI
+- [ ] Uji perangkat: landscape, menu Urut dan Alat tergulir tanpa terpotong; potret normal tidak berubah tampilannya

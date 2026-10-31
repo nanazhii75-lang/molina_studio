@@ -590,7 +590,11 @@ fun Win7OpenDialog(
                             onDismissRequest = { sortOpen = false },
                             properties = PopupProperties(focusable = true)
                         ) {
-                            Column(Modifier.width(240.dp).background(Win7.Input).border(1.dp, Win7.FrameLine)) {
+                            Column( // [POPUP-SCROLL] tinggi maks 70% layar; isi bisa digulir
+                                Modifier.width(240.dp).heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.7f).dp)
+                                    .background(Win7.Input).border(1.dp, Win7.FrameLine)
+                                    .verticalScroll(rememberScrollState())
+                            ) {
                                 W7ChoiceItem(if (key == ExplorerList.Key.NAME) "\u25CF" else "\u25CB", "Nama") { key = ExplorerList.Key.NAME; sortOpen = false }
                                 W7ChoiceItem(if (key == ExplorerList.Key.DATE) "\u25CF" else "\u25CB", "Tanggal diubah") { key = ExplorerList.Key.DATE; sortOpen = false }
                                 W7ChoiceItem(if (key == ExplorerList.Key.SIZE) "\u25CF" else "\u25CB", "Ukuran") { key = ExplorerList.Key.SIZE; sortOpen = false }
@@ -620,7 +624,7 @@ fun Win7OpenDialog(
                                 properties = PopupProperties(focusable = true)
                             ) {
                                 Column(
-                                    Modifier.width(250.dp).heightIn(max = 400.dp).background(Win7.Input)
+                                    Modifier.width(250.dp).heightIn(max = minOf(400.dp, (LocalConfiguration.current.screenHeightDp * 0.7f).dp)).background(Win7.Input) // [POPUP-SCROLL]
                                         .border(1.dp, Win7.FrameLine).verticalScroll(rememberScrollState())
                                 ) {
                                     W7MenuItem(W7Ico.PLAY, if (one?.isDirectory == true) "Putar folder di mpv" else "Putar di mpv", playable) {
