@@ -2445,3 +2445,7 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: hanya :app (2 berkas); Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
 - [ ] Compose belum dikompilasi: tunggu CI (cek unresolved reference/impor bila gagal)
 - [ ] Uji perangkat: semua item menu Alat berfungsi (Putar, Salin/Tempel, Kompres/Ekstrak, Hapus, Favorit, Properti); menu tetap tertutup setelah memilih item; Mode Pilih memakai item terpilih
+
+## 2026-10-31 - Uji perangkat refactor Penjelajah lulus [UJI-PENJELAJAH-OK]
+- [x] Lulus uji perangkat: DROP-MENU, DROP-HAMBURGER, DROP-DIVIDER, DROP-SCROLL, POPUP-SCROLL, POPUP-MAXH, SPLIT-MENUPARTS, SPLIT-ZIP, SPLIT-DIALOGS, SPLIT-TOOLS
+- [x] Win7OpenDialog.kt: 2181 -> 1207 baris (pecahan: W7MenuParts, W7ZipViewer, W7Dialogs, W7ToolsMenu)
