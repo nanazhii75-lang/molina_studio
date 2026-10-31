@@ -950,8 +950,10 @@ fun Win7OpenDialog(
                                     ) {
                                         Column(Modifier.width(230.dp).background(Win7.Input).border(1.dp, Win7.FrameLine)) {
                                             if (portrait) W7MenuItem(W7Ico.NAV, "Panel lokasi", true) { menuOpen = false; navOpen = !navOpen } // [DROP-HAMBURGER]
+                                            if (portrait) W7MenuDivider() // [DROP-DIVIDER]
                                             W7MenuItem(W7Ico.REFRESH, "Segarkan", true) { menuOpen = false; tick++ }
                                             W7MenuItem(W7Ico.SORT, "Urut\u2026", true) { menuOpen = false; sortOpen = true }
+                                            W7MenuDivider() // [DROP-DIVIDER]
                                             W7MenuItem(W7Ico.SELECT, if (multi) "Selesai memilih" else "Pilih", !busy) {
                                                 menuOpen = false
                                                 multi = !multi; picked = emptySet(); selected = null; fileName = ""
@@ -962,6 +964,7 @@ fun Win7OpenDialog(
                                                 picked = if (here.isNotEmpty() && picked.containsAll(here)) picked - here else picked + here
                                             }
                                             if (picked.isNotEmpty()) W7MenuItem(W7Ico.CLEAR, "Kosongkan pilihan", !busy) { menuOpen = false; picked = emptySet() }
+                                            W7MenuDivider() // [DROP-DIVIDER]
                                             W7MenuItem(W7Ico.MORE, "Alat\u2026", !busy) { menuOpen = false; toolsOpen = true }
                                         }
                                     }
@@ -1170,6 +1173,15 @@ private fun W7DropButton(active: Boolean, onClick: () -> Unit) {
             }
         }
     }
+}
+
+/** [DROP-DIVIDER] Garis pemisah emas tipis antar kelompok item di menu drop-up Penjelajah. */
+@Composable
+private fun W7MenuDivider() {
+    Box(
+        Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 3.dp).height(1.dp)
+            .background(MolinaTheme.Gold.copy(alpha = 0.4f))
+    )
 }
 
 @Composable

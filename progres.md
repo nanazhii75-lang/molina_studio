@@ -2397,3 +2397,9 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: hanya :app (1 berkas); Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
 - [ ] Compose belum dikompilasi: tunggu CI
 - [ ] Uji perangkat (potret): bilah alamat tanpa hamburger; menu drop-up menampilkan "Panel lokasi" paling atas dan membuka drawer; landscape tidak menampilkan item itu
+
+## 2026-10-31 - Menu drop-up Penjelajah: pemisah emas antar kelompok [DROP-DIVIDER]
+- [x] refactor(cinema): Win7OpenDialog.kt: komponen W7MenuDivider (garis emas 1dp, alfa 0.4); pemisah di menu drop-up: [Panel lokasi] | [Segarkan, Urut] | [Pilih, Pilih semua, Kosongkan pilihan] | [Alat]; pemisah pertama hanya muncul di potret bersama item Panel lokasi
+- [x] Dampak: hanya :app (1 berkas); Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
+- [ ] Compose belum dikompilasi: tunggu CI
+- [ ] Uji perangkat: garis tipis terlihat jelas tapi tidak mencolok; tinggi menu masih muat di layar potret saat Mode Pilih aktif (semua item tampil)
