@@ -63,6 +63,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import kotlinx.coroutines.isActive
 import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Path
@@ -257,6 +258,7 @@ fun Win7OpenDialog(
     val density = LocalDensity.current
     var clip by remember { mutableStateOf<W7Clip?>(null) }
     var toolsOpen by remember { mutableStateOf(false) }
+    var menuOpen by remember { mutableStateOf(false) } // [DROP-MENU]
     var busy by remember { mutableStateOf(false) }
     var sheet by remember { mutableStateOf<W7Sheet?>(null) }
     var messageOk by remember { mutableStateOf(false) }
@@ -580,18 +582,11 @@ fun Win7OpenDialog(
                     Spacer(Modifier.width(6.dp))
                     Text("Cari sampai subfolder", color = Win7.TextDim, fontSize = 11.sp)
                 }
-                Row(
-                    Modifier.fillMaxWidth().height(30.dp)
-                        .horizontalScroll(rememberScrollState())
-                        .background(Brush.verticalGradient(listOf(Win7.BarTop, Win7.BarBottom))),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    W7IconCmd(W7Ico.REFRESH, "Segarkan", true) { tick++ }
-                    Box {
-                        W7IconCmd(W7Ico.SORT, "Urut", true, active = sortOpen) { sortOpen = !sortOpen }
-                        if (sortOpen) Popup(
-                            alignment = Alignment.TopStart,
-                            offset = IntOffset(0, with(density) { 30.dp.roundToPx() }),
+                // [DROP-MENU] isi popup Urut dan Alat dipakai bersama: bilah ikon (dialog Buka) dan menu drop-up (Penjelajah)
+                val sortPopup: @Composable (Boolean) -> Unit = { up ->
+                    if (sortOpen) Popup(
+                            alignment = if (up) Alignment.BottomEnd else Alignment.TopStart,
+                            offset = if (up) IntOffset(0, -with(density) { 44.dp.roundToPx() }) else IntOffset(0, with(density) { 30.dp.roundToPx() }),
                             onDismissRequest = { sortOpen = false },
                             properties = PopupProperties(focusable = true)
                         ) {
@@ -608,23 +603,9 @@ fun Win7OpenDialog(
                                 W7ChoiceItem(if (showHidden) "[x]" else "[  ]", "Tampilkan berkas tersembunyi") { showHidden = !showHidden; sortOpen = false }
                             }
                         }
-                    }
-                    if (browse) {
-                        W7IconCmd(
-                            W7Ico.SELECT, if (multi) "Selesai memilih" else "Pilih", !busy, active = multi,
-                            badge = if (multi && picked.isNotEmpty()) picked.size.toString() else null
-                        ) {
-                            multi = !multi; picked = emptySet(); selected = null; fileName = ""
-                        }
-                        if (multi) W7IconCmd(W7Ico.SELECT_ALL, "Pilih semua", !busy) {
-                            val here = (entries ?: emptyList()).map { it.file.path }.toSet()
-                            picked = if (here.isNotEmpty() && picked.containsAll(here)) picked - here else picked + here
-                        }
-                        if (picked.isNotEmpty()) W7IconCmd(W7Ico.CLEAR, "Kosongkan pilihan", !busy) { picked = emptySet() }
-                    }
-                    if (browse) Box {
-                        W7IconCmd(W7Ico.MORE, "Alat", !busy, active = toolsOpen) { toolsOpen = !toolsOpen }
-                        if (toolsOpen) {
+                }
+                val toolsPopup: @Composable () -> Unit = {
+                    if (toolsOpen) {
                             val tg = targets()
                             val one = tg.singleOrNull()
                             val favTarget = if (tg.isEmpty()) dir else one?.takeIf { it.isDirectory }
@@ -633,8 +614,8 @@ fun Win7OpenDialog(
                             val playable = onPlay != null && tg.isNotEmpty() &&
                                 (one?.isDirectory == true || tg.all { it.isFile && it.extension.lowercase() in W7_MEDIA })
                             Popup(
-                                alignment = Alignment.TopStart,
-                                offset = IntOffset(0, with(density) { 30.dp.roundToPx() }),
+                                alignment = Alignment.BottomEnd,
+                                offset = IntOffset(0, -with(density) { 44.dp.roundToPx() }),
                                 onDismissRequest = { toolsOpen = false },
                                 properties = PopupProperties(focusable = true)
                             ) {
@@ -821,6 +802,28 @@ fun Win7OpenDialog(
                                 }
                             }
                         }
+                }
+                if (browse) {
+                    // [DROP-MENU] keterangan folder/item pindah ke atas (bekas bilah ikon)
+                    val tvTarget = selected?.file ?: dir
+                    val tvFiles = if (multi && picked.isNotEmpty()) picked.map { File(it) } else listOf(tvTarget)
+                    W7BrowseInfo(
+                        files = tvFiles,
+                        isDir = if (selected == null || multi) null else selected!!.isDir,
+                        size = selected?.size ?: 0L,
+                        modified = selected?.modified ?: 0L,
+                        onCopyPath = { onCopyPath?.invoke(tvTarget); say("Path disalin", true) }
+                    )
+                } else Row(
+                    Modifier.fillMaxWidth().height(30.dp)
+                        .horizontalScroll(rememberScrollState())
+                        .background(Brush.verticalGradient(listOf(Win7.BarTop, Win7.BarBottom))),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    W7IconCmd(W7Ico.REFRESH, "Segarkan", true) { tick++ }
+                    Box {
+                        W7IconCmd(W7Ico.SORT, "Urut", true, active = sortOpen) { sortOpen = !sortOpen }
+                        sortPopup(false)
                     }
                 }
                 Box(Modifier.fillMaxWidth().height(1.dp).background(Win7.Hairline))
@@ -886,8 +889,8 @@ fun Win7OpenDialog(
                         "Buka folder" to "Ketuk tanda \u203A di ujung baris untuk masuk ke folder.",
                         "Lintas folder" to "Centang tetap tersimpan saat Anda berpindah folder.",
                         "Geser baris" to "Geser ke kanan untuk mencentang atau melepas; geser ke kiri untuk membuka menu Alat bagi baris itu.",
-                        "Pilih cepat" to "Ikon pilih semua mencentang seluruh isi folder ini; ikon silang menghapus semua centang.",
-                        "Selesai" to "Ketuk ikon pilih sekali lagi atau tombol Kembali untuk keluar dari Mode Pilih."
+                        "Pilih cepat" to "Di menu ikon kisi (kanan bawah): Pilih semua mencentang seluruh isi folder ini; Kosongkan pilihan menghapus semua centang.",
+                        "Selesai" to "Pilih Selesai memilih di menu ikon kisi atau tekan tombol Kembali untuk keluar dari Mode Pilih."
                     )
                 ) { showSelectHelp = false } // [HELP-PANEL]
                 if (message.isNotBlank()) W7Toast(
@@ -915,10 +918,6 @@ fun Win7OpenDialog(
                         val dkZip = !dkMedia && !dkText && dkFiles.size == 1 && dkFiles[0].isFile && dkFiles[0].extension.equals("zip", ignoreCase = true)
                         val dkArc = !dkMedia && !dkText && !dkZip && dkFiles.size == 1 && dkFiles[0].isFile && ArchiveRoute.supports(dkFiles[0].name) // [ARCHIVE]
                         W7BrowseDock(
-                            files = dkFiles,
-                            isDir = if (selected == null || multi) null else selected!!.isDir,
-                            size = selected?.size ?: 0L,
-                            modified = selected?.modified ?: 0L,
                             debian = if (dkFiles.size == 1) isVisibleInDebian?.invoke(dkFiles[0]) else null,
                             quickLabel = if (dkMedia) "Putar" else if (dkText) "Edit" else if (dkZip) "Buka ZIP" else if (dkArc) "Buka arsip" else "Properti",
                             insertEnabled = onInsertPaths != null,
@@ -938,8 +937,37 @@ fun Win7OpenDialog(
                             onInsert = { onInsertPaths?.invoke(dkFiles) },
                             onTerminal = { onOpenTerminal?.invoke(dkTarget) },
                             onOpen = { if (dkTarget.isDirectory) go(dkTarget) else smartOpen(dkTarget) },
-                            onCopyPath = { onCopyPath?.invoke(dkTarget); say("Path disalin", true) },
-                            onHelp = if (multi) ({ showSelectHelp = true }) else null // [HELP-PANEL]
+                            onHelp = if (multi) ({ showSelectHelp = true }) else null, // [HELP-PANEL]
+                            modeLabel = if (!multi) null else if (picked.isEmpty()) "Mode Pilih" else picked.size.toString() + " dipilih",
+                            menu = { // [DROP-MENU] satu ikon kisi di kanan bawah (dekat status Debian) membuka menu drop-up
+                                Box {
+                                    W7DropButton(active = menuOpen || sortOpen || toolsOpen) { menuOpen = !menuOpen }
+                                    if (menuOpen) Popup(
+                                        alignment = Alignment.BottomEnd,
+                                        offset = IntOffset(0, -with(density) { 44.dp.roundToPx() }),
+                                        onDismissRequest = { menuOpen = false },
+                                        properties = PopupProperties(focusable = true)
+                                    ) {
+                                        Column(Modifier.width(230.dp).background(Win7.Input).border(1.dp, Win7.FrameLine)) {
+                                            W7MenuItem(W7Ico.REFRESH, "Segarkan", true) { menuOpen = false; tick++ }
+                                            W7MenuItem(W7Ico.SORT, "Urut\u2026", true) { menuOpen = false; sortOpen = true }
+                                            W7MenuItem(W7Ico.SELECT, if (multi) "Selesai memilih" else "Pilih", !busy) {
+                                                menuOpen = false
+                                                multi = !multi; picked = emptySet(); selected = null; fileName = ""
+                                            }
+                                            if (multi) W7MenuItem(W7Ico.SELECT_ALL, "Pilih semua", !busy) {
+                                                menuOpen = false
+                                                val here = (entries ?: emptyList()).map { it.file.path }.toSet()
+                                                picked = if (here.isNotEmpty() && picked.containsAll(here)) picked - here else picked + here
+                                            }
+                                            if (picked.isNotEmpty()) W7MenuItem(W7Ico.CLEAR, "Kosongkan pilihan", !busy) { menuOpen = false; picked = emptySet() }
+                                            W7MenuItem(W7Ico.MORE, "Alat\u2026", !busy) { menuOpen = false; toolsOpen = true }
+                                        }
+                                    }
+                                    sortPopup(true)
+                                    toolsPopup()
+                                }
+                            }
                         )
                     } else {
                     if (pickFolder) Text(
@@ -1112,6 +1140,33 @@ private fun W7IconCmd(
         if (badge != null) {
             Spacer(Modifier.width(3.dp))
             Text(badge, color = if (enabled) Win7.NavHeader else Win7.TextDim, fontSize = 11.sp, maxLines = 1)
+        }
+    }
+}
+
+/** [DROP-MENU] Tombol ikon kisi 4 kotak (senada Mode TV) di kanan bawah Penjelajah; membuka menu drop-up. */
+@Composable
+private fun W7DropButton(active: Boolean, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(4.dp)
+    Box(
+        Modifier.size(width = 44.dp, height = 36.dp).clip(shape)
+            .background(Brush.verticalGradient(listOf(Win7.BtnTop, Win7.BtnBottom)), shape)
+            .border(1.dp, if (active) Win7.DefaultLine else Win7.BtnLine, shape)
+            .semantics { contentDescription = "Menu" }
+            .clickable(onClick = onClick),
+        Alignment.Center
+    ) {
+        Canvas(Modifier.size(18.dp)) {
+            val gap = 2.5.dp.toPx()
+            val cell = (size.width - gap) / 2f
+            for (r in 0..1) for (c in 0..1) {
+                drawRoundRect(
+                    color = MolinaTheme.Gold,
+                    topLeft = Offset(c * (cell + gap), r * (cell + gap)),
+                    size = Size(cell, cell),
+                    cornerRadius = CornerRadius(2.dp.toPx())
+                )
+            }
         }
     }
 }

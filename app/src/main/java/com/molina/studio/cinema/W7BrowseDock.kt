@@ -38,27 +38,17 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * [FILES-DOCK] Panel bawah Penjelajah (mode jelajah): tinggi TETAP, semua teks satu baris.
- * Baris 1: nama (ellipsis di tengah, ekstensi tetap terbaca) + status Debian ringkas di kanan.
- * Baris 2: ukuran dan tanggal. Baris 3: path (ujung kanan dipertahankan; ketuk untuk menyalin).
- * Baris 4: aksi (Aksi cepat, Sisipkan, Terminal, Buka) dengan bobot sama, tanpa lebar minimum.
+ * [DROP-MENU] Keterangan item/folder terpilih di ATAS daftar (bekas bilah ikon), tinggi tetap, tiap teks satu baris:
+ * ikon/thumbnail + nama (ellipsis di tengah, ekstensi tetap terbaca) + ukuran/tanggal, lalu path (ujung kanan
+ * dipertahankan; ketuk untuk menyalin).
  */
 @Composable
-internal fun W7BrowseDock(
+internal fun W7BrowseInfo(
     files: List<java.io.File>,
     isDir: Boolean?,
     size: Long,
     modified: Long,
-    debian: Boolean?,
-    quickLabel: String,
-    insertEnabled: Boolean,
-    terminalEnabled: Boolean,
-    onQuick: () -> Unit,
-    onInsert: () -> Unit,
-    onTerminal: () -> Unit,
-    onOpen: () -> Unit,
-    onCopyPath: () -> Unit,
-    onHelp: (() -> Unit)? = null
+    onCopyPath: () -> Unit
 ) {
     val locale = Locale("id", "ID")
     val one = files.singleOrNull()
@@ -84,7 +74,10 @@ internal fun W7BrowseDock(
             value = W7Thumb.load(thumbFile)?.asImageBitmap()
         }
     }
-    Column(Modifier.fillMaxWidth().padding(bottom = 2.dp)) {
+    Column(
+        Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(Win7.BarTop, Win7.BarBottom)))
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+    ) {
         Row(Modifier.fillMaxWidth().height(34.dp), verticalAlignment = Alignment.CenterVertically) {
             if (thumbFile != null) {
                 Box(
@@ -106,6 +99,39 @@ internal fun W7BrowseDock(
                 Text(title, color = Win7.Ink, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(meta, color = Win7.TextDim, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
+        }
+        Text(
+            path, color = Win7.TextDim, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Clip,
+            modifier = Modifier.fillMaxWidth().height(16.dp).clickable(onClick = onCopyPath)
+        )
+    }
+}
+
+/**
+ * [FILES-DOCK] Panel bawah Penjelajah (mode jelajah): tinggi TETAP.
+ * Baris 1: label Mode Pilih (kiri), bantuan, status Debian ringkas, lalu slot [menu] (ikon kisi drop-up) di ujung kanan.
+ * Baris 2: aksi (Aksi cepat, Sisipkan, Terminal, Buka) dengan bobot sama, tanpa lebar minimum.
+ */
+@Composable
+internal fun W7BrowseDock(
+    debian: Boolean?,
+    quickLabel: String,
+    insertEnabled: Boolean,
+    terminalEnabled: Boolean,
+    onQuick: () -> Unit,
+    onInsert: () -> Unit,
+    onTerminal: () -> Unit,
+    onOpen: () -> Unit,
+    modeLabel: String? = null,
+    onHelp: (() -> Unit)? = null,
+    menu: @Composable () -> Unit = {}
+) {
+    Column(Modifier.fillMaxWidth().padding(bottom = 2.dp)) {
+        Row(Modifier.fillMaxWidth().height(40.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                modeLabel.orEmpty(), color = Win7.NavHeader, fontSize = 12.sp, maxLines = 1,
+                overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f)
+            )
             if (onHelp != null) W7HelpIcon(onHelp) // [HELP-PANEL]
             if (debian != null) {
                 val tone = if (debian) MolinaTheme.Good else MolinaTheme.Warn
@@ -114,11 +140,9 @@ internal fun W7BrowseDock(
                 Spacer(Modifier.width(4.dp))
                 Text(if (debian) "Debian" else "Luar", color = tone, fontSize = 10.sp, maxLines = 1)
             }
+            Spacer(Modifier.width(10.dp))
+            menu()
         }
-        Text(
-            path, color = Win7.TextDim, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Clip,
-            modifier = Modifier.fillMaxWidth().height(16.dp).clickable(onClick = onCopyPath)
-        )
         Spacer(Modifier.height(4.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             DockButton(quickLabel, Modifier.weight(1f), true, false, null, onQuick)

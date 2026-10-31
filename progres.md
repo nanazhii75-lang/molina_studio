@@ -2382,3 +2382,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: hanya :app (1 berkas); Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
 - [ ] Compose belum dikompilasi di sandbox: tunggu CI
 - [ ] Uji perangkat (potret): lencana tidak terpotong di tepi kanan; menu tidak keluar layar; jempol kanan menjangkau ikon; panel info saat kartu ditekan lama tetap rapi di sebelah kiri ikon
+
+## 2026-10-31 - Penjelajah Berkas: bilah ikon jadi menu drop-up kanan bawah, keterangan pindah ke atas [DROP-MENU]
+- [x] refactor(cinema): Win7OpenDialog.kt (mode jelajah): bilah ikon Segarkan/Urut/Pilih/Alat dihapus dari atas; diganti satu tombol ikon kisi di kanan bawah (sebelah status Debian) yang membuka menu drop-up: Segarkan, Urut..., Pilih/Selesai memilih, Pilih semua, Kosongkan pilihan, Alat...; popup Urut dan Alat (termasuk geser-kiri baris) kini mengembang ke atas dari tombol itu
+- [x] refactor(cinema): W7BrowseDock.kt: keterangan (ikon/thumbnail, nama, ukuran/tanggal, path) dipisah menjadi W7BrowseInfo dan dipasang di atas daftar; dock bawah tinggal baris status (label Mode Pilih, bantuan, Debian, tombol menu) + 4 tombol aksi
+- [x] Dialog Buka/Simpan (bukan mode jelajah) tidak berubah: tetap bilah Segarkan + Urut
+- [x] Dampak: hanya :app (2 berkas); Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
+- [ ] Compose belum dikompilasi di sandbox: tunggu CI
+- [ ] Uji perangkat (potret): menu muncul ke atas penuh di layar; Urut dan Alat membuka dari tombol yang sama; geser kiri baris membuka Alat; keterangan atas berganti saat memilih berkas; Mode Pilih menampilkan hitungan di kiri bawah; thumbnail media tetap muncul di keterangan atas
