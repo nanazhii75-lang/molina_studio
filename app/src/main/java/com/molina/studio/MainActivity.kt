@@ -90,6 +90,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        com.molina.core.common.CrashContext.host = com.molina.core.common.CrashContext.HOST_APP
         AppPaths.ensureIfPermitted(applicationContext)
     }
 
@@ -186,6 +187,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme(colorScheme = MolinaColors) {
                 var selected by rememberSaveable { mutableIntStateOf(0) }
+                androidx.compose.runtime.LaunchedEffect(selected) { com.molina.core.common.CrashContext.tab = Tab.entries[selected].label }
                 val codeSession = remember {
                     com.molina.code.ui.CodeSession(
                         AppPaths.get(this@MainActivity).workspace.path,

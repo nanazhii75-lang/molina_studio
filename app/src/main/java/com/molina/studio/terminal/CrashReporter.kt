@@ -12,6 +12,7 @@ import com.molina.studio.AppPaths
 import com.molina.studio.MainActivity
 import com.molina.studio.R
 import com.molina.studio.log.LogBus
+import com.molina.core.common.CrashContext
 import com.molina.core.common.LogLevel
 import com.molina.core.common.LogRedact
 import com.molina.core.common.MolinaDir
@@ -62,6 +63,7 @@ object CrashReporter {
             appendLine("Versi     : $version")
             appendLine("Perangkat : ${Build.MANUFACTURER} ${Build.MODEL}, Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
             appendLine("Thread    : ${thread.name}")
+            appendLine("Mode      : ${CrashContext.describe()}")
             appendLine()
             appendLine(Log.getStackTraceString(error))
             appendLine()

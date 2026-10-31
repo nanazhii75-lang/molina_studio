@@ -2738,3 +2738,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Belum dikompilasi: tunggu CI
 - [ ] Belum diuji di perangkat: ganti tema (3 pilihan) > sesi baru dan CLEAR > banner dan prompt sewarna; bingkai rata di font Android 8 (bila miring, ganti ke bingkai ASCII)
 - [ ] Catatan: tema default Classic memakai hijau ANSI standar (1;32), bukan mint #69F0AE seperti patch BANNER-GREEN
+
+## 2026-10-31 - Mode TV tahan error init + baris Mode di laporan crash [TV-RESILIENT]
+- [x] fix(cinema): TvBrowser memakai safeTidyPlan: kegagalan ChannelTidy.plan (termasuk ExceptionInInitializerError/NoClassDefFoundError) dicatat sekali ke log (sumber sistem) dan hasilnya null, sehingga hanya tombol "Rapikan ke folder kanal" yang hilang; daftar video Mode TV tetap tampil. OutOfMemoryError tetap dilempar
+- [x] feat(core): CrashContext (:core:common, JVM murni) mencatat host (Aplikasi/Player (mpv)), tab, dan overlay (Mode TV); CrashReporter menambah baris "Mode      : ..." di laporan (mis. "Aplikasi > mpv > Mode TV" atau "Player (mpv)")
+- [x] Penanda dipasang di MainActivity (onResume + tab), TvBrowser (DisposableEffect), MPVActivity (onResume)
+- [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh (MPVActivity hanya satu baris di onResume); feature:mpv sudah bergantung ke :core:common
+- [ ] Belum dikompilasi: tunggu CI (impor baru di TvBrowser, LaunchedEffect penuh-kualifikasi di MainActivity)
+- [ ] Belum diuji di perangkat: buka Mode TV > tidak crash; paksa error (mis. rusak FolderName sementara) > Mode TV tetap tampil tanpa tombol Rapikan; crash di pemutar menampilkan Mode: Player (mpv)
+- [ ] Belum ada tes JVM untuk CrashContext.describe (kotlinc tidak tersedia saat patch ditulis)

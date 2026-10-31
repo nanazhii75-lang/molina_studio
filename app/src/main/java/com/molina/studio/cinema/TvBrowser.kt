@@ -78,6 +78,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import com.molina.core.common.CrashContext
+import com.molina.core.common.LogLevel
+import com.molina.studio.log.LogBus
 
 private val TvBg = Color(0xFF0E0B10)
 private val TileShape = RoundedCornerShape(6.dp)
@@ -87,6 +90,24 @@ private tailrec fun Context.lifecycleOwner(): LifecycleOwner? = when (this) {
     is LifecycleOwner -> this
     is ContextWrapper -> baseContext.lifecycleOwner()
     else -> null
+}
+
+@Volatile private var tidyWarned = false
+
+/**
+ * Rencana "Rapikan ke folder kanal" hanya fitur tambahan. Kegagalan apa pun, termasuk error init kelas
+ * (ExceptionInInitializerError / NoClassDefFoundError), tidak boleh mematikan Mode TV: hasil null = tombol
+ * Rapikan disembunyikan. OutOfMemoryError tetap dilempar. Dicatat sekali per proses agar log tidak banjir.
+ */
+private fun safeTidyPlan(dir: File): ChannelTidy.Plan? = try {
+    ChannelTidy.plan(dir)
+} catch (t: Throwable) {
+    if (t is OutOfMemoryError) throw t
+    if (!tidyWarned) {
+        tidyWarned = true
+        LogBus.log("sistem", LogLevel.Warn, "TvBrowser", "ChannelTidy.plan gagal: ${t::class.java.simpleName}: ${t.message}")
+    }
+    null
 }
 
 private class TvData(val rows: List<TvGuide.Row>, val cards: Map<String, ShelfCard.Card>, val tidy: ChannelTidy.Plan? = null)
@@ -158,6 +179,12 @@ internal fun TvBrowser(
         onDispose { owner?.lifecycle?.removeObserver(obs) }
     }
 
+    // Penanda layar untuk laporan crash (baris "Mode").
+    DisposableEffect(Unit) {
+        CrashContext.overlay = "Mode TV"
+        onDispose { if (CrashContext.overlay == "Mode TV") CrashContext.overlay = null }
+    }
+
     val clock by produceState("") {
         while (true) {
             value = TvGuide.clock(System.currentTimeMillis())
@@ -171,7 +198,7 @@ internal fun TvBrowser(
             val rows = TvGuide.rowsWithShelves(d)
             val vids = rows.flatMap { it.items }.filter { it.kind == TvGuide.Kind.Video }
                 .map { ShelfCard.Entry(it.file.path, it.name, true) }
-            TvData(rows, ShelfCard.build(vids, max = vids.size, resumeDirs = resumeDirs).associateBy { it.ref }, ChannelTidy.plan(d))
+            TvData(rows, ShelfCard.build(vids, max = vids.size, resumeDirs = resumeDirs).associateBy { it.ref }, safeTidyPlan(d))
         }
     }
 

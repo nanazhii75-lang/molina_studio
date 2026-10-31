@@ -779,6 +779,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
     }
 
     override fun onResume() {
+        com.molina.core.common.CrashContext.host = com.molina.core.common.CrashContext.HOST_PLAYER
         // If we weren't actually in the background (e.g. multi window mode), don't reinitialize stuff
         if (activityIsForeground) {
             super.onResume()
