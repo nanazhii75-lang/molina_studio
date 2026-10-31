@@ -105,7 +105,7 @@ private fun tvPlaces(ctx: android.content.Context): List<Pair<String, File>> {
 
 /**
  * Mode TV penjelajah berkas Molina Cinema (SIDE-5, tahap 2), dirancang untuk ponsel potret layar sentuh:
- * bilah status (jam, ruang bebas, tutup), menu saluran drop-up (tombol ikon pojok kiri bawah), baris-baris kartu yang bisa digeser, dan
+ * bilah status (jam, ruang bebas, tutup), menu saluran drop-up (tombol ikon pojok kanan bawah), baris-baris kartu yang bisa digeser, dan
  * panel info ala EPG. Ketuk = buka (folder masuk, video/audio putar); tekan lama = tampilkan info di panel.
  * Model dari TvGuide/ShelfCard (teruji di :core:common); semua pembacaan berkas di Dispatchers.IO.
  * Pemanggil memberi [onPlay] (mis. CinemaActions.playPath) dan [onClose]; sakelar/titik masuk menyusul (tahap 3).
@@ -293,17 +293,8 @@ internal fun TvBrowser(
                 }
             }
         }
-        // ---- bilah bawah: tombol saluran (kiri) + panel info (EPG)
+        // ---- bilah bawah: tombol saluran (kanan) + panel info (EPG)
         Row(Modifier.fillMaxWidth().background(TvPanel), verticalAlignment = Alignment.Bottom) {
-            TvChannelMenu(
-                channels = channels,
-                selected = if (recentMode) -1 else idx,
-                recentCount = recents.size,
-                onRecent = { if (recentMode) tick++ else { recentMode = true; focus = null } }
-            ) { ch ->
-                recentMode = false
-                if (ch.number - 1 == idx) tick++ else { idx = ch.number - 1; dir = ch.dir; focus = null }
-            }
             Box(Modifier.weight(1f)) {
         TvInfoPanel(
             item = focus,
@@ -327,6 +318,15 @@ internal fun TvBrowser(
             ops = ops,
             onSheet = { sheet = it }
         )
+            }
+            TvChannelMenu(
+                channels = channels,
+                selected = if (recentMode) -1 else idx,
+                recentCount = recents.size,
+                onRecent = { if (recentMode) tick++ else { recentMode = true; focus = null } }
+            ) { ch ->
+                recentMode = false
+                if (ch.number - 1 == idx) tick++ else { idx = ch.number - 1; dir = ch.dir; focus = null }
             }
         }
     }
@@ -371,7 +371,7 @@ private fun TvInfoPanel(
     onSheet: (TvSheet) -> Unit,
 ) {
     Column(
-        Modifier.fillMaxWidth().background(TvPanel).padding(horizontal = 8.dp, vertical = 10.dp)
+        Modifier.fillMaxWidth().background(TvPanel).padding(start = 14.dp, end = 8.dp, top = 10.dp, bottom = 10.dp)
     ) {
         if (ops.message.isNotEmpty()) {
             Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -445,7 +445,7 @@ private fun TvAction(label: String, danger: Boolean = false, onClick: () -> Unit
 }
 
 /**
- * Tombol ikon kisi di pojok kiri bawah. Ketuk ATAU geser ke atas dari tombol membuka menu saluran ke atas
+ * Tombol ikon kisi di pojok kanan bawah. Ketuk ATAU geser ke atas dari tombol membuka menu saluran ke atas
  * (drop-up) dengan getar ringan. Isi menu: 0 = Terakhir (riwayat putar), 1..n = folder saluran.
  */
 @Composable
@@ -510,7 +510,7 @@ private fun TvChannelMenu(
                 }
             }
             if (open) Popup(
-                alignment = Alignment.BottomStart,
+                alignment = Alignment.BottomEnd,
                 offset = IntOffset(0, -with(density) { 56.dp.roundToPx() }),
                 onDismissRequest = { open = false },
                 properties = PopupProperties(focusable = true)

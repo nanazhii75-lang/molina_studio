@@ -2376,3 +2376,9 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] chore(repo): .gitignore menambah scripts/patch_*.py
 - [x] Dipertahankan: skrip CI (telemetry_gate, fetch_native, native_mpv, spike-newpipe), skrip audit, harness uji scripts/*-tests
 - [x] Dampak: tidak ada perubahan kode; Gradle, AndroidManifest, JNI mpv TIDAK disentuh
+
+## 2026-10-31 - Mode TV: ikon saluran pindah ke pojok kanan bawah [TV-KANAN]
+- [x] refactor(cinema): TvBrowser.kt: tombol ikon kisi dipindah dari kiri ke kanan bilah bawah (koreksi TV-MENU1); menu drop-up mengembang ke kiri (BottomEnd); panel info mendapat margin kiri 14dp lagi; geser ke atas, getar, dan lencana tidak berubah
+- [x] Dampak: hanya :app (1 berkas); Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
+- [ ] Compose belum dikompilasi di sandbox: tunggu CI
+- [ ] Uji perangkat (potret): lencana tidak terpotong di tepi kanan; menu tidak keluar layar; jempol kanan menjangkau ikon; panel info saat kartu ditekan lama tetap rapi di sebelah kiri ikon
