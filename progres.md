@@ -2437,3 +2437,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Visibilitas private -> internal pada deklarasi top-level yang dipindah; kode apa adanya (tanpa perubahan perilaku); w7Norm dan W7PlayedChip tetap di Win7OpenDialog.kt (dipakai daftar berkas, bukan ZIP)
 - [x] Dampak: hanya :app (3 berkas); Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
 - [ ] Compose belum dikompilasi: tunggu CI (cek unresolved reference/impor bila gagal)
+
+## 2026-10-31 - Menu Alat diangkat jadi composable sendiri W7ToolsMenu [SPLIT-TOOLS]
+- [x] refactor(cinema): W7ToolsMenu.kt baru: isi popup Alat (Putar, Code, Script, Bagikan, Salin/Pindah/Tempel, Ubah nama, Kompres/Ekstrak, Hapus, Folder baru, Favorit, Salin path, Properti) dengan parameter eksplisit; state tetap di Win7OpenDialog, perubahan lewat callback (onDismiss, onClip, onPlayedFirst, onSheet, onFavChanged, onSay, onRunOp)
+- [x] Win7OpenDialog.kt: toolsPopup kini hanya memanggil W7ToolsMenu; dinaikkan ke internal: W7Entry, W7Clip, W7Sheet, W7Place, w7Favorites, W7_MEDIA, W7_LISTS, w7Names
+- [x] Perilaku tidak diubah; blok dipindah apa adanya dengan penggantian akses state menjadi callback
+- [x] Dampak: hanya :app (2 berkas); Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
+- [ ] Compose belum dikompilasi: tunggu CI (cek unresolved reference/impor bila gagal)
+- [ ] Uji perangkat: semua item menu Alat berfungsi (Putar, Salin/Tempel, Kompres/Ekstrak, Hapus, Favorit, Properti); menu tetap tertutup setelah memilih item; Mode Pilih memakai item terpilih

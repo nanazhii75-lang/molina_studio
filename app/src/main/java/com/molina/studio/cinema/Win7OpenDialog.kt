@@ -106,14 +106,14 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-private class W7Entry(val file: File, val isDir: Boolean, val size: Long, val modified: Long, val rel: String? = null) {
+internal class W7Entry(val file: File, val isDir: Boolean, val size: Long, val modified: Long, val rel: String? = null) {
     val name: String get() = file.name
 }
 
 private enum class W7Kind(val label: String) { MEDIA("Media (video dan audio)"), ALL("Semua file") }
-private class W7Place(val label: String, val dir: File, val molina: Boolean = false)
-private class W7Clip(val files: List<File>, val cut: Boolean)
-private sealed class W7Sheet {
+internal class W7Place(val label: String, val dir: File, val molina: Boolean = false)
+internal class W7Clip(val files: List<File>, val cut: Boolean)
+internal sealed class W7Sheet {
     class Rename(val file: File) : W7Sheet()
     class Zip(val files: List<File>) : W7Sheet()
     class Compress(val files: List<File>) : W7Sheet() // [ARCHIVE2] dialog Kompres (format, level, nama, sandi ZIP)
@@ -126,14 +126,14 @@ private sealed class W7Sheet {
     object NewDir : W7Sheet()
 }
 
-private fun w7Names(l: List<File>): String = if (l.size == 1) l[0].name else l.size.toString() + " item"
+internal fun w7Names(l: List<File>): String = if (l.size == 1) l[0].name else l.size.toString() + " item"
 private fun w7StemEnd(name: String, dir: Boolean): Int =
     if (dir) name.length else name.lastIndexOf('.').let { if (it > 0) it else name.length }
 
 internal val W7_ID = Locale("id", "ID")
-private val W7_LISTS = setOf("m3u", "m3u8", "pls", "cue")
+internal val W7_LISTS = setOf("m3u", "m3u8", "pls", "cue")
 private val W7_AUDIO = setOf("mp3", "m4a", "aac", "flac", "wav", "ogg", "oga", "opus", "wma", "ac3", "dts", "mka")
-private val W7_MEDIA = W7_AUDIO + setOf(
+internal val W7_MEDIA = W7_AUDIO + setOf(
     "mp4", "mkv", "webm", "avi", "mov", "m4v", "3gp", "ts", "m2ts", "mts", "flv", "wmv",
     "mpg", "mpeg", "ogv", "vob", "rmvb", "m3u", "m3u8", "pls", "cue"
 )
@@ -141,7 +141,7 @@ private val W7_MEDIA = W7_AUDIO + setOf(
 private fun w7HasStorage(ctx: Context) =
     ContextCompat.checkSelfPermission(ctx, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
 
-private fun w7Favorites(browse: Boolean = false): List<W7Place> = listOfNotNull(
+internal fun w7Favorites(browse: Boolean = false): List<W7Place> = listOfNotNull(
     W7Place("Molina", File(Environment.getExternalStorageDirectory(), com.molina.core.common.MolinaPaths.APP_FOLDER), true),
     if (browse) W7Place("Project", File(Environment.getExternalStorageDirectory(), TerminalSessions.WORKSPACE_DIR)) else null,
     W7Place("Video", Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES)),
@@ -607,203 +607,17 @@ fun Win7OpenDialog(
                         }
                 }
                 val toolsPopup: @Composable () -> Unit = {
-                    if (toolsOpen) {
-                            val tg = targets()
-                            val one = tg.singleOrNull()
-                            val favTarget = if (tg.isEmpty()) dir else one?.takeIf { it.isDirectory }
-                            val isFav = favTarget != null && ExplorerFavorites.contains(ctx, favTarget)
-                            val c = clip
-                            val playable = onPlay != null && tg.isNotEmpty() &&
-                                (one?.isDirectory == true || tg.all { it.isFile && it.extension.lowercase() in W7_MEDIA })
-                            Popup(
-                                alignment = Alignment.BottomEnd,
-                                offset = IntOffset(0, -with(density) { 44.dp.roundToPx() }),
-                                onDismissRequest = { toolsOpen = false },
-                                properties = PopupProperties(focusable = true)
-                            ) {
-                                Column(
-                                    Modifier.width(250.dp).heightIn(max = w7PopupMaxHeight(400.dp)).background(Win7.Input) // [POPUP-SCROLL]
-                                        .border(1.dp, Win7.FrameLine).verticalScroll(rememberScrollState())
-                                ) {
-                                    W7MenuItem(W7Ico.PLAY, if (one?.isDirectory == true) "Putar folder di mpv" else "Putar di mpv", playable) {
-                                        toolsOpen = false
-                                        val fn = onPlay
-                                        if (fn != null && tg.isNotEmpty()) scope.launch {
-                                            val ok = fn(tg)
-                                            say(if (ok) "Memutar di mpv: " + w7Names(tg) else "Tidak ada media yang bisa diputar", ok)
-                                        }
-                                    }
-                                    val qAll = (shown ?: emptyList()).filter { !it.isDir && it.file.extension.lowercase() in W7_MEDIA && it.file.extension.lowercase() !in W7_LISTS }.map { it.file }
-                                    val qFrom = one?.takeIf { it.isFile }?.let { sel ->
-                                        val i = qAll.indexOf(sel)
-                                        if (i >= 0) qAll.drop(i) + qAll.take(i) else null
-                                    }
-                                    W7MenuItem(W7Ico.PLAY, "Putar semua di daftar ini (" + qAll.size + ")", onPlay != null && qAll.size > 1) {
-                                        toolsOpen = false
-                                        val fn = onPlay
-                                        if (fn != null) scope.launch {
-                                            val ok = fn(qAll)
-                                            say(if (ok) "Memutar antrean " + qAll.size + " berkas di mpv" else "Tidak ada media yang bisa diputar", ok)
-                                        }
-                                    }
-                                    W7MenuItem(W7Ico.PLAY, "Putar mulai dari item ini", onPlay != null && qFrom != null && qFrom.size > 1) {
-                                        toolsOpen = false
-                                        val fn = onPlay
-                                        if (fn != null && qFrom != null) scope.launch {
-                                            val ok = fn(qFrom)
-                                            say(if (ok) "Memutar " + qFrom.size + " berkas mulai dari " + qFrom[0].name else "Tidak ada media yang bisa diputar", ok)
-                                        }
-                                    }
-                                    W7MenuItem(W7Ico.PLAY, if (playedFirst) "Urutan: normal" else "Urutan: terakhir diputar dulu", playedRefs.isNotEmpty() || playedFirst) {
-                                        toolsOpen = false
-                                        playedFirst = !playedFirst
-                                    }
-                                    W7MenuItem(W7Ico.CODE, "Buka di Code", onOpenInCode != null && tg.any { it.isFile }) {
-                                        toolsOpen = false
-                                        val fn = onOpenInCode
-                                        if (fn != null) {
-                                            val texts = tg.filter { ExplorerList.looksText(it) }.take(10)
-                                            if (texts.isEmpty()) say("Tidak ada berkas teks yang bisa dibuka di Code.") else fn(texts)
-                                        }
-                                    }
-                                    W7MenuItem(W7Ico.SCRIPT, "Kirim ke Script execution", onSendToScripts != null && one != null && one.isFile) {
-                                        toolsOpen = false
-                                        val fn = onSendToScripts
-                                        if (fn != null && one != null) scope.launch {
-                                            val r = withContext(Dispatchers.IO) { fn(one) }
-                                            say(r.second, r.first)
-                                        }
-                                    }
-                                    W7MenuItem(W7Ico.OPEN_WITH, "Buka dengan...", onOpenWith != null && one?.isFile == true) {
-                                        toolsOpen = false
-                                        one?.let { onOpenWith?.invoke(it) }
-                                    }
-                                    W7MenuItem(W7Ico.SHARE, "Bagikan", onShare != null && tg.any { it.isFile }) {
-                                        toolsOpen = false
-                                        val fn = onShare
-                                        if (fn != null) {
-                                            val fs = tg.filter { it.isFile }
-                                            if (fs.size < tg.size) say("Folder dilewati; hanya berkas yang dibagikan.")
-                                            fn(fs)
-                                        }
-                                    }
-                                    Box(Modifier.fillMaxWidth().height(1.dp).background(Win7.Hairline))
-                                    W7MenuItem(W7Ico.COPY, "Salin", tg.isNotEmpty()) {
-                                        toolsOpen = false
-                                        if (tg.isNotEmpty()) { clip = W7Clip(tg, false); say("Disalin: " + w7Names(tg), true) }
-                                    }
-                                    W7MenuItem(W7Ico.CUT, "Pindah", tg.isNotEmpty()) {
-                                        toolsOpen = false
-                                        if (tg.isNotEmpty()) {
-                                            clip = W7Clip(tg, true)
-                                            say("Siap dipindah: " + w7Names(tg) + ". Buka folder tujuan lalu Tempel.", true)
-                                        }
-                                    }
-                                    W7MenuItem(W7Ico.PASTE, if (c != null) "Tempel: " + w7Names(c.files) else "Tempel", c != null) {
-                                        toolsOpen = false
-                                        if (c != null) {
-                                            val d = dir
-                                            runOp(
-                                                op = { ctl ->
-                                                    val res = if (c.cut) FileOps.moveAll(c.files, d, ctl) else FileOps.copyAll(c.files, d, ctl)
-                                                    val head = if (c.cut) "Dipindah: " else "Ditempel: "
-                                                    head + w7Names(res)
-                                                },
-                                                onDone = { if (c.cut) clip = null }
-                                            )
-                                        }
-                                    }
-                                    Box(Modifier.fillMaxWidth().height(1.dp).background(Win7.Hairline))
-                                    W7MenuItem(W7Ico.RENAME, "Ubah nama", one != null) {
-                                        toolsOpen = false
-                                        if (one != null) sheet = W7Sheet.Rename(one)
-                                    }
-                                    W7MenuItem(W7Ico.ZIP, "Kompres (ZIP)", tg.isNotEmpty()) {
-                                        toolsOpen = false
-                                        if (tg.isNotEmpty()) {
-                                            val d = dir
-                                            runOp(op = { ctl -> "ZIP dibuat: " + FileOps.zipAll(tg, d, ctl).name })
-                                        }
-                                    }
-                                    W7MenuItem(W7Ico.ZIP, "Kompres ZIP + kata sandi\u2026", tg.isNotEmpty()) {
-                                        toolsOpen = false
-                                        if (tg.isNotEmpty()) sheet = W7Sheet.Zip(tg)
-                                    }
-                                    W7MenuItem(W7Ico.ZIP, "Kompres\u2026 (7z, tar.gz, ...)", tg.isNotEmpty()) { // [ARCHIVE2]
-                                        toolsOpen = false
-                                        if (tg.isNotEmpty()) sheet = W7Sheet.Compress(tg)
-                                    }
-                                    W7MenuItem(
-                                        W7Ico.UNZIP, "Ekstrak arsip",
-                                        one != null && one.isFile && ArchiveRoute.supports(one.name)
-                                    ) { // [ARCHIVE] ZIP tetap lewat jalur lama; format lain lewat ArchiveEngine
-                                        toolsOpen = false
-                                        if (one != null) {
-                                            val d = dir
-                                            if (one.extension.equals("zip", ignoreCase = true)) {
-                                                runOp(
-                                                    op = { ctl -> "Diekstrak ke: " + FileOps.unzip(one, d, ctl).name },
-                                                    onFail = { if (it is FileOps.NeedPassword) { say(""); sheet = W7Sheet.Password(one, false) } }
-                                                )
-                                            } else {
-                                                runOp(
-                                                    op = { ctl -> ArchiveOps.extract(ctx, one, d, ExtractTarget.NAMED_FOLDER, ctl).describe() },
-                                                    onFail = { if (it is FileOps.NeedPassword) { say(""); sheet = W7Sheet.ArchivePw(one, false) } }
-                                                )
-                                            }
-                                        }
-                                    }
-                                    W7MenuItem(
-                                        W7Ico.UNZIP, "Ekstrak pilihan\u2026",
-                                        one != null && one.isFile && ArchiveRoute.supports(one.name)
-                                    ) { // [ARCHIVE] pilih tujuan dan entri
-                                        toolsOpen = false
-                                        if (one != null) sheet = W7Sheet.Archive(one, null)
-                                    }
-                                    W7MenuItem(W7Ico.DELETE, "Hapus", tg.isNotEmpty()) {
-                                        toolsOpen = false
-                                        if (tg.isNotEmpty()) sheet = W7Sheet.Delete(tg)
-                                    }
-                                    W7MenuItem(W7Ico.DELETE, "Hapus permanen\u2026", tg.isNotEmpty()) {
-                                        toolsOpen = false
-                                        if (tg.isNotEmpty()) sheet = W7Sheet.Delete(tg, true)
-                                    }
-                                    Box(Modifier.fillMaxWidth().height(1.dp).background(Win7.Hairline))
-                                    W7MenuItem(W7Ico.NEWDIR, "Folder baru", true) {
-                                        toolsOpen = false
-                                        sheet = W7Sheet.NewDir
-                                    }
-                                    W7MenuItem(
-                                        if (isFav) W7Ico.STAR else W7Ico.STAR_OUT,
-                                        if (isFav) "Hapus dari favorit" else "Pindah ke favorit",
-                                        favTarget != null
-                                    ) {
-                                        toolsOpen = false
-                                        if (favTarget != null) {
-                                            val nm = favTarget.name.ifEmpty { favTarget.path }
-                                            if (isFav) {
-                                                ExplorerFavorites.remove(ctx, favTarget)
-                                                say("Dihapus dari favorit: " + nm, true)
-                                            } else if (w7Favorites(browse).any { it.dir.path == favTarget.path }) {
-                                                say("Folder ini sudah ada di favorit bawaan.")
-                                            } else {
-                                                ExplorerFavorites.add(ctx, favTarget)
-                                                say("Ditambahkan ke favorit: " + nm, true)
-                                            }
-                                            favTick++
-                                        }
-                                    }
-                                    W7MenuItem(W7Ico.COPY, "Salin path", onCopyPath != null && (one != null || tg.isEmpty())) {
-                                        toolsOpen = false
-                                        onCopyPath?.invoke(one ?: dir)
-                                    }
-                                    W7MenuItem(W7Ico.INFO, "Properti", true) {
-                                        toolsOpen = false
-                                        sheet = W7Sheet.Info(if (tg.isEmpty()) listOf(dir) else tg)
-                                    }
-                                }
-                            }
-                        }
+                    if (toolsOpen) W7ToolsMenu( // [SPLIT-TOOLS] isi menu ada di W7ToolsMenu.kt
+                        targets = targets(), dir = dir, browse = browse, clip = clip,
+                        playedFirst = playedFirst, playedRefs = playedRefs, shown = shown,
+                        onPlay = onPlay, onOpenInCode = onOpenInCode, onSendToScripts = onSendToScripts,
+                        onOpenWith = onOpenWith, onShare = onShare, onCopyPath = onCopyPath,
+                        onDismiss = { toolsOpen = false },
+                        onClip = { clip = it }, onPlayedFirst = { playedFirst = it },
+                        onSheet = { sheet = it }, onFavChanged = { favTick++ },
+                        onSay = { t, ok -> say(t, ok) },
+                        onRunOp = { op, onDone, onFail -> runOp(op, onDone, onFail) }
+                    )
                 }
                 if (browse) {
                     // [DROP-MENU] keterangan folder/item pindah ke atas (bekas bilah ikon)
