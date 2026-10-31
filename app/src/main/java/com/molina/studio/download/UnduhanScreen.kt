@@ -106,6 +106,7 @@ fun UnduhanScreen(modifier: Modifier = Modifier) {
     var cover by remember { DownloadForm.cover }
     var limitRate by remember { DownloadForm.limitRate }
     var sidecar by remember { DownloadForm.sidecar }
+    var wifiOnly by remember { DownloadForm.wifiOnly } // [WIFI-ONLY]
     var error by remember { mutableStateOf<String?>(null) }
     var openDir by remember { mutableStateOf<File?>(null) }
 
@@ -286,6 +287,18 @@ fun UnduhanScreen(modifier: Modifier = Modifier) {
                             DownloadChoices.LIMIT_RATES.forEach { r ->
                                 Chip(DownloadChoices.rateLabel(r), limitRate == r, !run.running) { limitRate = r }
                             }
+                        }
+                        // [WIFI-ONLY] hemat kuota: unduhan baru hanya mulai di jaringan tidak berkuota
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Chip("Hanya Wi-Fi", wifiOnly, !run.running) {
+                                DownloadPrefs.setWifiOnly(ctx.applicationContext, !wifiOnly)
+                            }
+                        }
+                        if (wifiOnly) {
+                            Text(
+                                "Unduhan hanya dimulai di jaringan tidak berkuota. Hotspot yang ditandai berkuota juga ditolak.",
+                                color = W7D.TextDim, fontSize = 11.sp,
+                            )
                         }
                     }
                     error?.let { Text(it, color = MolinaTheme.Bad, fontSize = 13.sp) }

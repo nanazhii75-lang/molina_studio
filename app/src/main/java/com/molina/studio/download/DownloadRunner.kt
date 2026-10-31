@@ -53,6 +53,8 @@ internal object DownloadRunner {
     fun start(ctx: Context, req: DownloadRequest): String? {
         DownloadCommand.validate(req)?.let { return it }
         val app = ctx.applicationContext
+        // [WIFI-ONLY] pengguna memilih unduh hanya di jaringan tidak berkuota
+        if (DownloadPrefs.wifiOnly(app) && NetworkGuard.isMetered(app)) return NetworkGuard.BLOCK_MSG
         val script = try {
             app.assets.open(DownloadCommand.SCRIPT_ASSET).use { it.readBytes().toString(Charsets.UTF_8) }
         } catch (e: Exception) {

@@ -41,11 +41,24 @@ internal object DownloadPrefs {
             .putBoolean("sidecar", c.sidecar).apply()
     }
 
+    /** [WIFI-ONLY] Tidak ikut [DownloadChoices]: ini pilihan jaringan dan berlaku untuk mulai, ulangi, dan ulangi riwayat. */
+    fun wifiOnly(ctx: Context): Boolean = try {
+        p(ctx).getBoolean("wifi_only", false)
+    } catch (e: ClassCastException) {
+        false
+    }
+
+    fun setWifiOnly(ctx: Context, on: Boolean) {
+        p(ctx).edit().putBoolean("wifi_only", on).apply()
+        DownloadForm.wifiOnly.value = on
+    }
+
     /** Isi [DownloadForm] sekali per proses; pemanggilan berikutnya diabaikan agar tidak menimpa pilihan aktif. */
     @Synchronized
     fun restore(ctx: Context) {
         if (restored) return
         restored = true
         DownloadForm.apply(load(ctx))
+        DownloadForm.wifiOnly.value = wifiOnly(ctx)
     }
 }

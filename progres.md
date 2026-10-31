@@ -2476,3 +2476,14 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Batasan: "Pernah diputar" hanya menandai video yang dipilih untuk diputar (bukan ditonton tuntas); item berikutnya di playlist otomatis belum ditandai; unduhan sebelum fitur ini tidak bertanda
 - [ ] Compose belum dikompilasi: tunggu CI (cek impor DownloadItemStatus/SeenStore dan variabel app di DownloadRunner)
 - [ ] Uji perangkat: putar satu hasil lalu cari ulang (lencana Pernah diputar), unduh satu hasil sampai selesai lalu cari ulang (lencana Diunduh), keduanya bisa tampil bersamaan, baris terpilih tetap terbaca
+
+## 2026-10-31 - Unduhan: Hanya Wi-Fi, pilih banyak, lewati yang sudah diunduh [DL-WIFI-PICK] [WIFI-ONLY] [PICK-MANY]
+- [x] feat(download): opsi "Hanya Wi-Fi" di form Unduhan (DownloadForm.wifiOnly, DownloadPrefs.wifiOnly/setWifiOnly, NetworkGuard.isMetered via isActiveNetworkMetered); dicek di satu titik DownloadRunner.start sehingga berlaku untuk Mulai, Ulangi, dan Ulangi riwayat; perawatan yt-dlp tidak diblokir; ACCESS_NETWORK_STATE sudah ada di Manifest
+- [x] feat(cinema): hasil pencarian: chip "Pilih" (mode centang), "Semua", "Belum diunduh"; ketuk lama pada baris memulai pilihan; tombol bawah menjadi "Unduh N" bila ada pilihan; hanya item yang terlihat (setelah saringan) yang dikirim
+- [x] feat(core): BatchPlan.kt (:core:common): hanya http(s), tanpa duplikat, lewati yang sudah diunduh, batas 50; "Unduh semua" tanpa pilihan kini melewati video berlencana Diunduh dan memberi tahu jumlahnya; unduh per baris (tombol panah) dan pilihan eksplisit tidak dilewati
+- [x] fix(cinema): ChannelRow memakai rememberUpdatedState untuk lambda tap/tekan lama (sebelumnya pointerInput(e.number) bisa memegang lambda lama setelah urut/saring berubah)
+- [x] Tes: BatchPlanTests.kt (20 kasus) + scripts/core-tests/run_batch_plan.sh
+- [x] Dampak: :core:common (1 berkas baru), :app (CinemaResults, DownloadRunner, DownloadPrefs, DownloadNav, UnduhanScreen, NetworkGuard baru); molina_dl.py, Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
+- [x] Catatan: unduhan otomatis (AutoWorkers) belum mengikuti Hanya Wi-Fi; opsi folder per kanal ditunda karena snapshot(outdir) di molina_dl.py hanya memindai satu folder (perlu ubah deteksi existed)
+- [ ] Compose belum dikompilasi: tunggu CI (cek rememberUpdatedState, smart cast checked, impor BatchPlan)
+- [ ] Uji perangkat: (1) aktifkan Hanya Wi-Fi lalu mulai unduh di data seluler -> pesan penolakan; di Wi-Fi -> jalan; (2) di hasil pencarian: Pilih, centang beberapa, Unduh N -> hanya itu masuk kolom URL; Belum diunduh; ketuk lama; (3) Unduh semua melewati yang berlencana Diunduh + toast jumlah; (4) ganti urut Terbaru/Terlama lalu ketuk baris -> memutar video yang benar

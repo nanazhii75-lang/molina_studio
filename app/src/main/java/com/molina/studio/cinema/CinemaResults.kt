@@ -37,6 +37,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.molina.core.common.BatchPlan
 import com.molina.core.common.DateFilter
 import com.molina.core.common.DownloadCommand
 import com.molina.core.common.DurationFilter
@@ -105,6 +107,8 @@ internal fun SearchResultsDialog(
 ) {
     val ctx = LocalContext.current
     val seen = remember(SeenStore.version) { SeenStore.snapshot(ctx) } // [SEEN-BADGES]
+    var selectMode by remember { mutableStateOf(false) } // [PICK-MANY] mode pilih banyak
+    var chosen by remember { mutableStateOf(setOf<String>()) }
     var sort by remember { mutableStateOf(SearchSort.NEWEST) } // [RESULTS-SORT] bawaan: terbaru dulu
     var durFilter by remember { mutableStateOf(DurationFilter.ALL) } // [RESULTS-FILTER]
     var dateFilter by remember { mutableStateOf(DateFilter.ALL) }
@@ -130,6 +134,7 @@ internal fun SearchResultsDialog(
     val numeric = q.isNotEmpty() && q.all { it.isDigit() }
     val visible = if (q.isEmpty() || numeric) entries
         else entries.filter { SearchOrder.matches(it.item, q) }
+    val pickedItems = visible.map { it.item }.filter { it.pageUrl in chosen } // [PICK-MANY] hanya yang terlihat
 
     LaunchedEffect(q) {
         if (numeric) {
@@ -139,6 +144,8 @@ internal fun SearchResultsDialog(
     }
     LaunchedEffect(searchOpen) { if (searchOpen) focus.requestFocus() }
     LaunchedEffect(sort, durFilter, dateFilter) { selected = 1; listState.scrollToItem(0) } // ganti urutan: kembali ke nomor 001
+
+    fun toggle(url: String) { chosen = if (url in chosen) chosen - url else chosen + url } // [PICK-MANY]
 
     fun page(delta: Int) {
         if (visible.isEmpty()) return
@@ -154,17 +161,12 @@ internal fun SearchResultsDialog(
     }
 
     // Kirim URL ke tab Unduhan (tidak langsung mengunduh: mode/kualitas dipilih di sana).
-    fun download(items: List<StreamSearchItem>) {
-        val all = items.map { it.pageUrl }.filter { it.startsWith("http://") || it.startsWith("https://") }
-        if (all.isEmpty()) {
-            Toast.makeText(ctx, "Tidak ada tautan yang bisa diunduh.", Toast.LENGTH_SHORT).show()
-            return
-        }
-        val urls = all.take(DownloadCommand.MAX_URLS)
-        DownloadNav.request(urls)
-        val msg = if (urls.size == 1) "Dikirim ke Unduhan" else "${urls.size} tautan dikirim ke Unduhan" +
-            (if (all.size > urls.size) " (maks ${DownloadCommand.MAX_URLS})" else "")
-        Toast.makeText(ctx, msg, Toast.LENGTH_SHORT).show()
+    // [PICK-MANY] skipDone = lewati video yang sudah diunduh (dipakai "Unduh semua"; pilihan eksplisit tidak dilewati).
+    fun download(items: List<StreamSearchItem>, skipDone: Boolean = false) {
+        val plan = BatchPlan.plan(items.map { it.pageUrl }, { seen.isDownloaded(it) }, skipDone, DownloadCommand.MAX_URLS)
+        Toast.makeText(ctx, BatchPlan.message(plan, DownloadCommand.MAX_URLS), Toast.LENGTH_SHORT).show()
+        if (plan.empty) return
+        DownloadNav.request(plan.urls)
         onDismiss()
     }
 
@@ -211,6 +213,16 @@ internal fun SearchResultsDialog(
                     Text("Saring", color = MolinaTheme.Muted, fontSize = 12.sp)
                     ResultChip("Durasi: ${durFilter.label}", durFilter != DurationFilter.ALL) { durFilter = durFilter.next() }
                     ResultChip("Unggah: ${dateFilter.label}", dateFilter != DateFilter.ALL) { dateFilter = dateFilter.next() }
+                    // [PICK-MANY] pilih banyak: "Pilih" membuka mode centang (ketuk lama pada baris juga bisa)
+                    ResultChip(if (selectMode) "Pilih: ${pickedItems.size}" else "Pilih", selectMode) {
+                        if (selectMode) { selectMode = false; chosen = emptySet() } else { selectMode = true }
+                    }
+                    if (selectMode) {
+                        ResultChip("Semua", false) { chosen = visible.map { it.item.pageUrl }.toSet() }
+                        ResultChip("Belum diunduh", false) {
+                            chosen = visible.map { it.item.pageUrl }.filter { !seen.isDownloaded(it) }.toSet()
+                        }
+                    }
                 }
                 if (sort != SearchSort.RELEVANCE && undated > 0) Text(
                     "$undated hasil tanpa tanggal ditaruh di akhir", color = MolinaTheme.Muted, fontSize = 11.sp,
@@ -272,10 +284,12 @@ internal fun SearchResultsDialog(
                     items(visible, key = { it.number }) { e ->
                         ChannelRow(e, e.number == selected,
                             onPress = { selected = e.number },
-                            onClick = { onPick(ordered, e.item) },
+                            onClick = { if (selectMode) toggle(e.item.pageUrl) else onPick(ordered, e.item) },
                             onDownload = { download(listOf(e.item)) },
                             played = seen.isPlayed(e.item.pageUrl),
-                            downloaded = seen.isDownloaded(e.item.pageUrl))
+                            downloaded = seen.isDownloaded(e.item.pageUrl),
+                            checked = if (selectMode) e.item.pageUrl in chosen else null,
+                            onLongPress = { selectMode = true; chosen = chosen + e.item.pageUrl })
                     }
                 }
 
@@ -292,8 +306,11 @@ internal fun SearchResultsDialog(
                         searchOpen = !searchOpen
                         if (!searchOpen) query = ""
                     }
-                    TvKey(R.drawable.ic_tv_download, "Unduh semua", MolinaTheme.Gold, Modifier.weight(1f)) {
-                        download(visible.map { it.item })
+                    TvKey(R.drawable.ic_tv_download,
+                        if (pickedItems.isNotEmpty()) "Unduh ${pickedItems.size}" else "Unduh semua",
+                        MolinaTheme.Gold, Modifier.weight(1f)) {
+                        if (pickedItems.isNotEmpty()) download(pickedItems)
+                        else download(visible.map { it.item }, skipDone = true)
                     }
                     TvKey(R.drawable.ic_tv_info, "Info", Color.White, Modifier.weight(1f)) {
                         Toast.makeText(ctx,
@@ -312,7 +329,12 @@ private fun ChannelRow(
     e: ResultEntry, isSelected: Boolean,
     onPress: () -> Unit, onClick: () -> Unit, onDownload: () -> Unit,
     played: Boolean = false, downloaded: Boolean = false,
+    checked: Boolean? = null, onLongPress: () -> Unit = {},
 ) {
+    // [PICK-MANY] lambda terbaru: pointerInput tidak dimulai ulang saat daftar diurut/disaring atau mode pilih berganti
+    val onPressNow by rememberUpdatedState(onPress)
+    val onClickNow by rememberUpdatedState(onClick)
+    val onLongNow by rememberUpdatedState(onLongPress)
     val shape = RoundedCornerShape(4.dp)
     val brush = if (isSelected) Brush.verticalGradient(listOf(SelectedTop, SelectedBottom))
         else Brush.verticalGradient(listOf(RowTop, RowBottom))
@@ -321,7 +343,11 @@ private fun ChannelRow(
             .clip(shape).background(brush)
             .border(1.dp, if (isSelected) SelectedLine else RowLine, shape)
             .pointerInput(e.number) {
-                detectTapGestures(onPress = { onPress(); tryAwaitRelease() }, onTap = { onClick() })
+                detectTapGestures(
+                    onPress = { onPressNow(); tryAwaitRelease() },
+                    onLongPress = { onLongNow() },
+                    onTap = { onClickNow() },
+                )
             }
             .padding(horizontal = 10.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -329,6 +355,13 @@ private fun ChannelRow(
         Text("%03d".format(e.number), color = if (isSelected) Color.White else ChannelNumber,
             fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 14.sp,
             modifier = Modifier.width(44.dp))
+        // [PICK-MANY] kotak centang (digambar, bukan glif emoji) hanya saat mode pilih aktif
+        if (checked != null) Box(
+            Modifier.padding(end = 8.dp).size(20.dp).clip(RoundedCornerShape(4.dp))
+                .background(if (checked) MolinaTheme.Gold else Color.Transparent)
+                .border(1.5.dp, MolinaTheme.Gold, RoundedCornerShape(4.dp)),
+            contentAlignment = Alignment.Center,
+        ) { if (checked) Text("\u2713", color = Color.Black, fontSize = 14.sp, fontWeight = FontWeight.Bold) }
         Column(Modifier.weight(1f)) {
             Text(e.item.title, color = Color.White, fontSize = 15.sp, maxLines = 2,
                 overflow = TextOverflow.Ellipsis,

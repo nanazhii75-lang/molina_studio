@@ -44,6 +44,9 @@ internal object DownloadForm {
     val limitRate = mutableStateOf("")
     val sidecar = mutableStateOf(false)
 
+    /** [WIFI-ONLY] Hanya mulai unduhan di jaringan tidak berkuota. Disimpan lewat DownloadPrefs.setWifiOnly. */
+    val wifiOnly = mutableStateOf(false)
+
     fun apply(c: DownloadChoices) {
         video.value = c.video; height.value = c.height; videoExt.value = c.videoExt
         audioFmt.value = c.audioFmt; bitrate.value = c.bitrate
