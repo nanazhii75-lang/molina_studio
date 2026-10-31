@@ -231,7 +231,10 @@ internal fun BundledComponentsSection(
     onCheckVersion: (String) -> Unit,
     checkingId: String? = null, // [BUNDLE-INLINE] id komponen yang sedang dicek versinya
     checkNotes: Map<String, String> = emptyMap(),
-    onCancelCheck: () -> Unit = {}
+    onCancelCheck: () -> Unit = {},
+    onCheckAll: () -> Unit = {}, // [BUNDLE-ALL] cek versi python3, git, ffmpeg berurutan
+    batchProgress: String? = null,
+    batchNote: String? = null
 ) {
     val ctx = LocalContext.current
     remember { AutoPrefs.init(ctx) }
@@ -284,7 +287,16 @@ internal fun BundledComponentsSection(
             BundleChip("${r.label} ${counts[r] ?: 0}", role == r) { filter = r.name }
         }
     }
-    Spacer(Modifier.height(10.dp))
+    Spacer(Modifier.height(4.dp))
+    if (checkingId != null) {
+        BundleAction("MEMERIKSA" + (if (batchProgress != null) " $batchProgress" else "") + "\u2026 KETUK UNTUK BERHENTI", onCancelCheck)
+    } else {
+        BundleAction("PERIKSA SEMUA VERSI", onCheckAll)
+    }
+    batchNote?.let {
+        Text(it, color = W7D.TextDim, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 10.dp).padding(bottom = 6.dp))
+    }
+    Spacer(Modifier.height(6.dp))
 
     shown.forEach { c ->
         val expanded = open == c.id

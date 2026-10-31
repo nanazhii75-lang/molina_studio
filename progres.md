@@ -2682,3 +2682,10 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh; tanpa dependensi baru; PackagesPage tetap memakai dialog untuk alat Debian; gerbang dan tes bump lulus
 - [ ] Compose belum dikompilasi: tunggu CI (parameter baru BundledComponentsSection, mutableStateMapOf, DisposableEffect, RunHandle.cancel)
 - [ ] Belum diuji di perangkat: cek versi python3/git/ffmpeg dari kartu, termasuk tombol berhenti di tengah jalan
+
+## 2026-10-31 - Tombol PERIKSA SEMUA VERSI di halaman Komponen bundel [BUNDLE-ALL]
+- [x] feat(settings): BundlePage memakai antrean cek versi (python3, git, ffmpeg) BERURUTAN karena semuanya berbagi satu PRoot Debian; cek satu kartu memakai antrean yang sama
+- [x] Tombol di bawah filter: "PERIKSA SEMUA VERSI" -> "MEMERIKSA n/3… KETUK UNTUK BERHENTI"; ringkasan akhir "Selesai/Dihentikan: x dari 3 terdeteksi"; satu alat gagal tidak menghentikan sisanya, berhenti membersihkan antrean, meninggalkan halaman membatalkan semuanya
+- [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh; tanpa dependensi baru; gerbang dan tes bump lulus
+- [ ] Compose belum dikompilasi: tunggu CI (fungsi lokal rekursif runNext/begin di composable, parameter baru BundledComponentsSection)
+- [ ] Belum diuji di perangkat: urutan 3 cek di Android 8, tombol berhenti di tengah antrean, kasus Debian belum terpasang (3 catatan kuning)

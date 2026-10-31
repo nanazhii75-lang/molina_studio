@@ -218,48 +218,86 @@ internal fun PackagesPage(onOpenYtdlp: () -> Unit, onOpenBundle: () -> Unit) {
 
 /**
  * Settings > Paket > Komponen bundel [BUNDLE-PAGE]: halaman sendiri agar daftar panjang komponen tidak langsung
- * memenuhi halaman Paket. "Periksa versi" memakai startShell yang sama dengan dialog, tetapi hasilnya tampil di kartu.
+ * memenuhi halaman Paket. "Periksa versi" (satu atau semua, berurutan) memakai startShell yang sama dengan dialog, tetapi hasilnya tampil di kartu.
  */
 @Composable
 internal fun BundlePage(onOpenYtdlp: () -> Unit) {
     val ctx = LocalContext.current
     remember { ToolStore.init(ctx) }
-    // [BUNDLE-INLINE] cek versi berjalan di latar dan hasilnya tampil di kartu; tanpa dialog penuh
+    // [BUNDLE-ALL] satu atau semua cek versi lewat antrean; BERURUTAN karena semuanya memakai satu PRoot Debian
     var checking by remember { mutableStateOf<String?>(null) }
     var handle by remember { mutableStateOf<com.molina.code.run.RunHandle?>(null) }
+    var queue by remember { mutableStateOf<List<String>>(emptyList()) }
+    var batchTotal by remember { mutableStateOf(0) }
+    var batchOk by remember { mutableStateOf(0) }
+    var batchNote by remember { mutableStateOf<String?>(null) }
     val notes = remember { androidx.compose.runtime.mutableStateMapOf<String, String>() }
-    androidx.compose.runtime.DisposableEffect(Unit) { onDispose { handle?.cancel() } }
-    BundledComponentsSection(
-        onOpenYtdlp = onOpenYtdlp,
-        onCheckVersion = { tid ->
-            val tool = BuiltinTools.all.firstOrNull { it.id == tid }
-            val script = if (tool != null) scriptOf(tool, ToolAction.Version) else ""
-            if (tool != null && checking == null) {
-                if (script.isBlank()) {
-                    notes[tid] = "Skrip versi belum diisi."
+    androidx.compose.runtime.DisposableEffect(Unit) { onDispose { queue = emptyList(); handle?.cancel() } }
+
+    fun runNext() {
+        val tid = queue.firstOrNull()
+        if (tid == null) {
+            checking = null
+            handle = null
+            if (batchTotal > 0) batchNote = "Selesai: $batchOk dari $batchTotal terdeteksi."
+            batchTotal = 0
+            return
+        }
+        queue = queue.drop(1)
+        val tool = BuiltinTools.all.firstOrNull { it.id == tid }
+        val script = if (tool != null) scriptOf(tool, ToolAction.Version) else ""
+        if (tool == null || script.isBlank()) {
+            notes[tid] = "Skrip versi belum diisi."
+            runNext()
+            return
+        }
+        checking = tid
+        notes.remove(tid)
+        val out = StringBuilder()
+        handle = startShell(
+            ctx, ToolRun("${tool.name}: versi", script, ToolAction.Version.timeoutMs, "", false),
+            onChunk = { if (out.length < 20_000) out.append(it) },
+            onDone = { r ->
+                handle = null
+                when {
+                    r.startError != null || r.timedOut -> { notes[tid] = describe(r) }
+                    r.cancelled -> { notes[tid] = "Pemeriksaan dihentikan." }
+                    else -> {
+                        if (r.exitCode == 0) batchOk += 1
+                        ToolStore.setCheck(tid, if (r.exitCode == 0) firstLine(out.toString()) else "Tidak terdeteksi (kode ${r.exitCode})")
+                    }
+                }
+                if (r.cancelled) {
+                    queue = emptyList()
+                    checking = null
+                    if (batchTotal > 0) batchNote = "Dihentikan: $batchOk dari $batchTotal terdeteksi."
+                    batchTotal = 0
                 } else {
-                    checking = tid
-                    notes.remove(tid)
-                    val out = StringBuilder()
-                    handle = startShell(
-                        ctx, ToolRun("${tool.name}: versi", script, ToolAction.Version.timeoutMs, "", false),
-                        onChunk = { if (out.length < 20_000) out.append(it) },
-                        onDone = { r ->
-                            checking = null
-                            handle = null
-                            when {
-                                r.startError != null || r.timedOut -> { notes[tid] = describe(r) }
-                                r.cancelled -> { notes[tid] = "Pemeriksaan dihentikan." }
-                                else -> ToolStore.setCheck(tid, if (r.exitCode == 0) firstLine(out.toString()) else "Tidak terdeteksi (kode ${r.exitCode})")
-                            }
-                        }
-                    )
+                    runNext()
                 }
             }
-        },
+        )
+    }
+
+    fun begin(ids: List<String>, batch: Boolean) {
+        if (checking != null) return
+        batchNote = null
+        batchOk = 0
+        batchTotal = if (batch) ids.size else 0
+        queue = ids
+        runNext()
+    }
+
+    val allIds = listOf("b-python3", "b-git", "b-ffmpeg").filter { id -> BuiltinTools.all.any { it.id == id } }
+    BundledComponentsSection(
+        onOpenYtdlp = onOpenYtdlp,
+        onCheckVersion = { tid -> begin(listOf(tid), false) },
         checkingId = checking,
         checkNotes = notes,
-        onCancelCheck = { handle?.cancel() }
+        onCancelCheck = { handle?.cancel() },
+        onCheckAll = { begin(allIds, true) },
+        batchProgress = if (batchTotal > 0 && checking != null) "${batchTotal - queue.size}/$batchTotal" else null,
+        batchNote = batchNote
     )
 }
 
