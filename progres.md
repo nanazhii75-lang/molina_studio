@@ -2390,3 +2390,10 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: hanya :app (2 berkas); Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
 - [ ] Compose belum dikompilasi di sandbox: tunggu CI
 - [ ] Uji perangkat (potret): menu muncul ke atas penuh di layar; Urut dan Alat membuka dari tombol yang sama; geser kiri baris membuka Alat; keterangan atas berganti saat memilih berkas; Mode Pilih menampilkan hitungan di kiri bawah; thumbnail media tetap muncul di keterangan atas
+
+## 2026-10-31 - Penjelajah: ikon hamburger dipindah ke menu drop-up [DROP-HAMBURGER]
+- [x] refactor(cinema): Win7OpenDialog.kt: ikon hamburger di bilah alamat disembunyikan pada mode jelajah (tetap ada di dialog Buka/Simpan); diganti item "Panel lokasi" di urutan pertama menu drop-up (potret saja) yang membuka/menutup panel kiri; ikon W7Ico.NAV baru (tiga garis)
+- [x] Geser kanan dari tepi untuk membuka panel tetap berfungsi
+- [x] Dampak: hanya :app (1 berkas); Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
+- [ ] Compose belum dikompilasi: tunggu CI
+- [ ] Uji perangkat (potret): bilah alamat tanpa hamburger; menu drop-up menampilkan "Panel lokasi" paling atas dan membuka drawer; landscape tidak menampilkan item itu

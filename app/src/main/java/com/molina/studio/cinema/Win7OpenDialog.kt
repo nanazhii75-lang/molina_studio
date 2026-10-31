@@ -126,7 +126,7 @@ private sealed class W7Sheet {
     object NewDir : W7Sheet()
 }
 private enum class W7Ico { PLAY, CODE, SCRIPT, COPY, CUT, PASTE, RENAME, ZIP, UNZIP, DELETE, NEWDIR, STAR, STAR_OUT, INFO, SHARE, OPEN_WITH,
-    REFRESH, SORT, SELECT, SELECT_ALL, CLEAR, MORE, SEARCH } // [W7-COMPACT-PORTRAIT]
+    REFRESH, SORT, SELECT, SELECT_ALL, CLEAR, MORE, SEARCH, NAV } // [W7-COMPACT-PORTRAIT]
 
 private fun w7Names(l: List<File>): String = if (l.size == 1) l[0].name else l.size.toString() + " item"
 private fun w7StemEnd(name: String, dir: Boolean): Int =
@@ -543,7 +543,7 @@ fun Win7OpenDialog(
             Column(Modifier.weight(1f).fillMaxWidth().border(1.dp, Win7.FrameLine).background(Win7.Face)) {
                 Row(Modifier.fillMaxWidth().padding(6.dp), verticalAlignment = Alignment.CenterVertically) {
                     Win7BackOrb(canUp || backStack.isNotEmpty()) { if (!goBack()) goUp() }
-                    if (portrait) W7Cmd("\u2630", true) { navOpen = !navOpen }
+                    if (portrait && !browse) W7Cmd("\u2630", true) { navOpen = !navOpen } // [DROP-HAMBURGER] mode jelajah: lihat menu drop-up
                     val showBox = !portrait || searchOpen || query.isNotBlank()
                     val showCrumbs = !portrait || !showBox
                     Spacer(Modifier.width(6.dp))
@@ -949,6 +949,7 @@ fun Win7OpenDialog(
                                         properties = PopupProperties(focusable = true)
                                     ) {
                                         Column(Modifier.width(230.dp).background(Win7.Input).border(1.dp, Win7.FrameLine)) {
+                                            if (portrait) W7MenuItem(W7Ico.NAV, "Panel lokasi", true) { menuOpen = false; navOpen = !navOpen } // [DROP-HAMBURGER]
                                             W7MenuItem(W7Ico.REFRESH, "Segarkan", true) { menuOpen = false; tick++ }
                                             W7MenuItem(W7Ico.SORT, "Urut\u2026", true) { menuOpen = false; sortOpen = true }
                                             W7MenuItem(W7Ico.SELECT, if (multi) "Selesai memilih" else "Pilih", !busy) {
@@ -1486,6 +1487,7 @@ private fun W7MenuIcon(ico: W7Ico, enabled: Boolean, sz: androidx.compose.ui.uni
                 drawCircle(c, radius = 1.2f * u, center = Offset(8f * u, 8f * u))
                 drawCircle(c, radius = 1.2f * u, center = Offset(8f * u, 12.5f * u))
             }
+            W7Ico.NAV -> { line(2.5f, 4f, 13.5f, 4f); line(2.5f, 8f, 13.5f, 8f); line(2.5f, 12f, 13.5f, 12f) } // [DROP-HAMBURGER]
             W7Ico.INFO -> {
                 drawCircle(c, radius = 6.2f * u, center = Offset(8f * u, 8f * u), style = st)
                 line(8f, 7f, 8f, 11.5f)
