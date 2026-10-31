@@ -16,6 +16,7 @@ Mode non-interaktif (dipakai halaman Unduhan native; stdout hanya berisi JSON, s
     python3 molina_dl.py --json URL --subs id,en [--subs-mode embed|file]   (subtitle: embed = disematkan, file = .srt di samping video)
     python3 molina_dl.py --json URL --mode audio [--no-cover]               (sampul + tag judul/artis disematkan ke MP3/M4A)
     python3 molina_dl.py --json URL --limit-rate 2M                         (batasi kecepatan, mis. 500K, 2M)
+    python3 molina_dl.py --json URL --per-channel                           (simpan ke subfolder per kanal: <folder>/<Nama Kanal>/)
     python3 molina_dl.py --json URL --sidecar                               (video: poster .jpg + metadata ringkas .info.json di samping video)
     python3 molina_dl.py --json --doctor        (cek yt-dlp, ffmpeg, folder, ruang kosong)
     python3 molina_dl.py --json --update-ytdlp  (perbarui atau pasang yt-dlp)
@@ -25,13 +26,14 @@ Kode keluar: 0 semua berhasil, 1 ada yang gagal, 2 galat penggunaan/lingkungan, 
 
 Kontrak event JSON (v=1), tiap baris satu objek dengan kunci "v" dan "ev":
     hello    {script, version}                      awal sesi
-    warn     {code, msg}                            mis. dir_fallback, low_space, no_ffmpeg
+    warn     {code, msg}                            mis. dir_fallback, low_space, no_ffmpeg, channel_dir_failed
     queue    {total}                                jumlah URL
     item     {i, n, url}                            item i dari n mulai
     info     {i, title, id, duration, uploader, thumbnail, heights}
     progress {i, stream, pct, done, total, speed, eta}   stream = video|audio|single; pct/total bisa null
     stage    {i, stage}                             merge | extract | recode | subs | cover
     done     {i, dir, files:[{name, path, size}], existed, sidecars?:[{name, path, size}]}
+                                                    dir = folder hasil (subfolder kanal bila --per-channel)
                                                     sidecars hanya ada bila --sidecar dan poster/metadata ditemukan
     error    {i, code, msg}                         i = 0 untuk galat global
     summary  {ok, failed, cancelled}                akhir sesi
@@ -44,6 +46,7 @@ Folder simpan (mengikuti struktur penyimpanan Molina):
 Environment (opsional):
     MOLINA_ROOT    akar folder aplikasi (bawaan /sdcard/Molina)
     MOLINA_DL_DIR  satu folder untuk video DAN audio (menimpa semuanya; --dir lebih utama)
+    MOLINA_DL_PER_CHANNEL=1  sama dengan --per-channel (juga berlaku di menu interaktif)
     MOLINA_DL_ASCII=1  bar ASCII tanpa karakter blok;   NO_COLOR=1  tanpa warna
 Bila /sdcard/Molina tidak terlihat di Debian (belum di-bind), skrip memakai folder cadangan
 /sdcard/molina-studio/unduhan/{Video,Audio}, atau ~/unduhan/{Video,Audio}, dan memberi peringatan.
@@ -57,9 +60,10 @@ import signal
 import subprocess
 import sys
 import time
+import unicodedata
 
 SCRIPT_NAME = "molina_dl"
-SCRIPT_VERSION = 6
+SCRIPT_VERSION = 7
 PROTOCOL = 1
 
 URL_RE = re.compile(r"^https?://[^\s/$.?#][^\s]*$", re.IGNORECASE)
@@ -70,6 +74,11 @@ FALLBACK_HEIGHTS = (1080, 720, 480, 360)
 DEFAULT_ROOT = "/sdcard/Molina"
 LEGACY_BASE = "/sdcard/molina-studio/unduhan"
 MIN_FREE_MB = 500
+SNAPSHOT_DEPTH = 2          # folder simpan + satu tingkat subfolder (cukup untuk folder per kanal)
+NO_CHANNEL = "Tanpa Kanal"
+FOLDER_NAME_MAX_BYTES = 100
+BAD_NAME_CHARS = re.compile(r'[<>:"/\\|?*\x00-\x1f\x7f]')
+RESERVED_NAMES = frozenset(["con", "prn", "aux", "nul"] + [f"com{n}" for n in range(1, 10)] + [f"lpt{n}" for n in range(1, 10)])
 UPDATE_TIMEOUT = 600
 SUB_MODES = ("embed", "file")
 MAX_SUB_LANGS = 5
@@ -611,8 +620,14 @@ def run_item(ytdlp, rep, i, n, url, spec, outdir, has_ffmpeg, info=None, _retry=
         rep.info(i, info)
     if free_space_low(outdir):
         rep.warn("low_space", f"Ruang kosong kurang dari {MIN_FREE_MB} MB, unduhan bisa gagal.")
-    before = snapshot(outdir)
-    cmd = build_cmd(ytdlp, url, outdir, spec, has_ffmpeg)
+    item_dir = outdir
+    if spec.get("per_channel"):
+        item_dir = channel_dir(outdir, info)
+        if not ensure_dir(item_dir):
+            rep.warn("channel_dir_failed", "Folder kanal tidak bisa dibuat; unduhan disimpan di folder utama.")
+            item_dir = outdir
+    before = snapshot(item_dir)
+    cmd = build_cmd(ytdlp, url, item_dir, spec, has_ffmpeg)
     if rep.interactive:
         rep.note("Mengunduh... (Ctrl+C untuk membatalkan)")
     try:
@@ -677,26 +692,27 @@ def run_item(ytdlp, rep, i, n, url, spec, outdir, has_ffmpeg, info=None, _retry=
             result.append((os.path.basename(path), path, os.path.getsize(path)))
         except OSError:
             pass
-    existed = any(name in before for name, _p, _s in result)
-    if not result:  # cadangan: selisih isi folder (mis. yt-dlp lama tanpa after_move)
-        for name in sorted(snapshot(outdir) - before):
-            if ".part" in name or name.endswith((".ytdl", ".temp")):
+    existed = any(rel_name(p_, item_dir) in before for _n, p_, _s in result)
+    if not result:  # cadangan: selisih isi folder (mis. yt-dlp lama tanpa after_move), termasuk subfolder
+        for rel in sorted(snapshot(item_dir) - before):
+            base = os.path.basename(rel)
+            if ".part" in base or base.endswith((".ytdl", ".temp")):
                 continue
-            if spec.get("sidecar") and name.lower().endswith(THUMB_EXTS + (INFO_SUFFIX,)):
+            if spec.get("sidecar") and base.lower().endswith(THUMB_EXTS + (INFO_SUFFIX,)):
                 continue  # poster/metadata dilaporkan terpisah (sidecars), bukan sebagai hasil unduhan
-            path = os.path.join(outdir, name)
+            path = os.path.join(item_dir, rel)
             try:
-                result.append((name, path, os.path.getsize(path)))
+                result.append((base, path, os.path.getsize(path)))
             except OSError:
                 pass
         existed = not result
     if spec["mode"] == "video" and spec.get("subs") and spec.get("subs_mode") == "file":
-        have = {n_ for n_, _p, _s in result}
-        for name in sorted(snapshot(outdir) - before):  # def_sidecar_subs
-            if name.lower().endswith(SUB_EXTS) and name not in have:
-                path = os.path.join(outdir, name)
+        have = {p_ for _n, p_, _s in result}
+        for rel in sorted(snapshot(item_dir) - before):  # def_sidecar_subs
+            path = os.path.join(item_dir, rel)
+            if rel.lower().endswith(SUB_EXTS) and path not in have:
                 try:
-                    result.append((name, path, os.path.getsize(path)))
+                    result.append((os.path.basename(rel), path, os.path.getsize(path)))
                 except OSError:
                     pass
     if spec["mode"] == "video" and spec["ext"] == "mp4" and has_ffmpeg and spec.get("compat", True):
@@ -708,7 +724,7 @@ def run_item(ytdlp, rep, i, n, url, spec, outdir, has_ffmpeg, info=None, _retry=
         sidecars = collect_sidecars(result)
         if not existed and not any(n_.lower().endswith(THUMB_EXTS) for n_, _p, _s in sidecars):
             rep.warn("no_poster", "Poster tidak tersedia untuk video ini; hanya metadata yang disimpan.")
-    rep.done(i, outdir, result, existed, sidecars)
+    rep.done(i, item_dir, result, existed, sidecars)
     return "ok"
 
 
@@ -853,11 +869,59 @@ def ensure_compat(rep, i, name, path, size):
     return name, path, size
 
 
-def snapshot(folder):
+def snapshot(folder, depth=SNAPSHOT_DEPTH):
+    """Himpunan path berkas RELATIF terhadap [folder] (pemisah '/'), sedalam [depth] tingkat.
+    depth=1 = hanya isi folder itu sendiri. Folder tersembunyi (awalan '.') dilewati."""
+    found = set()
+
+    def walk(path, prefix, left):
+        try:
+            entries = list(os.scandir(path))
+        except OSError:
+            return
+        for e in entries:
+            try:
+                if e.is_file():
+                    found.add(prefix + e.name)
+                elif left > 1 and e.is_dir() and not e.name.startswith("."):
+                    walk(e.path, prefix + e.name + "/", left - 1)
+            except OSError:
+                continue
+
+    walk(folder, "", max(1, depth))
+    return found
+
+
+def rel_name(path, base):
+    """Path relatif [path] terhadap [base] dengan pemisah '/', cocok dengan isi snapshot(); None bila gagal."""
     try:
-        return {e.name for e in os.scandir(folder) if e.is_file()}
-    except OSError:
-        return set()
+        return os.path.relpath(path, base).replace(os.sep, "/")
+    except ValueError:
+        return None
+
+
+def sanitize_folder_name(name, fallback=NO_CHANNEL, max_bytes=FOLDER_NAME_MAX_BYTES):
+    """Nama kanal -> nama folder aman untuk storage bersama Android (FAT/sdcardfs) dan mudah dibaca."""
+    text = unicodedata.normalize("NFC", str(name or ""))
+    text = "".join(c for c in text if unicodedata.category(c) != "Cf")   # zero-width, penanda RTL
+    text = BAD_NAME_CHARS.sub("_", text)
+    text = re.sub(r"\s+", " ", text).strip().lstrip(".")
+    text = text.encode("utf-8")[:max_bytes].decode("utf-8", "ignore").rstrip(". ")
+    if not text or set(text) <= {"_", " "}:
+        return fallback
+    if text.split(".")[0].strip().lower() in RESERVED_NAMES:
+        text = "_" + text
+    return text
+
+
+def channel_dir(outdir, info):
+    """Subfolder kanal di bawah [outdir]; kanal diambil dari info.channel, lalu info.uploader."""
+    info = info or {}
+    return os.path.join(outdir, sanitize_folder_name(info.get("channel") or info.get("uploader")))
+
+
+def env_flag(name):
+    return os.environ.get(name, "").strip().lower() in ("1", "true", "yes", "ya", "on")
 
 
 def run_queue(ytdlp, rep, items, spec, outdir, has_ffmpeg):
@@ -1072,7 +1136,8 @@ def flow_video(ytdlp, has_ffmpeg, outdir):
     if s is None:
         return
     spec = {"mode": "video", "height": None if idx == 0 else heights[idx - 1], "ext": VIDEO_EXTS[e],
-            "subs": [[], ["id"], ["en"], ["id", "en"]][s], "subs_mode": "embed" if has_ffmpeg else "file"}
+            "subs": [[], ["id"], ["en"], ["id", "en"]][s], "subs_mode": "embed" if has_ffmpeg else "file",
+            "per_channel": env_flag("MOLINA_DL_PER_CHANNEL")}
     run_queue(ytdlp, TextReporter(), items, spec, outdir, has_ffmpeg)
 
 
@@ -1093,7 +1158,7 @@ def flow_audio(ytdlp, has_ffmpeg, outdir):
         if b is None:
             return
         bitrate = BITRATES[b]
-    spec = {"mode": "audio", "afmt": fmt, "bitrate": bitrate}
+    spec = {"mode": "audio", "afmt": fmt, "bitrate": bitrate, "per_channel": env_flag("MOLINA_DL_PER_CHANNEL")}
     run_queue(ytdlp, TextReporter(), items, spec, outdir, has_ffmpeg)
 
 
@@ -1151,6 +1216,8 @@ def parse_args(argv):
     ap.add_argument("--sidecar", action="store_true",
                     help="video: tulis poster (.jpg) dan metadata ringkas (.info.json) di samping video")
     ap.add_argument("--limit-rate", default="", dest="limit_rate", help="batas kecepatan, mis. 500K atau 2M")
+    ap.add_argument("--per-channel", action="store_true", dest="per_channel",
+                    help="simpan ke subfolder per kanal: <folder>/<Nama Kanal>/ (atau MOLINA_DL_PER_CHANNEL=1)")
     ap.add_argument("--doctor", action="store_true", help="periksa lingkungan (yt-dlp, ffmpeg, folder, ruang)")
     ap.add_argument("--update-ytdlp", action="store_true", dest="update_ytdlp", help="perbarui atau pasang yt-dlp")
     ap.add_argument("--version", action="store_true")
@@ -1206,7 +1273,8 @@ def run_cli(args, ytdlp, has_ffmpeg, urls):
     spec = {"mode": args.mode, "height": args.height or None, "ext": args.ext,
             "afmt": args.afmt, "bitrate": args.bitrate, "compat": not args.no_compat,
             "subs": subs, "subs_mode": args.subs_mode if has_ffmpeg else "file",
-            "cover": not args.no_cover, "limit": args.limit_rate or None, "sidecar": sidecar}
+            "cover": not args.no_cover, "limit": args.limit_rate or None, "sidecar": sidecar,
+            "per_channel": bool(args.per_channel) or env_flag("MOLINA_DL_PER_CHANNEL")}
     if args.mode == "audio" and has_ffmpeg and spec["cover"] and not cover_supported(args.afmt):
         rep.warn("no_cover", f"Sampul {args.afmt.upper()} butuh mutagen (apt install -y python3-mutagen); audio diunduh tanpa sampul.")
     ok, failed, cancelled = run_queue(ytdlp, rep, [(u, None) for u in urls], spec, outdir, has_ffmpeg)

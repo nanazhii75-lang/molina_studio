@@ -73,6 +73,29 @@ fun main() {
     check("modeLabel: audio tidak menampilkan poster", DownloadHistoryEntry(1, DownloadChoices(video = false, sidecar = true), false, null, es.items).modeLabel() == "Audio MP3 192k")
     check("modeLabel: urutan sub, poster, batas", DownloadHistoryEntry(1, DownloadChoices(subs = listOf("id"), sidecar = true, limitRate = "2M"), false, null, es.items).modeLabel() == "Video Terbaik MP4 · sub ID · poster · maks 2M/dtk")
 
+    // folder per kanal
+    check("bawaan: folder per kanal mati", !d.perChannel)
+    check("sanitize: perChannel dipertahankan", DownloadChoices.sanitize(null, null, null, null, null, perChannel = true).perChannel)
+    check("sanitize: perChannel null -> mati", !DownloadChoices.sanitize(null, null, null, null, null, perChannel = null).perChannel)
+    check("args: bawaan tanpa --per-channel", !DownloadCommand.args(DownloadRequest(U)).contains("--per-channel"))
+    val vOn = DownloadCommand.args(DownloadRequest(U, perChannel = true))
+    check("args: video + perChannel memuat --per-channel sebelum --", vOn.contains("--per-channel") && vOn.indexOf("--per-channel") < vOn.indexOf("--"))
+    check("args: audio juga memuat --per-channel", DownloadCommand.args(DownloadRequest(U, mode = DownloadMode.AUDIO, perChannel = true)).contains("--per-channel"))
+    check("args: perChannel lolos validasi", DownloadCommand.validate(DownloadRequest(U, perChannel = true)) == null)
+    val ep = DownloadHistory.build(9L, DownloadRequest(U, perChannel = true), DownloadSessionState())!!
+    check("build: perChannel tercatat", ep.choices.perChannel)
+    val bp = DownloadHistory.decode(DownloadHistory.encode(listOf(ep)))
+    check("encode/decode: perChannel utuh", bp.size == 1 && bp[0].choices.perChannel && bp[0].choices == ep.choices)
+    check("decode: riwayat lama (tanpa kunci pc) -> perChannel mati", !o[0].choices.perChannel)
+    val badPc = DownloadHistory.decode("""{"v":1,"entries":[{"at":10,"video":true,"pc":"ya","items":[{"u":"https://a.test/1","ok":false}]}]}""")
+    check("decode: pc bertipe salah -> mati tanpa melempar", badPc.size == 1 && !badPc[0].choices.perChannel)
+    check("retry: membawa perChannel ke argumen", ep.retryRequest().perChannel && DownloadCommand.args(ep.retryRequest()).contains("--per-channel"))
+    check("modeLabel: per kanal tampil untuk video dan audio",
+        ep.modeLabel() == "Video Terbaik MP4 · per kanal" &&
+            DownloadHistoryEntry(1, DownloadChoices(video = false, perChannel = true), false, null, ep.items).modeLabel() == "Audio MP3 192k · per kanal")
+    check("modeLabel: urutan sub, poster, per kanal, batas",
+        DownloadHistoryEntry(1, DownloadChoices(subs = listOf("id"), sidecar = true, perChannel = true, limitRate = "2M"), false, null, ep.items).modeLabel() == "Video Terbaik MP4 · sub ID · poster · per kanal · maks 2M/dtk")
+
     if (fails > 0) { println("$fails pemeriksaan GAGAL"); System.exit(1) }
     println("semua uji lulus")
 }

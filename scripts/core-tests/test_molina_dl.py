@@ -375,6 +375,201 @@ class SubsRateLimitFallbackTests(unittest.TestCase):
         self.assertIn(("done", 1), rep.events)
 
 
+class SnapshotTests(unittest.TestCase):
+    def setUp(self):
+        self.d = tempfile.mkdtemp(prefix="mdl-snap-")
+
+    def tearDown(self):
+        shutil.rmtree(self.d, ignore_errors=True)
+
+    def touch(self, rel):
+        p = os.path.join(self.d, *rel.split("/"))
+        os.makedirs(os.path.dirname(p), exist_ok=True)
+        open(p, "wb").write(b"x")
+        return p
+
+    def test_depth_one_is_flat(self):
+        self.touch("a.mp4")
+        self.touch("sub/b.mp4")
+        self.assertEqual(dl.snapshot(self.d, depth=1), {"a.mp4"})
+
+    def test_default_sees_one_subfolder_level(self):
+        for rel in ("a.mp4", "Kanal/b.mp4", "Kanal/deep/c.mp4", ".hidden/d.mp4"):
+            self.touch(rel)
+        self.assertEqual(dl.snapshot(self.d), {"a.mp4", "Kanal/b.mp4"})
+
+    def test_missing_folder_is_empty(self):
+        self.assertEqual(dl.snapshot(os.path.join(self.d, "tidak-ada")), set())
+
+    def test_rel_name_matches_snapshot_keys(self):
+        p = self.touch("Kanal/v.mp4")
+        self.assertEqual(dl.rel_name(p, self.d), "Kanal/v.mp4")
+        self.assertIn(dl.rel_name(p, self.d), dl.snapshot(self.d))
+
+
+class ChannelFolderTests(unittest.TestCase):
+    def test_sanitize(self):
+        s = dl.sanitize_folder_name
+        self.assertEqual(s("Molina TV"), "Molina TV")
+        self.assertEqual(s("A/B\\C:D*E?"), "A_B_C_D_E_")
+        self.assertEqual(s("  banyak   spasi  "), "banyak spasi")
+        self.assertEqual(s("..tersembunyi."), "tersembunyi")
+        self.assertEqual(s(".."), dl.NO_CHANNEL)
+        self.assertEqual(s(""), dl.NO_CHANNEL)
+        self.assertEqual(s(None), dl.NO_CHANNEL)
+        self.assertEqual(s("???"), dl.NO_CHANNEL)
+        self.assertEqual(s("CON"), "_CON")
+        self.assertEqual(s("lpt1.txt"), "_lpt1.txt")
+        self.assertEqual(s("a\u200bb\u202ec"), "abc")  # zero-width dan penanda RTL dibuang
+        self.assertEqual(s("-opsi"), "-opsi")
+
+    def test_sanitize_limits_bytes_without_breaking_characters(self):
+        out = dl.sanitize_folder_name("é" * 200)
+        self.assertLessEqual(len(out.encode("utf-8")), dl.FOLDER_NAME_MAX_BYTES)
+        self.assertEqual(out, "é" * (dl.FOLDER_NAME_MAX_BYTES // 2))
+        self.assertEqual(dl.sanitize_folder_name("x" * 300), "x" * dl.FOLDER_NAME_MAX_BYTES)
+
+    def test_channel_dir_prefers_channel_then_uploader(self):
+        self.assertEqual(dl.channel_dir("/o", {"channel": "C", "uploader": "U"}), os.path.join("/o", "C"))
+        self.assertEqual(dl.channel_dir("/o", {"uploader": "U"}), os.path.join("/o", "U"))
+        self.assertEqual(dl.channel_dir("/o", {}), os.path.join("/o", dl.NO_CHANNEL))
+        self.assertEqual(dl.channel_dir("/o", None), os.path.join("/o", dl.NO_CHANNEL))
+        # nama kanal berbahaya tidak boleh keluar dari folder simpan
+        self.assertEqual(os.path.dirname(dl.channel_dir("/o", {"channel": "../../etc"})), "/o")
+
+    def test_cli_flag_and_env(self):
+        self.assertFalse(dl.parse_args(["http://x/1"]).per_channel)
+        self.assertTrue(dl.parse_args(["--per-channel", "http://x/1"]).per_channel)
+        old = os.environ.get("MOLINA_DL_PER_CHANNEL")
+        try:
+            for val, want in (("1", True), ("true", True), ("0", False), ("", False)):
+                os.environ["MOLINA_DL_PER_CHANNEL"] = val
+                self.assertEqual(dl.env_flag("MOLINA_DL_PER_CHANNEL"), want, val)
+        finally:
+            if old is None:
+                os.environ.pop("MOLINA_DL_PER_CHANNEL", None)
+            else:
+                os.environ["MOLINA_DL_PER_CHANNEL"] = old
+
+
+FAKE_YTDLP = """\
+import os, sys
+a = sys.argv[1:]
+d = os.path.dirname(a[a.index('-o') + 1])
+mode = os.environ.get('FAKE_MODE', 'print')
+target = os.path.join(d, 'sub') if mode == 'silent_sub' else d
+os.makedirs(target, exist_ok=True)
+p = os.path.join(target, 'v [1].mp4')
+open(p, 'wb').write(b'x' * 10)
+if mode == 'print':
+    print('MDLFILE|' + p)
+"""
+
+
+class PerChannelRunTests(unittest.TestCase):
+    """run_item dengan yt-dlp palsu: folder per kanal dan deteksi berkas di subfolder (tanpa jaringan)."""
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp(prefix="mdl-pc-")
+        self.fake = os.path.join(self.tmp, "fake_ytdlp.py")
+        with open(self.fake, "w") as f:
+            f.write(FAKE_YTDLP)
+        self.out = os.path.join(self.tmp, "out")
+        os.makedirs(self.out)
+        self._mode = os.environ.get("FAKE_MODE")
+        self.addCleanup(self._restore_mode)
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def _restore_mode(self):
+        if self._mode is None:
+            os.environ.pop("FAKE_MODE", None)
+        else:
+            os.environ["FAKE_MODE"] = self._mode
+
+    def run_one(self, spec_extra=None, info=None, mode="print"):
+        os.environ["FAKE_MODE"] = mode
+
+        class Cap(Recorder):
+            def __init__(s):
+                super().__init__()
+                s.done_args = None
+                s.warns = []
+
+            def warn(s, code, msg):
+                s.warns.append(code)
+
+            def done(s, i, outdir, files, existed, sidecars=None):
+                s.done_args = (outdir, files, existed)
+
+            def item(s, *a): pass
+            def info(s, *a): pass
+            def error(s, i, code, msg): s.events.append(("error", code))
+            def progress(s, *a, **k): pass
+            def stage(s, *a, **k): pass
+            def note(s, *a, **k): pass
+            def finish_line(s): pass
+
+        rep = Cap()
+        spec = {"mode": "video", "ext": "mp4", "compat": False}
+        spec.update(spec_extra or {})
+        status = dl.run_item([sys.executable, self.fake], rep, 1, 1, "http://x/1", spec, self.out, False,
+                             info=info if info is not None else {"id": "1", "channel": "Kanal: A/B"})
+        return status, rep
+
+    def test_per_channel_saves_in_channel_folder(self):
+        status, rep = self.run_one({"per_channel": True})
+        folder = os.path.join(self.out, "Kanal_ A_B")
+        self.assertEqual(status, "ok")
+        self.assertEqual(rep.done_args[0], folder)
+        self.assertEqual([n for n, _p, _s in rep.done_args[1]], ["v [1].mp4"])
+        self.assertFalse(rep.done_args[2])
+        self.assertTrue(os.path.isfile(os.path.join(folder, "v [1].mp4")))
+        self.assertFalse(os.path.exists(os.path.join(self.out, "v [1].mp4")))
+
+    def test_flat_mode_unchanged(self):
+        status, rep = self.run_one()
+        self.assertEqual((status, rep.done_args[0]), ("ok", self.out))
+        self.assertTrue(os.path.isfile(os.path.join(self.out, "v [1].mp4")))
+
+    def test_per_channel_without_channel_uses_fallback_name(self):
+        _s, rep = self.run_one({"per_channel": True}, info={"id": "1"})
+        self.assertEqual(rep.done_args[0], os.path.join(self.out, dl.NO_CHANNEL))
+
+    def test_existing_file_detected_in_channel_folder(self):
+        folder = os.path.join(self.out, "Kanal_ A_B")
+        os.makedirs(folder)
+        open(os.path.join(folder, "v [1].mp4"), "wb").write(b"lama")
+        _s, rep = self.run_one({"per_channel": True})
+        self.assertTrue(rep.done_args[2])  # existed
+
+    def test_fallback_finds_file_created_in_subfolder(self):
+        # Regresi: dulu snapshot hanya satu folder -> hasil kosong dan dilaporkan "sudah ada".
+        status, rep = self.run_one(mode="silent_sub")
+        self.assertEqual(status, "ok")
+        self.assertEqual([n for n, _p, _s in rep.done_args[1]], ["v [1].mp4"])
+        self.assertFalse(rep.done_args[2])
+
+    def test_fallback_ignores_preexisting_files_in_subfolder(self):
+        old = os.path.join(self.out, "sub")
+        os.makedirs(old)
+        open(os.path.join(old, "lama.mp4"), "wb").write(b"x")
+        _s, rep = self.run_one(mode="silent_sub")
+        self.assertEqual([n for n, _p, _s in rep.done_args[1]], ["v [1].mp4"])
+
+    def test_unwritable_channel_folder_falls_back_with_warning(self):
+        saved = dl.ensure_dir
+        dl.ensure_dir = lambda p: False
+        try:
+            status, rep = self.run_one({"per_channel": True})
+        finally:
+            dl.ensure_dir = saved
+        self.assertEqual(status, "ok")
+        self.assertIn("channel_dir_failed", rep.warns)
+        self.assertEqual(rep.done_args[0], self.out)
+
+
 @unittest.skipUnless(HAVE_TOOLS, "butuh yt-dlp, ffmpeg, ffprobe")
 class IntegrationTests(unittest.TestCase):
     @classmethod

@@ -64,6 +64,37 @@ fun main() {
         check("rows: folder hilang -> kosong", TvGuide.rows(File(d, "gaib")).isEmpty())
         check("rows: berkas bukan folder -> kosong", TvGuide.rows(put(d, "bukan-folder.bin")).isEmpty())
 
+        // ---- shelves: rak per kanal (subfolder berisi video -> baris berjudul nama folder)
+        val sh = File(d, "rak").also { it.mkdirs() }
+        val chA = File(sh, "Kanal Alfa").also { it.mkdirs() }
+        val chB = File(sh, "Kanal Beta").also { it.mkdirs() }
+        val chC = File(sh, "Tanpa Video").also { it.mkdirs() }
+        val chH = File(sh, ".tersembunyi").also { it.mkdirs() }
+        put(chA, "a1.mp4", mod = 1_000_000_000_000L); put(chA, "a2.mkv", mod = 1_600_000_000_000L); put(chA, "catatan.txt")
+        put(chB, "b1.mp4", mod = 1_700_000_000_000L)
+        put(chC, "lagu.mp3"); put(chH, "x.mp4")
+        put(sh, "langsung.mp4", mod = 1_200_000_000_000L)
+        val shelves = TvGuide.shelves(sh)
+        check("shelves: hanya subfolder berisi video, video terbaru di depan", shelves.map { it.title } == listOf("Kanal Beta", "Kanal Alfa"))
+        check("shelves: isi baris terbaru dulu, total benar", shelves[1].items.map { it.name } == listOf("a2.mkv", "a1.mp4") && shelves[1].total == 2)
+        check("shelves: baris menyimpan folder dan bertanda shelf", shelves.all { it.shelf } && shelves[0].folder == chB)
+        check("shelves: berkas langsung di folder induk tidak ikut", shelves.none { r0 -> r0.items.any { it.name == "langsung.mp4" } })
+        check("shelves: dipotong perRow, total tetap", TvGuide.shelves(sh, perRow = 1)[1].let { it.items.size == 1 && it.total == 2 })
+        check("shelves: batas jumlah baris", TvGuide.shelves(sh, maxShelves = 1).map { it.title } == listOf("Kanal Beta"))
+        check("shelves: folder hilang atau berkas -> kosong", TvGuide.shelves(File(d, "gaib")).isEmpty() && TvGuide.shelves(put(d, "bukan-folder2.bin")).isEmpty())
+        check("rows: baris biasa bukan shelf", rows.none { it.shelf } && rows.all { it.folder == null })
+        val merged = TvGuide.rowsWithShelves(sh)
+        check("rowsWithShelves: baris kanal tepat setelah Video", merged.map { it.title } == listOf("Folder", "Video", "Kanal Beta", "Kanal Alfa"))
+        check("rowsWithShelves: tanpa subfolder berisi video sama dengan rows", TvGuide.rowsWithShelves(r).map { it.title } == TvGuide.rows(r).map { it.title })
+        val clash = File(d, "bentrok").also { it.mkdirs() }
+        put(File(clash, "Video").also { it.mkdirs() }, "v.mp4"); put(clash, "top.mp4")
+        val clashRows = TvGuide.rowsWithShelves(clash)
+        check("rowsWithShelves: folder bernama Video tidak membuat kunci ganda",
+            clashRows.count { it.title == "Video" } == 2 && clashRows.map { it.key }.let { it.size == it.toSet().size })
+        val onlyShelf = File(d, "hanya-rak").also { it.mkdirs() }
+        put(File(onlyShelf, "K1").also { it.mkdirs() }, "k.mp4")
+        check("rowsWithShelves: tanpa video langsung, baris kanal setelah Folder", TvGuide.rowsWithShelves(onlyShelf).map { it.title } == listOf("Folder", "K1"))
+
         // ---- describe
         val it0 = TvGuide.Item(put(d, "Film.mp4", size = 2048, mod = 1_706_659_200_000L), TvGuide.Kind.Video, 2048, 1_706_659_200_000L)
         check("describe: video + extra", TvGuide.describe(it0, "1:02:05", utc) == "Video \u00B7 2,0 KB \u00B7 1:02:05 \u00B7 31/01/2024 00.00")

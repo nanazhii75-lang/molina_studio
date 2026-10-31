@@ -21,6 +21,8 @@ data class DownloadRequest(
     val limitRate: String? = null,
     /** Tulis poster (.jpg) + metadata ringkas (.info.json) di samping video (mode video saja). Bawaan mati. */
     val sidecar: Boolean = false,
+    /** Simpan ke subfolder per kanal (<folder>/<Nama Kanal>/), video maupun audio. Bawaan mati. */
+    val perChannel: Boolean = false,
 )
 
 /** Argumen `molina_dl.py --json ...` untuk halaman Unduhan. Murni (tanpa Android). */
@@ -94,6 +96,7 @@ object DownloadCommand {
         }
         if (req.mode == DownloadMode.AUDIO && !req.cover) add("--no-cover")
         if (req.mode == DownloadMode.VIDEO && req.sidecar) add("--sidecar")
+        if (req.perChannel) add("--per-channel")
         req.limitRate?.let { add("--limit-rate"); add(it) }
         req.dir?.let { add("--dir"); add(it) }
         add("--")

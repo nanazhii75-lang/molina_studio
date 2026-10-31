@@ -2487,3 +2487,26 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Catatan: unduhan otomatis (AutoWorkers) belum mengikuti Hanya Wi-Fi; opsi folder per kanal ditunda karena snapshot(outdir) di molina_dl.py hanya memindai satu folder (perlu ubah deteksi existed)
 - [ ] Compose belum dikompilasi: tunggu CI (cek rememberUpdatedState, smart cast checked, impor BatchPlan)
 - [ ] Uji perangkat: (1) aktifkan Hanya Wi-Fi lalu mulai unduh di data seluler -> pesan penolakan; di Wi-Fi -> jalan; (2) di hasil pencarian: Pilih, centang beberapa, Unduh N -> hanya itu masuk kolom URL; Belum diunduh; ketuk lama; (3) Unduh semua melewati yang berlencana Diunduh + toast jumlah; (4) ganti urut Terbaru/Terlama lalu ketuk baris -> memutar video yang benar
+
+## 2026-10-31 - Deteksi berkas molina_dl.py ikut subfolder + opsi folder per kanal [DL-PERCHANNEL] [DL-SNAPSHOT]
+- [x] fix(dl): snapshot(folder, depth=2) kini rekursif (folder simpan + satu tingkat subfolder, folder tersembunyi dilewati) dan mengembalikan path relatif; deteksi "sudah ada" (existed) membandingkan path relatif, bukan nama berkas
+- [x] fix(dl): fallback selisih isi folder (yt-dlp tanpa after_move) dan fallback subtitle .srt kini menemukan berkas di subfolder; sebelumnya hasil kosong dilaporkan sebagai "sudah ada"
+- [x] feat(dl): opsi --per-channel (atau MOLINA_DL_PER_CHANNEL=1, juga berlaku di menu interaktif): berkas masuk <folder>/<Nama Kanal>/; kanal dari info.channel lalu info.uploader, kosong -> "Tanpa Kanal"; event done.dir = folder kanal
+- [x] feat(dl): sanitize_folder_name: karakter terlarang -> _, titik/spasi ujung dibuang, karakter tak terlihat (zero-width/RTL) dibuang, nama reservasi Windows diberi awalan _, batas 100 byte UTF-8 tanpa memotong karakter; ".." tidak bisa keluar dari folder simpan
+- [x] feat(dl): bila folder kanal tidak bisa dibuat -> warn channel_dir_failed, unduhan jatuh ke folder utama
+- [x] Versi skrip 6 -> 7 (protokol JSON tetap v=1; kode warn baru channel_dir_failed bersifat aditif)
+- [x] Tes: test_molina_dl.py + SnapshotTests (4), ChannelFolderTests (4), PerChannelRunTests (7, yt-dlp palsu, tanpa jaringan)
+- [x] Dampak: molina_dl.py dan test_molina_dl.py saja; Gradle, AndroidManifest, JNI mpv, izin, kode Kotlin TIDAK disentuh
+- [x] Batasan: video yang sama yang sudah ada di folder datar tidak dikenali saat mode per kanal (unduh ulang ke folder kanal); Kotlin (DownloadRequest/DownloadCommand/UI) belum meneruskan --per-channel
+- [ ] Uji perangkat: jalankan python3 molina_dl.py --json --per-channel URL di Debian; cek folder kanal dan event done.dir; ulangi URL yang sama -> existed true
+- [ ] Lanjutan: toggle "Folder per kanal" di form Unduhan (DownloadForm + DownloadCommand.args + DownloadPrefs) dan tes Kotlin
+
+## 2026-10-31 - Toggle "Folder per kanal" di Unduhan + rak per kanal di Molina Cinema [DL-PERCHANNEL-UI] [CINEMA-SHELF-CHANNEL]
+- [x] feat(download): DownloadRequest.perChannel -> argumen --per-channel (video dan audio); DownloadChoices.perChannel (+sanitize), riwayat (kunci "pc", riwayat lama terbaca sebagai mati), retryRequest, modeLabel ("per kanal"), DownloadForm, DownloadPrefs ("per_channel"), chip "Folder per kanal" di UnduhanScreen + teks bantuan; preset tidak menimpa pilihan ini
+- [x] feat(cinema): TvGuide.shelves/rowsWithShelves: subfolder berisi video menjadi baris rak berjudul nama folder (video terbaru dulu, baris terbaru di depan, maks 12 baris, penelusuran maks 40 folder), tepat setelah baris Video; Row.folder/shelf/key (kunci unik walau folder bernama "Video")
+- [x] feat(cinema): TvBrowser memakai rowsWithShelves; judul baris kanal bisa diketuk untuk membuka folder kanal; kartu poster/sidecar ikut untuk video di baris kanal; ringkasan panel info tidak menghitung baris kanal
+- [x] Tes (kotlinc 2.1.20): DownloadChoicesTests +14, TvGuideTests +14, DownloadPresetTests +1; seluruh run_*.sh lulus
+- [x] Dampak: :core:common (4 berkas), :app (DownloadNav, DownloadPrefs, UnduhanScreen, TvBrowser), 3 berkas tes; Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
+- [x] Catatan: skrip molina_dl.py di Scripts/ yang sudah diedit pengguna tidak ditimpa (jadi molina_dl.py.new); skrip lama menolak --per-channel (kode keluar 2) sampai diganti
+- [ ] Compose belum dikompilasi: tunggu CI (cek Modifier.clickable bersyarat di judul baris, impor Row/Arrangement di UnduhanScreen, DownloadChoices posisional)
+- [ ] Uji perangkat: nyalakan Folder per kanal, unduh 2 video dari kanal berbeda -> subfolder per kanal + done.dir; buka Mode TV saluran Unduhan -> baris per kanal tepat setelah Video, ketuk judul membuka folder; matikan toggle -> perilaku lama; tutup-buka aplikasi -> pilihan diingat

@@ -106,6 +106,7 @@ fun UnduhanScreen(modifier: Modifier = Modifier) {
     var cover by remember { DownloadForm.cover }
     var limitRate by remember { DownloadForm.limitRate }
     var sidecar by remember { DownloadForm.sidecar }
+    var perChannel by remember { DownloadForm.perChannel }
     var wifiOnly by remember { DownloadForm.wifiOnly } // [WIFI-ONLY]
     var error by remember { mutableStateOf<String?>(null) }
     var openDir by remember { mutableStateOf<File?>(null) }
@@ -218,7 +219,7 @@ fun UnduhanScreen(modifier: Modifier = Modifier) {
                     }
                     // [win7-preset] preset cepat; pilihan tetap bisa disesuaikan lewat chip di bawahnya.
                     Text("Preset", color = W7D.TextDim, fontSize = 12.sp)
-                    val now = DownloadChoices(video, height, videoExt, audioFmt, bitrate, subs, subsMode, cover, limitRate, sidecar)
+                    val now = DownloadChoices(video, height, videoExt, audioFmt, bitrate, subs, subsMode, cover, limitRate, sidecar, perChannel)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         DownloadPreset.values().forEach { p ->
                             Chip(p.label, p.matches(now), !run.running) {
@@ -288,6 +289,16 @@ fun UnduhanScreen(modifier: Modifier = Modifier) {
                                 Chip(DownloadChoices.rateLabel(r), limitRate == r, !run.running) { limitRate = r }
                             }
                         }
+                        // [DL-PERCHANNEL] subfolder per kanal; tampil sebagai baris rak di Molina Cinema
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Chip("Folder per kanal", perChannel, !run.running) { perChannel = !perChannel }
+                        }
+                        if (perChannel) {
+                            Text(
+                                "Berkas disimpan di subfolder bernama kanal (mis. Video/Nama Kanal/) dan tampil sebagai baris rak di Molina Cinema.",
+                                color = W7D.TextDim, fontSize = 11.sp,
+                            )
+                        }
                         // [WIFI-ONLY] hemat kuota: unduhan baru hanya mulai di jaringan tidak berkuota
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Chip("Hanya Wi-Fi", wifiOnly, !run.running) {
@@ -323,6 +334,7 @@ fun UnduhanScreen(modifier: Modifier = Modifier) {
                                     cover = cover,
                                     limitRate = limitRate.ifEmpty { null },
                                     sidecar = video && sidecar,
+                                    perChannel = perChannel,
                                 )
                                 val msg = DownloadRunner.start(ctx.applicationContext, req)
                                 error = msg

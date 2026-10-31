@@ -167,8 +167,8 @@ internal fun TvBrowser(
     val data by produceState<TvData?>(null, dir, tick, recentMode) {
         val d = dir
         value = if (d == null || recentMode) null else withContext(Dispatchers.IO) {
-            val rows = TvGuide.rows(d)
-            val vids = rows.filter { it.title == "Video" }.flatMap { it.items }
+            val rows = TvGuide.rowsWithShelves(d)
+            val vids = rows.flatMap { it.items }.filter { it.kind == TvGuide.Kind.Video }
                 .map { ShelfCard.Entry(it.file.path, it.name, true) }
             TvData(rows, ShelfCard.build(vids, max = vids.size, resumeDirs = resumeDirs).associateBy { it.ref })
         }
@@ -268,11 +268,15 @@ internal fun TvBrowser(
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    items(d.rows, key = { it.title }) { row ->
+                    items(d.rows, key = { it.key }) { row ->
                         Column {
+                            // Baris rak kanal: ketuk judul untuk membuka folder kanal (melihat semua).
+                            val rowFolder = row.folder
                             Text(
-                                row.title + " \u00B7 " + row.total, color = Color.White, fontSize = 13.sp,
-                                fontWeight = FontWeight.Medium, modifier = Modifier.padding(bottom = 6.dp)
+                                row.title + " \u00B7 " + row.total + (if (rowFolder != null) "  \u203A" else ""),
+                                color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Medium,
+                                modifier = (if (rowFolder != null) Modifier.clickable { dir = rowFolder; focus = null } else Modifier)
+                                    .padding(bottom = 6.dp)
                             )
                             LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                 items(row.items, key = { it.file.path }) { item ->
@@ -299,7 +303,7 @@ internal fun TvBrowser(
         TvInfoPanel(
             item = focus,
             extra = focus?.let { f -> data?.cards?.get(f.file.path)?.let { c -> listOfNotNull(c.duration, c.subtitle.takeIf { it.isNotEmpty() }).joinToString(" \u00B7 ") } },
-            fallback = (if (recentMode) "Terakhir diputar \u00B7 " + recentCards.size + " item" else cur?.path.orEmpty()) + (data?.let { dd -> "  \u00B7  " + dd.rows.joinToString(", ") { it.total.toString() + " " + it.title.lowercase() } } ?: ""),
+            fallback = (if (recentMode) "Terakhir diputar \u00B7 " + recentCards.size + " item" else cur?.path.orEmpty()) + (data?.let { dd -> "  \u00B7  " + dd.rows.filter { !it.shelf }.joinToString(", ") { it.total.toString() + " " + it.title.lowercase() } } ?: ""),
             resumeSec = focus?.let { f -> data?.cards?.get(f.file.path)?.resumeSec },
             onReset = { f ->
                 scope.launch {

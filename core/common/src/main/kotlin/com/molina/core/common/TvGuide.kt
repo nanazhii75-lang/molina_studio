@@ -14,6 +14,8 @@ import java.util.TimeZone
 object TvGuide {
     const val MAX_ENTRIES = 500
     const val ROW_MAX = 12
+    const val MAX_SHELVES = 12
+    const val MAX_SHELF_SCAN = 40
 
     private val LOCALE = Locale("id", "ID")
     private val AUDIO = setOf("mp3", "m4a", "aac", "flac", "wav", "ogg", "oga", "opus", "wma", "ac3", "dts", "mka")
@@ -27,7 +29,14 @@ object TvGuide {
         val title: String get() = if (kind == Kind.Folder) file.name else file.nameWithoutExtension
     }
 
-    class Row(val title: String, val items: List<Item>, val total: Int)
+    /**
+     * Satu baris rak. [folder] terisi untuk baris rak kanal (isi satu subfolder, judul = nama folder); null untuk
+     * baris biasa (Folder/Video/Audio/Lainnya). [key] unik walau folder kanal bernama sama dengan baris biasa.
+     */
+    class Row(val title: String, val items: List<Item>, val total: Int, val folder: File? = null) {
+        val shelf: Boolean get() = folder != null
+        val key: String get() = (if (folder != null) "k:" else "r:") + title
+    }
 
     /** Beri nomor 1..n pada tempat yang foldernya ada; yang tidak ada dilewati tanpa melubangi nomor. */
     fun channels(places: List<Pair<String, File>>): List<Channel> =
@@ -65,6 +74,41 @@ object TvGuide {
             row("Audio", Kind.Audio, false),
             row("Lainnya", Kind.Other, false),
         )
+    }
+
+    /**
+     * Rak per kanal: tiap subfolder [dir] yang berisi video (langsung di dalamnya) menjadi satu baris berjudul
+     * nama folder, video terbaru dulu, baris dengan video terbaru di depan. Cocok dengan `molina_dl --per-channel`
+     * dan tidak butuh metadata. Subfolder tersembunyi/tanpa video dilewati; penelusuran dibatasi
+     * [MAX_SHELF_SCAN] folder dan hasil [maxShelves] baris. Tidak melempar.
+     */
+    fun shelves(dir: File, perRow: Int = ROW_MAX, maxShelves: Int = MAX_SHELVES): List<Row> {
+        val kids = try { dir.listFiles() } catch (e: SecurityException) { null } ?: return emptyList()
+        val cap = perRow.coerceAtLeast(1)
+        val out = ArrayList<Pair<Long, Row>>()
+        var scanned = 0
+        val subs = kids.asSequence().filter { !it.name.startsWith(".") && it.isDirectory }.take(MAX_ENTRIES)
+            .sortedByDescending { it.lastModified() }
+        for (sub in subs) {
+            if (++scanned > MAX_SHELF_SCAN) break
+            val files = try { sub.listFiles() } catch (e: SecurityException) { null } ?: continue
+            val vids = files.asSequence()
+                .filter { !it.name.startsWith(".") && it.isFile && it.extension.lowercase() in ShelfScan.VIDEO_EXTS }
+                .take(MAX_ENTRIES).map { Item(it, Kind.Video, it.length(), it.lastModified()) }.toList()
+            if (vids.isEmpty()) continue
+            val sorted = vids.sortedByDescending { it.modified }
+            out.add(sorted[0].modified to Row(sub.name, sorted.take(cap), vids.size, sub))
+        }
+        return out.sortedByDescending { it.first }.take(maxShelves.coerceAtLeast(0)).map { it.second }
+    }
+
+    /** [rows] ditambah baris rak kanal tepat setelah baris Video (atau setelah Folder bila tak ada video langsung). */
+    fun rowsWithShelves(dir: File, perRow: Int = ROW_MAX): List<Row> {
+        val base = rows(dir, perRow)
+        val extra = shelves(dir, perRow)
+        if (extra.isEmpty()) return base
+        val at = base.indexOfFirst { it.title == "Video" }.let { i -> if (i >= 0) i + 1 else base.indexOfFirst { it.title == "Folder" } + 1 }
+        return base.take(at) + extra + base.drop(at)
     }
 
     /** "512 B", "1,5 KB", "2,0 MB", "3,4 GB" (koma desimal Indonesia, satu angka di belakang koma). */

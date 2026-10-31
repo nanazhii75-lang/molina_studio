@@ -62,6 +62,7 @@ fun main() {
     check("Hemat: argumen tanpa --sidecar", !DownloadCommand.args(req(h)).contains("--sidecar"))
     check("Musik: argumen audio tanpa --sidecar", !DownloadCommand.args(req(m.copy(sidecar = true))).contains("--sidecar"))
     check("hint menyebut poster", DownloadPreset.HINT.contains("poster"))
+    check("preset tidak mengubah pilihan folder per kanal", DownloadPreset.values().all { p -> p.apply(DownloadChoices(perChannel = true)).perChannel && !p.apply(DownloadChoices()).perChannel })
 
     if (fails > 0) { println("$fails pemeriksaan GAGAL"); System.exit(1) }
     println("semua uji lulus")
