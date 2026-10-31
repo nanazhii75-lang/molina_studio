@@ -226,7 +226,13 @@ private fun DetailLine(label: String, value: String) {
  * peran, lalu satu kartu per komponen. Sumber data: [BundledComponents]; tidak ada koneksi jaringan di sini.
  */
 @Composable
-internal fun BundledComponentsSection(onOpenYtdlp: () -> Unit, onCheckVersion: (String) -> Unit) {
+internal fun BundledComponentsSection(
+    onOpenYtdlp: () -> Unit,
+    onCheckVersion: (String) -> Unit,
+    checkingId: String? = null, // [BUNDLE-INLINE] id komponen yang sedang dicek versinya
+    checkNotes: Map<String, String> = emptyMap(),
+    onCancelCheck: () -> Unit = {}
+) {
     val ctx = LocalContext.current
     remember { AutoPrefs.init(ctx) }
     val st by AutoPrefs.state.collectAsState()
@@ -285,7 +291,7 @@ internal fun BundledComponentsSection(onOpenYtdlp: () -> Unit, onCheckVersion: (
         val toolId = debianToolId(c.id)
         val check = toolId?.let { checks[it] }
         val update = updateNote(c, st)
-        val sub = versionText(c, st, check) + " \u00b7 " + c.origin.label
+        val sub = (if (checkingId == c.id) "memeriksa versi\u2026" else versionText(c, st, check)) + " \u00b7 " + c.origin.label
         Column(
             Modifier.fillMaxWidth().clip(shape).background(W7D.Card, shape)
                 .border(1.dp, if (expanded) W7D.SelLine else W7D.Hairline, shape)
@@ -321,7 +327,13 @@ internal fun BundledComponentsSection(onOpenYtdlp: () -> Unit, onCheckVersion: (
                     DetailLine("Lisensi", c.license)
                     DetailLine("Keamanan", c.assurance.label)
                     if (c.id == "newpipe") DetailLine("Pin", NewPipeBump.pinStatus(c.version))
-                    if (check != null && check.text.isNotBlank()) DetailLine("Dicek", stampOf(check.at))
+                    if (check != null && check.text.isNotBlank()) {
+                        DetailLine("Versi", check.text)
+                        DetailLine("Dicek", stampOf(check.at))
+                    }
+                    checkNotes[c.id]?.let {
+                        Text(it, color = BundleAmber, fontSize = 12.sp, modifier = Modifier.padding(bottom = 4.dp))
+                    }
                     Text(c.note, color = W7D.TextDim, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
                     if (c.id == "ytdlp") BundleAction("BUKA HALAMAN YT-DLP", onOpenYtdlp)
                     if (c.id == "newpipe" && update != null && NewPipeBump.isValidTag(st.newpipeLatest)) {
@@ -334,7 +346,10 @@ internal fun BundledComponentsSection(onOpenYtdlp: () -> Unit, onCheckVersion: (
                             }
                         }
                     }
-                    if (toolId != null) BundleAction("PERIKSA VERSI") { onCheckVersion(toolId) }
+                    if (toolId != null) {
+                        if (checkingId == c.id) BundleAction("MEMERIKSA\u2026 KETUK UNTUK BERHENTI", onCancelCheck)
+                        else BundleAction("PERIKSA VERSI") { onCheckVersion(toolId) }
+                    }
                 }
             }
         }

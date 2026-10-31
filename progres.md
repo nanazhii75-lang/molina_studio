@@ -2675,3 +2675,10 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh; tanpa dependensi baru (animation-core sudah dipakai Win7Glass); gerbang dan tes bump lulus
 - [ ] Compose belum dikompilasi: tunggu CI (Animatable, graphicsLayer(compositingStrategy), Brush.linearGradient)
 - [ ] Belum diuji di perangkat: tampilan kilau di Android 8 (kalau lapisan offscreen berkedip, kilau cukup dilepas)
+
+## 2026-10-31 - Periksa versi langsung di kartu Komponen bundel [BUNDLE-INLINE]
+- [x] feat(settings): BundlePage menjalankan cek versi lewat startShell tanpa ToolRunDialog; subjudul kartu "memeriksa versi…", tombol berhenti, hasil tersimpan di ToolStore.checks dan tampil di kartu (baris Versi + Dicek)
+- [x] Kegagalan (gagal mulai, lewat waktu, dihentikan) jadi catatan kuning transien di kartu, tidak disimpan sebagai versi; satu cek pada satu waktu; dibatalkan otomatis saat halaman ditinggalkan (DisposableEffect)
+- [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh; tanpa dependensi baru; PackagesPage tetap memakai dialog untuk alat Debian; gerbang dan tes bump lulus
+- [ ] Compose belum dikompilasi: tunggu CI (parameter baru BundledComponentsSection, mutableStateMapOf, DisposableEffect, RunHandle.cancel)
+- [ ] Belum diuji di perangkat: cek versi python3/git/ffmpeg dari kartu, termasuk tombol berhenti di tengah jalan

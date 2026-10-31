@@ -218,27 +218,49 @@ internal fun PackagesPage(onOpenYtdlp: () -> Unit, onOpenBundle: () -> Unit) {
 
 /**
  * Settings > Paket > Komponen bundel [BUNDLE-PAGE]: halaman sendiri agar daftar panjang komponen tidak langsung
- * memenuhi halaman Paket. Menjalankan "Periksa versi" lewat dialog yang sama seperti alat Debian.
+ * memenuhi halaman Paket. "Periksa versi" memakai startShell yang sama dengan dialog, tetapi hasilnya tampil di kartu.
  */
 @Composable
 internal fun BundlePage(onOpenYtdlp: () -> Unit) {
     val ctx = LocalContext.current
     remember { ToolStore.init(ctx) }
-    var pending by remember { mutableStateOf<PendingRun?>(null) }
+    // [BUNDLE-INLINE] cek versi berjalan di latar dan hasilnya tampil di kartu; tanpa dialog penuh
+    var checking by remember { mutableStateOf<String?>(null) }
+    var handle by remember { mutableStateOf<com.molina.code.run.RunHandle?>(null) }
+    val notes = remember { androidx.compose.runtime.mutableStateMapOf<String, String>() }
+    androidx.compose.runtime.DisposableEffect(Unit) { onDispose { handle?.cancel() } }
     BundledComponentsSection(
         onOpenYtdlp = onOpenYtdlp,
         onCheckVersion = { tid ->
-            BuiltinTools.all.firstOrNull { it.id == tid }?.let { pending = PendingRun(it, ToolAction.Version) }
-        }
+            val tool = BuiltinTools.all.firstOrNull { it.id == tid }
+            val script = if (tool != null) scriptOf(tool, ToolAction.Version) else ""
+            if (tool != null && checking == null) {
+                if (script.isBlank()) {
+                    notes[tid] = "Skrip versi belum diisi."
+                } else {
+                    checking = tid
+                    notes.remove(tid)
+                    val out = StringBuilder()
+                    handle = startShell(
+                        ctx, ToolRun("${tool.name}: versi", script, ToolAction.Version.timeoutMs, "", false),
+                        onChunk = { if (out.length < 20_000) out.append(it) },
+                        onDone = { r ->
+                            checking = null
+                            handle = null
+                            when {
+                                r.startError != null || r.timedOut -> { notes[tid] = describe(r) }
+                                r.cancelled -> { notes[tid] = "Pemeriksaan dihentikan." }
+                                else -> ToolStore.setCheck(tid, if (r.exitCode == 0) firstLine(out.toString()) else "Tidak terdeteksi (kode ${r.exitCode})")
+                            }
+                        }
+                    )
+                }
+            }
+        },
+        checkingId = checking,
+        checkNotes = notes,
+        onCancelCheck = { handle?.cancel() }
     )
-    pending?.let { pr ->
-        ToolRunDialog(
-            ToolRun("${pr.tool.name}: ${pr.action.label}", scriptOf(pr.tool, pr.action), pr.action.timeoutMs, "Memeriksa versi ${pr.tool.name}.", false),
-            onClose = { pending = null }
-        ) { code, out ->
-            if (code != -1) ToolStore.setCheck(pr.tool.id, if (code == 0) firstLine(out) else "Tidak terdeteksi (kode $code)")
-        }
-    }
 }
 
 @Composable
