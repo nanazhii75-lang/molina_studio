@@ -5,6 +5,10 @@ object NetworkPolicy {
     /** Izinkan alamat jaringan lokal (NAS, DLNA, Jellyfin). Default mati: jaringan dianggap tidak tepercaya. */
     @Volatile
     var allowLan: Boolean = false
+
+    /** [PL-STREAM-GUARD] Blokir rtmp yang dibuka dari DALAM playlist (m3u). Tautan rtmp yang dibuka langsung tetap jalan. Default mati. */
+    @Volatile
+    var blockPlaylistStreams: Boolean = false
 }
 
 /**

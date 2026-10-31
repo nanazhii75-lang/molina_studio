@@ -33,6 +33,10 @@ object MpvLoad {
     /** Protokol ffmpeg yang tidak pernah dibutuhkan pemutar dan rawan disalahgunakan, berlaku untuk semua sumber. */
     const val GLOBAL_PROTOCOL_BLACKLIST = "concat,concatf,subfile,ftp,sftp,unix,md5,gopher,gophers,pipe,fd,tee"
 
+    /** [PL-STREAM-GUARD] Tambahan blacklist bila opsi "Blokir rtmp di dalam playlist" menyala. rtsp tidak tercakup (bukan protokol ffmpeg biasa). */
+    const val PLAYLIST_STREAM_BLACKLIST = "rtmp,rtmps,rtmpt,rtmpe,rtmpte,rtmpts"
+    private val RTMP_SCHEMES = setOf("rtmp", "rtmps", "rtmpt", "rtmpe", "rtmpte", "rtmpts")
+
     fun loadfileArgs(url: String, flag: String, headers: Map<String, String>, title: String? = null): Array<String> {
         // Jaringan dianggap tidak tepercaya: URL yang melanggar kebijakan tidak pernah sampai ke mpv.
         val verdict = if (isMemoryPlaylist(url)) memoryPlaylistVerdict(url) else UrlPolicy.check(url)
@@ -40,7 +44,7 @@ object MpvLoad {
             AppLog.log("net", LogLevel.Warn, "policy", "ditolak: ${verdict.reason.name}")
             return arrayOf("show-text", "Diblokir: ${verdict.reason.message}", "5000")
         }
-        val opts = listOfNotNull(headerOption(headers), titleOption(title)) + remoteProtocolOptions(url)
+        val opts = listOfNotNull(headerOption(headers), titleOption(title)) + remoteProtocolOptions(url) + directStreamOptions(url)
         if (opts.isEmpty()) return arrayOf("loadfile", url, flag)
         return arrayOf("loadfile", url, flag, "-1", opts.joinToString(","))
     }
@@ -103,8 +107,21 @@ object MpvLoad {
     fun lavfList(key: String, protocols: String): String = "$key=" + fixed(protocols)
 
     /** Nilai awal `stream-lavf-o` dan `demuxer-lavf-o` (global): blacklist protokol berbahaya. */
-    fun globalProtocolOption(): String =
-        lavfOptions(listOfNotNull("protocol_blacklist" to GLOBAL_PROTOCOL_BLACKLIST, proxyPair()))
+    fun globalProtocolOption(): String {
+        val bl = if (NetworkPolicy.blockPlaylistStreams) GLOBAL_PROTOCOL_BLACKLIST + "," + PLAYLIST_STREAM_BLACKLIST else GLOBAL_PROTOCOL_BLACKLIST
+        return lavfOptions(listOfNotNull("protocol_blacklist" to bl, proxyPair()))
+    }
+
+    /**
+     * [PL-STREAM-GUARD] Bila opsi menyala, blacklist global memuat rtmp. Entri rtmp yang DIBUKA LANGSUNG diberi blacklist dasar
+     * (tanpa rtmp) per entri, jadi tetap jalan; anak entri dari playlist memakai global dan ditolak.
+     */
+    fun directStreamOptions(url: String): List<String> {
+        if (!NetworkPolicy.blockPlaylistStreams) return emptyList()
+        if (UrlPolicy.scheme(url) !in RTMP_SCHEMES) return emptyList()
+        val v = fixed(lavfOptions(listOfNotNull("protocol_blacklist" to GLOBAL_PROTOCOL_BLACKLIST, proxyPair())))
+        return listOf("stream-lavf-o=$v", "demuxer-lavf-o=$v")
+    }
 
     /**
      * Whitelist ketat per entri untuk http/https. Menimpa opsi global untuk entri itu saja. Skema lain

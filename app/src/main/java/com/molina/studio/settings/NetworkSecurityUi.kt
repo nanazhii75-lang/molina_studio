@@ -17,6 +17,7 @@ internal fun NetworkSecurityPage() {
     val shieldOn by ShieldPrefs.enabled.collectAsState()
     val trackersOn by ShieldPrefs.blockTrackers.collectAsState()
     val refererOff by ShieldPrefs.stripReferer.collectAsState()
+    val blockPl by StreamEnginePrefs.blockPlaylistStreams.collectAsState()
     val blocked by ShieldStats.blockedCount.collectAsState()
     val recent = remember(blocked) { ShieldStats.recent().takeLast(8).reversed() }
     Category("Molina Shield")
@@ -37,6 +38,13 @@ internal fun NetworkSecurityPage() {
         "Mencegah server mengetahui halaman asal. Matikan bila channel IPTV tertentu menolak diputar.",
         refererOff
     ) { ShieldPrefs.setStripReferer(it) }
+    SwitchRow(
+        "Blokir rtmp di dalam playlist",
+        "Playlist (m3u) tidak bisa menyuruh pemutar membuka rtmp ke alamat lain. Tautan rtmp yang Anda buka " +
+            "langsung tetap jalan. Kanal rtmp di dalam daftar IPTV akan gagal diputar. rtsp belum tercakup. " +
+            "Berlaku setelah Refresh Pemutar atau membuka ulang pemutar.",
+        blockPl
+    ) { StreamEnginePrefs.setBlockPlaylistStreams(it) } // [PL-STREAM-GUARD]
     SettingsItem(
         "Diblokir sesi ini: $blocked",
         if (recent.isEmpty()) "Belum ada permintaan yang diblokir. Hanya host dan alasan yang dicatat, tidak pernah URL lengkap."

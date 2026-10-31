@@ -2903,3 +2903,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Uji perangkat: Paket > Komponen bundel > Ringkasan keamanan menampilkan baris tipe build dan sidik jari; ketuk menyalin; cocokkan dengan log CI (Cetak sidik jari tanda tangan APK)
 - [ ] Prasyarat: secret MOLINA_KEYSTORE_B64 dan MOLINA_KEYSTORE_PASSWORD terisi; bila kosong CI memakai keystore debug acak sehingga sidik jari berubah tiap build
 - [ ] Masih menunggu: gradle/verification-metadata.xml belum di-commit (jalankan workflow Gradle verification generate)
+
+## 2026-10-31 - Opsi blokir rtmp di dalam playlist [PL-STREAM-GUARD]
+- [x] Temuan: entri rtmp di dalam playlist m3u tidak lewat Shield dan tidak diperiksa (hanya blacklist global)
+- [x] feat(mpv): NetworkPolicy.blockPlaylistStreams + StreamEnginePrefs.setBlockPlaylistStreams; MpvLoad menambah rtmp ke blacklist global dan memberi blacklist dasar per entri untuk rtmp yang dibuka langsung; switch baru di Molina Shield (default mati)
+- [x] Dampak: UrlPolicy.kt, StreamEnginePrefs.kt, MpvLoad.kt, NetworkSecurityUi.kt; Gradle, AndroidManifest, JNI TIDAK disentuh
+- [ ] Belum dikompilasi: tunggu CI
+- [ ] Uji perangkat: switch mati = perilaku lama; switch nyala + Refresh Pemutar: rtmp langsung tetap jalan, m3u berisi rtmp gagal, http/https dan file lokal tidak berubah
+- [ ] Asumsi yang perlu dibuktikan: opsi per-entri stream-lavf-o menimpa opsi global (pola sama dengan http di remoteProtocolOptions)
+- [ ] Batas: rtsp tidak tercakup (blacklist ffmpeg tidak andal untuk rtsp)
