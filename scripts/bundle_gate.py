@@ -48,6 +48,8 @@ tag = re.search(r"^NATIVE_TAG=(\S+)", env, re.M)
 sha = re.search(r"^NATIVE_SHA256=(\S+)", env, re.M)
 if not tag or not sha or not HEX.match(sha.group(1)):
     problems.append("native/prebuilt.env: NATIVE_TAG/NATIVE_SHA256 tidak valid")
+elif not re.match(r"^native-mpv-[0-9a-f]{7,40}-run\d+$", tag.group(1)):
+    problems.append("native/prebuilt.env: NATIVE_TAG harus berformat native-mpv-<commit>-run<N>")
 
 # PRoot: setiap libproot*.so di jniLibs harus dipin dan hash-nya cocok
 JNI = "app/src/main/jniLibs/arm64-v8a"

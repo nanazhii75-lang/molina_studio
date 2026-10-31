@@ -1,0 +1,58 @@
+name: Naikkan pin libmpv
+
+# Manual (Actions > Run workflow). Mengambil Release native-mpv-* (hasil native-mpv.yml), menghitung
+# SHA-256 sendiri, menulis ulang native/prebuilt.env lewat scripts/native/bump_native.py, lalu membuka
+# PR untuk DITINJAU. Tidak pernah push ke main. build.yml dipicu pada cabang (fetch_native.sh
+# memverifikasi ulang hash dan isi tgz).
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag Release (contoh native-mpv-abc1234-run7); kosong = terbaru
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+concurrency:
+  group: bump-native
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Tulis ulang pin libmpv
+        env:
+          TAG: ${{ inputs.tag }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p _bump_out
+          python3 scripts/native/bump_native.py ${TAG:+"$TAG"} | tee _bump_out/bump.log
+          {
+            echo '### Diff pustaka native'
+            echo '~~~'
+            cat _bump_out/bump.log
+            echo '~~~'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Buka PR untuk ditinjau
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NEW="$(sed -n 's/^NATIVE_TAG=//p' native/prebuilt.env)"
+          BR="bump/native-$NEW"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$BR"
+          git add native/prebuilt.env progres.md
+          if git diff --cached --quiet; then echo "Tidak ada perubahan."; exit 0; fi
+          git commit -m "chore(native): naikkan pin ke $NEW"
+          git push --force-with-lease origin "$BR"
+          gh pr create --base main --head "$BR" --title "chore(native): naikkan pin ke $NEW" \
+            --body-file _bump_out/bump.log || echo "PR sudah ada atau tidak bisa dibuat; cabang $BR sudah di-push."
+          gh workflow run build.yml --ref "$BR"

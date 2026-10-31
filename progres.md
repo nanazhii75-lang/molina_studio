@@ -2625,3 +2625,16 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh
 - [ ] Compose belum dikompilasi: tunggu CI (blok Row di panel ringkasan, BundleUi.kt)
 - [ ] Belum: jalankan bump-newpipe.yml dengan v0.26.5 (harus "Tidak ada perubahan") untuk menguji resolve JitPack nyata
+
+## 2026-10-31 - Alat naikkan pin libmpv + gembok "Molina Secure" [NATIVE-BUMP]
+- [x] feat(native): scripts/native/bump_native.py menaikkan NATIVE_TAG + NATIVE_SHA256 di native/prebuilt.env dari Release native-mpv-* (terbaru bila tag kosong): SHA-256 dihitung sendiri dari tgz, dicocokkan dengan SHA256SUMS Release, isi tgz diperiksa (hanya jniLibs/arm64-v8a/*.so, tanpa symlink/traversal, libmpv.so+libplayer.so+libc++_shared.so wajib), tag lebih lama ditolak, tag sama dengan hash beda ditolak, diff + cuplikan BUILD-INFO dicetak, idempotent, rollback bila gerbang gagal
+- [x] ci: workflow bump-native.yml (manual): tulis ulang pin -> PR di cabang bump/native-<tag> -> picu build.yml pada cabang (fetch_native.sh memverifikasi ulang). Argumen tag dikutip aman (${TAG:+"$TAG"}) agar input tidak bisa menyelundupkan opsi
+- [x] refactor: scripts/pinlib.py (tulis berkas, jalankan gerbang, rollback, catat progres tanpa duplikat) dipakai alat native; bump_pin.py NewPipe belum dipindah ke pustaka ini (sengaja, tidak mengubah skrip yang sudah dipakai)
+- [x] sec: bundle_gate.py kini menolak NATIVE_TAG yang bukan format native-mpv-<commit>-run<N>
+- [x] feat(settings): TrustLock (gembok Aero Gelap digambar di Canvas, tanpa dependensi ikon) + TrustMark: komponen dengan jaminan terverifikasi memakai gembok hijau, sisanya titik berwarna; dipakai di kartu komponen dan baris status pin
+- [x] Tes: scripts/native/test_bump_native.py 5 skenario lulus pada salinan repo (apply, idempotent, dry-run, 8 kasus ditolak, rollback, tag sama hash beda); telemetry_gate dan bundle_gate lulus. Catatan: 1 kegagalan sesaat sekali terlihat saat penyusunan dan tidak bisa direproduksi dalam 12 kali ulang
+- [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh; native/prebuilt.env tidak diubah oleh commit ini (hanya alatnya)
+- [x] Temuan: yt-dlp TIDAK punya pin di repo (diverifikasi saat runtime terhadap SHA2-256SUMS rilis resmi), jadi tidak ada alat bump untuk yt-dlp; membuatnya akan menambah klaim yang tidak punya dasar
+- [ ] Compose belum dikompilasi: tunggu CI (Canvas/drawArc/Stroke di BundleUi.kt)
+- [ ] Belum diuji nyata: jalankan bump-native.yml tanpa tag (harus menghasilkan pin yang sama dengan native-mpv-af13289-run2 bila itu Release terbaru -> "Tidak ada perubahan"); gh release download hanya bisa dicoba di CI
+- [ ] Belum: tambahkan python3 scripts/native/test_bump_native.py sebagai langkah build.yml (sengaja tidak mengubah pipeline di commit ini)
