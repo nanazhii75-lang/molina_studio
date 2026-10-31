@@ -84,7 +84,7 @@ internal fun UpdateStatusSection() {
         SettingsItem("Paket Debian", AptHistory.checkSubtitle(pending)) {}
     }
     BadgeOverlay(if (st.ytdlpOutdated) "Baru" else null, true, gold = true) {
-        SettingsItem("yt-dlp (mesin cadangan)", ytdlpText(st) + if (st.ytdlpOutdated) ". Perbarui di Paket > Mesin cadangan." else "") {}
+        SettingsItem("yt-dlp (mesin cadangan)", ytdlpText(st) + if (st.ytdlpOutdated) ". Perbarui di Paket > Alat." else "") {}
     }
     BadgeOverlay(if (st.newpipeOutdated) "Baru" else null, true, gold = true) {
         SettingsItem("NewPipeExtractor (mesin pencarian)", newpipeText(st)) {}
@@ -107,14 +107,15 @@ internal fun UpdateStatusSection() {
 
 }
 
-/** Settings > Sistem > Cadangan dan otomasi: cadangan harian dan setelan produktivitas. */
+/**
+ * Settings > Sistem > Cadangan dan profil: cadangan harian otomatis. [SETELAN-PUSAT] Halaman "Cadangan dan otomasi"
+ * dibubarkan: "Ingat posisi putar" dan "Unduhan masuk ke Cinema" kini di Pemutar.
+ */
 @Composable
-internal fun AutomationPage() {
+internal fun AutoBackupRows() {
     val ctx = LocalContext.current
     remember { AutoPrefs.init(ctx) }
     val st by AutoPrefs.state.collectAsState()
-
-    Category("Cadangan otomatis")
     SwitchRow(
         "Cadangan gabungan harian",
         "Menyimpan penanda video, snippet Terminal, dan setelan ke folder Backup sekali per hari. " +
@@ -125,22 +126,4 @@ internal fun AutomationPage() {
         AutoWork.sync(ctx)
     }
     SettingsItem("Cadangan otomatis terakhir", whenText(st.lastBackup, "belum pernah")) {}
-
-    Category("Produktivitas")
-    var resume by remember { mutableStateOf(ResumeBridge.enabled(ctx)) }
-    SwitchRow(
-        "Lanjutkan dari posisi terakhir",
-        "Molina Player mengingat posisi putar dan melanjutkannya. Sama dengan setelan Simpan posisi di pemutar. " +
-            "Kartu Lanjutkan di beranda Cinema memakainya.",
-        resume
-    ) {
-        resume = it
-        ResumeBridge.setEnabled(ctx, it)
-    }
-    SwitchRow(
-        "Unduhan masuk ke Cinema",
-        "Setelah unduhan selesai, video atau audio yang berhasil otomatis muncul di Terakhir diputar Molina Cinema " +
-            "agar bisa diputar dengan satu ketukan.",
-        st.addToCinema
-    ) { AutoPrefs.setAddToCinema(ctx, it) }
 }

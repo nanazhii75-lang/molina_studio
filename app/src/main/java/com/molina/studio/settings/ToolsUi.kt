@@ -3,6 +3,11 @@ package com.molina.studio.settings
 import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -325,6 +330,22 @@ internal fun BundlePage(onOpenYtdlp: () -> Unit) {
     BundledComponentsSection(onOpenYtdlp = onOpenYtdlp)
 }
 
+/** Titik status kartu alat: hijau = terdeteksi, abu = belum; berdenyut emas Molina saat sedang diperiksa [SETELAN-PUSAT]. */
+@Composable
+private fun StatusDot(detected: Boolean, checking: Boolean) {
+    if (checking) {
+        val transition = rememberInfiniteTransition()
+        val alpha by transition.animateFloat(
+            initialValue = 0.3f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(tween(700), RepeatMode.Reverse)
+        )
+        Box(Modifier.size(9.dp).clip(CircleShape).background(com.molina.studio.ui.MolinaTheme.Gold.copy(alpha = alpha)))
+    } else {
+        Box(Modifier.size(9.dp).clip(CircleShape).background(if (detected) Color(0xFF4CAF50) else Color(0xFF8A8F98)))
+    }
+}
+
 @Composable
 private fun ToolCard(
     tool: ToolItem,
@@ -350,7 +371,7 @@ private fun ToolCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             val detected = check?.text?.let { it.isNotBlank() && !it.startsWith("Tidak terdeteksi") } == true
-            Box(Modifier.size(9.dp).clip(CircleShape).background(if (detected) Color(0xFF4CAF50) else Color(0xFF8A8F98)))
+            StatusDot(detected, checking)
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f).padding(end = 8.dp)) {
                 Text(tool.name, color = W7D.Ink, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)

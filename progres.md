@@ -2803,3 +2803,14 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Catatan: info "Rilis Debian" dan "jumlah paket apt" dari dialog lama tidak lagi tampil (belum ada pengganti)
 - [ ] Belum dikompilasi: tunggu CI
 - [ ] Uji perangkat: Periksa semua versi (progres N/M, hentikan di tengah), VERSI per kartu, Komponen bundel tanpa tombol cek, pencarian "versi" membuka Paket
+
+## 2026-10-31 - Setelan dipusatkan: Cadangan, Pemutar, Sistem [SETELAN-PUSAT]
+- [x] Uji perangkat [PAKET-VERSI] dinyatakan OK oleh pengguna
+- [x] refactor(settings): halaman "Cadangan dan otomasi" dibubarkan. Cadangan harian pindah ke Sistem > Cadangan dan profil (AutoBackupRows). "Unduhan masuk ke Cinema" pindah ke Pemutar > Beranda Cinema. "Lanjutkan dari posisi terakhir" dihapus karena duplikat "Ingat posisi putar" di Pemutar (ResumeBridge sama)
+- [x] refactor(settings): Sistem dikelompokkan: umum, Cadangan dan profil, Debian (isi Debian kini hanya Kelola rootfs). Tautan "Terminal" di Sistem diganti "Pengaturan Terminal" agar tidak rancu dengan ubin Terminal (sesi) di beranda
+- [x] fix(ui): teks pembaruan yt-dlp menunjuk Paket > Alat (sebelumnya Mesin cadangan). Baris Cadangan di Info membuka Sistem
+- [x] feat(ui): titik status kartu Alat berdenyut emas saat sedang diperiksa
+- [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh
+- [ ] Sengaja dibiarkan: Penyimpanan > Bersihkan cache apt (hapus berkas langsung, cepat) berdampingan dengan Paket > Bersihkan cache dan paket yatim (apt via PRoot). Fungsinya mirip, mekanismenya beda
+- [ ] Belum dikompilasi: tunggu CI
+- [ ] Uji perangkat: Sistem tanpa tautan Cadangan dan otomasi; switch cadangan harian di Sistem; switch Unduhan masuk ke Cinema di Pemutar; pencarian "cadangan" dan "unduhan masuk" membuka halaman yang benar; titik emas berdenyut saat Periksa versi

@@ -101,6 +101,15 @@ internal fun PlayerSettingsPage(onOpenCinema: () -> Unit) {
         tvMode = it
         TvMode.setEnabled(ctx, it)
     }
+    // [SETELAN-PUSAT] pindah dari halaman Cadangan dan otomasi
+    remember { com.molina.studio.automation.AutoPrefs.init(ctx) }
+    val autoSt by com.molina.studio.automation.AutoPrefs.state.collectAsState()
+    SwitchRow(
+        "Unduhan masuk ke Cinema",
+        "Setelah unduhan selesai, video atau audio yang berhasil otomatis muncul di Terakhir diputar Molina Cinema " +
+            "agar bisa diputar dengan satu ketukan.",
+        autoSt.addToCinema
+    ) { com.molina.studio.automation.AutoPrefs.setAddToCinema(ctx, it) }
 
     Category("Sumber IPTV")
     if (sources.isEmpty()) {

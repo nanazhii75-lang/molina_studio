@@ -64,7 +64,7 @@ object SettingsNav {
 }
 
 private enum class Page {
-    Home, System, Terminal, Debugging, TerminalIO, TerminalView, Tampilan, CrashReports, Log, Stream, Network, Scripts, Packages, Bundle, Code, TerminalApp, Downloads, Storage, Monitor, Automation, Player, Stats, Info
+    Home, System, Terminal, Debugging, TerminalIO, TerminalView, Tampilan, CrashReports, Log, Stream, Network, Scripts, Packages, Bundle, Code, TerminalApp, Downloads, Storage, Monitor, Player, Stats, Info
 }
 
 private fun parentOf(p: Page): Page? = when (p) {
@@ -97,7 +97,6 @@ private fun titleOf(p: Page): String = when (p) {
     Page.Downloads -> "Unduhan"
     Page.Storage -> "Penyimpanan"
     Page.Monitor -> "Monitor Sistem"
-    Page.Automation -> "Cadangan dan otomasi"
     Page.Player -> "Pemutar"
     Page.Stats -> "Statistik tontonan"
     Page.Info -> "Info"
@@ -109,7 +108,7 @@ private class Hit(val title: String, val summary: String, val page: Page)
 
 /** Indeks pencarian Settings: judul, keterangan singkat, dan halaman tujuan. */
 private val INDEX = listOf(
-    Hit("Terminal", "Molina Terminal: debugging, I/O, tampilan", Page.Terminal),
+    Hit("Pengaturan Terminal", "Molina Terminal: debugging, I/O, tampilan", Page.Terminal),
     Hit("Debugging", "Log level, key logging, notifikasi crash", Page.Debugging),
     Hit("Log Level", "Off, Normal, Debug, Verbose", Page.Debugging),
     Hit("Crash Reporter", "Lihat, salin, atau hapus laporan crash", Page.CrashReports),
@@ -148,9 +147,9 @@ private val INDEX = listOf(
     Hit("RAM", "Pemakaian memori seluruh proses Molina", Page.Monitor),
     Hit("Kecepatan jaringan", "Unduh dan unggah per detik", Page.Monitor),
     Hit("Pembaruan paket", "Status pembaruan Debian, yt-dlp, NewPipe dan pemeriksaan otomatis (Wi-Fi, 24 jam)", Page.Packages),
-    Hit("Cadangan dan otomasi", "Cadangan harian, lanjutkan posisi, unduhan masuk ke Cinema", Page.Automation),
     Hit("Pembaruan otomatis", "Perbarui lencana paket Debian dan yt-dlp lewat WorkManager", Page.Packages),
-    Hit("Cadangan otomatis", "Cadangan gabungan harian ke folder Backup", Page.Automation),
+    Hit("Cadangan otomatis", "Cadangan gabungan harian ke folder Backup", Page.System),
+    Hit("Unduhan masuk ke Cinema", "Unduhan selesai otomatis muncul di Terakhir diputar Molina Cinema", Page.Player),
     Hit("Statistik tontonan", "Waktu tonton per hari dan video paling sering diputar (lokal)", Page.Stats),
     Hit("Waktu tonton", "Total jam putar aktif, grafik 7 hari, judul teratas", Page.Stats),
     Hit("Pemutar", "Molina Cinema: ingat posisi putar, dekoder, sumber IPTV", Page.Player),
@@ -317,20 +316,21 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                     }
                     Page.System -> {
                         W7Link({ W7IconInfo() }, "Info", "Status Molina, versi, perangkat, dan diagnostik") { open(Page.Info) } // [INFO-PAGE]
-                        W7Link({ W7IconTerminal() }, "Terminal", "Molina Terminal: debugging, I/O, tampilan") { open(Page.Terminal) }
+                        W7Link({ W7IconTerminal() }, "Pengaturan Terminal", "Molina Terminal: debugging, I/O, tampilan") { open(Page.Terminal) }
                         W7Link({ W7IconTerminal() }, "Editor Code", "Pratinjau HTML: renderer native atau WebView") { open(Page.Code) }
                         W7Link({ W7IconShield() }, "Keamanan dan privasi", "Kebijakan URL, jaringan lokal (LAN), layar privat") { open(Page.Network) }
                         W7Link({ W7IconToolList() }, "Penyimpanan", "Ukuran Debian, cache, Recycle Bin, dan bersihkan ruang") { open(Page.Storage) }
-                        W7Link({ W7IconAptSync() }, "Cadangan dan otomasi", "Cadangan harian, lanjutkan posisi, unduhan masuk ke Cinema") { open(Page.Automation) }
+                        Category("Cadangan dan profil") // [SETELAN-PUSAT]
+                        W7Link({ W7IconToolList() }, "Cadangan dan pemulihan", "Penanda video, snippet, dan setelan dalam satu berkas Backup") { showBackup = true }
+                        AutoBackupRows()
+                        W7Link({ W7IconToolList() }, "Profil setelan", "Simpan dan ganti kumpulan setelan dengan satu ketukan") { showProfiles = true }
                         Category("Debian")
                         W7Link({ W7IconRootfs() }, "Kelola rootfs Debian", "Cadangkan, pulihkan, atau atur ulang seluruh rootfs (tar.gz)") { showRootfsAdmin = true } // [TERM-ROOTFS2]
-                        W7Link({ W7IconToolList() }, "Cadangan dan pemulihan", "Penanda video, snippet, dan setelan dalam satu berkas Backup") { showBackup = true }
-                        W7Link({ W7IconToolList() }, "Profil setelan", "Simpan dan ganti kumpulan setelan dengan satu ketukan") { showProfiles = true }
                     }
                     Page.Info -> HubInfoPage( // [INFO-PAGE] rumah informasi diagnostik; gabungan About lama
                         onSystem = { open(Page.System) },
                         onPackages = { lastTile = Page.Packages; open(Page.Packages) },
-                        onAutomation = { open(Page.Automation) },
+                        onAutomation = { open(Page.System) }, // [SETELAN-PUSAT] cadangan kini di Sistem
                         onDiagnostics = { showDiag = true },
                         onBugReport = { BugReport.export(aptCtx) },
                         onLog = { open(Page.Log) },
@@ -366,7 +366,6 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                     Page.Bundle -> BundlePage(onOpenYtdlp = { open(Page.Stream) })
                     Page.Storage -> StoragePage()
                     Page.Monitor -> SystemMonitorPage()
-                    Page.Automation -> AutomationPage()
                     Page.TerminalApp -> {}
                 }
             }
