@@ -2856,3 +2856,9 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Belum dikompilasi: jalankan Actions > Release check (R8) secara manual; kirim log bila gagal (biasanya "Missing class" atau ClassNotFound saat jalan)
 - [ ] Uji perangkat (APK rilis): buka Terminal (PTY jalan), putar video (mpv), Pengaturan Cinema (fragment preferensi terbuka), pencarian NewPipe, ekstrak arsip tar.xz/7z/zip
 - [ ] Setelah lolos: pakai APK rilis untuk pemasangan harian; pertimbangkan R8 full mode
+
+## 2026-10-31 - Audit keamanan lanjutan [SEC-AUDIT]
+- [x] Audit repo: pin SHA CI, allowBackup=false, network config, opsi aman mpv, ConfigGuard, paste guard, R8 rilis, SHA-256 rootfs, ekstraksi arsip aman
+- [ ] Celah: kredensial di /sdcard (API 26), scan domain CI, Dependabot untuk pin SHA, Gradle dependency verification
+- [ ] Menunggu hasil uji APK terbaru (ConfigGuard dan R8)
+- [x] Dampak: tidak ada kode, Gradle, AndroidManifest, atau JNI yang diubah
