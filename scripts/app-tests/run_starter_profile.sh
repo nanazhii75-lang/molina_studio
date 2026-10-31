@@ -34,6 +34,7 @@ run() { : > "$W/apt.log"; APT_LOG="$W/apt.log" PATH="$W/bin:$PATH" "$@" sh "$W/s
 
 ok "sintaks sh valid" 'sh -n "$W/script.sh"'
 ok "daftar PACKAGES sama dengan SCRIPT" 'for p in $(cat "$W/pkgs.txt"); do grep -qw -- "$p" "$W/script.sh" || exit 1; done; exit 0'
+ok "ca-certificates ada di PACKAGES dan di baris install" 'grep -qw ca-certificates "$W/pkgs.txt" && grep "apt-get install" "$W/script.sh" | grep -qw ca-certificates'
 ok "tanpa paket tak terdaftar di baris install" '[ "$(grep "apt-get install" "$W/script.sh" | sed "s/.*root //" | wc -w)" = "$(wc -w < "$W/pkgs.txt")" ]'
 
 run env DF_KB=5000000

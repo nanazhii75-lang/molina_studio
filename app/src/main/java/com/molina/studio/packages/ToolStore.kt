@@ -48,11 +48,11 @@ object BuiltinTools {
     val all: List<ToolItem> = listOf(
         ToolItem(
             "b-python3", "Python 3", "Interpreter Python di Debian. yt-dlp membutuhkannya.",
-            "apt update $APT\napt install -y $APT python3", "python3 --version", PYTHON_REMOVE, true, listOf("python3")
+            "apt update $APT\napt install -y $APT python3 ca-certificates", "python3 --version", PYTHON_REMOVE, true, listOf("python3")
         ),
         ToolItem(
             "b-git", "Git", "Sistem kontrol versi.",
-            "apt update $APT\napt install -y $APT git", "git --version", GIT_REMOVE, true, listOf("git"), listOf("/root/.gitconfig", "/root/.config/git")
+            "apt update $APT\napt install -y $APT git ca-certificates", "git --version", GIT_REMOVE, true, listOf("git"), listOf("/root/.gitconfig", "/root/.config/git")
         ),
         ToolItem(
             "b-ffmpeg", "FFmpeg", "Konversi dan pemrosesan audio/video.",

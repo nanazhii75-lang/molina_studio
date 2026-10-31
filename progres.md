@@ -2755,3 +2755,10 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh; tanpa dependensi baru. Skrip uji (run*.sh) menambah DownloadErrorText.kt
 - [ ] Belum dikompilasi: tunggu CI (DownloadRunner, UnduhanScreen)
 - [ ] Belum diuji di perangkat: unduh YouTube setelah update Debian > tidak error SSL (atau muncul peringatan perbaikan lalu sukses); matikan jaringan > pesan ramah, detail ada di Log
+
+## 2026-10-31 - Rootfs: ca-certificates ikut terpasang di Starter dan Python/Git [ROOTFS-CA]
+- [x] fix(rootfs): akar error SSL: rootfs trixie-slim tidak membawa ca-certificates dan Starter memakai --no-install-recommends, sehingga /etc/ssl/certs/ca-certificates.crt tidak ada (git push dan yt-dlp gagal CERTIFICATE_VERIFY_FAILED)
+- [x] StarterProfile.PACKAGES + SCRIPT menambah ca-certificates (urutan sama); ToolStore: install Python 3 dan Git juga memasang ca-certificates; tes run_starter_profile.sh menambah pemeriksaan
+- [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh. Idempoten: apt melewati paket yang sudah ada
+- [ ] Belum dikompilasi: tunggu CI
+- [ ] Belum diuji di perangkat: rootfs baru > Setelan > Sistem > Debian > Starter > ls /etc/ssl/certs/ca-certificates.crt ada; unduh YouTube berhasil. Rootfs lama: jalankan Starter sekali lagi
