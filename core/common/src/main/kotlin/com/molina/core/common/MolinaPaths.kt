@@ -17,6 +17,7 @@ enum class MolinaDir(val folderName: String) {
     Documents("Documents"),
     Export("Documents/Export"),
     Crash("Crash"),
+    TerminalLog("Logs/Terminal"),
 }
 
 /**

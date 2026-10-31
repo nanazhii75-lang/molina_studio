@@ -2705,3 +2705,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Belum dikompilasi: tunggu CI
 - [ ] Belum diuji di perangkat: buka mode TV di Android 8, cek tidak crash dan nama folder kanal sama dengan molina_dl.py
 - [ ] Celah: tes JVM tidak menangkap sintaks regex yang hanya ditolak ICU Android; pertimbangkan tes Robolectric/instrumented atau gerbang grep untuk (?U)
+
+## 2026-10-31 - Transkrip Terminal pindah ke folder data Molina [TERM-LOG-DIR]
+- [x] fix(term): menu titik tiga > "Simpan transkrip ke berkas" kini menulis ke /sdcard/Molina/Logs/Terminal/ (MolinaDir.TerminalLog), bukan /sdcard/molina-studio/terminal-logs; saveTranscript menerima Context dan memakai AppPaths
+- [x] Folder dibuat otomatis oleh AndroidMolinaPaths.ensureDirs (iterasi MolinaDir.entries); terlihat di Debian lewat bind /sdcard/Molina
+- [x] Toast gagal kini membedakan kosong/izin storage; docs/HANDOFF.md diperbarui
+- [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh; hanya enum :core:common dan TerminalChrome.kt
+- [ ] Belum dikompilasi: tunggu CI
+- [ ] Belum diuji di perangkat: klik Simpan transkrip, cek file di /sdcard/Molina/Logs/Terminal; file lama di molina-studio/terminal-logs tidak dipindah

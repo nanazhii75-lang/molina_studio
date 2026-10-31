@@ -1,7 +1,6 @@
 package com.molina.studio.terminal
 
 import android.content.Context
-import android.os.Environment
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -18,6 +17,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import com.molina.core.common.MolinaDir
+import com.molina.core.common.MolinaPaths
+import com.molina.studio.AppPaths
 import com.molina.studio.code.CodeInbox
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -68,18 +70,19 @@ internal object TerminalUi {
 }
 
 /**
- * Simpan seluruh transkrip (scrollback + layar) ke /sdcard/molina-studio/terminal-logs/.
+ * Simpan seluruh transkrip (scrollback + layar) ke folder data aplikasi /sdcard/Molina/Logs/Terminal/
+ * (sama seperti Crash; folder project molina-studio tidak lagi ditulisi aplikasi).
  * Mengembalikan path versi Debian (/sdcard/...), atau null bila kosong/gagal.
  */
-internal fun saveTranscript(): String? {
+internal fun saveTranscript(ctx: Context): String? {
     val text = TerminalSessions.currentSession?.emulator?.screen?.transcriptText
     if (text.isNullOrBlank()) return null
     return try {
         val name = "terminal-" + SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date()) + ".txt"
-        val dir = File(Environment.getExternalStorageDirectory(), TerminalSessions.WORKSPACE_DIR + "/terminal-logs")
-        dir.mkdirs()
+        val dir = AppPaths.get(ctx).dir(MolinaDir.TerminalLog)
+        if (!dir.isDirectory && !dir.mkdirs()) return null
         File(dir, name).writeText(text.trimEnd() + "\n")
-        "/sdcard/" + TerminalSessions.WORKSPACE_DIR + "/terminal-logs/" + name
+        "/sdcard/${MolinaPaths.APP_FOLDER}/${MolinaDir.TerminalLog.folderName}/$name"
     } catch (e: Exception) {
         null
     }
@@ -168,9 +171,9 @@ internal fun TerminalHeader(onOpenSettings: () -> Unit) {
                     text = { Text("Simpan transkrip ke berkas") },
                     onClick = {
                         menu = false
-                        val path = saveTranscript()
+                        val path = saveTranscript(ctx)
                         Toast.makeText(
-                            ctx, if (path != null) "Transkrip disimpan: $path" else "Tidak ada teks untuk disimpan",
+                            ctx, if (path != null) "Transkrip disimpan: $path" else "Gagal menyimpan: transkrip kosong atau izin storage belum diberikan",
                             Toast.LENGTH_LONG
                         ).show()
                     }
