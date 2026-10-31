@@ -124,6 +124,7 @@ internal object BridgeCommands {
         for (p in paths) {
             val host = CommandProtocol.guestToHost(p, root)
                 ?: return CommandProtocol.err("path", "path harus di bawah /sdcard atau /storage/emulated/0: $p")
+            CliScope.deny(app, host, root, p)?.let { return it } // [CLI-SCOPE]
             val f = File(host)
             if (!f.isFile) return CommandProtocol.err("missing", "bukan berkas: $p")
             files.add(f)

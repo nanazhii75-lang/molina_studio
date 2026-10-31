@@ -2976,5 +2976,18 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Hasil baik: O_CLOEXEC, fd child ditutup, clearenv, setsid, kill grup proses, service tidak exported, UID peer diperiksa
 - [ ] Temuan: exception pending lanjut ke GetPrimitiveArrayCritical (createSubprocess); waitFor status tak terinisialisasi dan tanpa retry EINTR; argv/envp bocor di jalur error
 - [ ] Temuan: WakeLock tanpa timeout; tanpa foregroundServiceType (aman di targetSdk 28); setPtyUTF8Mode tidak dipakai
-- [ ] Risiko diterima: targetSdk=28; Akses penuh membuka seluruh /sdcard ke guest; abstract socket @molina.cmd bisa di-squat (perlu handshake token)
+- [ ] Risiko diterima: targetSdk=28; Akses penuh membuka seluruh /sdcard ke guest; abstract socket @molina.cmd: squatting sudah ditangani klien lewat SO_PEERCRED ([CLI-PEERCHECK]); catatan: pemeriksaan dilewati bila UID sendiri tak terbaca
 - [ ] Belum dikompilasi: audit statis saja; patch molina_pty.c akan memengaruhi build NDK
+
+## 2026-11-01 - Cakupan path bridge CLI dan rate limit [CLI-SCOPE]
+- [x] Temuan: molina share/open/play menerima path apa pun di bawah /sdcard walau Akses penuh mati; guest hanya melihat folder kerja, jadi bridge menjadi jalan keluar dari lingkup itu
+- [x] Temuan: share/open/play tanpa rate limit (hanya notify yang punya)
+- [x] fix(security): CommandProtocol.inScope (murni) + CliScope; tanpa Akses penuh hanya /sdcard/molina-studio dan /sdcard/Molina yang diterima; galat "scope" menunjuk ke Akses penuh
+- [x] fix(security): jeda minimal 300 ms untuk play/open/share (galat "rate")
+- [x] Koreksi: usulan handshake token untuk @molina.cmd dibatalkan; klien sudah memverifikasi UID server
+- [x] test: 17 kasus baru di scripts/app-tests/CommandProtocolTests.kt
+- [x] Dampak: CommandProtocol, CommandServer, BridgeCommands, berkas baru CliScope; Gradle, AndroidManifest, JNI TIDAK disentuh
+- [ ] Belum dikompilasi untuk Android: tunggu CI
+- [ ] Uji perangkat: Akses penuh mati: molina play /sdcard/Download/a.mkv harus ditolak (ERR scope), molina play /sdcard/Molina/... harus jalan; Akses penuh nyala: keduanya jalan; dua molina share beruntun < 300 ms: yang kedua ERR rate
+- [ ] Perilaku berubah: path di luar folder kerja dan Molina ditolak saat Akses penuh mati
+- [ ] Batas: symlink tidak dihitung (storage bersama tidak mendukungnya); pembandingan peka huruf besar-kecil (salah arah = tolak)

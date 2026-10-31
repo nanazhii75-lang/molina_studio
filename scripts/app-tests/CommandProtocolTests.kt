@@ -138,6 +138,27 @@ fun main() {
     check("konstanta", CommandProtocol.SOCKET_NAME == "molina.cmd" && CommandProtocol.VERSION == 2)
     check("verb unik", Verb.entries.map { it.wire }.toSet().size == Verb.entries.size)
 
+    // [CLI-SCOPE] inScope + gapOk
+    val sr = "/storage/emulated/0"
+    val allow = listOf("molina-studio", "Molina")
+    check("scope: akses penuh lolos semua", CommandProtocol.inScope("$sr/DCIM/a.jpg", sr, true, allow))
+    check("scope: folder kerja", CommandProtocol.inScope("$sr/molina-studio/a.txt", sr, false, allow))
+    check("scope: folder Molina", CommandProtocol.inScope("$sr/Molina/Media/Video/a.mkv", sr, false, allow))
+    check("scope: akar folder sendiri", CommandProtocol.inScope("$sr/Molina", sr, false, allow))
+    check("scope: DCIM ditolak", !CommandProtocol.inScope("$sr/DCIM/a.jpg", sr, false, allow))
+    check("scope: Download ditolak", !CommandProtocol.inScope("$sr/Download/a.mkv", sr, false, allow))
+    check("scope: awalan mirip Molina", !CommandProtocol.inScope("$sr/Molina2/a", sr, false, allow))
+    check("scope: awalan mirip folder kerja", !CommandProtocol.inScope("$sr/molina-studio-x/a", sr, false, allow))
+    check("scope: akar storage ditolak", !CommandProtocol.inScope(sr, sr, false, allow))
+    check("scope: huruf besar-kecil beda ditolak", !CommandProtocol.inScope("$sr/molina/a", sr, false, allow))
+    check("scope: root berakhiran slash", CommandProtocol.inScope("$sr/Molina/a", "$sr/", false, allow))
+    check("scope: daftar kosong menolak semua", !CommandProtocol.inScope("$sr/Molina/a", sr, false, emptyList()))
+    check("scope: lewat guestToHost", CommandProtocol.inScope(CommandProtocol.guestToHost("/sdcard//Molina/./a.mkv", sr)!!, sr, false, allow))
+    check("scope: guestToHost DCIM ditolak", !CommandProtocol.inScope(CommandProtocol.guestToHost("/sdcard/DCIM/a.jpg", sr)!!, sr, false, allow))
+    check("gapOk: terlalu cepat", !CommandProtocol.gapOk(1000L, 1100L, 300L))
+    check("gapOk: pas batas", CommandProtocol.gapOk(1000L, 1300L, 300L))
+    check("gapOk: cukup lama", CommandProtocol.gapOk(1000L, 5000L, 300L))
+
     println(if (fails == 0) "LULUS: $runs kasus" else "$fails dari $runs kasus GAGAL")
     if (fails != 0) System.exit(1)
 }

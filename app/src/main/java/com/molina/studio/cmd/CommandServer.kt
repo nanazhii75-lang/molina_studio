@@ -122,12 +122,16 @@ object CommandServer {
             CommandProtocol.ok(if (MpvControl.isActive()) "player=aktif" else "player=diam")
         CommandProtocol.Verb.STOP ->
             CommandProtocol.ok(if (MpvControl.shutdown(app)) "pemutar dihentikan" else "tidak ada pemutar aktif")
-        CommandProtocol.Verb.PLAY -> play(NewTaskContext(app), r.arg)
-        CommandProtocol.Verb.OPEN -> open(r.arg)
+        CommandProtocol.Verb.PLAY -> gated { play(NewTaskContext(app), r.arg) }
+        CommandProtocol.Verb.OPEN -> gated { open(app, r.arg) }
         CommandProtocol.Verb.CLIP -> BridgeCommands.clip(app, CommandProtocol.parseClip(r.arg))
         CommandProtocol.Verb.NOTIFY -> BridgeCommands.notify(app, r.arg)
-        CommandProtocol.Verb.SHARE -> BridgeCommands.share(app, r.arg)
+        CommandProtocol.Verb.SHARE -> gated { BridgeCommands.share(app, r.arg) }
     }
+
+    /** [CLI-SCOPE] Aksi yang membuka UI dibatasi lajunya. */
+    private inline fun gated(block: () -> String): String =
+        if (CliScope.rateLimited()) CommandProtocol.err("rate", "terlalu cepat, tunggu sebentar") else block()
 
     private fun play(ctx: Context, arg: String): String {
         if (arg.contains("://")) {
@@ -141,6 +145,7 @@ object CommandServer {
         val root = Environment.getExternalStorageDirectory().absolutePath
         val host = CommandProtocol.guestToHost(arg, root)
             ?: return CommandProtocol.err("path", "path harus di bawah /sdcard atau /storage/emulated/0")
+        CliScope.deny(ctx, host, root, arg)?.let { return it } // [CLI-SCOPE]
         val f = File(host)
         return when {
             f.isFile ->
@@ -159,7 +164,7 @@ object CommandServer {
     }
 
     /** Buka berkas di editor Code (tab Code); MainActivity yang mengonsumsi CodeNav.pendingFiles. */
-    private fun open(arg: String): String {
+    private fun open(app: Context, arg: String): String {
         val paths = CommandProtocol.splitPaths(arg)
         if (paths.isEmpty()) return CommandProtocol.err("usage", "open butuh minimal satu berkas")
         if (paths.size > CommandProtocol.MAX_OPEN) {
@@ -170,6 +175,7 @@ object CommandServer {
         for (p in paths) {
             val host = CommandProtocol.guestToHost(p, root)
                 ?: return CommandProtocol.err("path", "path harus di bawah /sdcard atau /storage/emulated/0: $p")
+            CliScope.deny(app, host, root, p)?.let { return it } // [CLI-SCOPE]
             val f = File(host)
             if (!f.isFile) return CommandProtocol.err("missing", "bukan berkas: $p")
             files.add(f)

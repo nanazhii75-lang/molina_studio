@@ -74,6 +74,20 @@ object CommandProtocol {
         val root = storageRoot.trimEnd('/')
         return if (parts.isEmpty()) root else root + "/" + parts.joinToString("/")
     }
+    /**
+     * [CLI-SCOPE] Path host (hasil [guestToHost], sudah tanpa "..") boleh dipakai bila [full] aktif, atau berada di bawah
+     * salah satu folder [allowed] (nama folder langsung di bawah [storageRoot]). Tanpa ini, bridge CLI bisa menjangkau
+     * berkas yang tidak terlihat di Debian saat "Akses penuh" mati. Pembandingan peka huruf besar-kecil: salah arah = tolak.
+     */
+    fun inScope(host: String, storageRoot: String, full: Boolean, allowed: List<String>): Boolean {
+        if (full) return true
+        val root = storageRoot.trimEnd('/')
+        return allowed.any { name -> host == "$root/$name" || host.startsWith("$root/$name/") }
+    }
+
+    /** [CLI-SCOPE] True bila jeda sejak aksi sebelumnya cukup (rate limit aksi yang membuka UI). */
+    fun gapOk(prevMs: Long, nowMs: Long, minGapMs: Long): Boolean = nowMs - prevMs >= minGapMs
+
     // ---- Bridge API Android: clip, notify, share (protokol v2) ----
 
     /** Batas teks clipboard/share (byte UTF-8 sebelum base64). */
