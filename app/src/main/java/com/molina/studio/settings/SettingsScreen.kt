@@ -162,6 +162,7 @@ private val INDEX = listOf(
     Hit("About", "Versi, perangkat, status, dan lisensi (kini di Sistem > Info)", Page.Info),
     Hit("Salin info debug", "Salin ringkasan versi dan status untuk laporan bug", Page.Info),
     Hit("Info", "Status Molina dan informasi dasar perangkat", Page.Info),
+    Hit("Rilis Debian", "Versi Debian dan jumlah paket terpasang di Paket > Debian (apt)", Page.Packages),
     Hit("Pasang paket Starter", "Profil utilitas: ca-certificates, python3, ffmpeg, openssh-client, vim di Paket > Debian (apt)", Page.Packages),
     Hit("Kelola rootfs Debian", "Backup, restore, dan reset rootfs Debian di Sistem", Page.System),
     Hit("Status Molina", "Ringkasan Debian, paket, yt-dlp, dan cadangan di Sistem > Info", Page.Info),

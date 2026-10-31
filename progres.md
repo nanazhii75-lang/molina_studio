@@ -2821,3 +2821,10 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh
 - [ ] Belum dikompilasi: tunggu CI
 - [ ] Uji perangkat: Penyimpanan tanpa tombol cache apt, tautan membuka Paket; pencarian "cache apt" membuka Paket
+
+## 2026-10-31 - Rilis Debian dan jumlah paket di Paket [DEBIAN-INFO]
+- [x] feat(settings): baris "Rilis Debian" di Paket > Debian (apt): rilis dan jumlah paket terpasang, menggantikan info yang hilang bersama dialog Daftar tool terpasang. Dibaca langsung dari rootfs (etc/debian_version dan var/lib/dpkg/status), tanpa PRoot, di thread IO
+- [x] Baris dibaca ulang saat riwayat apt atau jumlah pembaruan berubah. Pencarian "Rilis Debian" membuka Paket
+- [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh
+- [ ] Belum dikompilasi: tunggu CI
+- [ ] Uji perangkat: baris tampil "Debian N · M paket terpasang"; rootfs belum ada menampilkan pesan; angka berubah setelah Perbarui dan tingkatkan

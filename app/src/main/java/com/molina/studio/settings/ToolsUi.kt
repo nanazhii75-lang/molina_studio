@@ -182,6 +182,7 @@ internal fun PackagesPage(
     )
     UpdateStatusSection()
     Category("Debian (apt)")
+    DebianInfoRow(aptLast to aptPending) // [DEBIAN-INFO]
     BadgeOverlay(if (aptPending > 0) aptPending.toString() else null, false, gold = true) {
         W7Link({ W7IconAptSync() }, "Periksa pembaruan paket", AptHistory.checkSubtitle(aptPending)) { onApt(AptJob.CheckUpdates) }
     }
