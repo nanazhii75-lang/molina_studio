@@ -3,6 +3,7 @@ package com.molina.engine.newpipe
 import com.molina.core.common.AppLog
 import com.molina.core.common.LogLevel
 import com.molina.core.common.ResolvedStream
+import com.molina.core.common.SearchLang
 import com.molina.core.common.StreamError
 import com.molina.core.common.StreamOutcome
 import com.molina.core.common.StreamResolver
@@ -90,13 +91,15 @@ class NewPipeStreamResolver(
             val items = runInterruptible(Dispatchers.IO) {
                 val service = ServiceList.YouTube
                 val handler = service.searchQHFactory.fromQuery(q)
+                // Kunci bahasa menyaring sesudahnya, jadi kumpulkan kandidat 2x lebih banyak.
+                val want = if (SearchLang.enabled) (limit * 2).coerceAtMost(100) else limit
                 val first = SearchInfo.getInfo(service, handler)
                 val all = ArrayList<InfoItem>(first.relatedItems.orEmpty())
                 var page = first.nextPage
                 var pages = 1
                 // Satu halaman YouTube hanya ~20 entri campuran; lanjutkan sampai [limit] video terkumpul.
                 try {
-                    while (page != null && pages < 6 && all.count { it is StreamInfoItem } < limit) {
+                    while (page != null && pages < 6 && all.count { it is StreamInfoItem } < want) {
                         val more = SearchInfo.getMoreItems(service, handler, page)
                         all.addAll(more.items.orEmpty())
                         page = more.nextPage
@@ -123,8 +126,8 @@ class NewPipeStreamResolver(
                         uploadedText = i.textualUploadDate?.takeIf { it.isNotBlank() },
                     )
                 }
-                .take(limit.coerceAtLeast(0))
                 .toList()
+                .let { SearchLang.apply(it, limit) }
             AppLog.log(SOURCE, LogLevel.Info, "search", "OK ${out.size} hasil")
             StreamOutcome.Success(out)
         } catch (e: CancellationException) {

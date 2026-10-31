@@ -5,6 +5,7 @@ import com.molina.core.common.AppLog
 import com.molina.core.common.LogLevel
 import com.molina.core.common.LogRedact
 import com.molina.core.common.ResolvedStream
+import com.molina.core.common.SearchLang
 import com.molina.core.common.StreamError
 import com.molina.core.common.StreamOutcome
 import com.molina.core.common.StreamResolver
@@ -61,7 +62,7 @@ internal class YtdlpStreamResolver(
         val o = YtdlpRunner.run(ctx, bin, YtdlpCommand.searchArgs(query, limit), SEARCH_TIMEOUT_MS)
         if (o.timedOut) return fail(StreamError.NETWORK, "pencarian lewat waktu")
         if (o.exit != 0) return failure(o.exit, o.stderr, "pencarian")
-        return StreamOutcome.Success(YtdlpSearch.parse(o.stdout.lines(), limit))
+        return StreamOutcome.Success(SearchLang.apply(YtdlpSearch.parse(o.stdout.lines(), limit), limit))
     }
 
     /**

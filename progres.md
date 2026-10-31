@@ -2537,3 +2537,13 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: :core:common (TvGuide), :app (CinemaShelf: ChannelCover, CountBadge; TvBrowser), 1 berkas tes; molina_dl.py, Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
 - [ ] Compose belum dikompilasi: tunggu CI (cek impor size/CircleShape/Dp di CinemaShelf, Modifier.matchParentSize di Box, Modifier.weight di Row judul)
 - [ ] Uji perangkat: buka saluran Unduhan yang punya folder per kanal -> tiap baris kanal berjudul emas dengan sampul bulat + lencana jumlah; ketuk judul membuka folder kanal; baris tanpa poster memakai monogram; gulir cepat tidak berkedip/menumpuk gambar
+
+## 2026-10-31 - Kunci hasil pencarian YouTube ke bahasa Indonesia [SEARCH-LANG-LOCK]
+- [x] Diagnosis: lokalisasi sudah benar ([NEWPIPE-LOCALE-ID] NewPipe id/ID, [SEARCH-LANG-ID] yt-dlp lang=id); judul Inggris yang tersisa adalah judul asli pengunggah/relevansi global, karena YouTube tidak punya filter bahasa untuk pencarian (hl/gl hanya menerjemahkan antarmuka dan judul yang punya terjemahan otomatis)
+- [x] feat(core): SearchLang (:core:common) = klasifikasi judul ID/NETRAL/OTHER (kata fungsi Indonesia vs Inggris + aksara non-Latin); urut ID -> netral, OTHER dibuang; bila yang lolos < 5 semuanya tetap tampil agar tidak kosong
+- [x] feat(newpipe): kandidat dikumpulkan 2x (maks. 100) lalu disaring SearchLang sebelum dipotong limit; yt-dlp cadangan ikut disaring
+- [x] feat(app): sakelar "Kunci hasil ke bahasa Indonesia" (default nyala, tersimpan di molina_stream/lock_id) di halaman Mesin cadangan
+- [x] Tes: scripts/core-tests/SearchLangTests.kt + run_search_lang.sh
+- [x] Dampak: :core:common (1 berkas baru), :engine:newpipe, :app (prefs + pengaturan), 2 berkas tes; Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
+- [ ] Compose belum dikompilasi: tunggu CI (cek impor SearchLang, SwitchRow baru di StreamEnginePage)
+- [ ] Uji perangkat: cari "resep nasi goreng" dan "how to cook rice" -> hasil Indonesia di depan, judul Inggris hilang; matikan sakelar -> hasil seperti semula; cari topik yang memang berbahasa Inggris -> tetap ada hasil (fallback < 5)
