@@ -2530,3 +2530,10 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Batasan: hanya video yang punya .info.json sidecar (unduh dengan "Poster + info"/--sidecar); video di subfolder tidak ikut (hanya isi langsung folder yang sedang dibuka); riwayat "Terakhir" Cinema masih menyimpan path lama sehingga item itu tidak bisa diputar ulang dari riwayat setelah dipindah
 - [ ] Compose belum dikompilasi: tunggu CI (cek when(sheet) eksaustif, TvInfoPanel parameter tidy, Modifier.clip/border/clickable pada tombol)
 - [ ] Uji perangkat: taruh beberapa video bersidecar di folder Unduhan datar -> buka Mode TV saluran Unduhan -> tombol Rapikan muncul; konfirmasi -> baris rak per kanal muncul dan video lama tidak lagi di baris Video; Urungkan memulihkan semuanya; video lanjut-putar tetap lanjut di posisi terakhir; folder tanpa sidecar -> tombol tidak muncul
+
+## 2026-10-31 - Tampilan baris rak kanal: sampul bulat, judul emas, lencana jumlah [CINEMA-SHELF-BRAND]
+- [x] feat(cinema): judul baris rak kanal (Mode TV) kini: sampul bulat (poster sidecar / frame video terbaru di baris itu, monogram nama kanal bila belum ada gambar) + nama kanal emas tebal + lencana jumlah video (99+ bila lebih dari 99) + panah; seluruh baris judul bisa diketuk untuk membuka folder kanal; baris biasa (Folder/Video/Audio/Lainnya) tidak berubah
+- [x] feat(core): TvGuide.badge(total) dan Row.coverFile (video terbaru di baris) agar bagian yang bisa diuji tetap di :core:common; TvGuideTests +3 pemeriksaan
+- [x] Dampak: :core:common (TvGuide), :app (CinemaShelf: ChannelCover, CountBadge; TvBrowser), 1 berkas tes; molina_dl.py, Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
+- [ ] Compose belum dikompilasi: tunggu CI (cek impor size/CircleShape/Dp di CinemaShelf, Modifier.matchParentSize di Box, Modifier.weight di Row judul)
+- [ ] Uji perangkat: buka saluran Unduhan yang punya folder per kanal -> tiap baris kanal berjudul emas dengan sampul bulat + lencana jumlah; ketuk judul membuka folder kanal; baris tanpa poster memakai monogram; gulir cepat tidak berkedip/menumpuk gambar

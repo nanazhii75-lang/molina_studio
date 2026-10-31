@@ -11,7 +11,9 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,6 +31,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.molina.core.common.ShelfCard
@@ -87,4 +90,37 @@ internal fun ShelfCardView(card: ShelfCard.Card, onLong: () -> Unit = {}, onClic
             Text(card.subtitle, color = Win7.TextDim, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
+}
+
+/**
+ * [CINEMA-SHELF-BRAND] Sampul bulat kanal untuk judul baris rak: poster/frame video terbaru di baris itu
+ * (lewat W7Thumb, poster sidecar diprioritaskan); kembali ke monogram nama kanal bila belum ada gambar.
+ */
+@Composable
+internal fun ChannelCover(name: String, card: ShelfCard.Card?, diameter: Dp = 28.dp) {
+    val thumb: ImageBitmap? by produceState<ImageBitmap?>(initialValue = null, card?.thumbPath) {
+        value = card?.thumbPath?.let { W7Thumb.load(File(it)) }?.asImageBitmap()
+    }
+    Box(
+        Modifier.size(diameter).clip(CircleShape)
+            .background(Brush.verticalGradient(listOf(Color(0xFF241B2B), Color(0xFF0E0B10))), CircleShape)
+            .border(1.dp, MolinaTheme.Gold, CircleShape),
+        Alignment.Center
+    ) {
+        val img = thumb
+        if (img != null) {
+            Image(img, contentDescription = name, modifier = Modifier.matchParentSize(), contentScale = ContentScale.Crop)
+        } else {
+            Text(ShelfCard.monogram(name), color = MolinaTheme.Gold, fontSize = (diameter.value * 0.46f).sp, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+/** Lencana jumlah video pada judul baris rak kanal; teks dari [com.molina.core.common.TvGuide.badge]. */
+@Composable
+internal fun CountBadge(text: String) {
+    Text(
+        text, color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1,
+        modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(MolinaTheme.Gold).padding(horizontal = 6.dp, vertical = 1.dp)
+    )
 }

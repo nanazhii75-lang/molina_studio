@@ -36,6 +36,9 @@ object TvGuide {
     class Row(val title: String, val items: List<Item>, val total: Int, val folder: File? = null) {
         val shelf: Boolean get() = folder != null
         val key: String get() = (if (folder != null) "k:" else "r:") + title
+
+        /** Video terbaru di baris ini (baris sudah urut terbaru dulu); dipakai sebagai sampul kanal. Null bila tak ada video. */
+        val coverFile: File? get() = items.firstOrNull { it.kind == Kind.Video }?.file
     }
 
     /** Beri nomor 1..n pada tempat yang foldernya ada; yang tidak ada dilewati tanpa melubangi nomor. */
@@ -110,6 +113,9 @@ object TvGuide {
         val at = base.indexOfFirst { it.title == "Video" }.let { i -> if (i >= 0) i + 1 else base.indexOfFirst { it.title == "Folder" } + 1 }
         return base.take(at) + extra + base.drop(at)
     }
+
+    /** Teks lencana jumlah video pada judul baris rak kanal: "99+" bila lebih dari 99, tidak pernah negatif. */
+    fun badge(total: Int): String = if (total > 99) "99+" else total.coerceAtLeast(0).toString()
 
     /** "512 B", "1,5 KB", "2,0 MB", "3,4 GB" (koma desimal Indonesia, satu angka di belakang koma). */
     fun size(bytes: Long): String {

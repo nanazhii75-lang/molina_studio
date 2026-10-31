@@ -271,14 +271,29 @@ internal fun TvBrowser(
                 ) {
                     items(d.rows, key = { it.key }) { row ->
                         Column {
-                            // Baris rak kanal: ketuk judul untuk membuka folder kanal (melihat semua).
+                            // Baris rak kanal: sampul bulat + judul emas + lencana jumlah; ketuk untuk membuka folder kanal.
                             val rowFolder = row.folder
-                            Text(
-                                row.title + " \u00B7 " + row.total + (if (rowFolder != null) "  \u203A" else ""),
-                                color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Medium,
-                                modifier = (if (rowFolder != null) Modifier.clickable { dir = rowFolder; focus = null } else Modifier)
-                                    .padding(bottom = 6.dp)
-                            )
+                            if (rowFolder != null) {
+                                Row(
+                                    Modifier.fillMaxWidth().clickable { dir = rowFolder; focus = null }.padding(bottom = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    ChannelCover(row.title, row.coverFile?.let { d.cards[it.path] })
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        row.title, color = MolinaTheme.Gold, fontSize = 13.sp, fontWeight = FontWeight.Bold,
+                                        maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false)
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    CountBadge(TvGuide.badge(row.total))
+                                    Text("  \u203A", color = MolinaTheme.Gold, fontSize = 13.sp)
+                                }
+                            } else {
+                                Text(
+                                    row.title + " \u00B7 " + row.total, color = Color.White, fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium, modifier = Modifier.padding(bottom = 6.dp)
+                                )
+                            }
                             LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                 items(row.items, key = { it.file.path }) { item ->
                                     val open: () -> Unit = {
