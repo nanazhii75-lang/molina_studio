@@ -15,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.molina.cinema.databinding.PlayerBinding
 import com.molina.cinema.MPVLib.MpvEvent
 import android.animation.Animator
@@ -85,6 +86,18 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
      */
     private fun loadWeb(raw: String, flag: String, headers: Map<String, String> = emptyMap(),
                         onLoaded: () -> Unit = {}) {
+        if (MpvLoad.needsResolveCheck(raw)) { // [DNS-CHECK]
+            streamScope.launch {
+                val v = withContext(Dispatchers.IO) { MpvLoad.resolveVerdict(raw) }
+                if (v is UrlPolicy.Verdict.Blocked) {
+                    showToast("Diblokir: ${v.reason.message}", true)
+                    return@launch
+                }
+                MPVLib.command(MpvLoad.loadfileArgs(raw, flag, headers))
+                onLoaded()
+            }
+            return
+        }
         if (!StreamLoader.isWebUrl(raw)) {
             MPVLib.command(MpvLoad.loadfileArgs(raw, flag, headers))
             onLoaded()

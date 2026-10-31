@@ -2,9 +2,13 @@ package com.molina.cinema
 
 import com.molina.core.common.AppLog
 import com.molina.core.common.LogLevel
+import com.molina.core.common.NetworkPolicy
+import com.molina.core.common.ShieldPolicy
 import com.molina.core.common.ShieldProxy
 import com.molina.core.common.StreamHeaders
 import com.molina.core.common.UrlPolicy
+import java.net.InetAddress
+import java.net.URI
 
 /**
  * Menyusun argumen perintah mpv `loadfile` dengan opsi per-entri (header HTTP).
@@ -39,6 +43,23 @@ object MpvLoad {
         val opts = listOfNotNull(headerOption(headers), titleOption(title)) + remoteProtocolOptions(url)
         if (opts.isEmpty()) return arrayOf("loadfile", url, flag)
         return arrayOf("loadfile", url, flag, "-1", opts.joinToString(","))
+    }
+
+    private val STREAM_SCHEMES = setOf("rtmp", "rtmps", "rtsp")
+
+    /** [DNS-CHECK] rtmp/rtsp tidak lewat Molina Shield, jadi namanya di-resolve dan tiap IP diperiksa sebelum diputar. */
+    fun needsResolveCheck(url: String): Boolean = UrlPolicy.scheme(url) in STREAM_SCHEMES
+
+    /** Memblokir (DNS): panggil dari thread latar. Gagal resolve = Allowed; mpv melaporkan galatnya sendiri. */
+    fun resolveVerdict(url: String, allowLan: Boolean = NetworkPolicy.allowLan): UrlPolicy.Verdict {
+        val host = runCatching { URI(url.trim()).host }.getOrNull()?.trim('[', ']')
+        if (host.isNullOrEmpty()) return UrlPolicy.Verdict.Allowed
+        val addrs = runCatching { InetAddress.getAllByName(host) }.getOrNull() ?: return UrlPolicy.Verdict.Allowed
+        for (a in addrs) {
+            val v = ShieldPolicy.checkAddress(a, allowLan)
+            if (v is UrlPolicy.Verdict.Blocked) return v
+        }
+        return UrlPolicy.Verdict.Allowed
     }
 
     /** Opsi `force-media-title=...` (maks 200 karakter, tanpa karakter kontrol) atau null. */

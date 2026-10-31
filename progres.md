@@ -2879,3 +2879,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: hanya berkas baru di .github dan scripts/security; Gradle, AndroidManifest, JNI TIDAK disentuh
 - [ ] Belum dijalankan di GitHub: cek tab Actions > security-scan harus hijau
 - [ ] Catatan: transkrip Terminal default tanpa penyamaran (toggle di Setelan); rtmp/rtsp belum lewat Shield
+
+## 2026-10-31 - Pemeriksaan DNS rtmp/rtsp [DNS-CHECK]
+- [x] Temuan: rtmp/rtsp/rtmps tidak lewat Molina Shield; hanya UrlPolicy statis (nama publik yang mengarah ke IP privat lolos)
+- [x] feat(mpv): MpvLoad.needsResolveCheck/resolveVerdict; MPVActivity.loadWeb me-resolve di Dispatchers.IO lalu memeriksa tiap IP dengan ShieldPolicy.checkAddress sebelum loadfile
+- [x] Dampak: hanya MpvLoad.kt dan MPVActivity.kt; Gradle, AndroidManifest, JNI TIDAK disentuh
+- [ ] Belum dikompilasi: tunggu CI
+- [ ] Uji perangkat: rtmp/rtsp publik tetap terputar; rtmp://localhost/x ditolak; http/https dan file lokal tidak berubah
+- [ ] Batas: DNS rebinding TTL=0 masih mungkin (tanpa pin IP); entri rtmp di dalam playlist m3u belum diperiksa
