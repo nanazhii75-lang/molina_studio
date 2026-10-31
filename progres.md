@@ -2638,3 +2638,9 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Compose belum dikompilasi: tunggu CI (Canvas/drawArc/Stroke di BundleUi.kt)
 - [ ] Belum diuji nyata: jalankan bump-native.yml tanpa tag (harus menghasilkan pin yang sama dengan native-mpv-af13289-run2 bila itu Release terbaru -> "Tidak ada perubahan"); gh release download hanya bisa dicoba di CI
 - [ ] Belum: tambahkan python3 scripts/native/test_bump_native.py sebagai langkah build.yml (sengaja tidak mengubah pipeline di commit ini)
+
+## 2026-10-31 - Perbaikan tes bump native: tgz deterministik [NATIVE-TESTFIX]
+- [x] fix(test): scripts/native/test_bump_native.py membuat tgz dengan header gzip mtime=0. Penyebab kegagalan sesaat (di perangkat: pasti gagal, run 50 dtk): header gzip membawa waktu pembuatan, sehingga dua tgz identik isinya tapi dibuat beda detik punya SHA-256 berbeda dan skrip MENOLAKNYA dengan benar ("tag sama, hash beda"). Skrip bump_native.py tidak salah dan tidak diubah
+- [x] test: test_0_tgz_deterministik_lintas_detik (tidur 1,2 dtk di antara dua pembuatan) menjaga agar regresi ini tertangkap; salinan repo di tes melewati folder yang tak dibaca gerbang (docs, terminal-*, assets editor) agar cepat di /sdcard
+- [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh; hanya berkas tes + progres.md
+- [ ] Catatan proses: commit f5a8c3f ter-push dengan tes yang gagal karena perintah dijalankan terpisah; pakai satu baris berantai (&&) agar tes yang gagal menghentikan commit

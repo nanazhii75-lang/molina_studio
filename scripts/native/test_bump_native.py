@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Uji bump_native.py pada SALINAN repo (tidak menyentuh repo asli). Jalankan: python3 scripts/native/test_bump_native.py"""
-import hashlib, io, os, shutil, subprocess, sys, tarfile, tempfile, unittest
+import gzip, hashlib, io, os, shutil, subprocess, sys, tarfile, tempfile, time, unittest
 
 SRC = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -10,15 +10,30 @@ def slurp(path, mode="r"):
 
 
 def make_tgz(path, members):
-    with tarfile.open(path, "w:gz") as tf:
-        for name, data in members:
-            if data is None:
-                ti = tarfile.TarInfo(name); ti.type = tarfile.DIRTYPE; ti.mode = 0o755; tf.addfile(ti)
-            elif isinstance(data, tuple):  # symlink
-                ti = tarfile.TarInfo(name); ti.type = tarfile.SYMTYPE; ti.linkname = data[0]; tf.addfile(ti)
-            else:
-                ti = tarfile.TarInfo(name); ti.size = len(data); tf.addfile(ti, io.BytesIO(data))
+    """tgz DETERMINISTIK: header gzip memuat waktu pembuatan (mtime); tanpa mtime=0, dua pembuatan di detik
+    berbeda menghasilkan byte (dan SHA-256) berbeda, sehingga uji idempotensi gagal di perangkat lambat."""
+    with open(path, "wb") as raw:
+        with gzip.GzipFile(filename="", mode="wb", fileobj=raw, mtime=0) as gz:
+            with tarfile.open(fileobj=gz, mode="w") as tf:
+                for name, data in members:
+                    if data is None:
+                        ti = tarfile.TarInfo(name); ti.type = tarfile.DIRTYPE; ti.mode = 0o755; tf.addfile(ti)
+                    elif isinstance(data, tuple):  # symlink
+                        ti = tarfile.TarInfo(name); ti.type = tarfile.SYMTYPE; ti.linkname = data[0]; tf.addfile(ti)
+                    else:
+                        ti = tarfile.TarInfo(name); ti.size = len(data); tf.addfile(ti, io.BytesIO(data))
     return hashlib.sha256(slurp(path, "rb")).hexdigest()
+
+
+SKIP = {".git", "build", ".gradle", "__pycache__", "docs", "terminal-emulator", "terminal-view"}
+
+
+def _ignore(d, names):
+    """Lewati folder yang tidak dibaca gerbang bump agar salinan cepat (penting di /sdcard yang lambat).
+    Konsekuensi: telemetry_gate di salinan memindai lebih sedikit berkas; ini hanya menguji alur tulis/rollback."""
+    skip = [n for n in names if n in SKIP]
+    if os.path.normpath(d).endswith(os.path.join("feature", "code", "src", "main")): skip += [n for n in names if n == "assets"]
+    return skip
 
 
 GOOD = [("jniLibs", None), ("jniLibs/arm64-v8a", None), ("jniLibs/arm64-v8a/libmpv.so", b"mpv"),
@@ -30,7 +45,7 @@ class T(unittest.TestCase):
     def setUpClass(cls):
         cls.work = tempfile.mkdtemp(prefix="nt_")
         cls.repo = os.path.join(cls.work, "repo")
-        shutil.copytree(SRC, cls.repo, ignore=shutil.ignore_patterns(".git", "build", ".gradle"))
+        shutil.copytree(SRC, cls.repo, ignore=_ignore)
         cls.script = os.path.join(cls.repo, "scripts/native/bump_native.py")
 
     @classmethod
@@ -50,6 +65,11 @@ class T(unittest.TestCase):
         cmd = [sys.executable, self.script, tag, "--tgz", tgz, "--sums", sp] + list(extra)
         r = subprocess.run(cmd, capture_output=True, text=True)
         return r, sha
+
+    def test_0_tgz_deterministik_lintas_detik(self):
+        a = os.path.join(self.work, "a.tgz"); b = os.path.join(self.work, "b.tgz")
+        sa = make_tgz(a, GOOD); time.sleep(1.2); sb = make_tgz(b, GOOD)
+        self.assertEqual(sa, sb)
 
     def test_1_apply_idempotent_and_progres(self):
         self.reset()
