@@ -53,7 +53,7 @@ class MolinaSessionClient : TerminalSessionClient {
         val ctx = view?.context ?: return
         val text = clipboard()?.primaryClip?.takeIf { it.itemCount > 0 }
             ?.getItemAt(0)?.coerceToText(ctx)?.toString()
-        if (!text.isNullOrEmpty()) session?.emulator?.paste(text)
+        if (!text.isNullOrEmpty()) PasteGuard.pasteGuarded(ctx, text) { session?.emulator?.paste(it) }
     }
     override fun onBell(session: TerminalSession) {}
     override fun onColorsChanged(session: TerminalSession) { view?.onScreenUpdated() }

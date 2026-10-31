@@ -7,6 +7,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.core.view.isVisible
 import androidx.core.widget.doOnTextChanged
 import androidx.preference.Preference
+import com.molina.cinema.ConfigGuard
 import com.molina.cinema.R
 import com.molina.cinema.databinding.ConfEditorBinding
 import java.io.File
@@ -53,6 +54,19 @@ class ConfigEditDialogPreference(
 
     private fun save() {
         val content = binding.editText.text.toString()
+        val findings = when (configFile.name) {
+            "mpv.conf" -> ConfigGuard.scanMpvConf(content)
+            "input.conf" -> ConfigGuard.scanInputConf(content)
+            else -> emptyList()
+        }
+        if (findings.isNotEmpty()) {
+            AlertDialog.Builder(context)
+                .setTitle("Perubahan ditolak")
+                .setMessage("Isi memuat pengaturan berisiko:\n\n" + ConfigGuard.describe(findings))
+                .setPositiveButton("OK", null)
+                .show()
+            return
+        }
         if (content.isEmpty())
             configFile.delete()
         else

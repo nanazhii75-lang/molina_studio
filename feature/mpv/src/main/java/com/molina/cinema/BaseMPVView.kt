@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.AttributeSet
 import android.view.SurfaceHolder
 import android.view.SurfaceView
+import java.io.File
 
 // Contains only the essential code needed to get a picture on the screen
 
@@ -14,6 +15,8 @@ abstract class BaseMPVView(context: Context, attrs: AttributeSet) : SurfaceView(
      * Call this once before the view is shown.
      */
     fun initialize(configDir: String, cacheDir: String) {
+        // Karantina mpv.conf/input.conf/scripts berisiko sebelum mpv membacanya (lihat ConfigGuard)
+        ConfigGuard.sanitizeConfigDir(File(configDir)).forEach { MpvLog.w("ConfigGuard", it) }
         MPVLib.create(context.applicationContext)
         MpvLifecycle.markCreated()
 

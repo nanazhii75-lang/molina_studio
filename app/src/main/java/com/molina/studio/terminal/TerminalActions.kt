@@ -67,7 +67,10 @@ object TerminalActions {
         val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val text = cm.primaryClip?.takeIf { it.itemCount > 0 }
             ?.getItemAt(0)?.coerceToText(ctx)?.toString()
-        if (!text.isNullOrEmpty()) TerminalSessions.currentSession?.emulator?.paste(text)
+        if (!text.isNullOrEmpty()) {
+            val session = TerminalSessions.currentSession
+            PasteGuard.pasteGuarded(ctx, text) { session?.emulator?.paste(it) }
+        }
     }
 
     /**

@@ -2828,3 +2828,21 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh
 - [ ] Belum dikompilasi: tunggu CI
 - [ ] Uji perangkat: baris tampil "Debian N · M paket terpasang"; rootfs belum ada menampilkan pesan; angka berubah setelah Perbarui dan tingkatkan
+
+## 2026-10-31 - Penjaga tempel Terminal [PASTE-GUARD]
+- [x] Audit keamanan: manifest app dan mpv, UrlPolicy, opsi mpv, CI. Sudah baik: allowBackup=false, cleartext off, komponen non-exported, ytdl=no, load-unsafe-playlists=no, aksi CI dipin SHA
+- [x] feat(term): PasteGuard.kt. Tempel berisiko (curl|sh, base64|sh, /dev/tcp, rm -rf lokasi penting, karakter kendali/bidi tersembunyi) butuh konfirmasi dengan pratinjau; teks aman langsung ditempel. Dipasang di tombol PASTE dan onPasteTextFromClipboard
+- [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh
+- [ ] Belum dikompilasi: tunggu CI
+- [ ] Uji perangkat: tempel teks biasa (langsung masuk); tempel `curl x | sh` (dialog, Batal tidak menempel, Tetap tempel menempel); tempel teks berisi karakter ESC (tampil <U+001B>)
+- [ ] Temuan tertunda: FileProvider external-path "." terlalu luas tetapi dipakai ExplorerBridge (bagikan berkas bebas); minify R8 mati (butuh aturan keep JNI MPVLib); mpv load-scripts belum dimatikan (uji dulu stats); belum ada Gradle dependency verification
+- [x] Catatan: terminal Molina mengekspor MOLINA_ROOT=/sdcard/Molina; script patch jangan memakai nama variabel MOLINA_* untuk path
+
+## 2026-10-31 - Penjaga konfigurasi mpv [CONFIG-GUARD]
+- [x] Temuan: mpv.conf dan input.conf di filesDir bisa diedit dari app (pengguna bisa dibujuk menempel isi berbahaya). input.conf mendukung `run`/`subprocess` (eksekusi program), mpv.conf bisa memuat script/include/ipc, atau menimpa pengaman (tls-verify, load-unsafe-playlists, lavf whitelist) karena opsi itu diset sebelum init dan config dibaca belakangan
+- [x] feat(mpv): ConfigGuard.kt. Simpan dari editor ditolak bila memuat opsi/perintah terlarang (dialog menunjuk baris). Saat MPVLib dibuat, berkas berisiko dikarantina jadi *.blocked dan folder scripts dikarantina (BaseMPVView.initialize)
+- [x] Diuji JVM (kotlinc): 45 kasus lolos (scripts/app-tests/ConfigGuardTests.kt)
+- [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh
+- [ ] Belum dikompilasi sebagai APK: tunggu CI
+- [ ] Uji perangkat: simpan mpv.conf `hwdec=auto` (berhasil); simpan `script=/sdcard/a.lua` (ditolak, baris ditunjuk); simpan input.conf `x run sh` (ditolak); simpan input.conf `0x10003 no-osd seek 6` (berhasil); putar video normal; stats overlay tetap jalan
+- [ ] Batas: daftar hitam heuristik; `loadfile ... opsi` di input.conf belum diperiksa; opsi diset sebelum init masih bisa ditimpa mpv.conf yang lolos pemeriksaan
