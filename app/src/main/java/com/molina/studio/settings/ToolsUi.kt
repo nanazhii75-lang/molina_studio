@@ -147,7 +147,7 @@ internal fun PackagesPage(onOpenYtdlp: () -> Unit, onOpenBundle: () -> Unit) {
     val bundleRep = remember { com.molina.core.common.BundledComponents.securityReport(bundleAll) }
     BadgeOverlay(if (bundleSt.newpipeOutdated || bundleSt.ytdlpOutdated) "Baru" else null, true) {
         W7Link(
-            { W7IconShield() }, "Komponen bundel",
+            { BundleLinkIcon(bundleRep.requiredVerified) }, "Komponen bundel",
             "${bundleAll.size} komponen \u00b7 ${bundleRep.hashPinned} terverifikasi SHA-256 \u00b7 ringkasan keamanan",
             onOpenBundle
         )

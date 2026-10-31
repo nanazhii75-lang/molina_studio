@@ -131,6 +131,15 @@ private fun SummaryMark(allVerified: Boolean) {
     }
 }
 
+/** Ikon baris "Komponen bundel" di halaman Paket [BUNDLE-PAGE]: gembok hijau besar bila semua komponen Wajib terverifikasi, selain itu titik kuning. */
+@Composable
+internal fun BundleLinkIcon(allVerified: Boolean) {
+    Box(Modifier.size(34.dp), contentAlignment = Alignment.Center) {
+        if (allVerified) TrustLock(BundleGreen, 2.2f)
+        else Box(Modifier.size(14.dp).clip(CircleShape).background(BundleAmber, CircleShape))
+    }
+}
+
 /** Penanda kepercayaan: gembok bila jaminannya terverifikasi, titik berwarna bila tidak. Lebar tetap agar judul kartu sejajar. */
 @Composable
 private fun TrustMark(a: Assurance) {

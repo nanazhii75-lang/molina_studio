@@ -2659,3 +2659,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh; hanya 3 berkas di settings/
 - [ ] Compose belum dikompilasi: tunggu CI (BundlePage, tanda tangan PackagesPage baru)
 - [ ] Belum diuji di perangkat: tombol PERIKSA VERSI dari halaman baru (dialog dipindah ke BundlePage)
+
+## 2026-10-31 - Ikon gembok di tautan Komponen bundel + tes bump NewPipe [BUNDLE-LOCK]
+- [x] feat(settings): BundleLinkIcon menggantikan ikon perisai di tautan Komponen bundel (gembok hijau 2,2x bila semua Wajib terverifikasi, titik kuning bila tidak)
+- [x] test(newpipe): scripts/newpipe/test_bump_pin.py, 7 tes lulus (~1 dtk): apply 3 tempat, idempotent, dry-run, 9 kasus ditolak, kondisi awal tak konsisten, downgrade, diff BARU/HASH BEDA, rollback gerbang
+- [x] ci: build.yml mendapat langkah "Uji alat bump pin (NewPipe)" setelah tes native; commit ini mengubah pipeline, jadi CI akan berjalan
+- [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh; telemetry_gate dan bundle_gate lulus
+- [ ] Compose belum dikompilasi: tunggu CI (TrustLock skala 2,2 di BundleLinkIcon, PackagesPage/BundlePage)
+- [ ] Belum diuji di perangkat: tombol PERIKSA VERSI dari halaman Komponen bundel
+- [ ] Belum dikerjakan: efek kilau sekali pada gembok hijau (opsional, belum diminta)
