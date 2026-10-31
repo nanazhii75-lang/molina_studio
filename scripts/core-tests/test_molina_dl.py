@@ -829,6 +829,20 @@ class SslRepairTests(unittest.TestCase):
         self.assertEqual(info["id"], "a")
         self.assertEqual(n, 2)
 
+    def test_doctor_flags_missing_ca(self):
+        real = (dl.ca_bundle_ok, dl.ytdlp_version, dl.ytdlp_origin)
+        d = tempfile.mkdtemp()
+        dl.ytdlp_version = lambda y: None
+        dl.ytdlp_origin = lambda y: None
+        try:
+            dl.ca_bundle_ok = lambda: False
+            self.assertIn("no_ca", dl.collect_doctor(["yt-dlp"], d)["issues"])
+            dl.ca_bundle_ok = lambda: True
+            self.assertNotIn("no_ca", dl.collect_doctor(["yt-dlp"], d)["issues"])
+        finally:
+            dl.ca_bundle_ok, dl.ytdlp_version, dl.ytdlp_origin = real
+            shutil.rmtree(d, ignore_errors=True)
+
     def test_fetch_info_reports_ssl_code_when_repair_fails(self):
         (info, err), n = self.run_fetch([self.R(1, "", self.SSL_ERR)], False)
         self.assertIsNone(info)

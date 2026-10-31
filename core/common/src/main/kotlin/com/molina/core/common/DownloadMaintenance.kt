@@ -27,6 +27,7 @@ object DownloadMaintenance {
         add(DoctorLine("ffmpeg", d.ffmpegVersion ?: "tidak terpasang", d.ffmpegVersion != null))
         add(DoctorLine("ffprobe", if (d.ffprobe) "ada" else "tidak ada", d.ffprobe))
         add(DoctorLine("Sampul M4A/FLAC", if (d.mutagen) "siap (mutagen)" else "belum (opsional)", true))
+        if ("no_ca" in d.issues) add(DoctorLine("Sertifikat HTTPS", "tidak ada", false))
         d.python?.let { add(DoctorLine("Python", it, true)) }
         d.videoDir?.let { add(DoctorLine("Folder video", it, true)) }
         d.audioDir?.let { add(DoctorLine("Folder audio", it, true)) }
@@ -41,6 +42,7 @@ object DownloadMaintenance {
         "low_space" -> "Ruang kosong menipis; unduhan besar bisa gagal."
         "dir_fallback" -> "Folder tujuan bawaan tidak bisa dipakai; memakai folder cadangan."
         "no_mutagen" -> "Sampul M4A/FLAC butuh python3-mutagen: apt install -y python3-mutagen (MP3 tidak perlu)."
+        "no_ca" -> "Sertifikat HTTPS belum ada, unduhan bisa gagal. Jalankan Starter (Setelan > Sistem > Debian) atau: apt install -y ca-certificates."
         else -> "Catatan: $code"
     }
 

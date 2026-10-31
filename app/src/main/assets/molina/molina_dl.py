@@ -1128,6 +1128,8 @@ def collect_doctor(ytdlp, dir_override=None):
         issues.append("low_space")
     if warn:
         issues.append("dir_fallback")
+    if not ca_bundle_ok():
+        issues.append("no_ca")  # rootfs slim tanpa ca-certificates: unduhan HTTPS gagal
     if not data["mutagen"]:
         issues.append("no_mutagen")  # info: sampul M4A/FLAC
     data["issues"] = issues

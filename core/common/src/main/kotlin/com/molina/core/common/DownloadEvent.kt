@@ -46,7 +46,7 @@ sealed interface DownloadEvent {
     data class Error(val index: Int, val code: String, val msg: String) : DownloadEvent
     data class Summary(val ok: Int, val failed: Int, val cancelled: Boolean) : DownloadEvent
 
-    /** Hasil `--doctor`. Versi null = alat tidak ada. [issues] = kode: no_ytdlp, no_ffmpeg, no_ffprobe, low_space, dir_fallback, no_mutagen. */
+    /** Hasil `--doctor`. Versi null = alat tidak ada. [issues] = kode: no_ytdlp, no_ffmpeg, no_ffprobe, low_space, dir_fallback, no_mutagen, no_ca. */
     data class Doctor(
         val ytdlpVersion: String?,
         val ytdlpMethod: String?,

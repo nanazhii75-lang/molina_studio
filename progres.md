@@ -2762,3 +2762,10 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh. Idempoten: apt melewati paket yang sudah ada
 - [ ] Belum dikompilasi: tunggu CI
 - [ ] Belum diuji di perangkat: rootfs baru > Setelan > Sistem > Debian > Starter > ls /etc/ssl/certs/ca-certificates.crt ada; unduh YouTube berhasil. Rootfs lama: jalankan Starter sekali lagi
+
+## 2026-10-31 - Periksa lingkungan: peringatan no_ca + Starter tanpa git [DOCTOR-CA]
+- [x] feat(dl): molina_dl.py --doctor menambah isu no_ca bila /etc/ssl/certs/ca-certificates.crt tidak ada. UI: baris "Sertifikat HTTPS: tidak ada" (merah) + petunjuk "Jalankan Starter (Setelan > Sistem > Debian) atau apt install -y ca-certificates"; nada ringkasan WARN. Parser event tidak berubah (issues sudah daftar string)
+- [x] refactor(rootfs) [STARTER-NOGIT]: git tidak lagi ikut Starter (opsional, dipasang manual dari Setelan > Paket); Starter = ca-certificates, python3, ffmpeg, openssh-client, vim. Komponen git di daftar bundel sudah berperan Opsional
+- [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh
+- [ ] Belum dikompilasi: tunggu CI
+- [ ] Belum diuji di perangkat: hapus /etc/ssl/certs/ca-certificates.crt sementara > Periksa lingkungan menampilkan baris sertifikat + petunjuk; jalankan Starter > hilang; Starter tidak memasang git

@@ -33,6 +33,10 @@ fun main() {
         DownloadEvent.Doctor(null, null, null, false, false, null, null, null, false, null, emptyList())).size == 4)
 
     check("hint: kode dikenal memuat perintah apt", DownloadMaintenance.issueHint("no_ffmpeg").contains("apt install -y ffmpeg"))
+    check("hint: no_ca menyebut Starter", DownloadMaintenance.issueHint("no_ca").contains("Starter"))
+    check("doctor: no_ca menambah baris tidak ok dan nada WARN", DownloadMaintenance.doctorLines(doctor(issues = listOf("no_ca"))).first { it.label == "Sertifikat HTTPS" }.let { !it.ok } &&
+        DownloadMaintenance.doctorTone(doctor(issues = listOf("no_ca"))) == MaintenanceTone.WARN)
+    check("doctor: tanpa no_ca tidak ada baris sertifikat", DownloadMaintenance.doctorLines(doctor()).none { it.label == "Sertifikat HTTPS" })
     check("hint: kode tak dikenal tetap tampil", DownloadMaintenance.issueHint("aneh_x") == "Catatan: aneh_x")
     check("hint: duplikat dibuang", DownloadMaintenance.issueHints(doctor(issues = listOf("low_space", "low_space"))).size == 1)
 
