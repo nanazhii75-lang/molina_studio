@@ -64,13 +64,13 @@ object SettingsNav {
 }
 
 private enum class Page {
-    Home, System, Terminal, Debugging, TerminalIO, TerminalView, Tampilan, CrashReports, Log, Stream, Network, Scripts, Packages, Code, TerminalApp, Downloads, Storage, Monitor, Automation, Player, Stats, Info
+    Home, System, Terminal, Debugging, TerminalIO, TerminalView, Tampilan, CrashReports, Log, Stream, Network, Scripts, Packages, Bundle, Code, TerminalApp, Downloads, Storage, Monitor, Automation, Player, Stats, Info
 }
 
 private fun parentOf(p: Page): Page? = when (p) {
     Page.Home -> null
     Page.System, Page.Scripts, Page.Packages, Page.TerminalApp, Page.Downloads, Page.Player, Page.Stats -> Page.Home
-    Page.Stream -> Page.Packages
+    Page.Stream, Page.Bundle -> Page.Packages
     Page.Debugging, Page.TerminalIO, Page.TerminalView, Page.Tampilan -> Page.Terminal
     Page.CrashReports -> Page.Debugging
     Page.Log, Page.Monitor -> Page.Info // [INFO-PAGE]
@@ -92,6 +92,7 @@ private fun titleOf(p: Page): String = when (p) {
     Page.Scripts -> "Script execution"
     Page.Code -> "Editor Code"
     Page.Packages -> "Paket"
+    Page.Bundle -> "Komponen bundel"
     Page.TerminalApp -> "Terminal"
     Page.Downloads -> "Unduhan"
     Page.Storage -> "Penyimpanan"
@@ -128,8 +129,8 @@ private val INDEX = listOf(
     Hit("Pratinjau HTML", "WebView untuk halaman HTML (JavaScript dan jaringan mati)", Page.Code),
     Hit("Paket", "Alat khusus: pasang, versi, hapus (Python 3, Git, FFmpeg, yt-dlp)", Page.Packages),
     Hit("Tambah alat", "Buat alat sendiri dengan skrip pasang, versi, hapus", Page.Packages),
-    Hit("Komponen bundel", "Daftar komponen, versi, peran, dan jaminan keamanan (NewPipe, libmpv, PRoot, yt-dlp)", Page.Packages),
-    Hit("Keamanan komponen", "Ringkasan hash SHA-256 dan sumber dipin untuk komponen bundel", Page.Packages),
+    Hit("Komponen bundel", "Daftar komponen, versi, peran, dan jaminan keamanan (NewPipe, libmpv, PRoot, yt-dlp)", Page.Bundle),
+    Hit("Keamanan komponen", "Ringkasan hash SHA-256 dan sumber dipin untuk komponen bundel", Page.Bundle),
     Hit("apt update", "Perbarui dan tingkatkan paket Debian (apt update && apt upgrade -y)", Page.System),
     Hit("apt upgrade", "Perbarui dan tingkatkan paket Debian (apt update && apt upgrade -y)", Page.System),
     Hit("Daftar tool terpasang", "Deteksi alat Molina di Debian beserta versinya", Page.System),
@@ -367,7 +368,8 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                     Page.Network -> NetworkSecurityPage()
                     Page.Scripts -> ScriptsPage()
                     Page.Code -> CodeSettingsPage()
-                    Page.Packages -> PackagesPage(onOpenYtdlp = { open(Page.Stream) })
+                    Page.Packages -> PackagesPage(onOpenYtdlp = { open(Page.Stream) }, onOpenBundle = { open(Page.Bundle) })
+                    Page.Bundle -> BundlePage(onOpenYtdlp = { open(Page.Stream) })
                     Page.Storage -> StoragePage()
                     Page.Monitor -> SystemMonitorPage()
                     Page.Automation -> AutomationPage()

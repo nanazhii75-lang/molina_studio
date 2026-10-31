@@ -2652,3 +2652,10 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh; telemetry_gate dan bundle_gate lulus
 - [ ] Compose belum dikompilasi: tunggu CI (Float.dp pada ukuran Canvas, SummaryMark)
 - [ ] Belum: tes serupa untuk scripts/newpipe/bump_pin.py (belum punya tes; baru diuji manual pada data tiruan di sesi awal)
+
+## 2026-10-31 - Komponen bundel pindah ke halaman sendiri [BUNDLE-PAGE]
+- [x] refactor(settings): Page.Bundle (anak Paket) berisi BundlePage; halaman Paket kini hanya memuat satu tautan "Komponen bundel" (jumlah komponen, hash terverifikasi, badge "Baru" bila ada pembaruan)
+- [x] fix(settings): indeks pencarian "Komponen bundel" dan "Keamanan komponen" kini membuka Page.Bundle; Category ganda di BundleUi.kt dihapus
+- [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh; hanya 3 berkas di settings/
+- [ ] Compose belum dikompilasi: tunggu CI (BundlePage, tanda tangan PackagesPage baru)
+- [ ] Belum diuji di perangkat: tombol PERIKSA VERSI dari halaman baru (dialog dipindah ke BundlePage)

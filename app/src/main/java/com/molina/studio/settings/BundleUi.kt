@@ -198,8 +198,7 @@ internal fun BundledComponentsSection(onOpenYtdlp: () -> Unit, onCheckVersion: (
     val role = ComponentRole.values().firstOrNull { it.name == filter }
     val shown = BundledComponents.filter(all, role)
     val shape = RoundedCornerShape(6.dp)
-
-    Category("Komponen bundel")
+    // [BUNDLE-PAGE] judul kini ada di header halaman, bukan Category di sini
     Column(
         Modifier.fillMaxWidth().clip(shape)
             .background(Brush.verticalGradient(listOf(W7D.SelFill, W7D.Card)), shape)

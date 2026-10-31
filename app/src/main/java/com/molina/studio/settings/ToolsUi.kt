@@ -83,7 +83,7 @@ private fun scriptOf(t: ToolItem, a: ToolAction): String = when (a) {
  * Skrip umum ada di Script execution.
  */
 @Composable
-internal fun PackagesPage(onOpenYtdlp: () -> Unit) {
+internal fun PackagesPage(onOpenYtdlp: () -> Unit, onOpenBundle: () -> Unit) {
     val ctx = LocalContext.current
     remember { ToolStore.init(ctx) }
     val custom by ToolStore.custom.collectAsState()
@@ -140,12 +140,18 @@ internal fun PackagesPage(onOpenYtdlp: () -> Unit) {
         }
     }
 
-    BundledComponentsSection(
-        onOpenYtdlp = onOpenYtdlp,
-        onCheckVersion = { tid ->
-            BuiltinTools.all.firstOrNull { it.id == tid }?.let { pending = PendingRun(it, ToolAction.Version) }
-        }
-    )
+    Category("Komponen bundel")
+    remember { com.molina.studio.automation.AutoPrefs.init(ctx) }
+    val bundleSt by com.molina.studio.automation.AutoPrefs.state.collectAsState()
+    val bundleAll = remember { com.molina.core.common.BundledComponents.all(com.molina.engine.newpipe.NewPipeInfo.VERSION) }
+    val bundleRep = remember { com.molina.core.common.BundledComponents.securityReport(bundleAll) }
+    BadgeOverlay(if (bundleSt.newpipeOutdated || bundleSt.ytdlpOutdated) "Baru" else null, true) {
+        W7Link(
+            { W7IconShield() }, "Komponen bundel",
+            "${bundleAll.size} komponen \u00b7 ${bundleRep.hashPinned} terverifikasi SHA-256 \u00b7 ringkasan keamanan",
+            onOpenBundle
+        )
+    }
     Spacer(Modifier.height(8.dp))
 
     draft?.let { d ->
@@ -207,6 +213,31 @@ internal fun PackagesPage(onOpenYtdlp: () -> Unit) {
             },
             dismissButton = { TextButton(onClick = { toDrop = null }) { Text("BATAL") } }
         )
+    }
+}
+
+/**
+ * Settings > Paket > Komponen bundel [BUNDLE-PAGE]: halaman sendiri agar daftar panjang komponen tidak langsung
+ * memenuhi halaman Paket. Menjalankan "Periksa versi" lewat dialog yang sama seperti alat Debian.
+ */
+@Composable
+internal fun BundlePage(onOpenYtdlp: () -> Unit) {
+    val ctx = LocalContext.current
+    remember { ToolStore.init(ctx) }
+    var pending by remember { mutableStateOf<PendingRun?>(null) }
+    BundledComponentsSection(
+        onOpenYtdlp = onOpenYtdlp,
+        onCheckVersion = { tid ->
+            BuiltinTools.all.firstOrNull { it.id == tid }?.let { pending = PendingRun(it, ToolAction.Version) }
+        }
+    )
+    pending?.let { pr ->
+        ToolRunDialog(
+            ToolRun("${pr.tool.name}: ${pr.action.label}", scriptOf(pr.tool, pr.action), pr.action.timeoutMs, "Memeriksa versi ${pr.tool.name}.", false),
+            onClose = { pending = null }
+        ) { code, out ->
+            if (code != -1) ToolStore.setCheck(pr.tool.id, if (code == 0) firstLine(out) else "Tidak terdeteksi (kode $code)")
+        }
     }
 }
 
