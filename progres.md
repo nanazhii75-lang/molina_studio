@@ -2668,3 +2668,10 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Compose belum dikompilasi: tunggu CI (TrustLock skala 2,2 di BundleLinkIcon, PackagesPage/BundlePage)
 - [ ] Belum diuji di perangkat: tombol PERIKSA VERSI dari halaman Komponen bundel
 - [ ] Belum dikerjakan: efek kilau sekali pada gembok hijau (opsional, belum diminta)
+
+## 2026-10-31 - Kilau sekali pada gembok hijau Ringkasan keamanan [BUNDLE-GLINT]
+- [x] feat(settings): SummaryMark memutar kilau (pita putih diagonal, 0,9 dtk) sekali per proses aplikasi; TrustLock menerima glint opsional (BlendMode.SrcAtop pada lapisan offscreen, hanya dipasang bila kilau dipakai)
+- [x] Titik kuning tetap statis; gembok kartu dan ikon di halaman Paket tidak berkilau
+- [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh; tanpa dependensi baru (animation-core sudah dipakai Win7Glass); gerbang dan tes bump lulus
+- [ ] Compose belum dikompilasi: tunggu CI (Animatable, graphicsLayer(compositingStrategy), Brush.linearGradient)
+- [ ] Belum diuji di perangkat: tampilan kilau di Android 8 (kalau lapisan offscreen berkedip, kilau cukup dilepas)

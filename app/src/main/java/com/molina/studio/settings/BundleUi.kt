@@ -3,6 +3,13 @@ package com.molina.studio.settings
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -107,9 +114,11 @@ private fun TrustDot(color: Color) {
 
 /** Gembok "Molina Secure" digambar langsung di Canvas (tanpa dependensi ikon): gagang busur + badan + lubang kunci. */
 @Composable
-private fun TrustLock(color: Color, scale: Float = 1f) {
+private fun TrustLock(color: Color, scale: Float = 1f, glint: (() -> Float)? = null) {
     val hole = W7D.Card
-    Canvas(Modifier.size(width = (12f * scale).dp, height = (14f * scale).dp)) {
+    // [BUNDLE-GLINT] SrcAtop hanya bekerja benar di lapisan offscreen; dipasang hanya bila kilau diminta
+    val layer = if (glint != null) Modifier.graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen) else Modifier
+    Canvas(Modifier.size(width = (12f * scale).dp, height = (14f * scale).dp).then(layer)) {
         val w = size.width
         val h = size.height
         val bodyTop = h * 0.40f
@@ -120,14 +129,38 @@ private fun TrustLock(color: Color, scale: Float = 1f) {
         )
         drawRoundRect(color = color, topLeft = Offset(0f, bodyTop), size = Size(w, h - bodyTop), cornerRadius = CornerRadius(w * 0.18f))
         drawCircle(color = hole, radius = w * 0.11f, center = Offset(w / 2f, bodyTop + (h - bodyTop) * 0.5f))
+        val g = glint?.invoke() ?: -1f
+        if (g in 0f..1f) {
+            val band = w * 0.55f
+            val x = -band + (w + band * 2f) * g
+            drawRect(
+                brush = Brush.linearGradient(
+                    colors = listOf(Color.Transparent, Color.White.copy(alpha = 0.7f), Color.Transparent),
+                    start = Offset(x, 0f), end = Offset(x + band, h * 0.6f)
+                ),
+                blendMode = BlendMode.SrcAtop
+            )
+        }
     }
 }
+
+/** Kilau gembok hijau diputar sekali per proses aplikasi (bukan tiap halaman dibuka) agar tidak mengganggu. */
+private var glintPlayed = false
 
 /** Penanda header Ringkasan keamanan: gembok hijau lebih besar bila semua komponen Wajib terverifikasi, selain itu titik kuning. */
 @Composable
 private fun SummaryMark(allVerified: Boolean) {
+    val glint = remember { Animatable(-1f) }
+    LaunchedEffect(allVerified) {
+        if (allVerified && !glintPlayed) {
+            glintPlayed = true
+            glint.snapTo(0f)
+            glint.animateTo(1f, tween(durationMillis = 900, easing = LinearEasing))
+            glint.snapTo(-1f)
+        }
+    }
     Box(Modifier.width(18.dp), contentAlignment = Alignment.Center) {
-        if (allVerified) TrustLock(BundleGreen, 1.35f) else TrustDot(BundleAmber)
+        if (allVerified) TrustLock(BundleGreen, 1.35f, glint = { glint.value }) else TrustDot(BundleAmber)
     }
 }
 
