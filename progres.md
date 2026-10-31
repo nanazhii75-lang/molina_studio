@@ -2929,3 +2929,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Belum dikompilasi untuk Android: tunggu CI
 - [ ] Uji perangkat: Setelan > Molina Shield; ketuk kartu, tempel hasilnya, cek sidik jari lengkap; matikan satu switch, judul dan baris Belum aktif ikut berubah tanpa keluar halaman
 - [ ] app-tests belum dipanggil workflow mana pun; jalankan manual (butuh kotlinc >= 2.1)
+
+## 2026-10-31 - Klien CLI menolak server palsu soket abstrak [CLI-PEERCHECK]
+- [x] Temuan: molina-cli.py connect ke @molina.cmd dan @molina.log tanpa memeriksa pemilik server. Aplikasi lain bisa lebih dulu memakai nama itu (squatting) dan menerima isi clipboard, teks notifikasi, dan share
+- [x] fix(cli): verify_peer membandingkan SO_PEERCRED server dengan UID asli dari /proc/self/status (PRoot -0 memalsukan getuid jadi 0); dilewati bila UID sendiri tak terbaca atau 0 agar CLI tidak patah
+- [x] test: scripts/app-tests/test_molina_cli_peer.py (8 kasus) + 30 tes CLI lama tetap lulus
+- [x] Dampak: hanya aset molina-cli.py dan tes; MolinaShell.installCli menimpa skrip otomatis tiap sesi. Gradle, AndroidManifest, JNI TIDAK disentuh
+- [ ] Uji perangkat (wajib): buka Terminal, jalankan molina ping (harus OK). Bila gagal dengan pesan uid, kirim isi /proc/self/status di Debian
+- [ ] Asumsi yang perlu dibuktikan: /proc/self/status di PRoot -0 menampilkan UID asli (bukan 0); bila 0, pemeriksaan otomatis dilewati (tidak ada perlindungan, tidak ada regresi)
+- [ ] Batas: sisi server sudah memeriksa UID klien; sisi aplikasi (Kotlin) tidak punya klien produksi ke soket ini

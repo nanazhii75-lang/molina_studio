@@ -5,6 +5,7 @@
 import base64
 import os
 import socket
+import struct
 import sys
 
 CMD_NAME = os.environ.get("MOLINA_CMD_SOCKET", "molina.cmd")
@@ -32,10 +33,43 @@ Contoh:
 LEVELS = ("D", "I", "W", "E")
 
 
+def own_uid():
+    """UID asli proses dari kernel. PRoot -0 memalsukan getuid() jadi 0, tetapi /proc/self/status tidak. None bila tak terbaca."""
+    try:
+        with open("/proc/self/status", encoding="ascii", errors="replace") as f:
+            for line in f:
+                if line.startswith("Uid:"):
+                    return int(line.split()[1])
+    except (OSError, ValueError, IndexError):
+        pass
+    return None
+
+
+def verify_peer(s, name, own=None):
+    """[CLI-PEERCHECK] Tolak server palsu: aplikasi lain bisa lebih dulu memakai nama abstract socket (squatting)
+    lalu menerima isi clipboard, teks notifikasi, dan share. UID server harus sama dengan UID proses ini.
+    Dilewati (tidak menolak) bila UID sendiri tak terbaca atau 0 (dipalsukan), atau SO_PEERCRED tak tersedia,
+    supaya CLI tidak patah."""
+    own = own_uid() if own is None else own
+    if own in (None, 0):
+        return
+    try:
+        _pid, peer, _gid = struct.unpack("3i", s.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, struct.calcsize("3i")))
+    except (OSError, AttributeError, struct.error):
+        return
+    if peer != own:
+        raise PermissionError("server @%s bukan milik aplikasi Molina (uid %d, seharusnya %d)" % (name, peer, own))
+
+
 def connect(name, timeout):
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    s.settimeout(timeout)
-    s.connect("\0" + name)
+    try:
+        s.settimeout(timeout)
+        s.connect("\0" + name)
+        verify_peer(s, name)
+    except BaseException:
+        s.close()
+        raise
     return s
 
 
