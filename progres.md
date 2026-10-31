@@ -2948,3 +2948,25 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Uji perangkat: unduh URL publik tetap jalan; tempel http://127.0.0.1/x dan http://192.168.1.1/x, harus ditolak dengan pesan "URL ke-N ditolak"; nyalakan Izinkan jaringan lokal, 192.168.x lolos
 - [ ] Batas: redirect dari host publik ke alamat privat dan DNS rebinding tidak terdeteksi (yt-dlp mengikuti redirect sendiri)
 - [ ] Perilaku berubah: unduhan dari NAS/server lokal kini butuh Izinkan jaringan lokal (sama seperti pemutar)
+
+## 2026-10-31 - Token intent pintasan dan intent aman [INTENT-TOKEN]
+- [x] Temuan: MainActivity exported (wajib untuk launcher), jadi aplikasi mana pun bisa mengirim extra molina_open_tab=play_last (memutar riwayat terakhir tanpa diminta) atau molina_run_script (memunculkan dialog jalankan skrip, bisa dipakai untuk menjebak ketukan)
+- [x] Temuan: extra berisi Parcelable asing membuat getStringExtra melempar BadParcelableException di MainActivity (crash saat dibuka dari aplikasi lain)
+- [x] fix(security): IntentToken (core/common, murni) + ShortcutToken (token acak 128-bit per pemasangan, SharedPreferences privat); play_last dan molina_run_script hanya jalan bila intent membawa token; navigasi tab biasa tetap terbuka karena tanpa efek samping
+- [x] MolinaShortcuts menambah token ke intent dinamis; ScriptShortcuts.pin menambah token dan refreshPinned memperbarui pintasan skrip yang sudah disematkan (dipanggil tiap MolinaShortcuts.refresh)
+- [x] fix(security): handleOpenTabIntent dibungkus runCatching; extra tidak sah dibuang dan dicatat di log, tidak crash
+- [x] test: scripts/core-tests/IntentTokenTests.kt + run_intent_token.sh
+- [x] Dampak: MainActivity, MolinaShortcuts, ScriptShortcuts, berkas baru ShortcutToken dan IntentToken; Gradle, AndroidManifest, JNI TIDAK disentuh
+- [ ] Belum dikompilasi untuk Android: tunggu CI
+- [ ] Uji perangkat: tekan lama ikon > Putar terakhir (harus memutar); sematkan pintasan skrip lalu ketuk (dialog konfirmasi muncul); pintasan skrip lama di layar utama harus tetap jalan setelah Molina dibuka sekali
+- [ ] Perilaku berubah: pintasan lama yang diketuk SEBELUM Molina pernah dibuka setelah pembaruan menampilkan Toast Pintasan kedaluwarsa (sekali saja)
+- [ ] Batas: token ikut terbaca launcher bawaan; pintasan statis (Cinema, Terminal) hanya navigasi dan sengaja tanpa token
+
+## 2026-10-31 - Notifikasi CLI tidak bisa menyamar jadi Molina [NOTIFY-SPOOF]
+- [x] Temuan: molina notify menerima judul bebas dari proses mana pun di Debian; judul bisa meniru notifikasi resmi (mis. peringatan keamanan) dan memakai karakter bidi U+202E atau lebar nol
+- [x] fix(cli): parseNotify membuang karakter kontrol dan format Unicode; judul selalu diberi awalan "CLI \u00b7 " dan notifikasi diberi label "Terminal Debian"
+- [x] docs(shield): teks batas Molina Shield disesuaikan: unduhan yt-dlp kini diperiksa URL awalnya (redirect tetap tidak tercakup)
+- [x] test: 9 kasus baru di scripts/app-tests/CommandProtocolTests.kt
+- [x] Dampak: CommandProtocol, BridgeCommands, ShieldSummary, NetworkSecurityUi; Gradle, AndroidManifest, JNI TIDAK disentuh
+- [ ] Belum dikompilasi untuk Android: tunggu CI
+- [ ] Uji perangkat: molina notify "tes" harus tampil sebagai "CLI \u00b7 Molina" dengan label Terminal Debian; molina notify "Molina Shield" "x" tampil sebagai "CLI \u00b7 Molina Shield"

@@ -42,7 +42,7 @@ internal fun NetworkSecurityPage() {
         "Aktifkan Molina Shield",
         "Semua lalu lintas http/https pemutar lewat filter lokal: redirect, segmen HLS, dan playlist ke alamat " +
             "privat atau loopback diblokir, termasuk DNS yang diarahkan ke alamat privat. Perubahan berlaku penuh " +
-            "setelah Refresh Pemutar atau membuka ulang pemutar. Tidak mencakup rtmp/rtsp dan yt-dlp.",
+            "setelah Refresh Pemutar atau membuka ulang pemutar. Tidak mencakup rtmp/rtsp. Unduhan yt-dlp hanya diperiksa pada URL awal (redirect tidak tercakup).",
         shieldOn
     ) { ShieldPrefs.setEnabled(it) }
     SwitchRow(

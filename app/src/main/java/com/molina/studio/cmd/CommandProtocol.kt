@@ -120,11 +120,28 @@ object CommandProtocol {
 
     class NotifyMsg(val title: String, val text: String)
 
+    /** [NOTIFY-SPOOF] Awalan tetap pada judul notifikasi dari CLI: proses di Debian tidak boleh meniru notifikasi resmi Molina. */
+    const val NOTIFY_PREFIX = "CLI \u00b7 "
+
+    fun notifyHeadline(title: String): String = NOTIFY_PREFIX + title
+
+    /**
+     * [NOTIFY-SPOOF] Buang karakter kontrol dan karakter format Unicode (pembalik arah teks U+202E, spasi lebar nol, BOM,
+     * pemisah baris/paragraf) yang dipakai untuk menyamarkan teks. Baris baru dipertahankan hanya bila [keepNewline].
+     */
+    private fun cleanNotify(s: String, keepNewline: Boolean): String = s.filter { c ->
+        if (c == '\n') keepNewline else {
+            val t = Character.getType(c)
+            !(c.isISOControl() || t == Character.FORMAT.toInt() ||
+                t == Character.LINE_SEPARATOR.toInt() || t == Character.PARAGRAPH_SEPARATOR.toInt())
+        }
+    }
+
     /** Argumen notify: "teks" atau "judul[TAB]teks". Null bila teks kosong. */
     fun parseNotify(arg: String): NotifyMsg? {
         val tab = arg.indexOf('\t')
-        val title = if (tab < 0) DEFAULT_NOTIFY_TITLE else arg.substring(0, tab).trim().ifEmpty { DEFAULT_NOTIFY_TITLE }
-        val text = (if (tab < 0) arg else arg.substring(tab + 1)).replace('\t', ' ').trim()
+        val title = if (tab < 0) DEFAULT_NOTIFY_TITLE else cleanNotify(arg.substring(0, tab), false).trim().ifEmpty { DEFAULT_NOTIFY_TITLE }
+        val text = cleanNotify((if (tab < 0) arg else arg.substring(tab + 1)).replace('\t', ' '), true).trim()
         if (text.isEmpty()) return null
         return NotifyMsg(title.take(MAX_NOTIFY_TITLE), text.take(MAX_NOTIFY_TEXT))
     }

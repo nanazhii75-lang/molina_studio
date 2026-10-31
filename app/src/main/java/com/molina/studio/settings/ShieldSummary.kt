@@ -15,7 +15,7 @@ internal object ShieldSummary {
 
     class Result(val title: String, val body: String, val report: String)
 
-    const val LIMITS = "Tidak tercakup: rtsp dan yt-dlp."
+    const val LIMITS = "Tidak tercakup: rtsp; unduhan yt-dlp hanya diperiksa URL awalnya."
     private const val SHORT_FP = 23
 
     fun build(i: Input): Result {

@@ -125,6 +125,25 @@ class MainActivity : ComponentActivity() {
 
     /** Ketuk notifikasi Unduhan membuka tab Unduhan. Extra dibuang agar tidak terulang saat Activity dibuat ulang. */
     private fun handleOpenTabIntent(i: android.content.Intent?) {
+        // [INTENT-TOKEN] MainActivity exported: extra dari aplikasi lain bisa memuat Parcelable yang tidak bisa dimuat
+        // (BadParcelableException saat dibaca). Jangan crash; buang extra-nya.
+        runCatching { dispatchOpenTabIntent(i) }.onFailure {
+            runCatching { i?.replaceExtras(null as android.os.Bundle?) }
+            com.molina.studio.log.LogBus.log("sistem", com.molina.core.common.LogLevel.Warn, "intent", "Intent dengan extra tidak sah diabaikan")
+        }
+    }
+
+    /** [INTENT-TOKEN] Aksi dengan efek samping (putar terakhir, dialog jalankan skrip) hanya untuk intent bertoken milik Molina. */
+    private fun trustedShortcut(i: android.content.Intent): Boolean {
+        val ok = com.molina.studio.security.ShortcutToken.verify(this, i.getStringExtra(com.molina.studio.security.ShortcutToken.EXTRA))
+        if (!ok) {
+            com.molina.studio.log.LogBus.log("sistem", com.molina.core.common.LogLevel.Warn, "intent", "Aksi pintasan ditolak: token tidak cocok")
+            android.widget.Toast.makeText(this, "Pintasan kedaluwarsa. Buka ulang Molina lalu coba lagi.", android.widget.Toast.LENGTH_LONG).show()
+        }
+        return ok
+    }
+
+    private fun dispatchOpenTabIntent(i: android.content.Intent?) {
         val tabKey = i?.getStringExtra("molina_open_tab")
         if (i != null && tabKey != null) {
             i.removeExtra("molina_open_tab")
@@ -142,7 +161,7 @@ class MainActivity : ComponentActivity() {
                     com.molina.studio.settings.SettingsNav.openStorage = true
                     Tab.Settings.ordinal
                 }
-                "play_last" -> {
+                "play_last" -> if (!trustedShortcut(i)) -1 else {
                     if (!com.molina.studio.cinema.CinemaActions.playLast(this)) {
                         android.widget.Toast.makeText(this, "Belum ada riwayat putar", android.widget.Toast.LENGTH_SHORT).show()
                     }
@@ -156,7 +175,7 @@ class MainActivity : ComponentActivity() {
         val runId = i?.getStringExtra(ScriptShortcuts.EXTRA_RUN)
         if (i != null && runId != null) {
             i.removeExtra(ScriptShortcuts.EXTRA_RUN)
-            com.molina.studio.code.ScriptNav.confirmRunId = runId
+            if (trustedShortcut(i)) com.molina.studio.code.ScriptNav.confirmRunId = runId
         }
         val key = com.molina.studio.download.DownloadService.EXTRA_OPEN_TAB
         if (i?.getStringExtra(key) == com.molina.studio.download.DownloadService.OPEN_TAB_DOWNLOADS) {

@@ -8,6 +8,7 @@ import android.graphics.drawable.Icon
 import com.molina.core.common.LogLevel
 import com.molina.studio.cinema.CinemaRecent
 import com.molina.studio.log.LogBus
+import com.molina.studio.security.ShortcutToken
 import java.util.concurrent.Executors
 
 /**
@@ -28,6 +29,7 @@ internal object MolinaShortcuts {
             runCatching { publish(app) }.onFailure {
                 LogBus.log("sistem", LogLevel.Warn, "shortcut", "Gagal memperbarui shortcut: ${it.message}")
             }
+            runCatching { ScriptShortcuts.refreshPinned(app) } // [INTENT-TOKEN]
         }
     }
 
@@ -36,7 +38,7 @@ internal object MolinaShortcuts {
             .setShortLabel(ctx.getString(short))
             .setLongLabel(ctx.getString(long))
             .setIcon(Icon.createWithResource(ctx, icon))
-            .setIntent(Intent(ctx, MainActivity::class.java).setAction(Intent.ACTION_MAIN).putExtra(EXTRA_TAB, tab))
+            .setIntent(Intent(ctx, MainActivity::class.java).setAction(Intent.ACTION_MAIN).putExtra(EXTRA_TAB, tab).putExtra(ShortcutToken.EXTRA, ShortcutToken.get(ctx))) // [INTENT-TOKEN]
             .setRank(rank)
             .build()
 

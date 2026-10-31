@@ -108,6 +108,15 @@ fun main() {
     eq("notify teks kosong", CommandProtocol.parseNotify("Judul\t  "), null)
     eq("notify judul dipotong", CommandProtocol.parseNotify("j".repeat(200) + "\tx")?.title?.length, CommandProtocol.MAX_NOTIFY_TITLE)
     eq("notify teks dipotong", CommandProtocol.parseNotify("t".repeat(900))?.text?.length, CommandProtocol.MAX_NOTIFY_TEXT)
+    eq("notify buang bidi dan lebar nol", CommandProtocol.parseNotify("\u202eBuild\tsel\u200besai")?.let { it.title + "|" + it.text }, "Build|selesai") // [NOTIFY-SPOOF]
+    eq("notify judul hanya karakter format -> bawaan", CommandProtocol.parseNotify("\u202e\u200b\tisi")?.title, "Molina")
+    eq("notify teks hanya karakter format -> kosong", CommandProtocol.parseNotify("Judul\t\u200b\u202e"), null)
+    eq("notify baris baru di teks tetap", CommandProtocol.parseNotify("Judul\tbaris1\nbaris2")?.text, "baris1\nbaris2")
+    eq("notify kontrol di judul dibuang", CommandProtocol.parseNotify("Ju\u0007dul\tx")?.title, "Judul")
+    eq("notify pemisah baris U+2028 dibuang", CommandProtocol.parseNotify("J\u2028t\tx")?.title, "Jt")
+    eq("notify awalan", CommandProtocol.notifyHeadline("Build"), "CLI \u00b7 Build")
+    check("notify awalan juga untuk judul yang meniru Molina", CommandProtocol.notifyHeadline("Molina Shield").startsWith(CommandProtocol.NOTIFY_PREFIX))
+    check("notify judul dipotong sebelum awalan", CommandProtocol.notifyHeadline(CommandProtocol.parseNotify("j".repeat(200) + "\tx")!!.title).length == CommandProtocol.NOTIFY_PREFIX.length + CommandProtocol.MAX_NOTIFY_TITLE)
     eq("share tanpa arg", badCode("share\n"), "usage")
     eq("share file lolos", okReq("share\tfile\t/sdcard/a.png\n")?.verb, Verb.SHARE)
     eq("share file", (CommandProtocol.parseShare("file\t/sdcard/a b.png\t/sdcard/c.png") as? CommandProtocol.ShareParse.Files)?.paths,
