@@ -102,7 +102,16 @@ private class ByteCounter(input: InputStream) : FilterInputStream(input) {
 
 object RootfsBackup {
     /** Isi folder ini tidak ikut dicadangkan (foldernya tetap dicatat): dibuat ulang/volatil. */
-    private val SKIP_CONTENTS = setOf("proc", "sys", "dev", "run", "tmp", "etc/molina/proc")
+    private val SKIP_CONTENTS = setOf(
+        "proc", "sys", "dev", "run", "tmp", "etc/molina/proc",
+        // [BACKUP-NOCRED] folder kredensial tidak ikut cadangan (cadangan ada di penyimpanan bersama)
+        "root/.ssh", "root/.gnupg", "root/.config/gh",
+    )
+
+    /** Berkas kredensial/token: tidak dicadangkan. Login ulang setelah pemulihan. */
+    private val SENSITIVE_FILES = setOf(
+        "root/.git-credentials", "root/.netrc", "root/.npmrc", "root/.pypirc",
+    )
 
     private const val SPACE_MARGIN = 64L * 1024 * 1024
 
@@ -150,6 +159,7 @@ object RootfsBackup {
                         val rel = relName(root, file)
                         val f = file.toFile()
                         when {
+                            rel in SENSITIVE_FILES -> skipped++
                             attrs.isSymbolicLink -> {
                                 val e = TarArchiveEntry(rel, TarConstants.LF_SYMLINK)
                                 e.linkName = Files.readSymbolicLink(file).toString()
@@ -345,7 +355,7 @@ object RootfsBackup {
                 return if (relName(root, dir) in SKIP_CONTENTS) FileVisitResult.SKIP_SUBTREE else FileVisitResult.CONTINUE
             }
             override fun visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult {
-                if (attrs.isRegularFile) sum += attrs.size()
+                if (attrs.isRegularFile && relName(root, file) !in SENSITIVE_FILES) sum += attrs.size()
                 return FileVisitResult.CONTINUE
             }
             override fun visitFileFailed(file: Path, exc: IOException): FileVisitResult = FileVisitResult.CONTINUE

@@ -2862,3 +2862,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Celah: kredensial di /sdcard (API 26), scan domain CI, Dependabot untuk pin SHA, Gradle dependency verification
 - [ ] Menunggu hasil uji APK terbaru (ConfigGuard dan R8)
 - [x] Dampak: tidak ada kode, Gradle, AndroidManifest, atau JNI yang diubah
+
+## 2026-10-31 - Cadangan rootfs tanpa kredensial [BACKUP-NOCRED]
+- [x] Temuan: cadangan rootfs di /sdcard/Molina memuat /root/.git-credentials, .ssh, .netrc (terbaca app lain di Android 8)
+- [x] fix(term): RootfsBackup melewati .ssh, .gnupg, .config/gh, .git-credentials, .netrc, .npmrc, .pypirc
+- [x] Audit jaringan: Molina Shield, UrlPolicy, LogRedact, SHA-256 yt-dlp sudah memadai
+- [x] Dampak: hanya RootfsBackup.kt; Gradle, AndroidManifest, JNI TIDAK disentuh
+- [ ] Belum dikompilasi: tunggu CI. Uji: buat cadangan, cek arsip tanpa berkas kredensial, restore, login git ulang
+- [ ] Cadangan lama di /sdcard/Molina/Backup/rootfs perlu dihapus; ganti token Git bila pernah tercadangkan
+- [ ] Celah berikut: rtmp/rtsp tidak lewat Shield (tanpa pin DNS)
