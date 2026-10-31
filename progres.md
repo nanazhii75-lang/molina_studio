@@ -2423,3 +2423,10 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: hanya :app (1 berkas); Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
 - [ ] Compose belum dikompilasi: tunggu CI (periksa Dp.Infinity dan minOf pada Dp)
 - [ ] Uji perangkat: tampilan ketiga popup sama seperti sebelumnya di potret dan landscape
+
+## 2026-10-31 - Pecah Win7OpenDialog.kt: komponen menu ke W7MenuParts.kt [SPLIT-MENUPARTS]
+- [x] refactor(cinema): W7MenuParts.kt baru (package sama): W7Ico, W7IconCmd, W7DropButton, W7MenuDivider, W7_POPUP_MAX_FRACTION + w7PopupMaxHeight, W7MenuItem, W7MenuIcon, W7ChoiceItem; visibilitas private -> internal; kode dipindah apa adanya (tanpa perubahan perilaku)
+- [x] Win7OpenDialog.kt: blok yang sama dihapus; impor lama dibiarkan (hanya peringatan unused, bukan error)
+- [x] Dampak: hanya :app (2 berkas); Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
+- [ ] Compose belum dikompilasi: tunggu CI (cek unresolved reference/impor bila gagal)
+- [ ] Langkah berikut: pecah ZIP viewer (W7ZipDialog dkk) dan dialog Nama/Sandi/Konfirmasi/Info ke berkas sendiri
