@@ -14,8 +14,13 @@ data class AutoState(
     val lastCheck: Long = 0L,
     val lastBackup: Long = 0L,
     val ytdlpInstalled: String = "",
-    val ytdlpLatest: String = ""
+    val ytdlpLatest: String = "",
+    val newpipeLatest: String = ""
 ) {
+    /** True bila rilis NewPipeExtractor terbaru lebih baru dari yang dibundel di aplikasi ini. */
+    val newpipeOutdated: Boolean
+        get() = newpipeLatest.isNotEmpty() && versionNewer(newpipeLatest, com.molina.engine.newpipe.NewPipeInfo.VERSION)
+
     /** True bila rilis resmi yt-dlp lebih baru dari yang terpasang (keduanya diketahui). */
     val ytdlpOutdated: Boolean
         get() = ytdlpInstalled.isNotEmpty() && ytdlpLatest.isNotEmpty() && versionNewer(ytdlpLatest, ytdlpInstalled)
@@ -23,8 +28,8 @@ data class AutoState(
 
 /** Bandingkan versi bertitik (mis. 2025.10.22): true bila [latest] lebih baru dari [installed]. */
 internal fun versionNewer(latest: String, installed: String): Boolean {
-    val a = latest.split('.').map { it.toIntOrNull() ?: 0 }
-    val b = installed.split('.').map { it.toIntOrNull() ?: 0 }
+    val a = latest.trimStart('v', 'V').split('.').map { it.toIntOrNull() ?: 0 }
+    val b = installed.trimStart('v', 'V').split('.').map { it.toIntOrNull() ?: 0 }
     for (i in 0 until maxOf(a.size, b.size)) {
         val x = a.getOrElse(i) { 0 }
         val y = b.getOrElse(i) { 0 }
@@ -52,7 +57,8 @@ object AutoPrefs {
             lastCheck = p.getLong("last_check", 0L),
             lastBackup = p.getLong("last_backup", 0L),
             ytdlpInstalled = p.getString("ytdlp_installed", "").orEmpty(),
-            ytdlpLatest = p.getString("ytdlp_latest", "").orEmpty()
+            ytdlpLatest = p.getString("ytdlp_latest", "").orEmpty(),
+            newpipeLatest = p.getString("newpipe_latest", "").orEmpty()
         )
     }
 
@@ -91,6 +97,10 @@ object AutoPrefs {
             { it.putString("ytdlp_installed", installed).putString("ytdlp_latest", latest) },
             { it.copy(ytdlpInstalled = installed, ytdlpLatest = latest) }
         )
+
+    /** Rilis NewPipeExtractor terbaru dari GitHub; kosong = tidak diketahui. */
+    fun recordNewPipe(ctx: Context, latest: String) =
+        change(ctx, { it.putString("newpipe_latest", latest) }, { it.copy(newpipeLatest = latest) })
 
     /** Dipanggil setelah pasang/perbarui sukses: versi terpasang = [v], lencana hilang bila sama dengan rilis terbaru. */
     fun setYtdlpInstalled(ctx: Context, v: String) =

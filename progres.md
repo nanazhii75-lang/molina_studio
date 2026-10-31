@@ -2569,3 +2569,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] fix(ci): tambah youtube.com ke ALLOWED_HOSTS di scripts/telemetry_gate.py (keputusan sadar: oEmbed judul asli)
 - [x] Diverifikasi di clone bersih: telemetry_gate.py lulus setelah patch
 - [ ] Menunggu CI ulang (kompilasi Compose/Kotlin belum pernah dijalankan untuk patch tahap 2)
+
+## 2026-10-31 - Status pembaruan per komponen di Otomasi dan pembaruan [UPDATE-STATUS]
+- [x] feat(settings): bagian "Status pembaruan" (Debian, yt-dlp, NewPipeExtractor) dengan lencana per baris; tautan Sistem > Otomasi berlencana jumlah komponen yang punya pembaruan
+- [x] feat(auto): UpdateChecker memeriksa rilis NewPipeExtractor terbaru (GitHub, tanpa Debian); AutoPrefs menyimpan newpipe_latest; versionNewer menerima awalan "v"
+- [x] feat(newpipe): NewPipeInfo.VERSION + penjagaan di verifyNewPipePins agar selalu sama dengan newpipeVersion
+- [x] Catatan desain: NewPipe dibundel + dipin SHA-256, jadi hanya notifikasi; pembaruan = naikkan versi + pins.sha256 + rilis CI
+- [x] Dampak: Gradle (engine/newpipe: 1 pemeriksaan di verifyNewPipePins), AndroidManifest dan JNI mpv tidak disentuh; gerbang telemetri lulus di clone
+- [ ] Belum dikompilasi: tunggu CI (BadgeOverlay di SettingsScreen, impor NewPipeInfo di :app)
+- [ ] Belum: tombol "Perbarui yt-dlp" langsung dari halaman Otomasi; alat bantu naikkan pin NewPipe (hash otomatis)

@@ -321,7 +321,9 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         W7Link({ W7IconTerminal() }, "Editor Code", "Pratinjau HTML: renderer native atau WebView") { open(Page.Code) }
                         W7Link({ W7IconShield() }, "Keamanan dan privasi", "Kebijakan URL, jaringan lokal (LAN), layar privat") { open(Page.Network) }
                         W7Link({ W7IconToolList() }, "Penyimpanan", "Ukuran Debian, cache, Recycle Bin, dan bersihkan ruang") { open(Page.Storage) }
-                        W7Link({ W7IconAptSync() }, "Otomasi dan pembaruan", "Pembaruan otomatis (Wi-Fi), cadangan harian, lencana yt-dlp") { open(Page.Automation) }
+                        BadgeOverlay(updateCount(autoSt, aptPending).let { if (it > 0) it.toString() else null }, true) {
+                            W7Link({ W7IconAptSync() }, "Otomasi dan pembaruan", "Status pembaruan Debian, yt-dlp, NewPipe; cadangan harian") { open(Page.Automation) }
+                        }
                         Category("Debian")
                         W7Link({ W7IconAptSync() }, "Periksa pembaruan paket", AptHistory.checkSubtitle(aptPending)) { apt = AptJob.CheckUpdates }
                         W7Link({ W7IconAptSync() }, "Perbarui dan tingkatkan paket", AptHistory.subtitle(aptLast)) { apt = AptJob.UpdateUpgrade }

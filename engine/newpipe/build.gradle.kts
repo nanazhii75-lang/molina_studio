@@ -27,6 +27,10 @@ val verifyNewPipePins by tasks.registering {
     val pinsFile = rootProject.file("scripts/newpipe/pins.sha256")
     inputs.file(pinsFile)
     doLast {
+        val info = file("src/main/kotlin/com/molina/engine/newpipe/NewPipeInfo.kt").readText()
+        if (!info.contains("VERSION = \"$newpipeVersion\"")) {
+            throw GradleException("NewPipeInfo.VERSION tidak sama dengan newpipeVersion ($newpipeVersion); samakan keduanya.")
+        }
         val pins = pinsFile.readLines()
             .map { it.trim() }
             .filter { it.isNotEmpty() && !it.startsWith("#") }

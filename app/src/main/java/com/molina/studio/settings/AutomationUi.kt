@@ -43,6 +43,19 @@ private fun ytdlpText(s: AutoState): String = when {
     else -> "Rilis terbaru: ${s.ytdlpLatest}"
 }
 
+private fun newpipeText(s: AutoState): String {
+    val cur = com.molina.engine.newpipe.NewPipeInfo.VERSION
+    return when {
+        s.newpipeOutdated -> "Pembaruan tersedia: $cur \u2192 ${s.newpipeLatest}. Dibundel di aplikasi, jadi perlu rilis Molina baru (naikkan versi di CI)."
+        s.newpipeLatest.isNotEmpty() -> "Terbaru ($cur)"
+        else -> "Dibundel $cur. Belum diperiksa."
+    }
+}
+
+/** Jumlah komponen yang punya pembaruan (apt dihitung 1 bila ada paket tertunda). */
+internal fun updateCount(s: AutoState, aptPending: Int): Int =
+    (if (aptPending > 0) 1 else 0) + (if (s.ytdlpOutdated) 1 else 0) + (if (s.newpipeOutdated) 1 else 0)
+
 /** Settings > Sistem > Otomasi dan pembaruan: pemeriksaan pembaruan otomatis dan cadangan harian. */
 @Composable
 internal fun AutomationPage() {
@@ -51,6 +64,17 @@ internal fun AutomationPage() {
     val st by AutoPrefs.state.collectAsState()
     val pending by AptHistory.pending.collectAsState()
     val running by UpdateChecker.running.collectAsState()
+
+    Category("Status pembaruan")
+    BadgeOverlay(if (pending > 0) pending.toString() else null, false) {
+        SettingsItem("Paket Debian", AptHistory.checkSubtitle(pending)) {}
+    }
+    BadgeOverlay(if (st.ytdlpOutdated) "Baru" else null, true) {
+        SettingsItem("yt-dlp (mesin cadangan)", ytdlpText(st) + if (st.ytdlpOutdated) ". Perbarui di Paket > Mesin cadangan." else "") {}
+    }
+    BadgeOverlay(if (st.newpipeOutdated) "Baru" else null, true) {
+        SettingsItem("NewPipeExtractor (mesin pencarian)", newpipeText(st)) {}
+    }
 
     Category("Pembaruan otomatis")
     SwitchRow(
@@ -66,8 +90,6 @@ internal fun AutomationPage() {
         if (running) "Memeriksa\u2026" else "Periksa sekarang",
         "Terakhir: " + whenText(st.lastCheck, "belum pernah") + ". Berjalan di latar dan bisa memakai data seluler."
     ) { if (!running) UpdateChecker.checkNow(ctx) }
-    SettingsItem("Paket Debian", AptHistory.checkSubtitle(pending)) {}
-    SettingsItem("yt-dlp", ytdlpText(st)) {}
 
     Category("Cadangan otomatis")
     SwitchRow(

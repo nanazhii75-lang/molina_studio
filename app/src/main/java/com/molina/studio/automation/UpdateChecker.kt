@@ -37,6 +37,7 @@ import org.json.JSONObject
 object UpdateChecker {
     private const val TAG = "auto"
     private val TAG_RE = Regex("""\d{4}\.\d{2}\.\d{2}(\.\d+)?""")
+    private val NP_TAG_RE = Regex("""v\d+\.\d+\.\d+""")
     private val COUNT_RE = Regex("""^\d+$""")
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -65,6 +66,11 @@ object UpdateChecker {
     private suspend fun doCheck(ctx: Context) {
         AutoPrefs.init(ctx)
         AptHistory.init(ctx)
+        // 0) NewPipeExtractor: dibundel di APK (tidak butuh Debian); hanya membandingkan dengan rilis terbaru.
+        val npLatest = fetchLatestNewPipe()
+        if (npLatest.isNotEmpty()) AutoPrefs.recordNewPipe(ctx, npLatest)
+        AppLog.log("system", LogLevel.Info, TAG, "newpipe dibundel=${com.molina.engine.newpipe.NewPipeInfo.VERSION} terbaru=${npLatest.ifEmpty { "?" }}")
+
         val status = YtdlpLocator.status(ctx)
         if (status == YtdlpStatus.NoRootfs) {
             AppLog.log("system", LogLevel.Info, TAG, "dilewati: Debian belum dipasang")
@@ -101,9 +107,14 @@ object UpdateChecker {
     }
 
     /** Tag rilis terbaru yt-dlp dari GitHub (HTTPS); kosong bila gagal atau formatnya tak dikenal. */
-    private fun fetchLatestYtdlp(): String {
+    private fun fetchLatestYtdlp(): String = fetchLatestTag("yt-dlp/yt-dlp", TAG_RE)
+
+    /** Tag rilis terbaru NewPipeExtractor (mis. v0.26.5); kosong bila gagal. */
+    private fun fetchLatestNewPipe(): String = fetchLatestTag("TeamNewPipe/NewPipeExtractor", NP_TAG_RE)
+
+    private fun fetchLatestTag(repo: String, re: Regex): String {
         return try {
-            val conn = URL("https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest").openConnection() as HttpURLConnection
+            val conn = URL("https://api.github.com/repos/$repo/releases/latest").openConnection() as HttpURLConnection
             conn.connectTimeout = 20_000
             conn.readTimeout = 30_000
             conn.setRequestProperty("Accept", "application/vnd.github+json")
@@ -113,7 +124,7 @@ object UpdateChecker {
                     val body = conn.inputStream.use { it.readBytes() }
                     if (body.size > 1_000_000) "" else {
                         val tag = JSONObject(String(body, Charsets.UTF_8)).optString("tag_name").trim()
-                        if (TAG_RE.matches(tag)) tag else ""
+                        if (re.matches(tag)) tag else ""
                     }
                 }
             } finally {
