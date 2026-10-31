@@ -9,14 +9,28 @@ import java.io.File
 /** Identitas visual shell Molina: banner di sini; warna prompt bersumber dari [PromptTheme]. */
 object MolinaShell {
     const val BRAND = "Welcome Molina Terminal"
-    const val BRAND_SGR = "1;${MolinaTheme.GOLD_SGR}" // emas Molina
+    const val BRAND_SGR = "1;${MolinaTheme.GOOD_SGR}" // hijau Molina (teks tebal); bingkai memakai hijau yang sama tanpa tebal
     /** Akar data aplikasi di dalam Debian (bind appRoot; lihat StorageBinds). */
     const val APP_ROOT = "/sdcard/Molina"
     /** Folder kerja terminal = MolinaDir.Workspace; dipakai bashrc untuk warna prompt (MOLINA_HOME). */
     const val HOME_DIR = "$APP_ROOT/Workspace"
     const val REDRAW_SEQ = "\u001b[99~"       // dipetakan ke redraw-current-line di bashrc
 
-    val banner: String get() = "\u001b[${BRAND_SGR}m$BRAND\u001b[0m"
+    /**
+     * Banner berbingkai (3 baris, dipisah \r\n untuk ditulis langsung ke emulator). HARUS sama dengan
+     * __molina_banner di assets/molina/bashrc: sudut membulat, teks diberi 2 spasi di kiri dan kanan.
+     */
+    val banner: String get() {
+        val bar = "\u2500".repeat(BRAND.length + 4)
+        val f = "\u001b[${MolinaTheme.GOOD_SGR}m"
+        val b = "\u001b[${BRAND_SGR}m"
+        val r = "\u001b[0m"
+        return listOf(
+            "$f\u256D$bar\u256E$r",
+            "$f\u2502$r  $b$BRAND$r  $f\u2502$r",
+            "$f\u2570$bar\u256F$r",
+        ).joinToString("\r\n")
+    }
 
     /** Tulis warna prompt aktif; dibaca bashrc di setiap prompt (perubahan tema langsung berlaku). */
     fun writePromptEnv(rootfsDir: File, theme: PromptTheme) {

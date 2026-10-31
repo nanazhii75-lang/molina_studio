@@ -29,4 +29,14 @@ PROMPT_COMMAND="${PROMPT_COMMAND:+$PROMPT_COMMAND;}__molina_ps1"
 # Tombol CLEAR aplikasi mengirim ESC [ 9 9 ~ agar prompt digambar ulang setelah layar dibersihkan.
 bind '"\e[99~": redraw-current-line' 2>/dev/null
 
-printf '\033[%sm%s\033[0m\n' "$MOLINA_BRAND_SGR" "$MOLINA_BRAND"
+# Banner berbingkai; HARUS sama dengan MolinaShell.banner (Kotlin).
+__molina_banner() {
+  local t="$MOLINA_BRAND" b="$MOLINA_BRAND_SGR" bar
+  local f="${b#1;}"
+  printf -v bar '%*s' $((${#t} + 4)) ''
+  bar="${bar// /─}"
+  printf '\033[%sm╭%s╮\033[0m\n' "$f" "$bar"
+  printf '\033[%sm│\033[0m  \033[%sm%s\033[0m  \033[%sm│\033[0m\n' "$f" "$b" "$t" "$f"
+  printf '\033[%sm╰%s╯\033[0m\n' "$f" "$bar"
+}
+__molina_banner

@@ -2723,3 +2723,10 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Belum dikompilasi: tunggu CI (impor kotlinx.coroutines di TerminalChrome, SwitchRow baru, enum CleanupId bertambah)
 - [ ] Belum diuji di perangkat: sesi baru > prompt di ~ hijau, cd /sdcard/molina-studio merah, cd /sdcard/Molina hijau + [MOLINA]; simpan transkrip dengan toggle mati/hidup (cek URL bertoken); Pembersihan > kategori transkrip
 - [ ] Asumsi: "user@localhost merah" ditafsirkan sebagai prompt home (~). Bila yang dimaksud project molina-studio, tambahkan case /sdcard/molina-studio di bashrc
+
+## 2026-10-31 - Banner Welcome Molina Terminal hijau + bingkai [BANNER-GREEN]
+- [x] feat(term): banner kini hijau (MolinaTheme.GOOD_SGR, #69F0AE) dengan bingkai sudut membulat; teks tebal, bingkai tidak tebal. Dibuat dua tempat yang HARUS sama: MolinaShell.banner (Kotlin, dipakai tombol CLEAR) dan __molina_banner di bashrc (sesi baru); lebar bingkai mengikuti panjang teks
+- [x] Tema prompt (Classic/Neon/Cinema Gold) tidak berubah; hanya banner
+- [x] Dampak: MolinaTheme.kt, MolinaShell.kt, bashrc. Gradle, AndroidManifest, JNI mpv TIDAK disentuh. Berlaku di sesi terminal BARU dan setelah tombol CLEAR
+- [ ] Belum dikompilasi: tunggu CI
+- [ ] Belum diuji di perangkat (Android 8): bingkai rata (huruf box-drawing ╭─╮│╰╯ harus selebar satu kolom di font terminal); CLEAR menampilkan banner yang sama dengan sesi baru
