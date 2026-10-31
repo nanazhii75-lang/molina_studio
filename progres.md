@@ -2730,3 +2730,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: MolinaTheme.kt, MolinaShell.kt, bashrc. Gradle, AndroidManifest, JNI mpv TIDAK disentuh. Berlaku di sesi terminal BARU dan setelah tombol CLEAR
 - [ ] Belum dikompilasi: tunggu CI
 - [ ] Belum diuji di perangkat (Android 8): bingkai rata (huruf box-drawing ╭─╮│╰╯ harus selebar satu kolom di font terminal); CLEAR menampilkan banner yang sama dengan sesi baru
+
+## 2026-10-31 - Banner mengikuti tema prompt [BANNER-THEME]
+- [x] feat(term): warna banner = warna home tema prompt aktif (Classic hijau ANSI 1;32, Neon Green, Cinema Gold); bingkai memakai warna yang sama tanpa tebal. Satu pilihan tema di Setelan > Terminal mengubah prompt dan banner
+- [x] MolinaShell.bannerFor(textSgr) murni (dipakai tombol CLEAR lewat banner); bashrc __molina_banner membaca MOLINA_PS_HOME dari /etc/molina/prompt.env (ditulis sebelum sesi mulai); cadangan MOLINA_BRAND_SGR hijau Molina
+- [x] Dampak: MolinaShell.kt dan bashrc. Gradle, AndroidManifest, JNI mpv TIDAK disentuh. Berlaku di sesi BARU dan setelah CLEAR; banner yang sudah tercetak tidak berubah
+- [ ] Belum dikompilasi: tunggu CI
+- [ ] Belum diuji di perangkat: ganti tema (3 pilihan) > sesi baru dan CLEAR > banner dan prompt sewarna; bingkai rata di font Android 8 (bila miring, ganti ke bingkai ASCII)
+- [ ] Catatan: tema default Classic memakai hijau ANSI standar (1;32), bukan mint #69F0AE seperti patch BANNER-GREEN

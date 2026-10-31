@@ -9,21 +9,26 @@ import java.io.File
 /** Identitas visual shell Molina: banner di sini; warna prompt bersumber dari [PromptTheme]. */
 object MolinaShell {
     const val BRAND = "Welcome Molina Terminal"
-    const val BRAND_SGR = "1;${MolinaTheme.GOOD_SGR}" // hijau Molina (teks tebal); bingkai memakai hijau yang sama tanpa tebal
+    /** Cadangan warna banner (hijau Molina, tebal) bila warna tema prompt belum tersedia (prompt.env belum ada). */
+    const val BRAND_SGR = "1;${MolinaTheme.GOOD_SGR}"
     /** Akar data aplikasi di dalam Debian (bind appRoot; lihat StorageBinds). */
     const val APP_ROOT = "/sdcard/Molina"
     /** Folder kerja terminal = MolinaDir.Workspace; dipakai bashrc untuk warna prompt (MOLINA_HOME). */
     const val HOME_DIR = "$APP_ROOT/Workspace"
     const val REDRAW_SEQ = "\u001b[99~"       // dipetakan ke redraw-current-line di bashrc
 
+    /** Banner untuk tema prompt yang sedang aktif (warna = warna home tema; dipakai tombol CLEAR). */
+    val banner: String get() = bannerFor(TerminalPrefs.promptTheme.homeSgr)
+
     /**
-     * Banner berbingkai (3 baris, dipisah \r\n untuk ditulis langsung ke emulator). HARUS sama dengan
-     * __molina_banner di assets/molina/bashrc: sudut membulat, teks diberi 2 spasi di kiri dan kanan.
+     * Banner berbingkai (3 baris, dipisah \r\n untuk ditulis langsung ke emulator) dengan warna teks [textSgr]
+     * (mis. "1;32", tebal); bingkai memakai warna yang sama tanpa tebal. HARUS sama dengan __molina_banner di
+     * assets/molina/bashrc: sudut membulat, teks diberi 2 spasi di kiri dan kanan. Fungsi murni.
      */
-    val banner: String get() {
+    fun bannerFor(textSgr: String): String {
         val bar = "\u2500".repeat(BRAND.length + 4)
-        val f = "\u001b[${MolinaTheme.GOOD_SGR}m"
-        val b = "\u001b[${BRAND_SGR}m"
+        val f = "\u001b[${textSgr.removePrefix("1;")}m"
+        val b = "\u001b[${textSgr}m"
         val r = "\u001b[0m"
         return listOf(
             "$f\u256D$bar\u256E$r",

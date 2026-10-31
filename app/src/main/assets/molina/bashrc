@@ -31,7 +31,8 @@ bind '"\e[99~": redraw-current-line' 2>/dev/null
 
 # Banner berbingkai; HARUS sama dengan MolinaShell.banner (Kotlin).
 __molina_banner() {
-  local t="$MOLINA_BRAND" b="$MOLINA_BRAND_SGR" bar
+  [ -r /etc/molina/prompt.env ] && . /etc/molina/prompt.env # warna tema prompt aktif (MOLINA_PS_HOME)
+  local t="$MOLINA_BRAND" b="${MOLINA_PS_HOME:-$MOLINA_BRAND_SGR}" bar
   local f="${b#1;}"
   printf -v bar '%*s' $((${#t} + 4)) ''
   bar="${bar// /─}"
