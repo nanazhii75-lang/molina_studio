@@ -13,7 +13,8 @@ object FolderName {
     const val MAX_BYTES = 100
 
     private val BAD = Regex("""[<>:"/\\|?*\u0000-\u001f\u007f]""")
-    private val SPACES = Regex("(?U)\\s+")
+    // Tanpa (?U): flag itu tidak didukung regex ICU Android (PatternSyntaxException). Kelas eksplisit = \s Unicode Python.
+    private val SPACES = Regex("[\\s\\u001c-\\u001f\\u0085\\u00a0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000]+")
     private val RESERVED: Set<String> =
         setOf("con", "prn", "aux", "nul") + (1..9).map { "com$it" } + (1..9).map { "lpt$it" }
 

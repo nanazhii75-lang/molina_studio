@@ -2698,3 +2698,10 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh; tanpa dependensi baru; telemetry_gate dan bundle_gate lulus
 - [ ] Compose belum dikompilasi: tunggu CI (impor ComponentReport, tombol baru di BundledComponentsSection)
 - [ ] Belum diuji di perangkat: tempel hasil salinan ke aplikasi lain; tes core-tests tidak dijalankan CI (butuh kotlinc)
+
+## 2026-10-31 - Crash mode TV: regex (?U) tidak didukung Android [TV-REGEX-CRASH]
+- [x] fix(core): FolderName.SPACES tidak lagi memakai (?U); diganti kelas karakter eksplisit setara \\s Unicode Python. Penyebab: PatternSyntaxException di FolderName.<clinit> -> ExceptionInInitializerError saat ChannelTidy.plan dipanggil dari TvBrowser.kt:174
+- [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh; bukan bug mpv
+- [ ] Belum dikompilasi: tunggu CI
+- [ ] Belum diuji di perangkat: buka mode TV di Android 8, cek tidak crash dan nama folder kanal sama dengan molina_dl.py
+- [ ] Celah: tes JVM tidak menangkap sintaks regex yang hanya ditolak ICU Android; pertimbangkan tes Robolectric/instrumented atau gerbang grep untuk (?U)
