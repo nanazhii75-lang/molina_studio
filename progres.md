@@ -2465,3 +2465,14 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Catatan: chip Terkait (kanal) sudah menyaring daftar sejak [RESULTS-SORT]; tidak diubah
 - [ ] Compose belum dikompilasi: tunggu CI (cek impor DateFilter/DurationFilter dan horizontalScroll)
 - [ ] Uji perangkat: ketuk chip Durasi dan Unggah, nomor kembali 001, kombinasi dengan Terbaru/Terlama dan chip kanal, pesan kosong muncul, putar dari hasil tersaring melanjutkan ke video tersaring berikutnya
+
+## 2026-10-31 - Lencana Diunduh dan Pernah diputar di hasil pencarian [SEEN-BADGES]
+- [x] feat(cinema): SeenMarks.kt baru (:core:common): VideoKey.of(url) -> "yt:<id>" (watch, youtu.be, shorts, live, embed), SeenMarks push/encode/decode (maks 500 per jenis, terbaru di atas)
+- [x] SeenStore.kt baru (:app): penanda di SharedPreferences molina_ui (seen_played, seen_downloaded), cache memori, best-effort (galat tidak mengganggu)
+- [x] Hook: CinemaActions.playResults dan play(uri) -> markPlayed; DownloadRunner.onFinished -> markDownloaded untuk item berstatus DONE (URL penuh dari sesi; riwayat unduhan hanya menyimpan host sehingga tidak bisa dicocokkan)
+- [x] CinemaResults.kt: ChannelRow menampilkan lencana "Diunduh" (emas) dan "Pernah diputar" (redup) hanya bila ada; tinggi baris lain tidak berubah
+- [x] Tes: SeenMarksTests.kt (28 kasus) + scripts/core-tests/run_seen_marks.sh
+- [x] Dampak: :core:common dan :app (6 berkas termasuk 2 baru) + 2 berkas skrip tes; Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
+- [x] Batasan: "Pernah diputar" hanya menandai video yang dipilih untuk diputar (bukan ditonton tuntas); item berikutnya di playlist otomatis belum ditandai; unduhan sebelum fitur ini tidak bertanda
+- [ ] Compose belum dikompilasi: tunggu CI (cek impor DownloadItemStatus/SeenStore dan variabel app di DownloadRunner)
+- [ ] Uji perangkat: putar satu hasil lalu cari ulang (lencana Pernah diputar), unduh satu hasil sampai selesai lalu cari ulang (lencana Diunduh), keduanya bisa tampil bersamaan, baris terpilih tetap terbaca

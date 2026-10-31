@@ -10,11 +10,13 @@ import com.molina.core.common.AppLog
 import com.molina.core.common.DownloadCommand
 import com.molina.core.common.DownloadFeed
 import com.molina.core.common.DownloadHistory
+import com.molina.core.common.DownloadItemStatus
 import com.molina.core.common.DownloadMaintenance
 import com.molina.core.common.DownloadRequest
 import com.molina.core.common.DownloadRunState
 import com.molina.core.common.LogLevel
 import com.molina.core.common.MaintenanceKind
+import com.molina.studio.cinema.SeenStore
 import com.molina.studio.code.ProotScriptExecutor
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -89,6 +91,13 @@ internal object DownloadRunner {
                     f.finish(result.cancelled, result.exitCode, result.startError)
                     // Catat ke riwayat SEBELUM state selesai terbit agar UI tidak sempat menyembunyikan entri yang salah.
                     DownloadHistory.build(System.currentTimeMillis(), req, f.state.session)?.let { DownloadHistoryStore.add(it) }
+                    // [SEEN-BADGES] tandai video yang berhasil diunduh (lencana "Diunduh" di hasil pencarian)
+                    val requested = DownloadCommand.clean(req.urls).take(DownloadCommand.MAX_URLS)
+                    SeenStore.markDownloaded(
+                        app,
+                        f.state.session.items.filter { st -> st.status == DownloadItemStatus.DONE }
+                            .map { st -> st.url.ifEmpty { requested.getOrNull(st.index).orEmpty() } },
+                    )
                     _state.value = f.state
                     handle = null
                     f.state

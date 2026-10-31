@@ -49,7 +49,7 @@ internal object CinemaActions {
                 .setClassName(ctx.packageName, PLAYER)
                 .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         )
-        if (ok) CinemaRecent.add(ctx, uri.toString(), null)
+        if (ok) { CinemaRecent.add(ctx, uri.toString(), null); SeenStore.markPlayed(ctx, uri.toString()) } // [SEEN-BADGES]
         return ok
     }
 
@@ -59,6 +59,7 @@ internal object CinemaActions {
      */
     fun playResults(ctx: Context, items: List<StreamSearchItem>, picked: StreamSearchItem): Boolean {
         CinemaRecent.add(ctx, picked.pageUrl, picked.title)
+        SeenStore.markPlayed(ctx, picked.pageUrl) // [SEEN-BADGES]
         val list = items.filter { PlaylistPlan.isWatchUrl(it.pageUrl) }.take(PlaylistPlan.MAX_ITEMS)
         val idx = list.indexOfFirst { it.pageUrl == picked.pageUrl }
         val uri = Uri.parse(picked.pageUrl)

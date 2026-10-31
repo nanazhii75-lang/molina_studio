@@ -104,6 +104,7 @@ internal fun SearchResultsDialog(
     onSearch: ((String) -> Unit)? = null,
 ) {
     val ctx = LocalContext.current
+    val seen = remember(SeenStore.version) { SeenStore.snapshot(ctx) } // [SEEN-BADGES]
     var sort by remember { mutableStateOf(SearchSort.NEWEST) } // [RESULTS-SORT] bawaan: terbaru dulu
     var durFilter by remember { mutableStateOf(DurationFilter.ALL) } // [RESULTS-FILTER]
     var dateFilter by remember { mutableStateOf(DateFilter.ALL) }
@@ -272,7 +273,9 @@ internal fun SearchResultsDialog(
                         ChannelRow(e, e.number == selected,
                             onPress = { selected = e.number },
                             onClick = { onPick(ordered, e.item) },
-                            onDownload = { download(listOf(e.item)) })
+                            onDownload = { download(listOf(e.item)) },
+                            played = seen.isPlayed(e.item.pageUrl),
+                            downloaded = seen.isDownloaded(e.item.pageUrl))
                     }
                 }
 
@@ -308,6 +311,7 @@ internal fun SearchResultsDialog(
 private fun ChannelRow(
     e: ResultEntry, isSelected: Boolean,
     onPress: () -> Unit, onClick: () -> Unit, onDownload: () -> Unit,
+    played: Boolean = false, downloaded: Boolean = false,
 ) {
     val shape = RoundedCornerShape(4.dp)
     val brush = if (isSelected) Brush.verticalGradient(listOf(SelectedTop, SelectedBottom))
@@ -334,6 +338,11 @@ private fun ChannelRow(
             if (meta.isNotEmpty()) Text(meta, fontSize = 12.sp,
                 color = if (isSelected) Color(0xCCFFFFFF) else MolinaTheme.Muted,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
+            // [SEEN-BADGES] lencana hanya muncul bila ada; baris tanpa penanda tidak bertambah tinggi
+            if (downloaded || played) Row(Modifier.padding(top = 3.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (downloaded) SeenBadge("\u2193 Diunduh", if (isSelected) Color.White else MolinaTheme.Gold)
+                if (played) SeenBadge("\u25B6 Pernah diputar", if (isSelected) Color.White else MolinaTheme.Muted)
+            }
         }
         Box(
             Modifier.padding(start = 8.dp).size(36.dp).clip(RoundedCornerShape(18.dp))
@@ -354,6 +363,17 @@ private fun TvKey(icon: Int, label: String, tint: Color, modifier: Modifier, onC
             colorFilter = ColorFilter.tint(tint), modifier = Modifier.size(24.dp))
         Text(label.uppercase(), color = tint, fontSize = 10.sp, maxLines = 1)
     }
+}
+
+/** [SEEN-BADGES] Lencana kecil bergaris untuk penanda "Diunduh" dan "Pernah diputar". */
+@Composable
+private fun SeenBadge(label: String, color: Color) {
+    val shape = RoundedCornerShape(8.dp)
+    Text(
+        label, color = color, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, maxLines = 1,
+        modifier = Modifier.clip(shape).border(1.dp, color.copy(alpha = 0.6f), shape)
+            .padding(horizontal = 6.dp, vertical = 1.dp),
+    )
 }
 
 /** [RESULTS-SORT] Chip kecil: aktif = emas penuh, tidak aktif = garis tipis. */
