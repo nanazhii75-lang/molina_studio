@@ -42,6 +42,8 @@ import java.net.URLEncoder
  * pembatalan coroutine menginterupsi thread (ditambah timeout di [MolinaDownloader]).
  * Galat yang diharapkan dikembalikan sebagai [StreamOutcome.Failure]; pembatalan diteruskan.
  */
+private const val OEMBED_URL = "https://www.youtube.com/oembed?format=json&url="
+
 class NewPipeStreamResolver(
     languageCode: String = "id",
     countryCode: String = "ID",
@@ -134,7 +136,7 @@ class NewPipeStreamResolver(
                 runInterruptible(Dispatchers.IO) {
                     val r = OriginalTitles.apply(cands) { u ->
                         try {
-                            NewPipe.getDownloader().get(OriginalTitles.OEMBED + URLEncoder.encode(u, "UTF-8")).responseBody()
+                            NewPipe.getDownloader().get(OEMBED_URL + URLEncoder.encode(u, "UTF-8")).responseBody()
                         } catch (e: Exception) {
                             null
                         }

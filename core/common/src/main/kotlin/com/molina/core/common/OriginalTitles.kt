@@ -13,7 +13,6 @@ import java.util.concurrent.TimeUnit
  * tetap memakai judul pencarian. JVM murni: pengambil [fetch] disuntikkan agar bisa diuji.
  */
 object OriginalTitles {
-    const val OEMBED = "https://www.youtube.com/oembed?format=json&url="
     private const val THREADS = 6
     private const val BUDGET_S = 12L
     private const val CACHE_MAX = 400

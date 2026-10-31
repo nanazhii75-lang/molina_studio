@@ -2558,3 +2558,8 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Belum terverifikasi: perilaku oEmbed (apakah selalu judul asli) tidak bisa diuji dari sandbox tanpa akses YouTube; lihat log "judul asli" di perangkat
 - [ ] Compose belum dikompilasi: tunggu CI (cek impor collectAsState/StreamEnginePrefs di PlayerSettingsUi, runInterruptible di NewPipeStreamResolver)
 - [ ] Belum: yt-dlp cadangan dan molina_dl.py (nama berkas unduhan) masih memakai judul menurut lang=id; belum diseragamkan
+
+## 2026-10-31 - Perbaikan gerbang telemetri CI [GATE-OEMBED-FIX]
+- [x] CI gagal: telemetry_gate.py menolak host www.youtube.com di core/common/OriginalTitles.kt:16
+- [x] fix(core): konstanta URL oEmbed dipindah dari :core:common ke :engine:newpipe; OriginalTitles tetap tanpa host
+- [ ] Menunggu CI ulang; bila gerbang masih menolak di engine/newpipe, tambahkan host ke allowlist telemetry_gate.py secara sadar
