@@ -2563,3 +2563,9 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] CI gagal: telemetry_gate.py menolak host www.youtube.com di core/common/OriginalTitles.kt:16
 - [x] fix(core): konstanta URL oEmbed dipindah dari :core:common ke :engine:newpipe; OriginalTitles tetap tanpa host
 - [ ] Menunggu CI ulang; bila gerbang masih menolak di engine/newpipe, tambahkan host ke allowlist telemetry_gate.py secara sadar
+
+## 2026-10-31 - Allowlist gerbang telemetri: youtube.com [GATE-ALLOW-YT]
+- [x] Pemindahan OEMBED_URL ke engine/newpipe tidak cukup: gerbang memeriksa host secara global (temuan pindah ke NewPipeStreamResolver.kt:45)
+- [x] fix(ci): tambah youtube.com ke ALLOWED_HOSTS di scripts/telemetry_gate.py (keputusan sadar: oEmbed judul asli)
+- [x] Diverifikasi di clone bersih: telemetry_gate.py lulus setelah patch
+- [ ] Menunggu CI ulang (kompilasi Compose/Kotlin belum pernah dijalankan untuk patch tahap 2)

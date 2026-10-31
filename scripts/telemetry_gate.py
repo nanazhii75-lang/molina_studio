@@ -12,6 +12,7 @@ ALLOWED_HOSTS = {
     "schemas.android.com", "www.w3.org",  # namespace XML, bukan koneksi
     "dev.w3.org",  # komentar regex di grammar TextMate CSS (VS Code, MIT): tautan spesifikasi W3C, bukan koneksi
     "mozilla.org", "www.gnu.org",  # teks lisensi di header berkas (MPL/LGPL), bukan koneksi
+    "youtube.com",  # runtime: oEmbed judul asli pengunggah (OriginalTitles); satu GET per hasil pencarian, tanpa cookie/identitas, bukan telemetri
 }
 ALLOWED_PERMISSIONS = {
     "android.permission.INTERNET",
