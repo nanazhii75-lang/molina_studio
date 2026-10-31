@@ -140,6 +140,9 @@ internal fun PackagesPage(onOpenYtdlp: () -> Unit) {
         }
     }
 
+    BundledComponentsSection()
+    Spacer(Modifier.height(8.dp))
+
     draft?.let { d ->
         ToolEditorDialog(d, ctx, onCancel = { draft = null }, onSaved = { draft = null })
     }

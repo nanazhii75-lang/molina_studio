@@ -2578,3 +2578,13 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: Gradle (engine/newpipe: 1 pemeriksaan di verifyNewPipePins), AndroidManifest dan JNI mpv tidak disentuh; gerbang telemetri lulus di clone
 - [ ] Belum dikompilasi: tunggu CI (BadgeOverlay di SettingsScreen, impor NewPipeInfo di :app)
 - [ ] Belum: tombol "Perbarui yt-dlp" langsung dari halaman Otomasi; alat bantu naikkan pin NewPipe (hash otomatis)
+
+## 2026-10-31 - Daftar komponen bundel di Paket + gerbang keamanan [BUNDLE-LIST]
+- [x] feat(core): BundledComponents (:core:common) = daftar tunggal 12 komponen (NewPipe, libmpv+FFmpeg, terminal, PRoot, Debian rootfs, yt-dlp, sora-editor, font, arsip, python3/git/ffmpeg) dengan peran (Wajib/Pendukung/Opsional), asal, lisensi, jaminan keamanan
+- [x] feat(settings): bagian "Komponen bundel" di Paket (ketuk = detail; lencana "Baru" bila ada pembaruan NewPipe/yt-dlp); BundleUi.kt
+- [x] ci: scripts/bundle_gate.py (langkah baru di build.yml) menggagalkan build bila klaim "SHA-256" tak punya pin nyata, versi NewPipe/Gradle/NewPipeInfo/pins.sha256 tak sama, hash libmpv/rootfs tak valid, installer yt-dlp berhenti memverifikasi SHA-256, atau versi statis di daftar beda dari Gradle
+- [x] Keamanan dipertahankan: telemetry_gate tidak diubah; sumber komponen ditulis tanpa skema URL agar tetap diawasi gerbang
+- [x] Tes: scripts/core-tests/BundledComponentsTests.kt + run_bundled_components.sh (lulus); uji negatif gerbang (klaim Sha256 palsu -> gagal)
+- [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh; 1 langkah baru di build.yml
+- [ ] Compose belum dikompilasi: tunggu CI (BundleUi.kt, penyisipan di PackagesPage)
+- [ ] Belum: versi terpasang python3/git/ffmpeg (masih "versi mengikuti apt"); tombol perbarui langsung dari daftar
