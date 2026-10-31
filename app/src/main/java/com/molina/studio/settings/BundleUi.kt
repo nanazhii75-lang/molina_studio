@@ -54,6 +54,7 @@ import androidx.compose.ui.unit.sp
 import com.molina.core.common.Assurance
 import com.molina.core.common.BundledComponent
 import com.molina.core.common.BundledComponents
+import com.molina.core.common.ComponentReport
 import com.molina.core.common.ComponentRole
 import com.molina.core.common.NewPipeBump
 import com.molina.engine.newpipe.NewPipeInfo
@@ -295,6 +296,24 @@ internal fun BundledComponentsSection(
     }
     batchNote?.let {
         Text(it, color = W7D.TextDim, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 10.dp).padding(bottom = 6.dp))
+    }
+    // [BUNDLE-REPORT] laporan teks polos (versi, peran, asal, jaminan) untuk ditempel ke laporan bug
+    BundleAction(if (copied == "report") "LAPORAN DISALIN \u2713" else "SALIN LAPORAN KOMPONEN") {
+        copyText(
+            ctx, "laporan komponen",
+            ComponentReport.format(
+                all, report, SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US).format(Date()),
+                versionOf = { c -> versionText(c, st, debianToolId(c.id)?.let { checks[it] }) },
+                extrasOf = { c ->
+                    val ck = debianToolId(c.id)?.let { checks[it] }
+                    listOfNotNull(
+                        if (ck != null && ck.text.isNotBlank()) "dicek " + stampOf(ck.at) else null,
+                        updateNote(c, st)
+                    )
+                }
+            )
+        )
+        copied = "report"
     }
     Spacer(Modifier.height(6.dp))
 

@@ -2689,3 +2689,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh; tanpa dependensi baru; gerbang dan tes bump lulus
 - [ ] Compose belum dikompilasi: tunggu CI (fungsi lokal rekursif runNext/begin di composable, parameter baru BundledComponentsSection)
 - [ ] Belum diuji di perangkat: urutan 3 cek di Android 8, tombol berhenti di tengah antrean, kasus Debian belum terpasang (3 catatan kuning)
+
+## 2026-10-31 - Salin laporan komponen [BUNDLE-REPORT]
+- [x] feat(core): ComponentReport.format (JVM murni, :core:common) menyusun teks polos: judul, waktu, ringkasan keamanan, status Wajib, lalu komponen per peran (versi, asal, jaminan) dengan baris tambahan menjorok (waktu cek, pembaruan); keluaran alat dijadikan satu baris dan dipotong 120 karakter
+- [x] feat(settings): tombol "SALIN LAPORAN KOMPONEN" di halaman Komponen bundel (versi memakai teks yang sama dengan kartu); label berubah "LAPORAN DISALIN ✓"
+- [x] test: scripts/core-tests/run_component_report.sh (kotlinc 2.1.20): 19 pemeriksaan LULUS (struktur, urutan peran, tanpa URL, pemotongan versi, baris tambahan, Wajib tanpa hash, daftar kosong); BundledComponentsTests lama tetap lulus
+- [x] Privasi: laporan hanya memuat nama, versi, peran, asal, jaminan; tanpa URL, data perangkat, atau data pengguna
+- [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh; tanpa dependensi baru; telemetry_gate dan bundle_gate lulus
+- [ ] Compose belum dikompilasi: tunggu CI (impor ComponentReport, tombol baru di BundledComponentsSection)
+- [ ] Belum diuji di perangkat: tempel hasil salinan ke aplikasi lain; tes core-tests tidak dijalankan CI (butuh kotlinc)
