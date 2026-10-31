@@ -569,6 +569,65 @@ class PerChannelRunTests(unittest.TestCase):
         self.assertIn("channel_dir_failed", rep.warns)
         self.assertEqual(rep.done_args[0], self.out)
 
+    # ---- dedup berdasarkan id: mode per kanal tidak mengunduh ulang video yang sama dari folder lain
+    def put_old(self, rel, data=b"lama"):
+        p = os.path.join(self.out, *rel.split("/"))
+        os.makedirs(os.path.dirname(p), exist_ok=True)
+        with open(p, "wb") as f:
+            f.write(data)
+        return p
+
+    def test_find_existing_cases(self):
+        spec = {"mode": "video", "ext": "mp4"}
+        info = {"id": "abc"}
+        self.assertIsNone(dl.find_existing(self.out, info, spec))
+        flat = self.put_old("Judul [abc].mp4")
+        self.assertEqual(dl.find_existing(self.out, info, spec)[1], flat)
+        self.put_old("Kanal X/Lain [zzz].mp4")
+        self.assertIsNone(dl.find_existing(self.out, {"id": "qqq"}, spec))              # id lain
+        self.assertIsNone(dl.find_existing(self.out, info, {"mode": "video", "ext": "mkv"}))  # ekstensi lain
+        self.assertIsNone(dl.find_existing(self.out, info, {"mode": "audio", "afmt": "mp3"}))  # mode lain
+        self.assertIsNone(dl.find_existing(self.out, None, spec))
+        self.assertIsNone(dl.find_existing(self.out, {"id": ""}, spec))
+        self.put_old("Judul [abc].mp4.part")
+        self.assertEqual(dl.find_existing(self.out, info, spec)[1], flat)                # .part tidak dihitung
+        self.assertEqual(dl.find_existing(self.out, {"id": "ABC"}, spec)[1], flat)       # id tidak peka huruf besar-kecil
+
+    def test_find_existing_prefers_newest_copy(self):
+        old = self.put_old("A/V [abc].mp4")
+        new = self.put_old("B/V [abc].mp4")
+        os.utime(old, (1_000_000_000, 1_000_000_000))
+        os.utime(new, (1_700_000_000, 1_700_000_000))
+        self.assertEqual(dl.find_existing(self.out, {"id": "abc"}, {"mode": "video", "ext": "mp4"})[1], new)
+
+    def test_per_channel_skips_download_when_in_flat_folder(self):
+        flat = self.put_old("Judul [1].mp4")
+        status, rep = self.run_one({"per_channel": True})
+        self.assertEqual(status, "ok")
+        outdir, files, existed = rep.done_args
+        self.assertTrue(existed)
+        self.assertEqual((outdir, [p for _n, p, _s in files]), (self.out, [flat]))
+        self.assertFalse(os.path.exists(os.path.join(self.out, "Kanal_ A_B")))   # folder kanal kosong tidak dibuat
+        self.assertEqual(os.listdir(self.out), ["Judul [1].mp4"])               # yt-dlp palsu tidak dijalankan
+
+    def test_per_channel_skips_download_when_in_other_channel_folder(self):
+        old = self.put_old("Nama Kanal Lama/Judul [1].mp4")
+        _s, rep = self.run_one({"per_channel": True})
+        self.assertEqual((rep.done_args[0], rep.done_args[2]), (os.path.dirname(old), True))
+        self.assertFalse(os.path.exists(os.path.join(self.out, "Kanal_ A_B")))
+
+    def test_flat_mode_behaviour_unchanged(self):
+        self.put_old("Sub/Judul [1].mp4")
+        _s, rep = self.run_one()   # tanpa per_channel: yt-dlp tetap jalan
+        self.assertFalse(rep.done_args[2])
+        self.assertTrue(os.path.isfile(os.path.join(self.out, "v [1].mp4")))
+
+    def test_different_extension_still_downloads(self):
+        self.put_old("Judul [1].mkv")
+        _s, rep = self.run_one({"per_channel": True})
+        self.assertFalse(rep.done_args[2])
+        self.assertTrue(os.path.isfile(os.path.join(self.out, "Kanal_ A_B", "v [1].mp4")))
+
 
 @unittest.skipUnless(HAVE_TOOLS, "butuh yt-dlp, ffmpeg, ffprobe")
 class IntegrationTests(unittest.TestCase):

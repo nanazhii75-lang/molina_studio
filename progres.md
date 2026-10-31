@@ -2510,3 +2510,23 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Catatan: skrip molina_dl.py di Scripts/ yang sudah diedit pengguna tidak ditimpa (jadi molina_dl.py.new); skrip lama menolak --per-channel (kode keluar 2) sampai diganti
 - [ ] Compose belum dikompilasi: tunggu CI (cek Modifier.clickable bersyarat di judul baris, impor Row/Arrangement di UnduhanScreen, DownloadChoices posisional)
 - [ ] Uji perangkat: nyalakan Folder per kanal, unduh 2 video dari kanal berbeda -> subfolder per kanal + done.dir; buka Mode TV saluran Unduhan -> baris per kanal tepat setelah Video, ketuk judul membuka folder; matikan toggle -> perilaku lama; tutup-buka aplikasi -> pilihan diingat
+
+## 2026-10-31 - Mode per kanal tidak mengunduh ulang video yang sama dari folder lain [DL-DEDUP-ID]
+- [x] feat(dl): find_existing(outdir, info, spec): cari berkas dengan id video + ekstensi yang sama (".../Judul [id].mp4") di folder simpan dan satu tingkat subfolder; ekstensi harus sama persis (mp4 vs mkv berbeda), .part tidak dihitung, beberapa salinan -> yang terbaru
+- [x] feat(dl): hanya saat --per-channel, sebelum yt-dlp dijalankan dan sebelum folder kanal dibuat; bila ada -> event done existed=true dengan berkas lama di files dan dir = folder berkas itu (folder kanal kosong tidak dibuat); sidecar dilaporkan bila --sidecar
+- [x] Mode tanpa --per-channel tidak berubah (yt-dlp tetap melewati berkas bernama sama di folder tujuan)
+- [x] Versi skrip 7 -> 8 (protokol JSON v=1 tetap)
+- [x] Tes: PerChannelRunTests +6 (yt-dlp palsu): kasus find_existing, salinan terbaru, lewati dari folder datar, lewati dari folder kanal lain, mode datar tidak berubah, ekstensi berbeda tetap mengunduh
+- [x] Dampak: molina_dl.py dan test_molina_dl.py saja; Kotlin, Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
+- [x] Batasan: kualitas berbeda (720p vs 1080p) dengan ekstensi sama dianggap sudah ada (sama dengan perilaku lewati bawaan yt-dlp); video yang namanya dipindah/diganti manual sehingga tidak lagi berakhiran "[id].ext" tidak dikenali
+- [ ] Uji perangkat: unduh video di mode datar, nyalakan Folder per kanal, unduh URL yang sama -> tidak diunduh ulang, tidak ada folder kanal kosong baru; ubah format ke MKV -> tetap mengunduh
+
+## 2026-10-31 - Rapikan ke folder kanal di Mode TV [CINEMA-TIDY]
+- [x] feat(core): FolderName.sanitize (:core:common) = port sanitize_folder_name molina_dl.py; kesamaan dijaga tabel 30 pasangan yang dihasilkan dari Python (termasuk NFC, karakter tak terlihat, nama reservasi, batas 100 byte UTF-8)
+- [x] feat(core): ChannelTidy.plan/apply/undo: video yang tergeletak langsung di sebuah folder + poster, .info.json, subtitle (.srt/.vtt/.ass) dipindah ke subfolder bernama kanal (dari .info.json sidecar: channel lalu uploader); hanya renameTo di volume yang sama, tidak pernah menimpa, bisa dibatalkan di tengah jalan, penanda "dilanjutkan" (ResumeMark) ikut pindah; yang dilewati dihitung: tanpa info, bentrok nama, sudah di folder kanalnya; maks 500 video per rencana
+- [x] feat(cinema): Mode TV: tombol "Rapikan N video ke folder kanal" di panel info (hanya bila ada yang bisa dipindah), dialog konfirmasi (jumlah video/folder/dilewati), pesan hasil + "Urungkan" (9 detik); setelah selesai daftar dimuat ulang sehingga baris rak kanal langsung muncul
+- [x] Tes: scripts/core-tests/ChannelTidyTests.kt + run_tidy.sh (58 pemeriksaan, kotlinc 2.1.20); tes lain tidak berubah
+- [x] Dampak: :core:common (2 berkas baru), :app (TvFileOps, TvBrowser), 2 berkas tes; molina_dl.py, Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
+- [x] Batasan: hanya video yang punya .info.json sidecar (unduh dengan "Poster + info"/--sidecar); video di subfolder tidak ikut (hanya isi langsung folder yang sedang dibuka); riwayat "Terakhir" Cinema masih menyimpan path lama sehingga item itu tidak bisa diputar ulang dari riwayat setelah dipindah
+- [ ] Compose belum dikompilasi: tunggu CI (cek when(sheet) eksaustif, TvInfoPanel parameter tidy, Modifier.clip/border/clickable pada tombol)
+- [ ] Uji perangkat: taruh beberapa video bersidecar di folder Unduhan datar -> buka Mode TV saluran Unduhan -> tombol Rapikan muncul; konfirmasi -> baris rak per kanal muncul dan video lama tidak lagi di baris Video; Urungkan memulihkan semuanya; video lanjut-putar tetap lanjut di posisi terakhir; folder tanpa sidecar -> tombol tidak muncul

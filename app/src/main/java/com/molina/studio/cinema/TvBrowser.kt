@@ -66,6 +66,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.molina.core.common.ChannelTidy
 import com.molina.core.common.MolinaDir
 import com.molina.core.common.ResumeMark
 import com.molina.core.common.ShelfCard
@@ -88,7 +89,7 @@ private tailrec fun Context.lifecycleOwner(): LifecycleOwner? = when (this) {
     else -> null
 }
 
-private class TvData(val rows: List<TvGuide.Row>, val cards: Map<String, ShelfCard.Card>)
+private class TvData(val rows: List<TvGuide.Row>, val cards: Map<String, ShelfCard.Card>, val tidy: ChannelTidy.Plan? = null)
 
 private fun tvPlaces(ctx: android.content.Context): List<Pair<String, File>> {
     val p = AppPaths.get(ctx)
@@ -170,7 +171,7 @@ internal fun TvBrowser(
             val rows = TvGuide.rowsWithShelves(d)
             val vids = rows.flatMap { it.items }.filter { it.kind == TvGuide.Kind.Video }
                 .map { ShelfCard.Entry(it.file.path, it.name, true) }
-            TvData(rows, ShelfCard.build(vids, max = vids.size, resumeDirs = resumeDirs).associateBy { it.ref })
+            TvData(rows, ShelfCard.build(vids, max = vids.size, resumeDirs = resumeDirs).associateBy { it.ref }, ChannelTidy.plan(d))
         }
     }
 
@@ -305,6 +306,7 @@ internal fun TvBrowser(
             extra = focus?.let { f -> data?.cards?.get(f.file.path)?.let { c -> listOfNotNull(c.duration, c.subtitle.takeIf { it.isNotEmpty() }).joinToString(" \u00B7 ") } },
             fallback = (if (recentMode) "Terakhir diputar \u00B7 " + recentCards.size + " item" else cur?.path.orEmpty()) + (data?.let { dd -> "  \u00B7  " + dd.rows.filter { !it.shelf }.joinToString(", ") { it.total.toString() + " " + it.title.lowercase() } } ?: ""),
             resumeSec = focus?.let { f -> data?.cards?.get(f.file.path)?.resumeSec },
+            tidy = data?.tidy,
             onReset = { f ->
                 scope.launch {
                     withContext(Dispatchers.IO) { ResumeMark.clear(resumeDirs, f.file.path) }
@@ -368,6 +370,7 @@ private fun TvInfoPanel(
     extra: String?,
     fallback: String,
     resumeSec: Int?,
+    tidy: ChannelTidy.Plan?,
     onReset: (TvGuide.Item) -> Unit,
     onOpen: (TvGuide.Item) -> Unit,
     onClear: () -> Unit,
@@ -388,12 +391,23 @@ private fun TvInfoPanel(
                     Text("Batal", color = Win7.TextDim, fontSize = 12.sp, modifier = Modifier.clickable { ops.cancelOp() }.padding(8.dp))
                 } else if (ops.undo != null) {
                     Text("Urungkan", color = MolinaTheme.Gold, fontSize = 12.sp, modifier = Modifier.clickable { ops.undoTrash() }.padding(8.dp))
+                } else if (ops.tidyUndo != null) {
+                    Text("Urungkan", color = MolinaTheme.Gold, fontSize = 12.sp, modifier = Modifier.clickable { ops.undoTidy() }.padding(8.dp))
                 }
             }
         }
         if (item == null) {
             Text(fallback, color = Win7.TextDim, fontSize = 11.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
             Text("Tekan lama kartu untuk melihat info.", color = Win7.TextDim, fontSize = 10.sp, modifier = Modifier.padding(top = 2.dp))
+            if (tidy != null && tidy.items.isNotEmpty() && !ops.busy) {
+                // [CINEMA-TIDY] video lama yang masih campur di folder ini -> folder per kanal (dari .info.json sidecar)
+                Text(
+                    "Rapikan " + tidy.items.size + " video ke folder kanal", color = MolinaTheme.Gold, fontSize = 12.sp,
+                    modifier = Modifier.padding(top = 8.dp).clip(RoundedCornerShape(12.dp))
+                        .border(1.dp, MolinaTheme.Gold, RoundedCornerShape(12.dp))
+                        .clickable { onSheet(TvSheet.Tidy(tidy)) }.padding(horizontal = 14.dp, vertical = 6.dp)
+                )
+            }
         } else {
             Text(item.title, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 2, overflow = TextOverflow.Ellipsis)
             Text(TvGuide.describe(item, extra), color = Win7.TextDim, fontSize = 11.sp, modifier = Modifier.padding(top = 2.dp))

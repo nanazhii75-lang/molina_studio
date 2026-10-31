@@ -34,6 +34,8 @@ Kontrak event JSON (v=1), tiap baris satu objek dengan kunci "v" dan "ev":
     stage    {i, stage}                             merge | extract | recode | subs | cover
     done     {i, dir, files:[{name, path, size}], existed, sidecars?:[{name, path, size}]}
                                                     dir = folder hasil (subfolder kanal bila --per-channel)
+                                                    --per-channel: video yang sama (id + ekstensi) yang sudah ada di folder datar/kanal lain
+                                                    tidak diunduh ulang; dilaporkan existed=true dengan berkas lamanya di files
                                                     sidecars hanya ada bila --sidecar dan poster/metadata ditemukan
     error    {i, code, msg}                         i = 0 untuk galat global
     summary  {ok, failed, cancelled}                akhir sesi
@@ -63,7 +65,7 @@ import time
 import unicodedata
 
 SCRIPT_NAME = "molina_dl"
-SCRIPT_VERSION = 7
+SCRIPT_VERSION = 8
 PROTOCOL = 1
 
 URL_RE = re.compile(r"^https?://[^\s/$.?#][^\s]*$", re.IGNORECASE)
@@ -620,6 +622,12 @@ def run_item(ytdlp, rep, i, n, url, spec, outdir, has_ffmpeg, info=None, _retry=
         rep.info(i, info)
     if free_space_low(outdir):
         rep.warn("low_space", f"Ruang kosong kurang dari {MIN_FREE_MB} MB, unduhan bisa gagal.")
+    if spec.get("per_channel"):
+        dup = find_existing(outdir, info, spec)
+        if dup:  # sudah ada (folder datar/kanal lain): jangan unduh ulang dan jangan buat folder kanal kosong
+            side = collect_sidecars([dup]) if spec["mode"] == "video" and spec.get("sidecar") else []
+            rep.done(i, os.path.dirname(dup[1]), [dup], True, side)
+            return "ok"
     item_dir = outdir
     if spec.get("per_channel"):
         item_dir = channel_dir(outdir, info)
@@ -918,6 +926,33 @@ def channel_dir(outdir, info):
     """Subfolder kanal di bawah [outdir]; kanal diambil dari info.channel, lalu info.uploader."""
     info = info or {}
     return os.path.join(outdir, sanitize_folder_name(info.get("channel") or info.get("uploader")))
+
+
+def find_existing(outdir, info, spec):
+    """Berkas yang SAMA (id video + ekstensi sama) di mana pun di bawah [outdir] (satu tingkat subfolder).
+    Dipakai mode per kanal: yt-dlp hanya melewati berkas bernama sama di folder tujuan, jadi video yang sudah
+    ada di folder datar atau folder kanal lain (mis. nama kanal berubah) akan terunduh ulang tanpa ini.
+    Mengembalikan (nama, path, ukuran) atau None. Ekstensi harus sama persis (mp4 vs mkv = berkas berbeda)."""
+    vid = (info or {}).get("id")
+    if not isinstance(vid, str) or not vid:
+        return None
+    ext = spec.get("afmt") if spec.get("mode") == "audio" else spec.get("ext")
+    if not ext:
+        return None
+    suffix = f"[{vid}].{ext}".lower()
+    best = None
+    for rel in snapshot(outdir):
+        base = os.path.basename(rel)
+        if not base.lower().endswith(suffix) or ".part" in base:
+            continue
+        path = os.path.join(outdir, rel)
+        try:
+            cand = (os.path.getmtime(path), base, path, os.path.getsize(path))
+        except OSError:
+            continue
+        if best is None or cand[0] > best[0]:
+            best = cand  # beberapa salinan: pakai yang terbaru
+    return None if best is None else (best[1], best[2], best[3])
 
 
 def env_flag(name):

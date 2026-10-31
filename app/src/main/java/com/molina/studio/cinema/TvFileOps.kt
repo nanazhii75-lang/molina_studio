@@ -30,6 +30,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import com.molina.core.common.ChannelTidy
 import com.molina.core.common.LogLevel
 import com.molina.core.common.ResumeMark
 import com.molina.core.common.TrashBin
@@ -59,6 +60,7 @@ internal sealed class TvSheet {
     class Rename(val file: File) : TvSheet()
     class Delete(val file: File) : TvSheet()
     class Dest(val file: File, val move: Boolean) : TvSheet()
+    class Tidy(val plan: ChannelTidy.Plan) : TvSheet()
 }
 
 /**
@@ -85,6 +87,8 @@ internal class TvOps(
         private set
     var undo by mutableStateOf<List<TrashItem>?>(null)
         private set
+    var tidyUndo by mutableStateOf<ChannelTidy.Result?>(null)
+        private set
 
     private val cancel = AtomicBoolean(false)
     private var clearJob: Job? = null
@@ -101,8 +105,8 @@ internal class TvOps(
     private fun finish(text: String, good: Boolean) {
         say(text, good)
         clearJob = scope.launch {
-            delay(if (undo != null) 9000L else 5000L)
-            if (!busy) { message = ""; undo = null }
+            delay(if (undo != null || tidyUndo != null) 9000L else 5000L)
+            if (!busy) { message = ""; undo = null; tidyUndo = null }
         }
     }
 
@@ -120,6 +124,7 @@ internal class TvOps(
         progress = null
         cancel.set(false)
         undo = null
+        tidyUndo = null
         say("Memproses\u2026", true)
         scope.launch {
             val ctl = FileOps.Ctl(cancel) { p -> progress = p }
@@ -169,6 +174,25 @@ internal class TvOps(
         )
     }
 
+    /** [CINEMA-TIDY] Pindahkan video di [plan] ke folder kanalnya (bisa diurungkan lewat [undoTidy]). */
+    fun tidy(plan: ChannelTidy.Plan) {
+        val res = arrayOfNulls<ChannelTidy.Result>(1)
+        run(
+            op = { _ ->
+                val r = ChannelTidy.apply(plan, resumeDirs) { cancel.get() }
+                res[0] = r
+                val folders = r.moved.mapNotNull { it.to.parentFile?.path }.toSet().size
+                "Dirapikan: " + r.videos + " video ke " + folders + " folder kanal" + (if (r.failed > 0) ", " + r.failed + " gagal" else "")
+            },
+            onDone = { tidyUndo = res[0]?.takeIf { it.moved.isNotEmpty() } }
+        )
+    }
+
+    fun undoTidy() {
+        val r = tidyUndo ?: return
+        run(op = { _ -> "Dipulihkan: " + ChannelTidy.undo(r, resumeDirs) + " berkas" })
+    }
+
     fun undoTrash() {
         val items = undo ?: return
         run(op = { _ -> "Dipulihkan: " + TrashBin.restore(items, volumes).size + " item" })
@@ -192,6 +216,26 @@ internal fun TvOpsDialogs(sheet: TvSheet?, ops: TvOps, channels: List<TvGuide.Ch
             Spacer(Modifier.height(12.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
                 Win7Button("Pindahkan", isDefault = true) { onClose(); ops.trash(f) }
+                Spacer(Modifier.width(8.dp))
+                Win7Button("Batal", onClick = onClose)
+            }
+        }
+        is TvSheet.Tidy -> W7Panel("Rapikan ke folder kanal", onClose) {
+            val p = sheet.plan
+            Text(
+                p.items.size.toString() + " video (beserta poster, info, dan subtitle) dipindah ke " + p.channels + " folder kanal di \"" + p.dir.name + "\".",
+                color = Win7.Ink, fontSize = 13.sp
+            )
+            val skipped = p.noInfo + p.conflicts
+            if (skipped > 0) {
+                Spacer(Modifier.height(6.dp))
+                Text("Dilewati: " + p.noInfo + " tanpa info kanal, " + p.conflicts + " nama bentrok.", color = Win7.TextDim, fontSize = 12.sp)
+            }
+            Spacer(Modifier.height(6.dp))
+            Text("Tidak menimpa berkas apa pun. Bisa diurungkan setelahnya; penanda \"dilanjutkan\" ikut pindah.", color = Win7.TextDim, fontSize = 12.sp)
+            Spacer(Modifier.height(12.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                Win7Button("Rapikan", isDefault = true) { onClose(); ops.tidy(p) }
                 Spacer(Modifier.width(8.dp))
                 Win7Button("Batal", onClick = onClose)
             }
