@@ -42,7 +42,7 @@ object DownloadMaintenance {
         "low_space" -> "Ruang kosong menipis; unduhan besar bisa gagal."
         "dir_fallback" -> "Folder tujuan bawaan tidak bisa dipakai; memakai folder cadangan."
         "no_mutagen" -> "Sampul M4A/FLAC butuh python3-mutagen: apt install -y python3-mutagen (MP3 tidak perlu)."
-        "no_ca" -> "Sertifikat HTTPS belum ada, unduhan bisa gagal. Jalankan Starter (Setelan > Sistem > Debian) atau: apt install -y ca-certificates."
+        "no_ca" -> "Sertifikat HTTPS belum ada, unduhan bisa gagal. Jalankan Starter (Setelan > Paket > Debian) atau: apt install -y ca-certificates."
         else -> "Catatan: $code"
     }
 

@@ -30,7 +30,7 @@ import kotlinx.coroutines.sync.withLock
 import org.json.JSONObject
 
 /**
- * Pemeriksaan pembaruan tanpa dialog: jumlah paket apt yang bisa ditingkatkan (mengisi lencana ubin Sistem)
+ * Pemeriksaan pembaruan tanpa dialog: jumlah paket apt yang bisa ditingkatkan (mengisi lencana ubin Paket)
  * dan versi yt-dlp terbaru (mengisi lencana ubin Paket). Tidak memasang apa pun dan tidak menampilkan notifikasi.
  * Dipakai [UpdateCheckWorker] (otomatis) dan tombol "Periksa sekarang".
  */

@@ -97,7 +97,7 @@ private fun titleOf(p: Page): String = when (p) {
     Page.Downloads -> "Unduhan"
     Page.Storage -> "Penyimpanan"
     Page.Monitor -> "Monitor Sistem"
-    Page.Automation -> "Otomasi dan pembaruan"
+    Page.Automation -> "Cadangan dan otomasi"
     Page.Player -> "Pemutar"
     Page.Stats -> "Statistik tontonan"
     Page.Info -> "Info"
@@ -127,13 +127,13 @@ private val INDEX = listOf(
     Hit("Tambah skrip", "Skrip umum baru; isinya ditulis di editor Code", Page.Scripts),
     Hit("Editor Code", "Pratinjau HTML: renderer native atau WebView", Page.Code),
     Hit("Pratinjau HTML", "WebView untuk halaman HTML (JavaScript dan jaringan mati)", Page.Code),
-    Hit("Paket", "Alat khusus: pasang, versi, hapus (Python 3, Git, FFmpeg, yt-dlp)", Page.Packages),
+    Hit("Paket", "Pusat paket: pembaruan, paket Debian (apt), alat pasang, versi, hapus (Python 3, Git, FFmpeg, yt-dlp)", Page.Packages),
     Hit("Tambah alat", "Buat alat sendiri dengan skrip pasang, versi, hapus", Page.Packages),
     Hit("Komponen bundel", "Daftar komponen, versi, peran, dan jaminan keamanan (NewPipe, libmpv, PRoot, yt-dlp)", Page.Bundle),
     Hit("Keamanan komponen", "Ringkasan hash SHA-256 dan sumber dipin untuk komponen bundel", Page.Bundle),
-    Hit("apt update", "Perbarui dan tingkatkan paket Debian (apt update && apt upgrade -y)", Page.System),
-    Hit("apt upgrade", "Perbarui dan tingkatkan paket Debian (apt update && apt upgrade -y)", Page.System),
-    Hit("Daftar tool terpasang", "Deteksi alat Molina di Debian beserta versinya", Page.System),
+    Hit("apt update", "Perbarui dan tingkatkan paket Debian (apt update && apt upgrade -y)", Page.Packages),
+    Hit("apt upgrade", "Perbarui dan tingkatkan paket Debian (apt update && apt upgrade -y)", Page.Packages),
+    Hit("Daftar tool terpasang", "Deteksi alat Molina di Debian beserta versinya", Page.Packages),
     Hit("Cadangan dan pemulihan", "Cadangkan atau pulihkan penanda video, snippet, dan setelan (folder Backup)", Page.System),
     Hit("Pulihkan dari Backup", "Pulihkan penanda video, snippet, dan setelan dari molina-backup.json", Page.System),
     Hit("Profil setelan", "Simpan setelan sebagai profil bernama (mis. Nonton, Dev, Hemat Baterai) dan ganti dengan satu ketukan", Page.System),
@@ -147,8 +147,9 @@ private val INDEX = listOf(
     Hit("CPU", "Pemakaian CPU seluruh proses Molina", Page.Monitor),
     Hit("RAM", "Pemakaian memori seluruh proses Molina", Page.Monitor),
     Hit("Kecepatan jaringan", "Unduh dan unggah per detik", Page.Monitor),
-    Hit("Otomasi dan pembaruan", "Pemeriksaan pembaruan otomatis (Wi-Fi, 24 jam) dan cadangan harian", Page.Automation),
-    Hit("Pembaruan otomatis", "Perbarui lencana paket Debian dan yt-dlp lewat WorkManager", Page.Automation),
+    Hit("Pembaruan paket", "Status pembaruan Debian, yt-dlp, NewPipe dan pemeriksaan otomatis (Wi-Fi, 24 jam)", Page.Packages),
+    Hit("Cadangan dan otomasi", "Cadangan harian, lanjutkan posisi, unduhan masuk ke Cinema", Page.Automation),
+    Hit("Pembaruan otomatis", "Perbarui lencana paket Debian dan yt-dlp lewat WorkManager", Page.Packages),
     Hit("Cadangan otomatis", "Cadangan gabungan harian ke folder Backup", Page.Automation),
     Hit("Statistik tontonan", "Waktu tonton per hari dan video paling sering diputar (lokal)", Page.Stats),
     Hit("Waktu tonton", "Total jam putar aktif, grafik 7 hari, judul teratas", Page.Stats),
@@ -161,7 +162,7 @@ private val INDEX = listOf(
     Hit("About", "Versi, perangkat, status, dan lisensi (kini di Sistem > Info)", Page.Info),
     Hit("Salin info debug", "Salin ringkasan versi dan status untuk laporan bug", Page.Info),
     Hit("Info", "Status Molina dan informasi dasar perangkat", Page.Info),
-    Hit("Pasang paket Starter", "Profil utilitas: git, python3, ffmpeg, openssh-client, vim di Sistem > Debian", Page.System),
+    Hit("Pasang paket Starter", "Profil utilitas: ca-certificates, python3, ffmpeg, openssh-client, vim di Paket > Debian (apt)", Page.Packages),
     Hit("Kelola rootfs Debian", "Backup, restore, dan reset rootfs Debian di Sistem", Page.System),
     Hit("Status Molina", "Ringkasan Debian, paket, yt-dlp, dan cadangan di Sistem > Info", Page.Info),
     Hit("Informasi perangkat", "Versi Molina Studio, Android, perangkat, arsitektur, dan RAM", Page.Info),
@@ -192,8 +193,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     val aptCtx = LocalContext.current
     remember { AptHistory.init(aptCtx) }
     remember { MolinaExplorer.attach(aptCtx) }
-    val aptLast by AptHistory.last.collectAsState()
-    val aptPending by AptHistory.pending.collectAsState()
+    val aptPending by AptHistory.pending.collectAsState() // [PAKET-PUSAT] aptLast pindah ke halaman Paket
     remember { com.molina.studio.automation.AutoPrefs.init(aptCtx) }
     val autoSt by com.molina.studio.automation.AutoPrefs.state.collectAsState()
     fun open(p: Page) { query = ""; page = p }
@@ -270,7 +270,6 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                             title = "Sistem",
                             links = emptyList(),
                             selected = lastTile == Page.System,
-                            badge = if (aptPending > 0) aptPending.toString() else null,
                             onOpen = { lastTile = Page.System; open(Page.System) }
                         )
                         W7CategoryTile(
@@ -285,7 +284,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                             title = "Paket",
                             links = emptyList(),
                             selected = lastTile == Page.Packages,
-                            badge = if (autoSt.ytdlpOutdated) "!" else null,
+                            badge = updateCount(autoSt, aptPending).let { if (it > 0) it.toString() else null },
                             badgeAero = true,
                             onOpen = { lastTile = Page.Packages; open(Page.Packages) }
                         )
@@ -324,15 +323,8 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         W7Link({ W7IconTerminal() }, "Editor Code", "Pratinjau HTML: renderer native atau WebView") { open(Page.Code) }
                         W7Link({ W7IconShield() }, "Keamanan dan privasi", "Kebijakan URL, jaringan lokal (LAN), layar privat") { open(Page.Network) }
                         W7Link({ W7IconToolList() }, "Penyimpanan", "Ukuran Debian, cache, Recycle Bin, dan bersihkan ruang") { open(Page.Storage) }
-                        BadgeOverlay(updateCount(autoSt, aptPending).let { if (it > 0) it.toString() else null }, true) {
-                            W7Link({ W7IconAptSync() }, "Otomasi dan pembaruan", "Status pembaruan Debian, yt-dlp, NewPipe; cadangan harian") { open(Page.Automation) }
-                        }
+                        W7Link({ W7IconAptSync() }, "Cadangan dan otomasi", "Cadangan harian, lanjutkan posisi, unduhan masuk ke Cinema") { open(Page.Automation) }
                         Category("Debian")
-                        W7Link({ W7IconAptSync() }, "Periksa pembaruan paket", AptHistory.checkSubtitle(aptPending)) { apt = AptJob.CheckUpdates }
-                        W7Link({ W7IconAptSync() }, "Perbarui dan tingkatkan paket", AptHistory.subtitle(aptLast)) { apt = AptJob.UpdateUpgrade }
-                        W7Link({ W7IconToolList() }, "Bersihkan cache dan paket yatim", "autoremove dan apt clean: menambah ruang kosong Debian") { apt = AptJob.CleanUp }
-                        W7Link({ W7IconToolList() }, "Pasang paket Starter", "git, python3, ffmpeg, openssh-client, vim sekali ketuk (apt resmi Debian)") { apt = AptJob.InstallStarter } // [TERM-STARTER1]
-                        W7Link({ W7IconToolList() }, "Daftar tool terpasang", "Deteksi alat Molina di Debian beserta versinya") { showTools = true }
                         W7Link({ W7IconRootfs() }, "Kelola rootfs Debian", "Cadangkan, pulihkan, atau atur ulang seluruh rootfs (tar.gz)") { showRootfsAdmin = true } // [TERM-ROOTFS2]
                         W7Link({ W7IconToolList() }, "Cadangan dan pemulihan", "Penanda video, snippet, dan setelan dalam satu berkas Backup") { showBackup = true }
                         W7Link({ W7IconToolList() }, "Profil setelan", "Simpan dan ganti kumpulan setelan dengan satu ketukan") { showProfiles = true }
@@ -368,7 +360,12 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                     Page.Network -> NetworkSecurityPage()
                     Page.Scripts -> ScriptsPage()
                     Page.Code -> CodeSettingsPage()
-                    Page.Packages -> PackagesPage(onOpenYtdlp = { open(Page.Stream) }, onOpenBundle = { open(Page.Bundle) })
+                    Page.Packages -> PackagesPage(
+                        onOpenYtdlp = { open(Page.Stream) },
+                        onOpenBundle = { open(Page.Bundle) },
+                        onApt = { apt = it },
+                        onShowTools = { showTools = true }
+                    )
                     Page.Bundle -> BundlePage(onOpenYtdlp = { open(Page.Stream) })
                     Page.Storage -> StoragePage()
                     Page.Monitor -> SystemMonitorPage()

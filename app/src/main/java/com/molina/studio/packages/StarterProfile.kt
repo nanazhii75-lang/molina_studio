@@ -1,7 +1,7 @@
 package com.molina.studio.packages
 
 /**
- * [TERM-STARTER1] Profil "Starter": paket apt terkurasi yang dipasang sekali ketuk dari Setelan > Sistem > Debian.
+ * [TERM-STARTER1] Profil "Starter": paket apt terkurasi yang dipasang sekali ketuk dari Setelan > Paket > Debian (apt).
  * Sumbernya hanya repositori resmi Debian (terverifikasi tanda tangan apt). yt-dlp sengaja tidak ikut: ia dipasang
  * di Setelan > Paket karena memverifikasi SHA-256. Idempoten: paket yang sudah ada dilewati apt.
  * ca-certificates WAJIB ada: rootfs trixie-slim tidak membawanya dan apt di sini memakai --no-install-recommends,

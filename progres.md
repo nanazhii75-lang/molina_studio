@@ -2775,3 +2775,13 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Tes ulang: Python 64 OK (15 skip), run_starter_profile 14 kasus 0 gagal
 - [ ] Selidiki 15 tes Python yang di-skip, pastikan bukan tes no_ca
 - [ ] run_maint (Kotlin) menunggu CI
+
+## 2026-10-31 - Paket jadi satu pusat: pembaruan, apt, dan alat [PAKET-PUSAT]
+- [x] refactor(settings): Setelan > Paket kini memuat Status pembaruan (Debian, yt-dlp, NewPipe) + switch pembaruan otomatis, bagian Debian (apt: periksa, perbarui, bersihkan, Starter, daftar tool), lalu Bawaan Molina, Alat Debian, dan Komponen bundel
+- [x] Sistem: blok apt dan Otomasi pembaruan dihapus. Sisa: Kelola rootfs Debian, Cadangan, Profil. Halaman Otomasi diganti nama "Cadangan dan otomasi" (cadangan harian + produktivitas)
+- [x] Lencana pembaruan di beranda pindah dari ubin Sistem ke ubin Paket (apt + yt-dlp + NewPipe). Info: Paket Debian dan Pembaruan otomatis membuka Paket. Pencarian Setelan diarahkan ke Paket
+- [x] Teks Starter diperbaiki (tanpa git) dan lokasi menjadi Setelan > Paket > Debian
+- [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh
+- [ ] Belum dikompilasi: tunggu CI
+- [ ] Tahap 2: gabungkan cek versi (kartu Alat, Komponen bundel, dialog Daftar tool terpasang) menjadi satu, hapus InstalledToolsUi
+- [ ] Uji perangkat: Paket menampilkan pembaruan + apt + alat; Sistem tidak lagi memuat apt; lencana ubin Paket muncul saat ada pembaruan; pencarian "apt update" membuka Paket

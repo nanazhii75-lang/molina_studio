@@ -83,7 +83,12 @@ private fun scriptOf(t: ToolItem, a: ToolAction): String = when (a) {
  * Skrip umum ada di Script execution.
  */
 @Composable
-internal fun PackagesPage(onOpenYtdlp: () -> Unit, onOpenBundle: () -> Unit) {
+internal fun PackagesPage(
+    onOpenYtdlp: () -> Unit,
+    onOpenBundle: () -> Unit,
+    onApt: (AptJob) -> Unit,
+    onShowTools: () -> Unit
+) {
     val ctx = LocalContext.current
     remember { ToolStore.init(ctx) }
     val custom by ToolStore.custom.collectAsState()
@@ -93,11 +98,24 @@ internal fun PackagesPage(onOpenYtdlp: () -> Unit, onOpenBundle: () -> Unit) {
     var draft by remember { mutableStateOf<ToolDraft?>(null) }
     var toDrop by remember { mutableStateOf<ToolItem?>(null) }
     var preview by remember { mutableStateOf<ToolItem?>(null) }
+    remember { AptHistory.init(ctx) }
+    val aptLast by AptHistory.last.collectAsState()
+    val aptPending by AptHistory.pending.collectAsState()
 
     Text(
-        "Paket berisi alat khusus: pasang, cek versi, dan hapus. Skrip umum ada di menu Script execution.",
+        "Pusat paket Molina: pembaruan, paket Debian (apt), dan alat (pasang, cek versi, hapus). Skrip umum ada di menu Script execution.",
         color = W7D.TextDim, fontSize = 13.sp, modifier = Modifier.padding(bottom = 8.dp)
     )
+    UpdateStatusSection()
+    Category("Debian (apt)")
+    BadgeOverlay(if (aptPending > 0) aptPending.toString() else null, false) {
+        W7Link({ W7IconAptSync() }, "Periksa pembaruan paket", AptHistory.checkSubtitle(aptPending)) { onApt(AptJob.CheckUpdates) }
+    }
+    W7Link({ W7IconAptSync() }, "Perbarui dan tingkatkan paket", AptHistory.subtitle(aptLast)) { onApt(AptJob.UpdateUpgrade) }
+    W7Link({ W7IconToolList() }, "Bersihkan cache dan paket yatim", "autoremove dan apt clean: menambah ruang kosong Debian") { onApt(AptJob.CleanUp) }
+    W7Link({ W7IconToolList() }, "Pasang paket Starter", "ca-certificates, python3, ffmpeg, openssh-client, vim sekali ketuk (apt resmi Debian)") { onApt(AptJob.InstallStarter) } // [TERM-STARTER1]
+    W7Link({ W7IconToolList() }, "Daftar tool terpasang", "Deteksi alat Molina di Debian beserta versinya") { onShowTools() }
+    Spacer(Modifier.height(12.dp))
     Category("Bawaan Molina")
     remember { com.molina.studio.automation.AutoPrefs.init(ctx) }
     val autoSt by com.molina.studio.automation.AutoPrefs.state.collectAsState()

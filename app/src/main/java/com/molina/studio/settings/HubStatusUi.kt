@@ -84,10 +84,10 @@ internal fun hubStatusRows(
         else Pair("Mati", HubTone.Idle)
     return listOf(
         HubRow("Debian", debian.first, debian.second, onSystem),
-        HubRow("Paket Debian", apt.first, apt.second, onSystem),
+        HubRow("Paket Debian", apt.first, apt.second, onPackages),
         HubRow("yt-dlp", yt.first, yt.second, onPackages),
         HubRow("Cadangan", backup.first, backup.second, onAutomation),
-        HubRow("Pembaruan otomatis", autoRow.first, autoRow.second, onAutomation)
+        HubRow("Pembaruan otomatis", autoRow.first, autoRow.second, onPackages)
     )
 }
 

@@ -56,9 +56,9 @@ private fun newpipeText(s: AutoState): String {
 internal fun updateCount(s: AutoState, aptPending: Int): Int =
     (if (aptPending > 0) 1 else 0) + (if (s.ytdlpOutdated) 1 else 0) + (if (s.newpipeOutdated) 1 else 0)
 
-/** Settings > Sistem > Otomasi dan pembaruan: pemeriksaan pembaruan otomatis dan cadangan harian. */
+/** Settings > Paket: status pembaruan (Debian, yt-dlp, NewPipe) dan pemeriksaan otomatis [PAKET-PUSAT]. */
 @Composable
-internal fun AutomationPage() {
+internal fun UpdateStatusSection() {
     val ctx = LocalContext.current
     remember { AutoPrefs.init(ctx); AptHistory.init(ctx) }
     val st by AutoPrefs.state.collectAsState()
@@ -79,7 +79,7 @@ internal fun AutomationPage() {
     Category("Pembaruan otomatis")
     SwitchRow(
         "Periksa pembaruan otomatis",
-        "Maksimal sekali per 24 jam dan hanya saat Wi-Fi. Menyegarkan lencana paket Debian (ubin Sistem) dan " +
+        "Maksimal sekali per 24 jam dan hanya saat Wi-Fi. Menyegarkan lencana paket Debian dan " +
             "yt-dlp (ubin Paket) tanpa membuka dialog. Tanpa notifikasi dan tidak memasang apa pun.",
         st.autoUpdate
     ) {
@@ -90,6 +90,15 @@ internal fun AutomationPage() {
         if (running) "Memeriksa\u2026" else "Periksa sekarang",
         "Terakhir: " + whenText(st.lastCheck, "belum pernah") + ". Berjalan di latar dan bisa memakai data seluler."
     ) { if (!running) UpdateChecker.checkNow(ctx) }
+
+}
+
+/** Settings > Sistem > Cadangan dan otomasi: cadangan harian dan setelan produktivitas. */
+@Composable
+internal fun AutomationPage() {
+    val ctx = LocalContext.current
+    remember { AutoPrefs.init(ctx) }
+    val st by AutoPrefs.state.collectAsState()
 
     Category("Cadangan otomatis")
     SwitchRow(
