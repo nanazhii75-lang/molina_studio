@@ -2430,3 +2430,10 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: hanya :app (2 berkas); Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
 - [ ] Compose belum dikompilasi: tunggu CI (cek unresolved reference/impor bila gagal)
 - [ ] Langkah berikut: pecah ZIP viewer (W7ZipDialog dkk) dan dialog Nama/Sandi/Konfirmasi/Info ke berkas sendiri
+
+## 2026-10-31 - Pecah Win7OpenDialog.kt: ZIP viewer dan dialog kecil [SPLIT-ZIP] [SPLIT-DIALOGS]
+- [x] refactor(cinema): W7ZipViewer.kt baru: W7ZipDialog, W7ZipOpened, W7ZipAsk, W7ZipChild, w7ZipChildren, W7_ZIP_IMG
+- [x] refactor(cinema): W7Dialogs.kt baru: W7NameDialog, W7SecretField, W7PasswordDialog, W7ConfirmDialog, W7InfoDialog, W7InfoRow, tapToFocus (tapToFocus ikut karena dipakai dialog dan W7SearchBox)
+- [x] Visibilitas private -> internal pada deklarasi top-level yang dipindah; kode apa adanya (tanpa perubahan perilaku); w7Norm dan W7PlayedChip tetap di Win7OpenDialog.kt (dipakai daftar berkas, bukan ZIP)
+- [x] Dampak: hanya :app (3 berkas); Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
+- [ ] Compose belum dikompilasi: tunggu CI (cek unresolved reference/impor bila gagal)
