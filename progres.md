@@ -2871,3 +2871,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Belum dikompilasi: tunggu CI. Uji: buat cadangan, cek arsip tanpa berkas kredensial, restore, login git ulang
 - [ ] Cadangan lama di /sdcard/Molina/Backup/rootfs perlu dihapus; ganti token Git bila pernah tercadangkan
 - [ ] Celah berikut: rtmp/rtsp tidak lewat Shield (tanpa pin DNS)
+
+## 2026-10-31 - Penjaga rantai pasok CI [DOMAIN-SCAN]
+- [x] ci: security-scan.yml menjalankan scripts/security/domain_scan.py; gagal bila ada domain di luar allowed-domains.txt (anti telemetry/tracker/URL update lama)
+- [x] ci: dependabot.yml (github-actions, mingguan) agar pin SHA tidak usang
+- [x] Temuan: JitPack sudah dibatasi exclusiveContent + hash dipin (verifyNewPipePins)
+- [x] Dampak: hanya berkas baru di .github dan scripts/security; Gradle, AndroidManifest, JNI TIDAK disentuh
+- [ ] Belum dijalankan di GitHub: cek tab Actions > security-scan harus hijau
+- [ ] Catatan: transkrip Terminal default tanpa penyamaran (toggle di Setelan); rtmp/rtsp belum lewat Shield

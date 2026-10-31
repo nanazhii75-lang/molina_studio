@@ -1,0 +1,13 @@
+# Domain yang boleh muncul di source produksi Molina. Tambah baris baru HANYA setelah ditinjau.
+api.github.com
+github.com
+raw.githubusercontent.com
+dl.google.com
+jitpack.io
+www.youtube.com
+schemas.android.com
+developer.android.com
+dev.w3.org
+medium.com
+stackoverflow.com
+mpv-android.github.io
