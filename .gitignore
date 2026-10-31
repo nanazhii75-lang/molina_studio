@@ -29,3 +29,5 @@ terminal-logs/
 /patch_*.py
 /explorer.py
 /molina_ui_v5_dock.py
+# patch sekali pakai: simpan di luar repo [REPO-CLEAN2]
+scripts/patch_*.py

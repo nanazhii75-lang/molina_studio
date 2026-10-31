@@ -2370,3 +2370,9 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: hanya :app (3 berkas: TvBrowser, TvMode, CinemaHome); Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
 - [ ] Compose belum dikompilasi di sandbox: tunggu CI
 - [ ] Uji perangkat (potret): lencana tidak terpotong di tepi; hapus riwayat mengosongkan rak, lencana hilang, Beranda ikut kosong; konfirmasi kembali sendiri setelah 3 detik
+
+## 2026-10-31 - Pembersihan repo [REPO-CLEAN2]
+- [x] chore(repo): hapus berkas kosong `1` (tak sengaja ter-commit) dan 9 skrip scripts/patch_*.py yang sudah terpakai; riwayat tetap ada di git log
+- [x] chore(repo): .gitignore menambah scripts/patch_*.py
+- [x] Dipertahankan: skrip CI (telemetry_gate, fetch_native, native_mpv, spike-newpipe), skrip audit, harness uji scripts/*-tests
+- [x] Dampak: tidak ada perubahan kode; Gradle, AndroidManifest, JNI mpv TIDAK disentuh
