@@ -2895,3 +2895,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Jalankan Actions > Gradle verification (generate), unduh artefak, taruh di gradle/verification-metadata.xml, commit
 - [ ] Setelah itu build.yml otomatis menegakkan hash: bila gagal karena hash belum ada, jalankan ulang workflow generate
 - [ ] Tertunda: pemeriksaan entri rtmp di dalam playlist m3u (butuh unduh playlist; belum ada jalur aman tanpa mengubah fitur)
+
+## 2026-10-31 - Sidik jari tanda tangan di Ringkasan keamanan [SIG-INFO]
+- [x] feat(settings): AppSignature.kt (SHA-256 sertifikat + status debuggable); BundleUi.kt menampilkan tipe build dan sidik jari (ketuk untuk menyalin)
+- [x] Dampak: hanya app/settings; Gradle, AndroidManifest, JNI TIDAK disentuh
+- [ ] Belum dikompilasi: tunggu CI
+- [ ] Uji perangkat: Paket > Komponen bundel > Ringkasan keamanan menampilkan baris tipe build dan sidik jari; ketuk menyalin; cocokkan dengan log CI (Cetak sidik jari tanda tangan APK)
+- [ ] Prasyarat: secret MOLINA_KEYSTORE_B64 dan MOLINA_KEYSTORE_PASSWORD terisi; bila kosong CI memakai keystore debug acak sehingga sidik jari berubah tiap build
+- [ ] Masih menunggu: gradle/verification-metadata.xml belum di-commit (jalankan workflow Gradle verification generate)

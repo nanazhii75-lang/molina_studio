@@ -273,6 +273,21 @@ internal fun BundledComponentsSection(
             "CI menggagalkan build bila klaim keamanan tidak punya pin nyata.",
             color = W7D.TextDim, fontSize = 11.sp, modifier = Modifier.padding(top = 4.dp)
         )
+        // [SIG-INFO] tipe build + sidik jari tanda tangan (cocokkan dengan sidik jari di log CI)
+        val sig = remember { AppSignature.read(ctx) }
+        Text(
+            if (sig.debuggable) "Build debug: data privat app bisa dibaca lewat adb. Disarankan APK rilis untuk harian."
+            else "Build rilis: tidak debuggable.",
+            color = if (sig.debuggable) BundleAmber else W7D.TextDim,
+            fontSize = 11.sp, modifier = Modifier.padding(top = 4.dp)
+        )
+        sig.sha256?.let { fp ->
+            Text(
+                "Tanda tangan SHA-256: " + fp.take(23) + "\u2026 (ketuk untuk menyalin)",
+                color = W7D.TextDim, fontSize = 11.sp,
+                modifier = Modifier.padding(top = 4.dp).clickable { copyText(ctx, "sidik jari tanda tangan", fp) }
+            )
+        }
     }
     Spacer(Modifier.height(10.dp))
     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
