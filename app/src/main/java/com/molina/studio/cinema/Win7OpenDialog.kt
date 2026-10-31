@@ -948,7 +948,12 @@ fun Win7OpenDialog(
                                         onDismissRequest = { menuOpen = false },
                                         properties = PopupProperties(focusable = true)
                                     ) {
-                                        Column(Modifier.width(230.dp).background(Win7.Input).border(1.dp, Win7.FrameLine)) {
+                                        Column( // [DROP-SCROLL] tinggi maks 70% layar; isi bisa digulir bila tidak muat
+                                            Modifier.width(230.dp)
+                                                .heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.7f).dp)
+                                                .background(Win7.Input).border(1.dp, Win7.FrameLine)
+                                                .verticalScroll(rememberScrollState())
+                                        ) {
                                             if (portrait) W7MenuItem(W7Ico.NAV, "Panel lokasi", true) { menuOpen = false; navOpen = !navOpen } // [DROP-HAMBURGER]
                                             if (portrait) W7MenuDivider() // [DROP-DIVIDER]
                                             W7MenuItem(W7Ico.REFRESH, "Segarkan", true) { menuOpen = false; tick++ }

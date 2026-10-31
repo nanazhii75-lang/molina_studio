@@ -2403,3 +2403,9 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: hanya :app (1 berkas); Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
 - [ ] Compose belum dikompilasi: tunggu CI
 - [ ] Uji perangkat: garis tipis terlihat jelas tapi tidak mencolok; tinggi menu masih muat di layar potret saat Mode Pilih aktif (semua item tampil)
+
+## 2026-10-31 - Menu drop-up Penjelajah: bisa digulir, tinggi maks 70% layar [DROP-SCROLL]
+- [x] refactor(cinema): Win7OpenDialog.kt: Column menu drop-up diberi heightIn(max = 70% screenHeightDp) + verticalScroll agar tidak terpotong di layar pendek/landscape
+- [x] Dampak: hanya :app (1 berkas); impor sudah ada; Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
+- [ ] Compose belum dikompilasi: tunggu CI
+- [ ] Uji perangkat: landscape + Mode Pilih (menu terpanjang) tergulir dan tidak keluar layar; potret normal tanpa scrollbar/gulir
