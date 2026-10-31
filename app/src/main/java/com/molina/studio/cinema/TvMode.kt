@@ -40,8 +40,14 @@ internal object TvMode {
 
 /** [TvBrowser] di dialog layar penuh; tombol Kembali menutupnya (onDismissRequest). */
 @Composable
-internal fun TvBrowserDialog(onPlay: (File) -> Unit, onDismiss: () -> Unit) {
+internal fun TvBrowserDialog(
+    onPlay: (File) -> Unit,
+    onDismiss: () -> Unit,
+    recents: List<CinemaRecent.Item> = emptyList(),
+    onPlayRecent: (CinemaRecent.Item) -> Unit = {},
+    onClearRecent: () -> Unit = {}
+) {
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Box(Modifier.fillMaxSize()) { TvBrowser(onPlay = onPlay, onClose = onDismiss) }
+        Box(Modifier.fillMaxSize()) { TvBrowser(onPlay = onPlay, onClose = onDismiss, recents = recents, onPlayRecent = onPlayRecent, onClearRecent = onClearRecent) }
     }
 }

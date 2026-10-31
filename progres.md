@@ -2349,3 +2349,24 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Audit: kode yang masih menulis ke molina-studio: MainActivity (CodeSession default), TerminalChrome (terminal-logs), ToolStore (.molina-backup), pesan CodeSession, label StorageUi
 - [x] Aturan rahasia: vault/kredensial hanya di filesDir (privateRoot); Molina dan molina-studio adalah penyimpanan bersama
 - [ ] ALIGN1: pindahkan penulisan di atas ke Molina (Workspace/Documents/Export/Backup); bind PRoot molina-studio TIDAK diubah
+
+## 2026-10-31 - Mode TV: saluran jadi satu ikon drop-up pojok kiri bawah [TV-MENU1]
+- [x] refactor(cinema): TvBrowser.kt: baris chip saluran (Unduhan..Musik) dihapus dari atas; diganti satu tombol ikon kisi 48dp di pojok kiri bawah (di samping panel info) yang membuka menu drop-up bernomor; saluran aktif ditandai; ketuk saluran aktif = segarkan
+- [x] Dampak: hanya :app (1 berkas); Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh; tanpa dependensi ikon baru (ikon digambar via Canvas)
+- [ ] Compose belum dikompilasi di sandbox: tunggu CI
+- [ ] Uji perangkat (potret): menu muncul ke atas tanpa terpotong panel info; menu tertutup saat ketuk di luar; panel info saat kartu ditekan lama tetap rapi di sebelah ikon
+
+## 2026-10-31 - Rak film pindah ke Mode TV; Beranda hanya daftar [TV-RAK1]
+- [x] refactor(cinema): CinemaWin7Home.kt: CinemaShelf dihapus dari Beranda (tersisa: Lanjutkan + Terakhir diputar); CinemaShelf.kt: komposabel rak dibuang, ShelfCardView dipertahankan untuk Mode TV
+- [x] feat(cinema): TvBrowser.kt: saluran 0 "Terakhir" (riwayat putar, bekas tab Rak film) di menu drop-up; jadi layar awal bila ada riwayat; tekan lama kartu berkas lokal = info + aksi; tab "Unduhan" lama sudah tercakup saluran 1 Unduhan
+- [x] feat(cinema): nama saluran aktif di bilah judul ("Molina Cinema \u00B7 Video"); getar ringan saat menu terbuka; geser ke atas dari tombol ikon membuka menu
+- [x] Dampak: hanya :app (5 berkas: TvBrowser, TvMode, CinemaHome, CinemaWin7Home, CinemaShelf); Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh; API baru memakai parameter berdefault (kompatibel)
+- [x] Catatan: Rak film kini hanya terlihat bila sakelar Mode TV aktif di Setelan Pemutar
+- [ ] Compose belum dikompilasi di sandbox: tunggu CI
+- [ ] Uji perangkat (potret): Beranda hanya Lanjutkan + daftar; Mode TV membuka di Terakhir; menu 0..7; geser ke atas dari ikon; getar; judul memendek (elipsis) di layar sempit
+
+## 2026-10-31 - Mode TV: lencana riwayat + hapus riwayat [TV-RAK2]
+- [x] feat(cinema): TvBrowser.kt: lencana emas jumlah riwayat (maks. \"9+\") di sudut ikon kisi; baris \"Terakhir diputar\" punya tombol \"Hapus riwayat\" dua ketukan (ketuk lagi dalam 3 detik); TvMode/CinemaHome meneruskan onClearRecent ke CinemaRecent.clear
+- [x] Dampak: hanya :app (3 berkas: TvBrowser, TvMode, CinemaHome); Gradle, AndroidManifest, JNI mpv, izin TIDAK disentuh
+- [ ] Compose belum dikompilasi di sandbox: tunggu CI
+- [ ] Uji perangkat (potret): lencana tidak terpotong di tepi; hapus riwayat mengosongkan rak, lencana hilang, Beranda ikut kosong; konfirmasi kembali sendiri setelah 3 detik

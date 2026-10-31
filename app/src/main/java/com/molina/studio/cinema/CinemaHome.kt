@@ -130,7 +130,14 @@ fun CinemaHome(modifier: Modifier = Modifier) {
     )
     if (tvOn && tvOpen) TvBrowserDialog(
         onPlay = { f -> if (!CinemaActions.playPath(ctx, f.absolutePath)) info = FAIL },
-        onDismiss = { tvOpen = false }
+        onDismiss = { tvOpen = false },
+        recents = remember(CinemaRecent.version) { CinemaRecent.load(ctx) },
+        onPlayRecent = { r ->
+            if (r.ref.startsWith("/")) {
+                if (!CinemaActions.playPath(ctx, r.ref)) info = FAIL
+            } else submit(r.ref)
+        },
+        onClearRecent = { CinemaRecent.clear(ctx) }
     )
     if (channelsOpen) CinemaChannelsDialog(
         onDismiss = { channelsOpen = false },

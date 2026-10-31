@@ -6,6 +6,25 @@ import android.os.Environment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.offset
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -61,6 +80,7 @@ import java.io.File
 
 private val TvBg = Color(0xFF0E0B10)
 private val TileShape = RoundedCornerShape(6.dp)
+private val TvPanel = Color(0xFF17121B)
 
 private tailrec fun Context.lifecycleOwner(): LifecycleOwner? = when (this) {
     is LifecycleOwner -> this
@@ -85,13 +105,19 @@ private fun tvPlaces(ctx: android.content.Context): List<Pair<String, File>> {
 
 /**
  * Mode TV penjelajah berkas Molina Cinema (SIDE-5, tahap 2), dirancang untuk ponsel potret layar sentuh:
- * bilah status (jam, ruang bebas, tutup), chip saluran bernomor, baris-baris kartu yang bisa digeser, dan
+ * bilah status (jam, ruang bebas, tutup), menu saluran drop-up (tombol ikon pojok kiri bawah), baris-baris kartu yang bisa digeser, dan
  * panel info ala EPG. Ketuk = buka (folder masuk, video/audio putar); tekan lama = tampilkan info di panel.
  * Model dari TvGuide/ShelfCard (teruji di :core:common); semua pembacaan berkas di Dispatchers.IO.
  * Pemanggil memberi [onPlay] (mis. CinemaActions.playPath) dan [onClose]; sakelar/titik masuk menyusul (tahap 3).
  */
 @Composable
-internal fun TvBrowser(onPlay: (File) -> Unit, onClose: () -> Unit) {
+internal fun TvBrowser(
+    onPlay: (File) -> Unit,
+    onClose: () -> Unit,
+    recents: List<CinemaRecent.Item> = emptyList(),
+    onPlayRecent: (CinemaRecent.Item) -> Unit = {},
+    onClearRecent: () -> Unit = {}
+) {
     val ctx = LocalContext.current
     val channels = remember { TvGuide.channels(tvPlaces(ctx)) }
     val resumeDirs = remember {
@@ -99,6 +125,11 @@ internal fun TvBrowser(onPlay: (File) -> Unit, onClose: () -> Unit) {
     }
     var idx by remember { mutableIntStateOf(0) }
     var dir by remember { mutableStateOf(channels.firstOrNull()?.dir) }
+    // Saluran 0 "Terakhir" (bekas Rak film Beranda): riwayat putar; jadi layar awal bila ada riwayat.
+    var recentMode by remember { mutableStateOf(recents.isNotEmpty()) }
+    // Hapus riwayat butuh dua ketukan; kembali ke awal sendiri setelah 3 detik.
+    var confirmClear by remember { mutableStateOf(false) }
+    LaunchedEffect(confirmClear) { if (confirmClear) { delay(3_000L); confirmClear = false } }
     var focus by remember { mutableStateOf<TvGuide.Item?>(null) }
     var tick by remember { mutableIntStateOf(0) }
     val scope = rememberCoroutineScope()
@@ -133,13 +164,19 @@ internal fun TvBrowser(onPlay: (File) -> Unit, onClose: () -> Unit) {
         }
     }
     val free by produceState<String?>(null, dir) { value = dir?.let { d -> withContext(Dispatchers.IO) { TvGuide.freeLabel(d) } } }
-    val data by produceState<TvData?>(null, dir, tick) {
+    val data by produceState<TvData?>(null, dir, tick, recentMode) {
         val d = dir
-        value = if (d == null) null else withContext(Dispatchers.IO) {
+        value = if (d == null || recentMode) null else withContext(Dispatchers.IO) {
             val rows = TvGuide.rows(d)
             val vids = rows.filter { it.title == "Video" }.flatMap { it.items }
                 .map { ShelfCard.Entry(it.file.path, it.name, true) }
             TvData(rows, ShelfCard.build(vids, max = vids.size, resumeDirs = resumeDirs).associateBy { it.ref })
+        }
+    }
+
+    val recentCards by produceState(initialValue = emptyList<ShelfCard.Card>(), recents, tick, recentMode) {
+        value = if (!recentMode) emptyList() else withContext(Dispatchers.IO) {
+            ShelfCard.build(recents.map { ShelfCard.Entry(it.ref, it.title, it.video) }, resumeDirs = resumeDirs)
         }
     }
 
@@ -149,7 +186,14 @@ internal fun TvBrowser(onPlay: (File) -> Unit, onClose: () -> Unit) {
             Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Molina Cinema", color = MolinaTheme.Gold, fontSize = 15.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+            Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                Text("Molina Cinema", color = MolinaTheme.Gold, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                val chLabel = if (recentMode) "Terakhir" else channels.getOrNull(idx)?.label.orEmpty()
+                Text(
+                    " \u00B7 " + chLabel, color = Win7.TextDim, fontSize = 13.sp, maxLines = 1,
+                    overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false)
+                )
+            }
             free?.let { Text(it, color = Win7.TextDim, fontSize = 11.sp, modifier = Modifier.padding(end = 10.dp)) }
             Text(clock, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Medium)
             Text(
@@ -161,33 +205,10 @@ internal fun TvBrowser(onPlay: (File) -> Unit, onClose: () -> Unit) {
             Text("Belum ada folder media. Buat folder di /sdcard/Molina atau beri izin penyimpanan.", color = Win7.TextDim, fontSize = 13.sp, modifier = Modifier.padding(14.dp))
             return@Column
         }
-        // ---- chip saluran
-        LazyRow(
-            contentPadding = PaddingValues(horizontal = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(channels, key = { it.number }) { ch ->
-                val on = ch.number - 1 == idx
-                Row(
-                    Modifier.clip(RoundedCornerShape(14.dp))
-                        .background(if (on) Color(0x33FFFFFF) else Color(0x14FFFFFF))
-                        .border(1.dp, if (on) MolinaTheme.Gold else Color.Transparent, RoundedCornerShape(14.dp))
-                        .clickable {
-                            if (on) tick++ else { idx = ch.number - 1; dir = ch.dir; focus = null }
-                        }
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(ch.number.toString(), color = MolinaTheme.Gold, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.width(6.dp))
-                    Text(ch.label, color = if (on) Color.White else Win7.TextDim, fontSize = 13.sp)
-                }
-            }
-        }
         // ---- jejak folder + tombol naik
         val root = channels.getOrNull(idx)?.dir
         val cur = dir
-        if (cur != null && root != null && cur.path != root.path) {
+        if (!recentMode && cur != null && root != null && cur.path != root.path) {
             Text(
                 "\u2039  " + cur.name,
                 color = MolinaTheme.Gold, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
@@ -201,7 +222,44 @@ internal fun TvBrowser(onPlay: (File) -> Unit, onClose: () -> Unit) {
         // ---- baris kartu
         val d = data
         Box(Modifier.weight(1f).fillMaxWidth()) {
-            if (d == null) {
+            if (recentMode) {
+                if (recentCards.isEmpty()) {
+                    Text("Belum ada yang diputar.", color = Win7.TextDim, fontSize = 13.sp, modifier = Modifier.padding(14.dp))
+                } else {
+                    LazyColumn(contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)) {
+                        item {
+                            Row(Modifier.fillMaxWidth().padding(bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    "Terakhir diputar \u00B7 " + recentCards.size, color = Color.White, fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f)
+                                )
+                                Text(
+                                    if (confirmClear) "Ketuk lagi untuk hapus" else "Hapus riwayat",
+                                    color = if (confirmClear) Color(0xFFFF8A80) else Win7.TextDim, fontSize = 12.sp,
+                                    modifier = Modifier.clip(RoundedCornerShape(10.dp))
+                                        .clickable {
+                                            if (confirmClear) { confirmClear = false; focus = null; onClearRecent() } else confirmClear = true
+                                        }
+                                        .padding(horizontal = 8.dp, vertical = 6.dp)
+                                )
+                            }
+                            LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                items(recentCards, key = { it.ref }) { card ->
+                                    ShelfCardView(card, onLong = {
+                                        // Info panel hanya untuk berkas lokal; tautan (http/rtsp) tidak punya info berkas.
+                                        val f = File(card.ref)
+                                        if (card.ref.startsWith("/") && f.exists()) {
+                                            focus = TvGuide.Item(f, TvGuide.kindOf(f), if (f.isFile) f.length() else 0L, f.lastModified())
+                                        }
+                                    }) {
+                                        onPlayRecent(recents.firstOrNull { it.ref == card.ref } ?: CinemaRecent.Item(card.ref, card.title, card.video))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } else if (d == null) {
                 Text("Memuat\u2026", color = Win7.TextDim, fontSize = 12.sp, modifier = Modifier.padding(14.dp))
             } else if (d.rows.isEmpty()) {
                 Text("Folder ini kosong.", color = Win7.TextDim, fontSize = 13.sp, modifier = Modifier.padding(14.dp))
@@ -235,11 +293,22 @@ internal fun TvBrowser(onPlay: (File) -> Unit, onClose: () -> Unit) {
                 }
             }
         }
-        // ---- panel info (EPG)
+        // ---- bilah bawah: tombol saluran (kiri) + panel info (EPG)
+        Row(Modifier.fillMaxWidth().background(TvPanel), verticalAlignment = Alignment.Bottom) {
+            TvChannelMenu(
+                channels = channels,
+                selected = if (recentMode) -1 else idx,
+                recentCount = recents.size,
+                onRecent = { if (recentMode) tick++ else { recentMode = true; focus = null } }
+            ) { ch ->
+                recentMode = false
+                if (ch.number - 1 == idx) tick++ else { idx = ch.number - 1; dir = ch.dir; focus = null }
+            }
+            Box(Modifier.weight(1f)) {
         TvInfoPanel(
             item = focus,
             extra = focus?.let { f -> data?.cards?.get(f.file.path)?.let { c -> listOfNotNull(c.duration, c.subtitle.takeIf { it.isNotEmpty() }).joinToString(" \u00B7 ") } },
-            fallback = cur?.path.orEmpty() + (data?.let { dd -> "  \u00B7  " + dd.rows.joinToString(", ") { it.total.toString() + " " + it.title.lowercase() } } ?: ""),
+            fallback = (if (recentMode) "Terakhir diputar \u00B7 " + recentCards.size + " item" else cur?.path.orEmpty()) + (data?.let { dd -> "  \u00B7  " + dd.rows.joinToString(", ") { it.total.toString() + " " + it.title.lowercase() } } ?: ""),
             resumeSec = focus?.let { f -> data?.cards?.get(f.file.path)?.resumeSec },
             onReset = { f ->
                 scope.launch {
@@ -258,6 +327,8 @@ internal fun TvBrowser(onPlay: (File) -> Unit, onClose: () -> Unit) {
             ops = ops,
             onSheet = { sheet = it }
         )
+            }
+        }
     }
     TvOpsDialogs(sheet, ops, channels) { sheet = null }
 }
@@ -300,7 +371,7 @@ private fun TvInfoPanel(
     onSheet: (TvSheet) -> Unit,
 ) {
     Column(
-        Modifier.fillMaxWidth().background(Color(0xFF17121B)).padding(horizontal = 14.dp, vertical = 10.dp)
+        Modifier.fillMaxWidth().background(TvPanel).padding(horizontal = 8.dp, vertical = 10.dp)
     ) {
         if (ops.message.isNotEmpty()) {
             Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -371,4 +442,105 @@ private fun TvAction(label: String, danger: Boolean = false, onClick: () -> Unit
         modifier = Modifier.clip(RoundedCornerShape(10.dp)).background(Color(0x14FFFFFF))
             .clickable(onClick = onClick).padding(horizontal = 10.dp, vertical = 6.dp)
     )
+}
+
+/**
+ * Tombol ikon kisi di pojok kiri bawah. Ketuk ATAU geser ke atas dari tombol membuka menu saluran ke atas
+ * (drop-up) dengan getar ringan. Isi menu: 0 = Terakhir (riwayat putar), 1..n = folder saluran.
+ */
+@Composable
+private fun TvChannelMenu(
+    channels: List<TvGuide.Channel>,
+    selected: Int,
+    recentCount: Int,
+    onRecent: () -> Unit,
+    onPick: (TvGuide.Channel) -> Unit
+) {
+    var open by remember { mutableStateOf(false) }
+    val density = LocalDensity.current
+    val haptic = LocalHapticFeedback.current
+    fun show() {
+        if (!open) {
+            open = true
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        }
+    }
+    Box(
+        Modifier.width(64.dp).pointerInput(Unit) {
+            var dy = 0f
+            detectVerticalDragGestures(
+                onDragStart = { dy = 0f },
+                onVerticalDrag = { change, amount ->
+                    dy += amount
+                    if (dy < -24.dp.toPx()) { change.consume(); show() }
+                }
+            )
+        },
+        contentAlignment = Alignment.Center
+    ) {
+        Box(Modifier.padding(vertical = 6.dp)) {
+            Box(
+                Modifier.size(48.dp).clip(RoundedCornerShape(14.dp))
+                    .background(if (open) Color(0x33FFFFFF) else Color(0x14FFFFFF))
+                    .border(1.dp, if (open) MolinaTheme.Gold else Color.Transparent, RoundedCornerShape(14.dp))
+                    .clickable { if (open) open = false else show() },
+                contentAlignment = Alignment.Center
+            ) {
+                Canvas(Modifier.size(20.dp)) {
+                    val gap = 3.dp.toPx()
+                    val cell = (size.width - gap) / 2f
+                    for (r in 0..1) for (c in 0..1) {
+                        drawRoundRect(
+                            color = MolinaTheme.Gold,
+                            topLeft = Offset(c * (cell + gap), r * (cell + gap)),
+                            size = Size(cell, cell),
+                            cornerRadius = CornerRadius(2.dp.toPx())
+                        )
+                    }
+                }
+            }
+            if (recentCount > 0) {
+                Box(
+                    Modifier.align(Alignment.TopEnd).offset(x = 4.dp, y = (-4).dp)
+                        .defaultMinSize(minWidth = 16.dp, minHeight = 16.dp)
+                        .clip(CircleShape).background(MolinaTheme.Gold).padding(horizontal = 4.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(if (recentCount > 9) "9+" else recentCount.toString(), color = Color.Black, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                }
+            }
+            if (open) Popup(
+                alignment = Alignment.BottomStart,
+                offset = IntOffset(0, -with(density) { 56.dp.roundToPx() }),
+                onDismissRequest = { open = false },
+                properties = PopupProperties(focusable = true)
+            ) {
+                Column(
+                    Modifier.width(210.dp).heightIn(max = 440.dp)
+                        .clip(RoundedCornerShape(14.dp)).background(TvPanel)
+                        .border(1.dp, MolinaTheme.Gold, RoundedCornerShape(14.dp))
+                        .verticalScroll(rememberScrollState()).padding(vertical = 6.dp)
+                ) {
+                    TvMenuRow("0", "Terakhir" + if (recentCount > 0) " \u00B7 $recentCount" else "", selected == -1) { open = false; onRecent() }
+                    channels.forEach { ch ->
+                        TvMenuRow(ch.number.toString(), ch.label, ch.number - 1 == selected) { open = false; onPick(ch) }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TvMenuRow(number: String, label: String, on: Boolean, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().height(48.dp)
+            .background(if (on) Color(0x26FFFFFF) else Color.Transparent)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(number, color = MolinaTheme.Gold, fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.width(24.dp))
+        Text(label, color = if (on) Color.White else Win7.TextDim, fontSize = 14.sp, fontWeight = if (on) FontWeight.Medium else FontWeight.Normal)
+    }
 }
