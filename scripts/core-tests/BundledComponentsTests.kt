@@ -46,6 +46,9 @@ fun main() {
     check("bump: perintah tanpa metakarakter shell", NewPipeBump.ghCommand("v0.26.6")!!.none { it in ";&|`$<>()\\\n" })
     check("bump: status pin menyebut versi", NewPipeBump.pinStatus("v0.26.6").contains("v0.26.6"))
 
+    check("bump: ringkasan pin menyebut versi dan CI", NewPipeBump.pinSummary("v0.26.6").let { it.contains("v0.26.6") && it.contains("CI") })
+    check("bump: ringkasan tanpa skema URL", !NewPipeBump.pinSummary("v0.26.6").contains("://"))
+
     println(if (fails == 0) "SEMUA LULUS" else "$fails GAGAL")
     if (fails != 0) kotlin.system.exitProcess(1)
 }

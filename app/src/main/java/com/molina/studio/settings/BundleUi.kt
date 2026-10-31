@@ -171,6 +171,14 @@ internal fun BundledComponentsSection(onOpenYtdlp: () -> Unit, onCheckVersion: (
             Text("Ringkasan keamanan", color = W7D.NavHeader, fontSize = 13.sp, fontWeight = FontWeight.Bold)
         }
         Text(report.headline(), color = W7D.Ink, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
+        val pipe = all.firstOrNull { it.id == "newpipe" }
+        if (pipe != null) {
+            Row(Modifier.padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                TrustDot(trustColor(pipe.assurance))
+                Spacer(Modifier.width(8.dp))
+                Text(NewPipeBump.pinSummary(pipe.version), color = W7D.Ink, fontSize = 12.sp)
+            }
+        }
         Text(
             if (report.requiredWithoutHash.isEmpty()) "Semua komponen Wajib punya hash terverifikasi atau kode sumber di repo."
             else "Perlu ditinjau (Wajib tanpa hash): " + report.requiredWithoutHash.joinToString(", "),

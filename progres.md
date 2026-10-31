@@ -2617,3 +2617,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh; tidak ada izin baru (ClipboardManager tidak butuh izin)
 - [ ] Compose belum dikompilasi: tunggu CI (impor android.content.* dan blok aksi salin di BundleUi.kt)
 - [ ] Belum diuji di perangkat: ketuk kartu NewPipe saat ada pembaruan, salin, tempel di terminal
+
+## 2026-10-31 - Baris status pin di Ringkasan keamanan [NEWPIPE-SUMMARY]
+- [x] feat(settings): panel "Ringkasan keamanan" menampilkan "Pin NewPipe vX diverifikasi CI saat APK ini dibangun" dengan titik kepercayaan (hijau bila jaminan NewPipe terverifikasi); teks dari NewPipeBump.pinSummary agar bisa diuji
+- [x] Kejujuran klaim: yang dinyatakan adalah verifikasi saat build (verifyNewPipePins + bundle_gate harus lulus agar APK ada), bukan status CI waktu nyata
+- [x] Tes: BundledComponentsTests +2 pemeriksaan lulus; telemetry_gate dan bundle_gate lulus
+- [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh
+- [ ] Compose belum dikompilasi: tunggu CI (blok Row di panel ringkasan, BundleUi.kt)
+- [ ] Belum: jalankan bump-newpipe.yml dengan v0.26.5 (harus "Tidak ada perubahan") untuk menguji resolve JitPack nyata

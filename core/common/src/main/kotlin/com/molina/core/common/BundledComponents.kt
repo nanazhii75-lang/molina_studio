@@ -165,4 +165,7 @@ object NewPipeBump {
 
     /** Teks status pin untuk kartu NewPipe. */
     fun pinStatus(version: String): String = "Dipin di $version; build gagal bila hash tidak cocok"
+
+    /** Baris ringkasan di panel keamanan: APK yang ada hanya lahir bila CI (verifyNewPipePins + bundle_gate) lulus. */
+    fun pinSummary(version: String): String = "Pin NewPipe $version diverifikasi CI saat APK ini dibangun"
 }
