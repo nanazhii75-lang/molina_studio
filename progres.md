@@ -2600,3 +2600,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh; telemetry_gate tidak diubah
 - [ ] Compose belum dikompilasi: tunggu CI (BundleUi v2, penyisipan callback di PackagesPage)
 - [ ] Catatan: mengganti libproot*.so wajib disertai pembaruan scripts/proot/pins.sha256, kalau tidak CI gagal (disengaja)
+
+## 2026-10-31 - Alat naikkan pin NewPipe sekali jalan [NEWPIPE-BUMP]
+- [x] feat(newpipe): scripts/newpipe/bump_pin.py memperbarui newpipeVersion (build.gradle.kts), NewPipeInfo.VERSION, dan scripts/newpipe/pins.sha256 sekaligus dari hasil resolve spike; idempotent, menolak downgrade/jar utama hilang/hash tak valid, mencetak diff dependensi (BARU/HASH BEDA ditandai), dan mengembalikan semua berkas bila telemetry_gate atau bundle_gate gagal
+- [x] ci: workflow bump-newpipe.yml (manual): resolve -> tulis ulang pin -> buka PR di cabang bump/newpipe-<versi> -> picu build.yml pada cabang itu. Tidak pernah push ke main; PR = titik tinjau manusia
+- [x] Tes (lokal, data resolve tiruan): dry-run, apply, jalankan ulang (tanpa perubahan), downgrade ditolak, jar utama hilang ditolak, hash bukan hex ditolak, rollback saat gerbang gagal; kedua gerbang lulus
+- [x] Dampak: Gradle/AndroidManifest/JNI mpv TIDAK disentuh pada commit ini; skrip hanya mengubah 1 konstanta versi di build.gradle.kts saat dijalankan; telemetry_gate tidak diubah (tak ada URL baru)
+- [ ] Belum diuji nyata: resolve ke JitPack hanya bisa di CI (sandbox tanpa akses). Uji pertama: jalankan bump-newpipe.yml dengan versi yang sama (v0.26.5) -> harus "Tidak ada perubahan"
+- [ ] Catatan: push oleh GITHUB_TOKEN tidak memicu build.yml otomatis, karena itu workflow memicunya manual lewat gh workflow run; jika repo melarang Actions membuat PR, cabang tetap ter-push
