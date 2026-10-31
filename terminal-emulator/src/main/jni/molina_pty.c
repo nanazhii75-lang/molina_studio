@@ -1,4 +1,5 @@
 #include <dirent.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <jni.h>
 #include <signal.h>
@@ -17,9 +18,19 @@
 
 static int throw_runtime_exception(JNIEnv* env, char const* message)
 {
+    /* [PTY-HARDEN] FindClass/ThrowNew tidak boleh dipanggil saat exception sudah pending (mis. OOM). */
+    if ((*env)->ExceptionCheck(env)) return -1;
     jclass exClass = (*env)->FindClass(env, "java/lang/RuntimeException");
-    (*env)->ThrowNew(env, exClass, message);
+    if (exClass) (*env)->ThrowNew(env, exClass, message);
     return -1;
+}
+
+/* [PTY-HARDEN] Bebaskan array string hasil strdup yang diakhiri NULL (aman untuk NULL). */
+static void free_strv(char** v)
+{
+    if (!v) return;
+    for (char** t = v; *t; ++t) free(*t);
+    free(v);
 }
 
 static int create_subprocess(JNIEnv* env,
@@ -128,12 +139,12 @@ JNIEXPORT jint JNICALL Java_com_molina_terminal_JNI_createSubprocess(
     jsize size = args ? (*env)->GetArrayLength(env, args) : 0;
     char** argv = NULL;
     if (size > 0) {
-        argv = (char**) malloc((size + 1) * sizeof(char*));
+        argv = (char**) calloc((size + 1), sizeof(char*));
         if (!argv) return throw_runtime_exception(env, "Couldn't allocate argv array");
         for (int i = 0; i < size; ++i) {
             jstring arg_java_string = (jstring) (*env)->GetObjectArrayElement(env, args, i);
-            char const* arg_utf8 = (*env)->GetStringUTFChars(env, arg_java_string, NULL);
-            if (!arg_utf8) return throw_runtime_exception(env, "GetStringUTFChars() failed for argv");
+            char const* arg_utf8 = arg_java_string ? (*env)->GetStringUTFChars(env, arg_java_string, NULL) : NULL;
+            if (!arg_utf8) { free_strv(argv); return throw_runtime_exception(env, "GetStringUTFChars() failed for argv"); }
             argv[i] = strdup(arg_utf8);
             (*env)->ReleaseStringUTFChars(env, arg_java_string, arg_utf8);
         }
@@ -143,12 +154,12 @@ JNIEXPORT jint JNICALL Java_com_molina_terminal_JNI_createSubprocess(
     size = envVars ? (*env)->GetArrayLength(env, envVars) : 0;
     char** envp = NULL;
     if (size > 0) {
-        envp = (char**) malloc((size + 1) * sizeof(char *));
-        if (!envp) return throw_runtime_exception(env, "malloc() for envp array failed");
+        envp = (char**) calloc((size + 1), sizeof(char *));
+        if (!envp) { free_strv(argv); return throw_runtime_exception(env, "malloc() for envp array failed"); }
         for (int i = 0; i < size; ++i) {
             jstring env_java_string = (jstring) (*env)->GetObjectArrayElement(env, envVars, i);
-            char const* env_utf8 = (*env)->GetStringUTFChars(env, env_java_string, 0);
-            if (!env_utf8) return throw_runtime_exception(env, "GetStringUTFChars() failed for env");
+            char const* env_utf8 = env_java_string ? (*env)->GetStringUTFChars(env, env_java_string, 0) : NULL;
+            if (!env_utf8) { free_strv(argv); free_strv(envp); return throw_runtime_exception(env, "GetStringUTFChars() failed for env"); }
             envp[i] = strdup(env_utf8);
             (*env)->ReleaseStringUTFChars(env, env_java_string, env_utf8);
         }
@@ -156,20 +167,22 @@ JNIEXPORT jint JNICALL Java_com_molina_terminal_JNI_createSubprocess(
     }
 
     int procId = 0;
-    char const* cmd_cwd = (*env)->GetStringUTFChars(env, cwd, NULL);
-    char const* cmd_utf8 = (*env)->GetStringUTFChars(env, cmd, NULL);
+    char const* cmd_cwd = cwd ? (*env)->GetStringUTFChars(env, cwd, NULL) : NULL;
+    char const* cmd_utf8 = cmd ? (*env)->GetStringUTFChars(env, cmd, NULL) : NULL;
+    if (!cmd_cwd || !cmd_utf8) {
+        if (cmd_cwd) (*env)->ReleaseStringUTFChars(env, cwd, cmd_cwd);
+        if (cmd_utf8) (*env)->ReleaseStringUTFChars(env, cmd, cmd_utf8);
+        free_strv(argv);
+        free_strv(envp);
+        return throw_runtime_exception(env, "cmd/cwd null or GetStringUTFChars() failed");
+    }
     int ptm = create_subprocess(env, cmd_utf8, cmd_cwd, argv, envp, &procId, rows, columns);
     (*env)->ReleaseStringUTFChars(env, cmd, cmd_utf8);
     (*env)->ReleaseStringUTFChars(env, cwd, cmd_cwd);
-
-    if (argv) {
-        for (char** tmp = argv; *tmp; ++tmp) free(*tmp);
-        free(argv);
-    }
-    if (envp) {
-        for (char** tmp = envp; *tmp; ++tmp) free(*tmp);
-        free(envp);
-    }
+    free_strv(argv);
+    free_strv(envp);
+    /* [PTY-HARDEN] Gagal (ptmx/fork): exception sudah pending, jangan lanjut ke GetPrimitiveArrayCritical. */
+    if (ptm < 0 || (*env)->ExceptionCheck(env)) return -1;
 
     int* pProcId = (int*) (*env)->GetPrimitiveArrayCritical(env, processIdArray, NULL);
     if (!pProcId) return throw_runtime_exception(env, "JNI call GetPrimitiveArrayCritical(processIdArray, &isCopy) failed");
@@ -198,8 +211,10 @@ JNIEXPORT void JNICALL Java_com_molina_terminal_JNI_setPtyUTF8Mode(JNIEnv* MOLIN
 
 JNIEXPORT jint JNICALL Java_com_molina_terminal_JNI_waitFor(JNIEnv* MOLINA_UNUSED(env), jclass MOLINA_UNUSED(clazz), jint pid)
 {
-    int status;
-    waitpid(pid, &status, 0);
+    int status = 0;
+    pid_t r;
+    do { r = waitpid(pid, &status, 0); } while (r < 0 && errno == EINTR);
+    if (r < 0) return 0; /* [PTY-HARDEN] sudah di-reap / tidak ada: jangan baca status yang tidak valid */
     if (WIFEXITED(status)) {
         return WEXITSTATUS(status);
     } else if (WIFSIGNALED(status)) {
