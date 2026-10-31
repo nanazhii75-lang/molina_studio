@@ -243,7 +243,8 @@ internal fun W7CategoryTile(
     onOpen: () -> Unit,
     selected: Boolean = false,
     badge: String? = null,
-    badgeAero: Boolean = false
+    badgeAero: Boolean = false,
+    badgeGold: Boolean = false
 ) {
     Win7FrameBox(selected = selected, onClick = onOpen, modifier = Modifier.padding(vertical = 4.dp)) {
         Row(Modifier.fillMaxWidth().padding(10.dp), verticalAlignment = Alignment.Top) {
@@ -255,7 +256,7 @@ internal fun W7CategoryTile(
                     Text(l.first, color = W7LinkColor, fontSize = 13.sp, modifier = Modifier.clickable(onClick = l.second).padding(top = 6.dp))
                 }
             }
-            if (badge != null) W7Badge(badge, badgeAero)
+            if (badge != null) W7Badge(badge, badgeAero, badgeGold)
         }
     }
 }

@@ -3,6 +3,7 @@ package com.molina.studio.settings
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -13,7 +14,9 @@ import com.molina.studio.cinema.ResumeBridge
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.molina.studio.automation.AutoPrefs
 import com.molina.studio.automation.AutoState
 import com.molina.studio.automation.AutoWork
@@ -24,11 +27,11 @@ import java.util.Locale
 
 /** Menumpuk lencana di tepi kanan sebuah baris (mis. W7Link) tanpa mengubah tanda tangan W7Link. */
 @Composable
-internal fun BadgeOverlay(badge: String?, aero: Boolean, content: @Composable () -> Unit) {
+internal fun BadgeOverlay(badge: String?, aero: Boolean, gold: Boolean = false, content: @Composable () -> Unit) {
     Box(Modifier.fillMaxWidth()) {
         content()
         if (badge != null) {
-            Box(Modifier.align(Alignment.CenterEnd).padding(end = 12.dp)) { W7Badge(badge, aero) }
+            Box(Modifier.align(Alignment.CenterEnd).padding(end = 12.dp)) { W7Badge(badge, aero, gold) }
         }
     }
 }
@@ -65,18 +68,29 @@ internal fun UpdateStatusSection() {
     val pending by AptHistory.pending.collectAsState()
     val running by UpdateChecker.running.collectAsState()
 
-    Category("Status pembaruan")
-    BadgeOverlay(if (pending > 0) pending.toString() else null, false) {
+    Category("Pembaruan")
+    val updates = updateCount(st, pending)
+    Text(
+        when {
+            updates > 0 -> "$updates pembaruan tersedia"
+            st.lastCheck <= 0L -> "Belum pernah diperiksa"
+            else -> "Semua sudah terbaru"
+        },
+        color = if (updates > 0) com.molina.studio.ui.MolinaTheme.Gold else W7D.TextDim,
+        fontSize = 13.sp, fontWeight = FontWeight.Bold,
+        modifier = Modifier.padding(bottom = 4.dp)
+    )
+    BadgeOverlay(if (pending > 0) pending.toString() else null, false, gold = true) {
         SettingsItem("Paket Debian", AptHistory.checkSubtitle(pending)) {}
     }
-    BadgeOverlay(if (st.ytdlpOutdated) "Baru" else null, true) {
+    BadgeOverlay(if (st.ytdlpOutdated) "Baru" else null, true, gold = true) {
         SettingsItem("yt-dlp (mesin cadangan)", ytdlpText(st) + if (st.ytdlpOutdated) ". Perbarui di Paket > Mesin cadangan." else "") {}
     }
-    BadgeOverlay(if (st.newpipeOutdated) "Baru" else null, true) {
+    BadgeOverlay(if (st.newpipeOutdated) "Baru" else null, true, gold = true) {
         SettingsItem("NewPipeExtractor (mesin pencarian)", newpipeText(st)) {}
     }
 
-    Category("Pembaruan otomatis")
+    // [PAKET-BRAND] subjudul Pembaruan tunggal
     SwitchRow(
         "Periksa pembaruan otomatis",
         "Maksimal sekali per 24 jam dan hanya saat Wi-Fi. Menyegarkan lencana paket Debian dan " +

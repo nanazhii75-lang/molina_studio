@@ -2785,3 +2785,12 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Belum dikompilasi: tunggu CI
 - [ ] Tahap 2: gabungkan cek versi (kartu Alat, Komponen bundel, dialog Daftar tool terpasang) menjadi satu, hapus InstalledToolsUi
 - [ ] Uji perangkat: Paket menampilkan pembaruan + apt + alat; Sistem tidak lagi memuat apt; lencana ubin Paket muncul saat ada pembaruan; pencarian "apt update" membuka Paket
+
+## 2026-10-31 - Branding halaman Paket: lencana emas + subjudul konsisten [PAKET-BRAND]
+- [x] feat(ui): W7Badge, BadgeOverlay, dan W7CategoryTile mendapat opsi gold (emas merek MolinaTheme.Gold, teks gelap). Semua lencana "pembaruan tersedia" (ubin Paket, apt, yt-dlp, NewPipe, komponen bundel) kini emas; lencana merah tetap untuk hal lain (mis. unduhan)
+- [x] refactor(ui): subjudul Paket konsisten: Pembaruan / Debian (apt) / Alat / Komponen bundel. Bagian Pembaruan memuat satu baris ringkasan ("N pembaruan tersedia" emas, "Belum pernah diperiksa", atau "Semua sudah terbaru")
+- [x] feat(ui): kartu Alat memakai titik status (hijau = terdeteksi, abu = belum atau tidak terdeteksi)
+- [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh
+- [ ] Belum dikompilasi: tunggu CI
+- [ ] Tahap 2 (belum): satukan cek versi (kartu Alat, Komponen bundel, dialog Daftar tool terpasang), hapus InstalledToolsUi
+- [ ] Uji perangkat: lencana emas terbaca jelas di tema hitam; ringkasan Pembaruan berubah setelah Periksa sekarang; titik hijau muncul setelah VERSI berhasil

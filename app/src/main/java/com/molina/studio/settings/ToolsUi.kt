@@ -12,9 +12,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -108,7 +111,7 @@ internal fun PackagesPage(
     )
     UpdateStatusSection()
     Category("Debian (apt)")
-    BadgeOverlay(if (aptPending > 0) aptPending.toString() else null, false) {
+    BadgeOverlay(if (aptPending > 0) aptPending.toString() else null, false, gold = true) {
         W7Link({ W7IconAptSync() }, "Periksa pembaruan paket", AptHistory.checkSubtitle(aptPending)) { onApt(AptJob.CheckUpdates) }
     }
     W7Link({ W7IconAptSync() }, "Perbarui dan tingkatkan paket", AptHistory.subtitle(aptLast)) { onApt(AptJob.UpdateUpgrade) }
@@ -116,10 +119,10 @@ internal fun PackagesPage(
     W7Link({ W7IconToolList() }, "Pasang paket Starter", "ca-certificates, python3, ffmpeg, openssh-client, vim sekali ketuk (apt resmi Debian)") { onApt(AptJob.InstallStarter) } // [TERM-STARTER1]
     W7Link({ W7IconToolList() }, "Daftar tool terpasang", "Deteksi alat Molina di Debian beserta versinya") { onShowTools() }
     Spacer(Modifier.height(12.dp))
-    Category("Bawaan Molina")
+    Category("Alat")
     remember { com.molina.studio.automation.AutoPrefs.init(ctx) }
     val autoSt by com.molina.studio.automation.AutoPrefs.state.collectAsState()
-    BadgeOverlay(if (autoSt.ytdlpOutdated) "Baru" else null, true) {
+    BadgeOverlay(if (autoSt.ytdlpOutdated) "Baru" else null, true, gold = true) {
         W7Link(
             { W7IconYtdlp() }, "Mesin cadangan (yt-dlp)",
             if (autoSt.ytdlpOutdated) "Pembaruan tersedia: ${autoSt.ytdlpInstalled} \u2192 ${autoSt.ytdlpLatest}"
@@ -163,7 +166,7 @@ internal fun PackagesPage(
     val bundleSt by com.molina.studio.automation.AutoPrefs.state.collectAsState()
     val bundleAll = remember { com.molina.core.common.BundledComponents.all(com.molina.engine.newpipe.NewPipeInfo.VERSION) }
     val bundleRep = remember { com.molina.core.common.BundledComponents.securityReport(bundleAll) }
-    BadgeOverlay(if (bundleSt.newpipeOutdated || bundleSt.ytdlpOutdated) "Baru" else null, true) {
+    BadgeOverlay(if (bundleSt.newpipeOutdated || bundleSt.ytdlpOutdated) "Baru" else null, true, gold = true) {
         W7Link(
             { BundleLinkIcon(bundleRep.requiredVerified) }, "Komponen bundel",
             "${bundleAll.size} komponen \u00b7 ${bundleRep.hashPinned} terverifikasi SHA-256 \u00b7 ringkasan keamanan",
@@ -340,6 +343,9 @@ private fun ToolCard(
             Modifier.fillMaxWidth().clickable(onClick = onToggle).padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            val detected = check?.text?.let { it.isNotBlank() && !it.startsWith("Tidak terdeteksi") } == true
+            Box(Modifier.size(9.dp).clip(CircleShape).background(if (detected) Color(0xFF4CAF50) else Color(0xFF8A8F98)))
+            Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f).padding(end = 8.dp)) {
                 Text(tool.name, color = W7D.Ink, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(sub, color = W7D.TextDim, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)

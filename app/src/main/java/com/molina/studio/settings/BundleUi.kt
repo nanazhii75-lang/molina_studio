@@ -339,7 +339,7 @@ internal fun BundledComponentsSection(
                     Text(sub, color = W7D.TextDim, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 if (update != null) {
-                    W7Badge("Baru", true)
+                    W7Badge("Baru", true, gold = true)
                     Spacer(Modifier.width(6.dp))
                 }
                 RolePill(c.role)

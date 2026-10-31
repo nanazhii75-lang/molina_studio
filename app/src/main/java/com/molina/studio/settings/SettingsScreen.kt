@@ -285,7 +285,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                             links = emptyList(),
                             selected = lastTile == Page.Packages,
                             badge = updateCount(autoSt, aptPending).let { if (it > 0) it.toString() else null },
-                            badgeAero = true,
+                            badgeGold = true,
                             onOpen = { lastTile = Page.Packages; open(Page.Packages) }
                         )
                         W7CategoryTile(
