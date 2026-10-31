@@ -108,7 +108,7 @@ fun main() {
     d.push("""{"v":1,"ev":"hello","script":"molina_dl","version":3}""" + "\n", false)
     d.push("Traceback (most recent call last):\nValueError: rusak\n", true)
     d.finish(false, 2, null)
-    check("proses mati: galat global memuat kode dan baris stderr terakhir", d.state.session.fatalError == "Skrip berhenti (kode 2): ValueError: rusak" && d.state.exitCode == 2)
+    check("proses mati: galat global memuat kode dan baris stderr terakhir", d.state.session.fatalError == DownloadErrorText.STOPPED && d.state.session.fatalRaw == "proses berhenti (kode 2): ValueError: rusak" && d.state.exitCode == 2)
 
     val e = DownloadFeed()
     e.finish(false, -1, "Debian belum terpasang.")

@@ -14,7 +14,9 @@ import com.molina.core.common.DownloadItemStatus
 import com.molina.core.common.DownloadMaintenance
 import com.molina.core.common.DownloadRequest
 import com.molina.core.common.DownloadRunState
+import com.molina.core.common.DownloadSessionState
 import com.molina.core.common.LogLevel
+import com.molina.core.common.LogRedact
 import com.molina.core.common.MaintenanceKind
 import com.molina.studio.cinema.SeenStore
 import com.molina.studio.code.ProotScriptExecutor
@@ -46,6 +48,19 @@ internal object DownloadRunner {
     @Volatile private var maint: MaintenanceKind? = null
 
     fun maintenanceKind(): MaintenanceKind? = maint
+
+    /** Detail teknis (pesan mentah yt-dlp, stderr) hanya ke Log; layar pengguna memakai teks ramah. */
+    private fun logFailures(s: DownloadSessionState, tail: List<String>) {
+        s.items.filter { it.status == DownloadItemStatus.FAILED && !it.errorRaw.isNullOrBlank() }.forEach {
+            AppLog.log("sistem", LogLevel.Warn, "Unduhan", "item ${it.index} gagal [${it.errorCode}]: ${LogRedact.text(it.errorRaw.orEmpty())}")
+        }
+        s.fatalRaw?.takeIf { it.isNotBlank() }?.let {
+            AppLog.log("sistem", LogLevel.Warn, "Unduhan", "galat global: ${LogRedact.text(it)}")
+        }
+        if (tail.isNotEmpty() && (s.fatalError != null || s.failed > 0)) {
+            AppLog.log("sistem", LogLevel.Debug, "Unduhan", "stderr: " + tail.takeLast(5).joinToString(" | "))
+        }
+    }
 
     fun isRunning(): Boolean = _state.value.running
 
@@ -105,6 +120,7 @@ internal object DownloadRunner {
                     f.state
                 }
                 val s = done.session
+                logFailures(s, done.stderrTail)
                 val secs = (System.nanoTime() - t0) / 1_000_000_000L
                 val level = if (result.startError != null || s.fatalError != null) LogLevel.Warn else LogLevel.Info
                 AppLog.log(
@@ -168,6 +184,7 @@ internal object DownloadRunner {
                     f.state
                 }
                 val s = done.session
+                logFailures(s, done.stderrTail)
                 val secs = (System.nanoTime() - t0) / 1_000_000_000L
                 val bad = result.startError != null || s.fatalError != null
                 AppLog.log(

@@ -65,7 +65,7 @@ import time
 import unicodedata
 
 SCRIPT_NAME = "molina_dl"
-SCRIPT_VERSION = 8
+SCRIPT_VERSION = 9
 PROTOCOL = 1
 
 URL_RE = re.compile(r"^https?://[^\s/$.?#][^\s]*$", re.IGNORECASE)
@@ -481,21 +481,80 @@ def free_space_low(path):
         return False
 
 
+# ---------------------------------------------------------------- sertifikat SSL
+
+CA_BUNDLE = "/etc/ssl/certs/ca-certificates.crt"
+CA_MIN_BYTES = 10000
+SSL_MARKERS = ("certificate_verify_failed", "certificate verify failed", "local issuer certificate",
+               "self-signed certificate", "self signed certificate")
+_ca_repair_tried = False
+
+
+def is_ssl_error(msg):
+    low = (msg or "").lower()
+    return any(k in low for k in SSL_MARKERS)
+
+
+def ca_bundle_ok():
+    try:
+        return os.path.getsize(CA_BUNDLE) >= CA_MIN_BYTES
+    except OSError:
+        return False
+
+
+def apply_ca_env():
+    """Arahkan Python/yt-dlp ke bundel CA sistem bila ada (aman dipanggil berulang)."""
+    if ca_bundle_ok():
+        os.environ.setdefault("SSL_CERT_FILE", CA_BUNDLE)
+        os.environ.setdefault("REQUESTS_CA_BUNDLE", CA_BUNDLE)
+
+
+def repair_ca():
+    """Pasang ulang ca-certificates + segarkan bundel, sekali per proses. True bila bundel CA sehat sesudahnya."""
+    global _ca_repair_tried
+    if _ca_repair_tried:
+        return False
+    _ca_repair_tried = True
+    env = dict(os.environ, DEBIAN_FRONTEND="noninteractive")
+    steps = []
+    if shutil.which("apt-get"):
+        steps.append((["apt-get", "update"], 180))
+        steps.append((["apt-get", "install", "-y", "--no-install-recommends", "--reinstall", "ca-certificates"], 300))
+    if shutil.which("update-ca-certificates"):
+        steps.append((["update-ca-certificates", "--fresh"], 120))
+    for cmd, limit in steps:
+        try:
+            subprocess.run(cmd, capture_output=True, text=True, errors="replace", timeout=limit,
+                           stdin=subprocess.DEVNULL, env=env)
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+    apply_ca_env()
+    return ca_bundle_ok()
+
+
 # ---------------------------------------------------------------- yt-dlp
 
-def fetch_info(ytdlp, url):
-    """Metadata video. Mengembalikan (info, None) atau (None, (kode, pesan)). Sekaligus memvalidasi URL."""
-    try:
-        res = subprocess.run(
-            ytdlp + ["-J", "--no-playlist", "--no-warnings", url],
-            capture_output=True, text=True, timeout=90, stdin=subprocess.DEVNULL,
-        )
-    except subprocess.TimeoutExpired:
-        return None, ("timeout", "Waktu habis saat mengambil info. Periksa koneksi internet.")
+def fetch_info(ytdlp, url, rep=None):
+    """Metadata video. Mengembalikan (info, None) atau (None, (kode, pesan)). Sekaligus memvalidasi URL.
+    Galat sertifikat SSL: bundel CA diperbaiki otomatis sekali lalu dicoba ulang."""
+    for attempt in (0, 1):
+        try:
+            res = subprocess.run(
+                ytdlp + ["-J", "--no-playlist", "--no-warnings", url],
+                capture_output=True, text=True, timeout=90, stdin=subprocess.DEVNULL,
+            )
+        except subprocess.TimeoutExpired:
+            return None, ("timeout", "Waktu habis saat mengambil info. Periksa koneksi internet.")
+        if res.returncode != 0 and attempt == 0 and is_ssl_error(res.stderr) and repair_ca():
+            if rep is not None:
+                rep.warn("ssl_repair", "Sertifikat keamanan diperbaiki otomatis. Mencoba lagi...")
+            continue
+        break
     if res.returncode != 0:
         lines = [ln for ln in res.stderr.strip().splitlines() if ln.strip()]
         reason = lines[-1] if lines else "URL tidak didukung atau koneksi bermasalah."
-        return None, ("info_failed", reason.replace("ERROR: ", ""))
+        code = "ssl_cert" if is_ssl_error(res.stderr) else "info_failed"
+        return None, (code, reason.replace("ERROR: ", ""))
     try:
         info = json.loads(res.stdout)
     except json.JSONDecodeError:
@@ -583,6 +642,8 @@ def classify_error(msg):
     low = msg.lower()
     if "no space" in low:
         return "no_space"
+    if is_ssl_error(low):
+        return "ssl_cert"
     if "http error 429" in low or "too many requests" in low:
         return "rate_limited"
     if any(k in low for k in ("timed out", "temporary failure", "network", "connection", "unable to download")):
@@ -609,13 +670,13 @@ def terminate(proc):
         proc.wait()
 
 
-def run_item(ytdlp, rep, i, n, url, spec, outdir, has_ffmpeg, info=None, _retry=False):
+def run_item(ytdlp, rep, i, n, url, spec, outdir, has_ffmpeg, info=None, _retry=False, _ssl=False):
     """Unduh satu URL. Mengembalikan 'ok' | 'failed' | 'cancelled'.
     _retry=True: percobaan ulang tanpa subtitle (item/info sudah diumumkan, tidak diumumkan dua kali)."""
-    if not _retry:
+    if not _retry and not _ssl:
         rep.item(i, n, url)
         if info is None:
-            info, err = fetch_info(ytdlp, url)
+            info, err = fetch_info(ytdlp, url, rep)
             if err:
                 rep.error(i, err[0], err[1])
                 return "failed"
@@ -680,6 +741,9 @@ def run_item(ytdlp, rep, i, n, url, spec, outdir, has_ffmpeg, info=None, _retry=
 
     if rc != 0:
         msg = last_err or f"yt-dlp berhenti dengan kode {rc}. Periksa koneksi atau perbarui yt-dlp."
+        if not _ssl and is_ssl_error(msg) and repair_ca():
+            rep.warn("ssl_repair", "Sertifikat keamanan diperbaiki otomatis. Mencoba lagi...")
+            return run_item(ytdlp, rep, i, n, url, spec, outdir, has_ffmpeg, info, _retry=_retry, _ssl=True)
         if not _retry and spec["mode"] == "video" and spec.get("subs") and is_subs_error(msg):
             # yt-dlp terbaru menganggap kegagalan subtitle sebagai error fatal (ignoreerrors tidak True).
             # Subtitle diunduh SEBELUM video, jadi video belum ada: ulangi tanpa subtitle agar unduhan tetap jadi.
@@ -1322,6 +1386,7 @@ def main(argv=None):
         print(f"molina_dl {SCRIPT_VERSION} (protokol {PROTOCOL})")
         return 0
     signal.signal(signal.SIGTERM, raise_interrupt)
+    apply_ca_env()
     urls = args.url + args.urls
     ytdlp = find_ytdlp()
     if args.doctor or args.update_ytdlp:

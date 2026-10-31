@@ -22,6 +22,8 @@ data class DownloadItemState(
     val existed: Boolean = false,
     val errorCode: String? = null,
     val errorMsg: String? = null,
+    /** Pesan mentah (teknis) untuk Log saja; JANGAN ditampilkan ke pengguna. */
+    val errorRaw: String? = null,
 )
 
 /** Keadaan satu sesi unduhan untuk UI. [fatalError] = galat global (mis. yt-dlp tidak terpasang). */
@@ -29,6 +31,8 @@ data class DownloadSessionState(
     val items: List<DownloadItemState> = emptyList(),
     val warnings: List<String> = emptyList(),
     val fatalError: String? = null,
+    /** Pesan mentah galat global untuk Log saja; JANGAN ditampilkan ke pengguna. */
+    val fatalRaw: String? = null,
     val finished: Boolean = false,
     val ok: Int = 0,
     val failed: Int = 0,
@@ -46,7 +50,7 @@ object DownloadReducer {
         is DownloadEvent.Queue -> s.copy(items = List(e.total.coerceIn(0, MAX_ITEMS)) { DownloadItemState(it + 1) })
         is DownloadEvent.Item -> s.update(e.index) {
             it.copy(url = e.url, status = DownloadItemStatus.RUNNING, streams = emptyMap(), stage = null,
-                errorCode = null, errorMsg = null)
+                errorCode = null, errorMsg = null, errorRaw = null)
         }
         is DownloadEvent.Info -> s.update(e.index) { it.copy(title = e.title ?: it.title, thumbnail = e.thumbnail ?: it.thumbnail) }
         is DownloadEvent.Progress -> s.update(e.index) {
@@ -59,9 +63,14 @@ object DownloadReducer {
         is DownloadEvent.Done -> s.update(e.index) {
             it.copy(status = DownloadItemStatus.DONE, stage = null, files = e.files, existed = e.existed)
         }
-        is DownloadEvent.Error ->
-            if (e.index <= 0) s.copy(fatalError = e.msg)
-            else s.update(e.index) { it.copy(status = DownloadItemStatus.FAILED, errorCode = e.code, errorMsg = e.msg) }
+        is DownloadEvent.Error -> {
+            val shown = DownloadErrorText.friendly(e.code, e.msg)
+            val raw = e.msg.take(400)
+            if (e.index <= 0) s.copy(fatalError = shown, fatalRaw = raw)
+            else s.update(e.index) {
+                it.copy(status = DownloadItemStatus.FAILED, errorCode = e.code, errorMsg = shown, errorRaw = raw)
+            }
+        }
         is DownloadEvent.Summary -> s.copy(finished = true, ok = e.ok, failed = e.failed, cancelled = e.cancelled)
         is DownloadEvent.Doctor -> s.copy(doctor = e)
         is DownloadEvent.Update -> s.copy(update = e)

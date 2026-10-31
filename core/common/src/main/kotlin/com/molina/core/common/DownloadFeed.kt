@@ -85,26 +85,34 @@ class DownloadFeed {
             stderrTail: List<String>,
         ): DownloadSessionState {
             if (s.finished) return s
+            val rawStop = "proses berhenti (kode $exitCode)" + (stderrTail.lastOrNull()?.let { ": $it" } ?: "")
             val reason = when {
                 cancelled -> "Dibatalkan."
                 startError != null -> startError
-                else -> "Proses berhenti (kode $exitCode)."
+                else -> DownloadErrorText.STOPPED
             }
             val code = if (cancelled) "cancelled" else "aborted"
             val items = s.items.map {
                 if (it.status == DownloadItemStatus.RUNNING || it.status == DownloadItemStatus.PROCESSING) {
-                    it.copy(status = DownloadItemStatus.FAILED, stage = null, errorCode = code, errorMsg = reason)
+                    it.copy(status = DownloadItemStatus.FAILED, stage = null, errorCode = code, errorMsg = reason, errorRaw = rawStop)
                 } else it
             }
             val fatal = s.fatalError ?: when {
                 cancelled -> null
                 startError != null -> startError
-                exitCode != 0 -> "Skrip berhenti (kode $exitCode)" + (stderrTail.lastOrNull()?.let { ": $it" } ?: "")
+                exitCode != 0 -> DownloadErrorText.STOPPED
+                else -> null
+            }
+            val fatalRaw = s.fatalRaw ?: when {
+                cancelled -> null
+                startError != null -> startError
+                exitCode != 0 -> rawStop
                 else -> null
             }
             return s.copy(
                 items = items,
                 fatalError = fatal,
+                fatalRaw = fatalRaw,
                 finished = true,
                 ok = items.count { it.status == DownloadItemStatus.DONE },
                 failed = items.count { it.status == DownloadItemStatus.FAILED },

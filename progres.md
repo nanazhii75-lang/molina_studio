@@ -2747,3 +2747,11 @@ Ide pembeda: chip status CI GitHub Actions + `molina ci` (token di Keystore); pr
 - [ ] Belum dikompilasi: tunggu CI (impor baru di TvBrowser, LaunchedEffect penuh-kualifikasi di MainActivity)
 - [ ] Belum diuji di perangkat: buka Mode TV > tidak crash; paksa error (mis. rusak FolderName sementara) > Mode TV tetap tampil tanpa tombol Rapikan; crash di pemutar menampilkan Mode: Player (mpv)
 - [ ] Belum ada tes JVM untuk CrashContext.describe (kotlinc tidak tersedia saat patch ditulis)
+
+## 2026-10-31 - Unduhan: perbaikan otomatis sertifikat SSL + pesan galat ramah [DL-SSL-FIX]
+- [x] fix(dl): molina_dl.py v9: galat CERTIFICATE_VERIFY_FAILED (unable to get local issuer certificate) memicu perbaikan otomatis SEKALI per proses (apt-get update, install --reinstall ca-certificates, update-ca-certificates --fresh), lalu fetch_info/unduhan dicoba ulang; SSL_CERT_FILE/REQUESTS_CA_BUNDLE diarahkan ke bundel CA sistem. Kode galat baru: ssl_cert; peringatan ssl_repair
+- [x] feat(core): DownloadErrorText memetakan kode+pesan mentah ke teks Indonesia ramah; DownloadItemState.errorRaw dan DownloadSessionState.fatalRaw menyimpan pesan mentah, DownloadRunner.logFailures mengirimnya (disamarkan LogRedact) ke Log sumber "sistem" tag "Unduhan"
+- [x] Layar Unduhan tidak lagi menampilkan stderr mentah maupun "Skrip berhenti (kode N)"; detail teknis hanya di Log
+- [x] Dampak: Gradle, AndroidManifest, JNI mpv TIDAK disentuh; tanpa dependensi baru. Skrip uji (run*.sh) menambah DownloadErrorText.kt
+- [ ] Belum dikompilasi: tunggu CI (DownloadRunner, UnduhanScreen)
+- [ ] Belum diuji di perangkat: unduh YouTube setelah update Debian > tidak error SSL (atau muncul peringatan perbaikan lalu sukses); matikan jaringan > pesan ramah, detail ada di Log

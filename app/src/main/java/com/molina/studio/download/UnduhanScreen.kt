@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.LaunchedEffect
 import com.molina.core.common.DownloadChoices
+import com.molina.core.common.DownloadErrorText
 import com.molina.core.common.DownloadCommand
 import com.molina.core.common.DownloadFormat
 import com.molina.core.common.DownloadPaths
@@ -370,9 +371,7 @@ fun UnduhanScreen(modifier: Modifier = Modifier) {
             }
             sess.fatalError?.let { fe -> item { Text(fe, color = MolinaTheme.Bad, fontSize = 13.sp) } }
             if (sess.fatalError == null && !sess.finished && !run.running && run.exitCode != null && run.exitCode != 0) {
-                items(run.stderrTail.takeLast(5)) { l ->
-                    Text(l, color = W7D.TextDim, fontSize = 11.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                }
+                item { Text(DownloadErrorText.STOPPED, color = MolinaTheme.Bad, fontSize = 13.sp) }
             }
             items(sess.warnings.takeLast(3)) { w -> Text(w, color = MolinaTheme.Warn, fontSize = 12.sp) }
             items(sess.items, key = { it.index }) { item ->

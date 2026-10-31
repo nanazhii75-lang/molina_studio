@@ -797,5 +797,44 @@ class IntegrationTests(unittest.TestCase):
         self.assertFalse([n for n in os.listdir(d) if n.endswith(".info.json")])
 
 
+class SslRepairTests(unittest.TestCase):
+    SSL_ERR = ("ERROR: [youtube] x: Unable to download API page: [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: "
+               "unable to get local issuer certificate (_ssl.c:1029)")
+
+    class R:
+        def __init__(self, rc, out, err):
+            self.returncode, self.stdout, self.stderr = rc, out, err
+
+    def run_fetch(self, results, repair):
+        calls = []
+        real_run, real_repair = dl.subprocess.run, dl.repair_ca
+        dl.subprocess.run = lambda *a, **k: (calls.append(1), results.pop(0))[1]
+        dl.repair_ca = lambda: repair
+        try:
+            return dl.fetch_info(["yt-dlp"], "https://x.test/v"), len(calls)
+        finally:
+            dl.subprocess.run, dl.repair_ca = real_run, real_repair
+
+    def test_detect(self):
+        self.assertTrue(dl.is_ssl_error(self.SSL_ERR))
+        self.assertFalse(dl.is_ssl_error("ERROR: HTTP Error 404: Not Found"))
+
+    def test_classify(self):
+        self.assertEqual(dl.classify_error(self.SSL_ERR), "ssl_cert")
+        self.assertEqual(dl.classify_error("Connection reset by peer"), "network")
+
+    def test_fetch_info_repairs_then_retries(self):
+        (info, err), n = self.run_fetch([self.R(1, "", self.SSL_ERR), self.R(0, '{"id": "a", "title": "t"}', "")], True)
+        self.assertIsNone(err)
+        self.assertEqual(info["id"], "a")
+        self.assertEqual(n, 2)
+
+    def test_fetch_info_reports_ssl_code_when_repair_fails(self):
+        (info, err), n = self.run_fetch([self.R(1, "", self.SSL_ERR)], False)
+        self.assertIsNone(info)
+        self.assertEqual(err[0], "ssl_cert")
+        self.assertEqual(n, 1)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
